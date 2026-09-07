@@ -24,32 +24,92 @@ function faceRotation(face: number): [number, number, number] {
   }
 }
 
-function makeDieMaterials(THREE: typeof import("three"), color: number) {
+/** Classic pip layouts in a 3×3 grid (1 = pip present). */
+const PIP_LAYOUTS: Record<number, number[][]> = {
+  1: [
+    [0, 0, 0],
+    [0, 1, 0],
+    [0, 0, 0],
+  ],
+  2: [
+    [1, 0, 0],
+    [0, 0, 0],
+    [0, 0, 1],
+  ],
+  3: [
+    [1, 0, 0],
+    [0, 1, 0],
+    [0, 0, 1],
+  ],
+  4: [
+    [1, 0, 1],
+    [0, 0, 0],
+    [1, 0, 1],
+  ],
+  5: [
+    [1, 0, 1],
+    [0, 1, 0],
+    [1, 0, 1],
+  ],
+  6: [
+    [1, 0, 1],
+    [1, 0, 1],
+    [1, 0, 1],
+  ],
+};
+
+function drawPipFace(
+  ctx: CanvasRenderingContext2D,
+  n: number,
+  size: number,
+  faceColor: string,
+) {
+  ctx.fillStyle = faceColor;
+  ctx.fillRect(0, 0, size, size);
+  // Soft inset border
+  ctx.strokeStyle = "rgba(35,72,62,0.28)";
+  ctx.lineWidth = size * 0.045;
+  ctx.strokeRect(size * 0.04, size * 0.04, size * 0.92, size * 0.92);
+
+  const layout = PIP_LAYOUTS[n] ?? PIP_LAYOUTS[1]!;
+  const margin = size * 0.2;
+  const cell = (size - margin * 2) / 2;
+  const pipR = size * 0.085;
+  ctx.fillStyle = "#23483E";
+  for (let r = 0; r < 3; r++) {
+    for (let c = 0; c < 3; c++) {
+      if (!layout[r]![c]) continue;
+      const x = margin + (c === 0 ? 0 : c === 1 ? cell : cell * 2);
+      const y = margin + (r === 0 ? 0 : r === 1 ? cell : cell * 2);
+      ctx.beginPath();
+      ctx.arc(x, y, pipR, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+
+function makeDieMaterials(
+  THREE: typeof import("three"),
+  tint: number,
+  faceColor: string,
+) {
   const materials = [];
+  // BoxGeometry material order: +x, -x, +y, -y, +z, -z
   const faceNums = [3, 4, 5, 2, 1, 6];
   for (const n of faceNums) {
     const canvas = document.createElement("canvas");
-    canvas.width = 128;
-    canvas.height = 128;
+    canvas.width = 256;
+    canvas.height = 256;
     const ctx = canvas.getContext("2d")!;
-    ctx.fillStyle = n % 2 === 0 ? "#F5F0E7" : "#ffffff";
-    ctx.fillRect(0, 0, 128, 128);
-    ctx.strokeStyle = "#23483E";
-    ctx.lineWidth = 6;
-    ctx.strokeRect(4, 4, 120, 120);
-    // Pip-style digits
-    ctx.fillStyle = "#23483E";
-    ctx.font = "bold 64px sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(String(n), 64, 68);
+    drawPipFace(ctx, n, 256, faceColor);
     const tex = new THREE.CanvasTexture(canvas);
+    tex.anisotropy = 4;
     materials.push(
       new THREE.MeshStandardMaterial({
         map: tex,
-        color,
-        roughness: 0.45,
-        metalness: 0.05,
+        color: tint,
+        roughness: 0.38,
+        metalness: 0.04,
       }),
     );
   }
@@ -74,6 +134,7 @@ export function DiceScene({
   const [muted, setMuted] = useState(false);
   const [webglFailed, setWebglFailed] = useState(false);
   const lastRollId = useRef<string | null>(null);
+  const lastClackSlot = useRef(-1);
 
   useEffect(() => {
     if (!mountRef.current || reducedMotion || webglFailed) return;
@@ -93,13 +154,13 @@ export function DiceScene({
       if (dead || !mountRef.current) return;
 
       const width = mountRef.current.clientWidth || 320;
-      const height = 220;
+      const height = 240;
       const scene = new THREE.Scene();
       scene.background = new THREE.Color("#E8F5EF");
 
-      const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
-      camera.position.set(0, 3.2, 6.2);
-      camera.lookAt(0, 0.4, 0);
+      const camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 100);
+      camera.position.set(0, 3.4, 6.4);
+      camera.lookAt(0, 0.45, 0);
 
       try {
         renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
@@ -109,39 +170,68 @@ export function DiceScene({
       }
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       renderer.setSize(width, height);
+      renderer.shadowMap.enabled = true;
       mountRef.current.innerHTML = "";
       mountRef.current.appendChild(renderer.domElement);
 
-      const hemi = new THREE.HemisphereLight(0xffffff, 0xa7d7c2, 1.1);
+      const hemi = new THREE.HemisphereLight(0xffffff, 0xa7d7c2, 1.05);
       scene.add(hemi);
-      const dir = new THREE.DirectionalLight(0xfff2d8, 0.85);
-      dir.position.set(4, 8, 2);
+      const dir = new THREE.DirectionalLight(0xfff2d8, 0.95);
+      dir.position.set(4, 9, 3);
+      dir.castShadow = true;
       scene.add(dir);
 
       const ground = new THREE.Mesh(
-        new THREE.CircleGeometry(4, 48),
+        new THREE.CircleGeometry(4.2, 64),
         new THREE.MeshStandardMaterial({
           color: 0xa7d7c2,
-          roughness: 0.9,
+          roughness: 0.92,
         }),
       );
       ground.rotation.x = -Math.PI / 2;
+      ground.receiveShadow = true;
       scene.add(ground);
 
-      const geo = new THREE.BoxGeometry(1, 1, 1);
-      const matsA = makeDieMaterials(THREE, 0xe76f4e);
-      const matsB = makeDieMaterials(THREE, 0xf4c95b);
+      const geo = new THREE.BoxGeometry(1.05, 1.05, 1.05, 1, 1, 1);
+      const matsA = makeDieMaterials(THREE, 0xffffff, "#FFE8DF");
+      const matsB = makeDieMaterials(THREE, 0xffffff, "#FFF4D6");
+      // Tint via emissive rim: coral / yellow edge feel with colored wire rim
+      const rimA = new THREE.Mesh(
+        geo,
+        new THREE.MeshBasicMaterial({
+          color: 0xe76f4e,
+          wireframe: true,
+          transparent: true,
+          opacity: 0.22,
+        }),
+      );
+      const rimB = new THREE.Mesh(
+        geo,
+        new THREE.MeshBasicMaterial({
+          color: 0xf4c95b,
+          wireframe: true,
+          transparent: true,
+          opacity: 0.22,
+        }),
+      );
       const dieA = new THREE.Mesh(geo, matsA);
       const dieB = new THREE.Mesh(geo, matsB);
-      dieA.position.set(-1.1, 0.55, 0);
-      dieB.position.set(1.1, 0.55, 0);
+      dieA.castShadow = true;
+      dieB.castShadow = true;
+      dieA.position.set(-1.15, 0.55, 0);
+      dieB.position.set(1.15, 0.55, 0);
+      rimA.scale.setScalar(1.02);
+      rimB.scale.setScalar(1.02);
+      dieA.add(rimA);
+      dieB.add(rimB);
       scene.add(dieA, dieB);
 
       const playClack = (seed: number, t: number) => {
         if (!isHost || muted) return;
-        // Deterministic clack windows from seed — not Math.random
-        const slot = Math.floor(t * 8);
-        if ((seed + slot * 17) % 5 !== 0) return;
+        const slot = Math.floor(t * 10);
+        if (slot === lastClackSlot.current) return;
+        if ((seed + slot * 17) % 4 !== 0) return;
+        lastClackSlot.current = slot;
         try {
           const ctx =
             audioRef.current ??
@@ -152,13 +242,13 @@ export function DiceScene({
           const o = ctx.createOscillator();
           const g = ctx.createGain();
           o.type = "triangle";
-          o.frequency.value = 160 + (seed % 40);
-          g.gain.value = 0.035;
+          o.frequency.value = 140 + (seed % 50) + slot * 3;
+          g.gain.value = 0.04;
           o.connect(g);
           g.connect(ctx.destination);
           o.start();
-          g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.1);
-          o.stop(ctx.currentTime + 0.11);
+          g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.08);
+          o.stop(ctx.currentTime + 0.09);
         } catch {
           /* ignore */
         }
@@ -169,8 +259,8 @@ export function DiceScene({
         const r2 = faceRotation(d2);
         dieA.rotation.set(r1[0], r1[1], r1[2]);
         dieB.rotation.set(r2[0], r2[1], r2[2]);
-        dieA.position.set(-1.1, 0.55, 0);
-        dieB.position.set(1.1, 0.55, 0);
+        dieA.position.set(-1.15, 0.55, 0);
+        dieB.position.set(1.15, 0.55, 0);
       };
 
       const disposeMats = (mats: import("three").MeshStandardMaterial[]) => {
@@ -196,7 +286,7 @@ export function DiceScene({
             dieB.rotation.set(b.rx, b.ry, b.rz);
             dieA.position.set(a.x, a.y, 0);
             dieB.position.set(b.x, b.y, 0);
-            if (t > 0.12 && t < 0.85) playClack(current.animSeed, t);
+            if (t > 0.08 && t < 0.88) playClack(current.animSeed, t);
           } else if (
             current.revealed &&
             current.d1 != null &&
@@ -204,14 +294,13 @@ export function DiceScene({
           ) {
             applyFaces(current.d1, current.d2);
           } else if (t >= 1 && !current.revealed) {
-            // Waiting for server reveal — keep a gentle idle spin from seed
-            const idle = tumblePose(0.92, current.animSeed, 0);
-            dieA.rotation.set(idle.rx, idle.ry, idle.rz);
-            dieB.rotation.set(
-              tumblePose(0.92, current.animSeed, 1).rx,
-              tumblePose(0.92, current.animSeed, 1).ry,
-              tumblePose(0.92, current.animSeed, 1).rz,
-            );
+            // Waiting for server reveal — hold near-settle pose, never show faces
+            const idleA = tumblePose(0.94, current.animSeed, 0);
+            const idleB = tumblePose(0.94, current.animSeed, 1);
+            dieA.rotation.set(idleA.rx, idleA.ry, idleA.rz);
+            dieB.rotation.set(idleB.rx, idleB.ry, idleB.rz);
+            dieA.position.set(idleA.x, idleA.y, 0);
+            dieB.position.set(idleB.x, idleB.y, 0);
           }
         }
         renderer!.render(scene, camera);
@@ -222,7 +311,6 @@ export function DiceScene({
       (mountRef.current as HTMLDivElement & {
         __setDice?: (b: PublicDiceBroadcast) => void;
       }).__setDice = (b) => {
-        // Avoid replaying animation on unrelated state updates
         if (lastRollId.current === b.rollId && current?.revealed === b.revealed) {
           current = b;
           return;
@@ -231,11 +319,11 @@ export function DiceScene({
         lastRollId.current = b.rollId;
         current = b;
         if (isNew && !b.revealed) {
-          dieA.position.set(-1.1, 1.8, 0);
-          dieB.position.set(1.1, 2.1, 0);
+          lastClackSlot.current = -1;
+          dieA.position.set(-1.15, 2.0, 0);
+          dieB.position.set(1.15, 2.25, 0);
         }
         if (b.revealed && b.d1 != null && b.d2 != null) {
-          // Reconnect mid/post settle: show settled faces
           const now = Date.now();
           if (now >= b.animSettleAt || reducedMotion) {
             applyFaces(b.d1, b.d2);
@@ -266,7 +354,6 @@ export function DiceScene({
         renderer.domElement.remove();
       }
     };
-    // Scene boot once per motion/host preference; rolls sync via second effect
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reducedMotion, isHost, muted, webglFailed]);
 
@@ -282,7 +369,7 @@ export function DiceScene({
     return (
       <div
         ref={mountRef}
-        className="panel flex h-[220px] items-center justify-center text-sm text-[var(--muted)]"
+        className="panel flex h-[240px] items-center justify-center text-sm text-[var(--muted)]"
       >
         Waiting for a roll…
       </div>
@@ -291,7 +378,7 @@ export function DiceScene({
 
   if (reducedMotion || webglFailed) {
     return (
-      <div className="panel relative flex h-[220px] flex-col items-center justify-center gap-2">
+      <div className="panel relative flex h-[240px] flex-col items-center justify-center gap-2">
         <p className="text-xs font-bold uppercase text-[var(--muted)]">
           {webglFailed ? "3D unavailable" : "Reduced motion"}
         </p>
@@ -311,11 +398,11 @@ export function DiceScene({
       <div
         ref={mountRef}
         className="overflow-hidden rounded-[1.1rem] border-[1.5px] border-[rgba(35,72,62,0.1)]"
-        style={{ height: 220 }}
+        style={{ height: 240 }}
       />
       <button
         type="button"
-        className="absolute right-2 top-2 rounded-full bg-white/80 px-2 py-1 text-[10px] font-bold uppercase"
+        className="absolute right-2 top-2 rounded-lg bg-white/85 px-2 py-1 text-[10px] font-bold uppercase"
         onClick={() => setMuted((m) => !m)}
       >
         {muted ? "Sound off" : "Sound"}

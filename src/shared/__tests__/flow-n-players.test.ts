@@ -120,7 +120,7 @@ function reveal(state: RoomState) {
   state.diceSubphase = "SETTLED";
 }
 
-describe.each([3, 6, 10])("full-ish flow N=%i", (n) => {
+describe.each([2, 3, 6, 10])("full-ish flow N=%i", (n) => {
   it("waiting banks during cooldown + dangerous roll + privacy", () => {
     const state = seedDiceRoom(n);
     state.diceSubphase = "COOLDOWN";

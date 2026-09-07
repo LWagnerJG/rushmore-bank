@@ -16,11 +16,8 @@ export function ScorePanel({
   return (
     <div className="space-y-4">
       <h2 className="font-[family-name:var(--font-display)] text-xl font-extrabold">
-        Scores
+        This round
       </h2>
-      <p className="text-xs text-[var(--muted)]">
-        Earned = {RULES.scoreBase} + AI (0–40) + {RULES.stonesPerHumanVote}×votes
-      </p>
       {state.judgeNotice && (
         <p className="panel text-sm font-semibold text-[var(--coral)]">
           {state.judgeNotice}
@@ -32,13 +29,13 @@ export function ScorePanel({
           <div key={s.playerId} className="panel space-y-1">
             <div className="flex justify-between font-extrabold">
               <span>{p?.name}</span>
-              <span className="text-[var(--coral)]">+{s.earned}◆</span>
+              <span className="text-[var(--coral)]">
+                +{s.earned} {RULES.currencyName}
+              </span>
             </div>
             <p className="text-xs text-[var(--muted)]">
-              votes {s.votes} · AI {s.aiAward}
-              {s.aiFallback ? " · Judge unavailable · neutral award" : ""} · fit{" "}
-              {s.topicFit} / strength {s.pickStrength} / quality{" "}
-              {s.rosterQuality}
+              {s.votes} vote{s.votes === 1 ? "" : "s"} · AI {s.aiAward}
+              {s.aiFallback ? " · neutral" : ""}
             </p>
             <p className="text-sm">{s.explanation}</p>
           </div>
@@ -51,14 +48,14 @@ export function ScorePanel({
             className="btn-primary flex-1"
             onClick={() => send({ type: "advance" })}
           >
-            Continue to wager
+            Continue
           </button>
           <button
             type="button"
             className="btn-secondary"
             onClick={() => send({ type: "void_topic" })}
           >
-            Void topic
+            Void
           </button>
         </div>
       )}

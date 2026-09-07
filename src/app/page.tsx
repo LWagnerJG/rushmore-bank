@@ -3,25 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { BrandMark } from "@/components/BrandMark";
 import { normalizeRoomCode, randomRoomCode } from "@/shared/types";
 import { RULES } from "@/shared/rules";
-
-function BrandMark() {
-  return (
-    <div className="flex items-center gap-2" aria-label="Quarry">
-      <div className="flex gap-1">
-        {[1, 2, 3, 4].map((n) => (
-          <span key={n} className="stone-tile">
-            {n}
-          </span>
-        ))}
-      </div>
-      <span className="font-[family-name:var(--font-display)] text-2xl font-extrabold tracking-tight brand-shimmer">
-        {RULES.displayName}
-      </span>
-    </div>
-  );
-}
 
 export default function HomePage() {
   const router = useRouter();
@@ -51,14 +35,14 @@ export default function HomePage() {
       <div className="animate-rise flex flex-1 flex-col justify-center gap-8">
         <header className="space-y-3 text-center">
           <div className="flex justify-center">
-            <BrandMark />
+            <BrandMark large />
           </div>
           <p className="text-lg font-semibold text-[var(--muted)]">
             {RULES.tagline}
           </p>
           <p className="text-sm text-[var(--muted)]">
-            3–10 friends. Phones as controllers. Currency:{" "}
-            <strong>Stones</strong>.
+            {RULES.minPlayers}–{RULES.maxPlayers} players · phones as
+            controllers
           </p>
         </header>
 
@@ -83,23 +67,32 @@ export default function HomePage() {
               onChange={(e) => setCode(e.target.value.toUpperCase())}
               onKeyDown={(e) => e.key === "Enter" && join()}
             />
-            <button type="button" className="btn-secondary shrink-0 px-5" onClick={join}>
+            <button
+              type="button"
+              className="btn-secondary shrink-0 px-5"
+              onClick={join}
+            >
               Join
             </button>
           </div>
           {joinError && (
-            <p className="text-sm font-semibold text-[var(--coral)]">{joinError}</p>
+            <p className="text-sm font-semibold text-[var(--coral)]">
+              {joinError}
+            </p>
           )}
         </section>
 
         <nav className="flex flex-wrap justify-center gap-4 text-sm font-semibold">
-          <Link className="text-[var(--coral)] underline-offset-2 hover:underline" href="/how-to-play">
+          <Link
+            className="text-[var(--coral)] underline-offset-2 hover:underline"
+            href="/how-to-play"
+          >
             How to Play
           </Link>
-          <Link className="text-[var(--coral)] underline-offset-2 hover:underline" href="/how-to-play#homescreen">
-            Home Screen help
-          </Link>
-          <Link className="text-[var(--muted)] underline-offset-2 hover:underline" href="/build-notes">
+          <Link
+            className="text-[var(--muted)] underline-offset-2 hover:underline"
+            href="/build-notes"
+          >
             Build notes
           </Link>
         </nav>

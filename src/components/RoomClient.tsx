@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useGameRoom } from "@/hooks/useGameRoom";
 import { phaseLabel, type Phase } from "@/shared/types";
 import { RULES } from "@/shared/rules";
+import { BrandMark } from "@/components/BrandMark";
 import { LobbyPanel } from "@/components/LobbyPanel";
 import { TopicPanel } from "@/components/TopicPanel";
 import { PrepPanel } from "@/components/PrepPanel";
@@ -16,23 +17,6 @@ import { WagerPanel } from "@/components/WagerPanel";
 import { DicePanel } from "@/components/DicePanel";
 import { ResultsPanel } from "@/components/ResultsPanel";
 import { PlayerRail } from "@/components/PlayerRail";
-
-function BrandMark() {
-  return (
-    <div className="flex items-center gap-1.5">
-      <div className="flex gap-0.5">
-        {[1, 2, 3, 4].map((n) => (
-          <span key={n} className="stone-tile !h-5 !w-5 !text-[0.55rem]">
-            {n}
-          </span>
-        ))}
-      </div>
-      <span className="font-[family-name:var(--font-display)] text-lg font-extrabold">
-        {RULES.displayName}
-      </span>
-    </div>
-  );
-}
 
 export function RoomClient({
   code,

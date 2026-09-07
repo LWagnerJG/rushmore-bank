@@ -22,20 +22,9 @@ describe("pull out banking", () => {
   });
 });
 
-describe("settlement laps", () => {
-  it("requires min laps before soft-budget settlement", () => {
-    expect(RULES.diceMinLapsBeforeSettlement).toBe(3);
+describe("settlement soft budget", () => {
+  it("uses time budget; min banks before settle defaults to 0", () => {
+    expect(RULES.diceMinBanksBeforeSettlement).toBe(0);
     expect(RULES.diceSoftBudgetMs).toBe(3 * 60 * 1000);
-  });
-
-  it("rotating seats completes a lap when index wraps", () => {
-    const n = 4;
-    let seat = 3;
-    let laps = 0;
-    const prev = seat;
-    seat = (seat + 1) % n;
-    if (seat <= prev) laps += 1;
-    expect(seat).toBe(0);
-    expect(laps).toBe(1);
   });
 });

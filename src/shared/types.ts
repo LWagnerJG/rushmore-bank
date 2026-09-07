@@ -1,6 +1,6 @@
 /**
- * Quarry shared protocol — client + PartyKit server.
- * Currency = Stones. Display name = Quarry.
+ * Beans shared protocol — client + PartyKit server.
+ * UI currency = beans; protocol fields remain `stones` for compatibility.
  */
 
 import { RULES } from "./rules";
@@ -194,7 +194,8 @@ export interface RoomState {
   diceDecisionDeadlineAt: number | null;
   diceIdleDeadlineAt: number | null;
   diceRoundStartedAt: number | null;
-  diceLapsCompleted: number;
+  /** How many personal BANK mini-rounds finished (pull out / bust) this dice phase */
+  diceBanksCompleted: number;
   partyPrompt: PartyPrompt | null;
   ledger: LedgerEntry[];
   checkpoint: {
@@ -259,7 +260,7 @@ export interface PublicRoomState {
   diceDecisionDeadlineAt: number | null;
   diceIdleDeadlineAt: number | null;
   diceRoundStartedAt: number | null;
-  diceLapsCompleted: number;
+  diceBanksCompleted: number;
   partyPrompt: PartyPrompt | null;
   ledger: LedgerEntry[];
   checkpoint: {
@@ -327,7 +328,7 @@ export function phaseLabel(phase: Phase): string {
     case "WAGER_SELECTION":
       return "Wager";
     case "DICE":
-      return "Dice";
+      return "Bank";
     case "ROUND_RESULTS":
       return "Round results";
     case "GAME_RESULTS":
@@ -410,7 +411,7 @@ export function emptyRoomState(code: string): RoomState {
     diceDecisionDeadlineAt: null,
     diceIdleDeadlineAt: null,
     diceRoundStartedAt: null,
-    diceLapsCompleted: 0,
+    diceBanksCompleted: 0,
     partyPrompt: null,
     ledger: [],
     checkpoint: null,

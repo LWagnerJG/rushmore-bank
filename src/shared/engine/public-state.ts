@@ -117,7 +117,7 @@ export function projectPublicState(
     diceDecisionDeadlineAt: state.diceDecisionDeadlineAt,
     diceIdleDeadlineAt: state.diceIdleDeadlineAt,
     diceRoundStartedAt: state.diceRoundStartedAt,
-    diceLapsCompleted: state.diceLapsCompleted,
+    diceBanksCompleted: state.diceBanksCompleted,
     partyPrompt: state.partyPrompt ? { ...state.partyPrompt } : null,
     ledger: state.ledger.map((e) => ({ ...e })),
     checkpoint: state.checkpoint

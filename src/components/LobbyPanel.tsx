@@ -30,7 +30,7 @@ export function LobbyPanel({
   const share = async () => {
     try {
       if (navigator.share) {
-        await navigator.share({ title: "Quarry", url, text: `Join Quarry: ${state.code}` });
+        await navigator.share({ title: "Beans", url, text: `Join Beans: ${state.code}` });
       } else {
         await navigator.clipboard.writeText(url);
         setCopied(true);
@@ -85,7 +85,7 @@ export function LobbyPanel({
                 {p.name}
                 {!p.connected && " (away)"}
               </span>
-              <span className="text-[var(--muted)]">{p.stones}◆</span>
+              <span className="text-[var(--muted)]">{p.stones} beans</span>
             </li>
           ))}
         </ul>

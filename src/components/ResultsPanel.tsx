@@ -25,7 +25,7 @@ export function ResultsPanel({
       </h2>
       <p className="text-sm text-[var(--muted)]">
         {final
-          ? `All ${state.configuredTopicRounds} rounds done — most banked Stones wins.`
+          ? `All ${state.configuredTopicRounds} rounds done — most beans wins.`
           : `Round ${state.topicRound} of ${state.configuredTopicRounds}`}
       </p>
 

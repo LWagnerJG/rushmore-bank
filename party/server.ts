@@ -1,5 +1,5 @@
 /**
- * Quarry — authoritative PartyKit room server.
+ * Beans — authoritative PartyKit room server.
  * Durable state + storage alarms for deadlines (survive host tab sleep).
  */
 import type * as Party from "partykit/server";
@@ -32,11 +32,14 @@ import {
   buildAnonymousRosters,
   classifyPullOut,
   diceAnimWindow,
+  isDiceSoftBudgetExceeded,
   judgeRequestPayload,
   neutralJudgments,
   newRollId,
+  nextActiveBankSeat,
   projectPublicState,
   roll2d6,
+  shouldContinuePersonalBank,
   snakeDraftOrder,
   validateAndMapJudgments,
 } from "../src/shared/engine";
@@ -50,6 +53,8 @@ function roomEnv(room: Party.Room): Record<string, string | undefined> {
 /** Normalize persisted state after schema additions. */
 function migrateState(raw: RoomState): RoomState {
   const base = emptyRoomState(raw.code || "ROOM");
+  const legacyLaps = (raw as RoomState & { diceLapsCompleted?: number })
+    .diceLapsCompleted;
   return {
     ...base,
     ...raw,
@@ -61,6 +66,8 @@ function migrateState(raw: RoomState): RoomState {
     topicVotes: raw.topicVotes ?? {},
     humanVotes: raw.humanVotes ?? {},
     processedActionIds: raw.processedActionIds ?? [],
+    diceBanksCompleted:
+      raw.diceBanksCompleted ?? legacyLaps ?? base.diceBanksCompleted,
   };
 }
 
@@ -1145,9 +1152,9 @@ export default class QuarryServer implements Party.Server {
   async beginDice() {
     this.state.phase = "DICE";
     this.state.diceRoundStartedAt = Date.now();
-    this.state.diceLapsCompleted = 0;
+    this.state.diceBanksCompleted = 0;
     this.state.lastDice = null;
-    // Start with first active player in seat order
+    // First active player in seat order starts their personal BANK mini-round
     const first = this.state.seatOrder.find((id) =>
       this.state.diceActiveIds.includes(id),
     );
@@ -1163,12 +1170,18 @@ export default class QuarryServer implements Party.Server {
   }
 
   async startDiceTurn() {
-    // Skip inactive
+    // Skip inactive seats until we land on someone still in the bank queue
     let guard = 0;
     while (guard++ < 20) {
       const pid = this.currentDicePlayerId();
       if (pid && this.state.diceActiveIds.includes(pid)) break;
-      this.advanceDiceSeat();
+      const next = nextActiveBankSeat({
+        seatOrder: this.state.seatOrder,
+        diceActiveIds: this.state.diceActiveIds,
+        fromSeat: this.state.diceTurnSeat,
+      });
+      if (next == null) break;
+      this.state.diceTurnSeat = next;
     }
     const pid = this.currentDicePlayerId();
     if (!pid || this.state.diceActiveIds.length === 0) {
@@ -1197,14 +1210,24 @@ export default class QuarryServer implements Party.Server {
     });
   }
 
-  advanceDiceSeat() {
-    const n = this.state.seatOrder.length;
-    if (n === 0) return;
-    const prev = this.state.diceTurnSeat;
-    this.state.diceTurnSeat = (this.state.diceTurnSeat + 1) % n;
-    if (this.state.diceTurnSeat <= prev) {
-      this.state.diceLapsCompleted += 1;
-    }
+  /** Move to the next player who still needs their personal BANK turn. */
+  advanceToNextBanker() {
+    const next = nextActiveBankSeat({
+      seatOrder: this.state.seatOrder,
+      diceActiveIds: this.state.diceActiveIds,
+      fromSeat: this.state.diceTurnSeat,
+    });
+    if (next != null) this.state.diceTurnSeat = next;
+  }
+
+  softBudgetHit(): boolean {
+    return (
+      isDiceSoftBudgetExceeded({
+        roundStartedAt: this.state.diceRoundStartedAt,
+        softBudgetMs: RULES.diceSoftBudgetMs,
+      }) &&
+      this.state.diceBanksCompleted >= RULES.diceMinBanksBeforeSettlement
+    );
   }
 
   async handleRoll(id: string) {
@@ -1295,23 +1318,38 @@ export default class QuarryServer implements Party.Server {
     if (this.state.phase !== "DICE") return;
     this.revealCommittedDice();
 
-    // Soft budget: finish current lap then settle if laps >= min and budget exceeded
-    const started = this.state.diceRoundStartedAt ?? Date.now();
-    const overBudget =
-      Date.now() - started >= RULES.diceSoftBudgetMs &&
-      this.state.diceLapsCompleted >= RULES.diceMinLapsBeforeSettlement;
-
-    if (overBudget) {
-      await this.settleRemainingDice();
-      return;
-    }
+    const rollerId = this.state.lastDice?.rollerId ?? null;
 
     if (this.state.diceActiveIds.length === 0) {
       await this.beginRoundResults();
       return;
     }
 
-    this.advanceDiceSeat();
+    // Soft budget checked at bank boundaries (after settle)
+    if (this.softBudgetHit()) {
+      await this.settleRemainingDice();
+      return;
+    }
+
+    // Per-player BANK: same roller keeps going until Pull Out or bust
+    if (
+      shouldContinuePersonalBank({
+        rollerId,
+        diceActiveIds: this.state.diceActiveIds,
+      })
+    ) {
+      bump(this.state);
+      await this.startDiceTurn();
+      return;
+    }
+
+    // Roller busted — their personal BANK is done; next player's mini-round
+    this.state.diceBanksCompleted += 1;
+    if (this.softBudgetHit()) {
+      await this.settleRemainingDice();
+      return;
+    }
+    this.advanceToNextBanker();
     bump(this.state);
     await this.startDiceTurn();
   }
@@ -1350,29 +1388,34 @@ export default class QuarryServer implements Party.Server {
 
     if (classified.kind === "waiting_player") {
       // Bank without touching shared countdown, animation, or seat.
-      this.bankPlayer(id, "Pull Out (waiting)");
-      bump(this.state);
+      this.bankPlayer(id, "Bank (waiting)");
+      // Preserve phaseRevision: the pending cooldown/roll alarm owns it.
+      // onMessage still persists and broadcasts this player's new balance.
       if (this.state.diceActiveIds.length === 0) {
-        // Current roller also gone somehow — end round (no in-flight commit possible
-        // for waiting-only empty set if current was still active).
         await this.clearAlarm();
         await this.beginRoundResults();
       }
-      // If current roller still active (incl. mid-COMMITTED), leave alarms alone.
       return;
     }
 
-    // Current roller banking — advance seat + restart turn for next active player.
-    this.bankPlayer(id, "Pull Out");
+    // Current banker finishes their personal BANK — advance to next banker.
+    this.bankPlayer(id, "Bank");
+    this.state.diceBanksCompleted += 1;
     bump(this.state);
     await this.clearAlarm();
 
     if (this.state.diceActiveIds.length === 0) {
       await this.beginRoundResults();
-    } else {
-      this.advanceDiceSeat();
-      await this.startDiceTurn();
+      return;
     }
+
+    if (this.softBudgetHit()) {
+      await this.settleRemainingDice();
+      return;
+    }
+
+    this.advanceToNextBanker();
+    await this.startDiceTurn();
   }
 
   async autoBankCurrent() {
@@ -1408,7 +1451,7 @@ export default class QuarryServer implements Party.Server {
       this.state.pots[pid] = 0;
     }
     this.state.diceActiveIds = [];
-    this.state.notice = "Dice soft budget — remaining pots banked";
+    this.state.notice = "Bank time’s up — remaining pots locked in";
     await this.beginRoundResults();
   }
 
@@ -1527,7 +1570,7 @@ export default class QuarryServer implements Party.Server {
         p.stones = this.state.checkpoint.stones[p.id]!;
       }
     }
-    this.state.notice = "Topic voided — stones restored";
+    this.state.notice = "Round discarded. Beans restored.";
     this.state.partyPrompt = null;
     void this.beginTopicSelection();
   }

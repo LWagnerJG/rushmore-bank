@@ -13,8 +13,8 @@ describe("topics", () => {
 });
 
 describe("snake draft", () => {
-  it("covers 4 picks for every N from 3..10", () => {
-    for (let n = 3; n <= 10; n++) {
+  it("covers 4 picks for every N from 2..10", () => {
+    for (let n = 2; n <= 10; n++) {
       const order = snakeDraftOrder(n, 4, 0);
       expect(order).toHaveLength(totalDraftPicks(n));
       const counts = Array.from({ length: n }, () => 0);

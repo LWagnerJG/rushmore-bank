@@ -364,7 +364,7 @@ describe("session length: choices vs rounds", () => {
   });
 
   it("soft dice budget requires min laps", () => {
-    expect(RULES.diceMinLapsBeforeSettlement).toBe(3);
+    expect(RULES.diceMinBanksBeforeSettlement).toBe(0);
     expect(RULES.diceSoftBudgetMs).toBe(180_000);
   });
 });
