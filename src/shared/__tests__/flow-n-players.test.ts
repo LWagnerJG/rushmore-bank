@@ -173,7 +173,8 @@ describe.each([2, 3, 6, 10])("full-ish flow N=%i", (n) => {
     state.phase = "VOTING_AND_JUDGING";
     state.humanVotes = { p0: "p1" };
     state.topicVotes = { p0: "t1", p1: "t1" };
-    const pub = projectPublicState(state, "p2");
+    const viewerId = n >= 3 ? "p2" : "p1";
+    const pub = projectPublicState(state, viewerId);
     expect(pub.humanVotesCast).toBe(1);
     expect(pub.myHumanVote).toBeNull();
     expect(JSON.stringify(pub)).not.toContain('"p0":"p1"');
