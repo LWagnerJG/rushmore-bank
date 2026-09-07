@@ -122,10 +122,20 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">Known limits</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
+            <strong>PartyKit backend redeploy blocked:</strong> GitHub Action
+            “Deploy PartyKit” failed on main because{" "}
+            <code>PARTYKIT_TOKEN</code> / <code>PARTYKIT_LOGIN</code> secrets
+            are unset. Until someone with repo access adds those secrets and
+            re-runs the workflow (or runs <code>npm run deploy:party</code>{" "}
+            locally), production rooms still use the prior PartyKit server —
+            waiting-player Pull Out / privacy / server judging need that
+            redeploy.
+          </li>
+          <li>
             Actual OpenAI judging requires <code>OPENAI_API_KEY</code> on the
-            Vercel server (and preferably <code>JUDGE_SECRET</code> on both
-            Vercel + PartyKit). If missing, rooms use labeled neutral awards —
-            not presented as real AI.
+            Vercel server (and preferably <code>JUDGE_SECRET</code> on Vercel +
+            PartyKit). Confirmed unset on production today — rooms use labeled
+            neutral awards, not presented as real AI.
           </li>
           <li>
             Soft 25–30 min session target is guidance; measured length depends on
@@ -134,6 +144,10 @@ export default function BuildNotesPage() {
           <li>
             Standalone home-screen: favicon / apple-touch / manifest present;
             recovery is re-open URL or room code (guest token in sessionStorage).
+          </li>
+          <li>
+            Browser automation verified on desktop Chrome (mobile viewport) and
+            local PartyKit — not a physical iPhone Safari play-test.
           </li>
         </ul>
       </section>
