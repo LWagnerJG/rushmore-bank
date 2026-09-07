@@ -21,11 +21,12 @@ export function ResultsPanel({
   return (
     <div className="space-y-4">
       <h2 className="font-[family-name:var(--font-display)] text-2xl font-extrabold">
-        {final ? "Game results" : "Round results"}
+        {final ? "Final standings" : "Round results"}
       </h2>
       <p className="text-sm text-[var(--muted)]">
-        Topic round {state.topicRound}
-        {final ? " — most banked Stones wins." : ""}
+        {final
+          ? `All ${state.configuredTopicRounds} rounds done — most banked Stones wins.`
+          : `Round ${state.topicRound} of ${state.configuredTopicRounds}`}
       </p>
 
       <ol className="space-y-2">

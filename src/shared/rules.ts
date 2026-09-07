@@ -17,10 +17,16 @@ export const RULES = {
   picksPerPlayer: 4,
 
   /** Topics */
-  /** Shortlist size: 3 when 3–5 players, 2 when 6–10 */
+  /** Shortlist size (choices offered): 3 when 3–5 players, 2 when 6–10 */
   topicShortlistSmall: 3,
   topicShortlistLarge: 2,
   topicShortlistSmallMaxPlayers: 5,
+  /**
+   * Topic rounds *played* (not choices offered):
+   * 3 rounds with 3–5 players; 2 rounds with 6–10.
+   */
+  topicRoundsSmall: 3,
+  topicRoundsLarge: 2,
   topicVoteSeconds: 20,
   majorityRerollsPerSelection: 1,
   /** Soft target session length */
@@ -57,9 +63,13 @@ export const RULES = {
   diceIdleBankSeconds: 10,
   diceSoftBudgetMs: 3 * 60 * 1000,
   diceMinLapsBeforeSettlement: 3,
+  /** Shared tumble duration before authoritative reveal */
+  diceAnimMs: 2200,
   safePersonalRolls: 2,
   /** On safe rolls, a seven awards this instead of face sum */
   sevenSafeBonus: 70,
+  /** AI judging HTTP timeout */
+  judgeTimeoutMs: 20000,
 
   /** Host / lobby */
   hostFailoverSeconds: 20,
@@ -83,4 +93,12 @@ export function topicShortlistCount(playerCount: number): number {
     return RULES.topicShortlistSmall;
   }
   return RULES.topicShortlistLarge;
+}
+
+/** Rounds played this game (distinct from shortlist / choices offered). */
+export function topicRoundsForPlayerCount(playerCount: number): number {
+  if (playerCount <= RULES.topicShortlistSmallMaxPlayers) {
+    return RULES.topicRoundsSmall;
+  }
+  return RULES.topicRoundsLarge;
 }

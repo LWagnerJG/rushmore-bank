@@ -27,17 +27,26 @@ export function VotePanel({
   youId: string;
   send: (m: ClientMessage) => void;
 }) {
-  const myVote = state.humanVotes[youId];
-  const voteCount = Object.keys(state.humanVotes).length;
+  const myVote = state.myHumanVote;
+  const [busy, setBusy] = useState(false);
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between">
-        <h2 className="font-extrabold">Vote one roster</h2>
+      <div className="flex justify-between gap-2">
+        <h2 className="font-[family-name:var(--font-display)] text-xl font-extrabold">
+          Vote for one roster
+        </h2>
         <Countdown until={state.phaseDeadlineAt} />
       </div>
       <p className="text-sm text-[var(--muted)]">
-        Private vote — no self-vote. AI judges in parallel. In: {voteCount}
+        Private ballot — no self-vote.{" "}
+        <strong>
+          {state.humanVotesCast} of {state.humanVotesNeeded} voted
+        </strong>
+        {state.judgeStatus === "pending" && " · Judge working…"}
+        {state.judgeStatus === "failed" && state.judgeNotice
+          ? ` · ${state.judgeNotice}`
+          : ""}
       </p>
       {state.seatOrder
         .filter((pid) => pid !== youId)
@@ -54,8 +63,13 @@ export function VotePanel({
               className={`panel w-full text-left ${
                 selected ? "ring-2 ring-[var(--coral)]" : ""
               }`}
-              disabled={you.role !== "player"}
-              onClick={() => send({ type: "submit_vote", targetPlayerId: pid })}
+              disabled={you.role !== "player" || busy}
+              onClick={() => {
+                if (busy || you.role !== "player") return;
+                setBusy(true);
+                send({ type: "submit_vote", targetPlayerId: pid });
+                setTimeout(() => setBusy(false), 400);
+              }}
             >
               <p className="font-extrabold">{p?.name}</p>
               <ol className="mt-1 list-decimal pl-5 text-sm">

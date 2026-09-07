@@ -65,7 +65,7 @@ describe("wager math", () => {
 });
 
 describe("dice table", () => {
-  it("follows 105→175→187→374 path then +sum", () => {
+  it("follows 105→175→187→374 path; 469 is banked total not next pot", () => {
     let pot = 105;
     // Safe seven
     let o = applyDiceRoll(pot, { d1: 3, d2: 4 }, 1);
@@ -83,14 +83,13 @@ describe("dice table", () => {
     expect(o.potAfter).toBe(374);
     pot = o.potAfter;
 
-    // Dangerous sum 5+6 → +11 → 385
-    // (Product example cited 469; verified path through 374 is authoritative.
-    //  469 is not reachable as a single subsequent 2d6 face-sum from 374.)
+    // Banked total with protected 95 → 469 (NOT a dice pot step)
+    expect(95 + pot).toBe(469);
+
+    // Continuing the pot without banking: 5+6 → 385
     o = applyDiceRoll(pot, { d1: 5, d2: 6 }, 4);
     expect(o.potAfter).toBe(385);
 
-    // Alternate continuation that lands near 469 is not required;
-    // bust clears
     o = applyDiceRoll(374, { d1: 1, d2: 6 }, 5);
     expect(o.busted).toBe(true);
     expect(o.potAfter).toBe(0);

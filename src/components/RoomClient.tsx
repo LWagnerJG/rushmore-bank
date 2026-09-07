@@ -59,7 +59,6 @@ export function RoomClient({
     preferSpectate,
   });
   const [name, setName] = useState(presetName || defaultName);
-  const judgedRev = useRef<number>(-1);
   const autoJoinAttempted = useRef(false);
 
   // One-shot: when connected with a URL/preset nickname, join explicitly so we
@@ -72,61 +71,7 @@ export function RoomClient({
     join(clean, preferSpectate ? "spectator" : "player");
   }, [connected, joined, presetName, preferSpectate, join]);
 
-  // Trigger AI judge once when voting starts (host)
-  useEffect(() => {
-    if (!state || !you?.isHost) return;
-    if (state.phase !== "VOTING_AND_JUDGING") return;
-    if (state.scores.length > 0 || state.scoresLocked) return;
-    if (judgedRev.current === state.phaseRevision) return;
-    judgedRev.current = state.phaseRevision;
-
-    const topic = state.selectedTopic;
-    if (!topic) return;
-
-    const rosters = state.seatOrder.map((pid) => {
-      const p = state.players.find((x) => x.id === pid);
-      const picks = state.picks
-        .filter((pk) => pk.playerId === pid)
-        .sort((a, b) => a.pickIndex - b.pickIndex)
-        .map((pk) => pk.text);
-      return { playerId: pid, name: p?.name ?? "?", picks };
-    });
-
-    void (async () => {
-      try {
-        const res = await fetch("/api/judge", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            topic: topic.text,
-            scopeBoundary: topic.scopeBoundary,
-            rosters,
-          }),
-        });
-        const data = (await res.json()) as {
-          judgments: Array<{
-            playerId: string;
-            topicFit: number;
-            pickStrength: number;
-            rosterQuality: number;
-            explanation: string;
-          }>;
-          fallback?: boolean;
-        };
-        send({
-          type: "submit_ai_judgments",
-          judgments: data.judgments,
-          fallback: !!data.fallback,
-        });
-      } catch {
-        send({
-          type: "submit_ai_judgments",
-          judgments: [],
-          fallback: true,
-        });
-      }
-    })();
-  }, [state, you?.isHost, send]);
+  // AI judging is server-authoritative — no host browser fetch/submit.
 
   const phase: Phase | null = state?.phase ?? null;
 

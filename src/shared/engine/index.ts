@@ -22,3 +22,24 @@ export {
   clampInt,
 } from "./scoring";
 export { rollD6, roll2d6, mulberry32, hashSeed } from "./rng";
+export { projectPublicState, publicStateLeaksBallots } from "./public-state";
+export {
+  bankPotIntoProtected,
+  classifyPullOut,
+  type PullOutKind,
+} from "./banking";
+export {
+  buildAnonymousRosters,
+  judgeRequestPayload,
+  neutralJudgments,
+  validateAndMapJudgments,
+  applyVoteCounts,
+  heuristicJudgeUniform,
+} from "./judge";
+export {
+  newRollId,
+  animSeedFrom,
+  diceAnimWindow,
+  tumblePose,
+  animProgress,
+} from "./dice-sync";

@@ -33,26 +33,76 @@ export function DicePanel({
   const roller = state.players.find((p) => p.id === rollerId);
   const myTurn = rollerId === youId;
   const pot = state.pots[youId] ?? 0;
+  const protectedBal = state.protectedStones[youId] ?? you.stones;
   const personal = state.personalRollCounts[youId] ?? 0;
   const active = state.diceActiveIds.includes(youId);
+  const rolling = state.diceSubphase === "COMMITTED";
+  const canBank =
+    active &&
+    you.role === "player" &&
+    pot > 0 &&
+    !(myTurn && state.diceSubphase === "COMMITTED");
+  const canRoll =
+    myTurn && active && you.role === "player" && state.diceSubphase === "READY";
+
+  const [pullBusy, setPullBusy] = useState(false);
+  const [rollBusy, setRollBusy] = useState(false);
 
   const reducedMotion = useMemo(() => {
     if (typeof window === "undefined") return false;
     return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   }, []);
 
+  const revealed = state.lastDice?.revealed === true;
+  const statusLine = (() => {
+    if (rolling) {
+      return myTurn
+        ? "Your dice are in the air…"
+        : `${roller?.name ?? "Player"} is rolling…`;
+    }
+    if (state.diceSubphase === "COOLDOWN") {
+      return myTurn
+        ? "Your turn — unlock soon"
+        : `${roller?.name ?? "Player"} unlocks soon`;
+    }
+    if (state.diceSubphase === "READY") {
+      return myTurn ? "Your turn — Roll or Pull Out" : "You’re waiting — you can still Pull Out";
+    }
+    return "Watching the table";
+  })();
+
   return (
     <div className="space-y-4">
-      <div className="panel space-y-1">
-        <p className="text-xs font-bold uppercase text-[var(--muted)]">
-          Dice · {state.diceSubphase} · lap {state.diceLapsCompleted}
+      <div className="panel space-y-2">
+        <p className="text-xs font-bold uppercase tracking-wide text-[var(--muted)]">
+          Round {Math.min(state.topicRound + 1, state.configuredTopicRounds)} of{" "}
+          {state.configuredTopicRounds} · Dice
         </p>
-        <h2 className="font-extrabold">
+        <h2 className="font-[family-name:var(--font-display)] text-xl font-extrabold">
           {roller?.name ?? "—"}&apos;s throw
         </h2>
-        <p className="text-sm">
-          Your pot: <strong>{pot}</strong> ◆ · personal rolls: {personal} (
-          {personal < RULES.safePersonalRolls ? "safe" : "danger"})
+        <p className="text-sm font-semibold">{statusLine}</p>
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          <div className="rounded-xl bg-[rgba(167,215,194,0.35)] px-3 py-2">
+            <p className="text-xs font-bold uppercase text-[var(--muted)]">
+              Protected
+            </p>
+            <p className="font-extrabold">
+              {protectedBal} {RULES.currencyName}
+            </p>
+          </div>
+          <div className="rounded-xl bg-[rgba(231,111,78,0.18)] px-3 py-2">
+            <p className="text-xs font-bold uppercase text-[var(--muted)]">
+              Pot at risk
+            </p>
+            <p className="font-extrabold">
+              {pot} {RULES.currencyName}
+            </p>
+          </div>
+        </div>
+        <p className="text-sm text-[var(--muted)]">
+          Personal rolls: {personal} (
+          {personal < RULES.safePersonalRolls ? "safe zone" : "danger zone"})
         </p>
         {state.diceSubphase === "COOLDOWN" && (
           <p className="text-sm font-bold text-[var(--coral)]">
@@ -61,7 +111,7 @@ export function DicePanel({
         )}
         {state.diceSubphase === "READY" && myTurn && (
           <p className="text-sm text-[var(--muted)]">
-            Idle bank in <Countdown until={state.diceIdleDeadlineAt} />
+            Auto-bank in <Countdown until={state.diceIdleDeadlineAt} />
           </p>
         )}
       </div>
@@ -72,40 +122,75 @@ export function DicePanel({
         isHost={you.isHost}
       />
 
-      {state.lastDice && (
-        <p className="text-center text-sm font-bold">
+      {revealed && state.lastDice?.d1 != null && state.lastDice.d2 != null && (
+        <p className="text-center text-sm font-bold animate-rise">
           {state.lastDice.d1}+{state.lastDice.d2} · {state.lastDice.note}
+          {state.lastDice.busted ? " · Busted" : ""}
+        </p>
+      )}
+      {rolling && (
+        <p className="text-center text-sm font-semibold text-[var(--muted)]">
+          Dice tumbling…
         </p>
       )}
 
-      {myTurn && active && you.role === "player" && (
+      {you.role === "player" && active && (
         <div className="space-y-2">
           <button
             type="button"
             className="btn-danger w-full text-lg"
-            disabled={state.diceSubphase !== "READY"}
-            onClick={() => send({ type: "pull_out" })}
+            disabled={!canBank || pullBusy}
+            onClick={() => {
+              if (!canBank || pullBusy) return;
+              setPullBusy(true);
+              send({ type: "pull_out" });
+              setTimeout(() => setPullBusy(false), 800);
+            }}
           >
-            Pull Out
+            Pull Out · {pot} {RULES.currencyName}
           </button>
-          <button
-            type="button"
-            className="btn-primary w-full pulse-soft"
-            disabled={state.diceSubphase !== "READY"}
-            onClick={() => send({ type: "roll" })}
-          >
-            Roll
-          </button>
+          {myTurn && (
+            <button
+              type="button"
+              className="btn-primary w-full pulse-soft text-lg"
+              disabled={!canRoll || rollBusy}
+              onClick={() => {
+                if (!canRoll || rollBusy) return;
+                setRollBusy(true);
+                send({ type: "roll" });
+                setTimeout(() => setRollBusy(false), 800);
+              }}
+            >
+              Roll the dice
+            </button>
+          )}
+          {!myTurn && (
+            <p className="text-center text-xs text-[var(--muted)]">
+              Waiting for {roller?.name ?? "roller"} — your pot is still at risk
+              until you Pull Out.
+            </p>
+          )}
         </div>
       )}
 
+      {!active && you.role === "player" && (
+        <p className="panel text-sm font-semibold">
+          You’re banked or busted this dice round — watch the others.
+        </p>
+      )}
+
       <section className="panel space-y-1 text-sm">
-        <h3 className="font-extrabold">Pots</h3>
+        <h3 className="font-extrabold">Still in</h3>
         {state.diceActiveIds.map((pid) => {
           const p = state.players.find((x) => x.id === pid);
+          const isNext = pid === rollerId;
           return (
-            <div key={pid} className="flex justify-between">
-              <span>{p?.name}</span>
+            <div key={pid} className="flex justify-between gap-2">
+              <span>
+                {isNext ? "→ " : ""}
+                {p?.name}
+                {pid === youId ? " (you)" : ""}
+              </span>
               <span>
                 {state.pots[pid] ?? 0} ◆ · roll #
                 {state.personalRollCounts[pid] ?? 0}
@@ -121,9 +206,10 @@ export function DicePanel({
       {state.partyPrompt && !state.partyPrompt.resolved && (
         <div className="panel space-y-2 border-[var(--coral)]">
           <p className="font-extrabold">
-            Party Mode · {state.partyPrompt.kind === "bust_sip" ? "Bust sip" : "Winner sip"}
+            Party Mode ·{" "}
+            {state.partyPrompt.kind === "bust_sip" ? "Bust sip" : "Winner sip"}
           </p>
-          <p className="text-sm">Optional one sip — no score effect.</p>
+          <p className="text-sm">Optional one sip — Pass is fine. No score effect.</p>
           <div className="flex gap-2">
             <button
               type="button"

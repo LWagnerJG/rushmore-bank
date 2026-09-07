@@ -35,7 +35,10 @@ export function DraftPanel({
   const [ideas, setIdeas] = useState<string[]>([]);
 
   useEffect(() => {
-    setIdeas(loadIdeas(state.code, youId, topicId));
+    const t = setTimeout(() => {
+      setIdeas(loadIdeas(state.code, youId, topicId));
+    }, 0);
+    return () => clearTimeout(t);
   }, [state.code, youId, topicId]);
 
   const turnSeat = state.draftOrder[state.draftCursor];

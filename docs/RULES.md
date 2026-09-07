@@ -79,8 +79,9 @@ pot = W
 
 ### Worked path (tests)
 
-`105 → 175` (safe seven) → `187` (safe 6+6) → `374` (dangerous doubles).  
-A following non-seven face-sum adds normally (e.g. 5+6 → 385). The cited `469` is not a single 2d6 step from 374; the engine tests the authoritative path through 374.
+Protected **95**. Pot path: `105 → 175` (safe seven) → `187` (safe 6+6) → `374` (dangerous doubles).  
+Banking that pot yields **95 + 374 = 469** total Stones — **469 is the banked total, not the next dice pot**.  
+A following non-seven face-sum on the pot (without banking) adds normally (e.g. 5+6 → 385).
 
 ## Party Mode
 

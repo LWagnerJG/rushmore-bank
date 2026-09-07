@@ -26,32 +26,39 @@ export function TopicPanel({
   you: Player;
   send: (m: ClientMessage) => void;
 }) {
+  const optionKey = state.topicOptions.map((t) => t.id).join(",");
   const [spinning, setSpinning] = useState(false);
   const [custom, setCustom] = useState("");
   const [scope, setScope] = useState<TopicScope>("everyday");
-  const myVote = state.topicVotes[you.id];
+  const myVote = state.myTopicVote;
 
   useEffect(() => {
-    setSpinning(true);
-    const t = setTimeout(() => setSpinning(false), 700);
-    return () => clearTimeout(t);
-  }, [state.topicOptions.map((t) => t.id).join(",")]);
+    const t = setTimeout(() => setSpinning(true), 0);
+    const t2 = setTimeout(() => setSpinning(false), 700);
+    return () => {
+      clearTimeout(t);
+      clearTimeout(t2);
+    };
+  }, [optionKey]);
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="font-[family-name:var(--font-display)] text-xl font-extrabold">
-          Spin topics
+          Pick a topic
         </h2>
         <span className="text-sm font-bold text-[var(--muted)]">
           <Countdown until={state.phaseDeadlineAt} />
         </span>
       </div>
+      <p className="text-sm text-[var(--muted)]">
+        Round {state.topicRound + 1} of {state.configuredTopicRounds} · vote is
+        private
+      </p>
 
       <div className={`space-y-2 ${spinning ? "topic-spinner" : ""}`}>
         {state.topicOptions.map((t) => {
-          const votes = Object.values(state.topicVotes).filter((v) => v === t.id)
-            .length;
+          const votes = state.topicVoteCounts[t.id] ?? 0;
           const selected = myVote === t.id;
           return (
             <button
