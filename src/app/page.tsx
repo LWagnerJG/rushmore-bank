@@ -27,6 +27,7 @@ export default function HomePage() {
   const router = useRouter();
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
+  const [joinError, setJoinError] = useState<string | null>(null);
 
   function create() {
     const room = randomRoomCode();
@@ -36,7 +37,11 @@ export default function HomePage() {
 
   function join() {
     const room = normalizeRoomCode(code);
-    if (room.length < 4) return;
+    if (room.length < 4) {
+      setJoinError("Enter the 4-character room code");
+      return;
+    }
+    setJoinError(null);
     const q = name.trim() ? `?name=${encodeURIComponent(name.trim())}` : "";
     router.push(`/room/${room}${q}`);
   }
@@ -82,6 +87,9 @@ export default function HomePage() {
               Join
             </button>
           </div>
+          {joinError && (
+            <p className="text-sm font-semibold text-[var(--coral)]">{joinError}</p>
+          )}
         </section>
 
         <nav className="flex flex-wrap justify-center gap-4 text-sm font-semibold">

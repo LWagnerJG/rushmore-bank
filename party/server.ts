@@ -965,6 +965,9 @@ export default class QuarryServer implements Party.Server {
   async handleAdvance(id: string) {
     if (!this.requireHost(id)) throw new Error("Host only");
     switch (this.state.phase) {
+      case "PREP":
+        await this.beginDraft();
+        return;
       case "SCORE_REVEAL":
         await this.beginWagers();
         return;

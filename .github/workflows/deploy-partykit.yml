@@ -1,0 +1,33 @@
+name: Deploy PartyKit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "party/**"
+      - "partykit.json"
+      - "src/shared/**"
+      - ".github/workflows/deploy-partykit.yml"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Deploy PartyKit
+        env:
+          PARTYKIT_TOKEN: ${{ secrets.PARTYKIT_TOKEN }}
+          PARTYKIT_LOGIN: ${{ secrets.PARTYKIT_LOGIN }}
+        run: |
+          if [ -z "$PARTYKIT_TOKEN" ] || [ -z "$PARTYKIT_LOGIN" ]; then
+            echo "Missing PARTYKIT_TOKEN / PARTYKIT_LOGIN secrets."
+            echo "Generate with: npx partykit token generate"
+            exit 1
+          fi
+          npx partykit deploy

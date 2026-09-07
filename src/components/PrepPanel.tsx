@@ -18,6 +18,8 @@ function Countdown({ until }: { until: number | null }) {
 
 export function PrepPanel({
   state,
+  you,
+  send,
 }: {
   state: PublicRoomState;
   you: Player;
@@ -37,6 +39,15 @@ export function PrepPanel({
       <p className="text-sm text-[var(--muted)]">
         Jot ideas privately. Snake draft starts soon.
       </p>
+      {you.isHost && (
+        <button
+          type="button"
+          className="btn-secondary"
+          onClick={() => send({ type: "advance" })}
+        >
+          Skip prep
+        </button>
+      )}
     </div>
   );
 }

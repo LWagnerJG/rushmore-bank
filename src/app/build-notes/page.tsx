@@ -63,6 +63,22 @@ export default function BuildNotesPage() {
           labels explanations “Judge unavailable…”. No keys are embedded in the
           client.
         </p>
+        <p>
+          <strong>This build environment:</strong> OpenAI key was not available —
+          fallback path verified in smoke.
+        </p>
+      </section>
+
+      <section className="panel space-y-2 text-sm">
+        <h2 className="font-extrabold">Blocked connection</h2>
+        <p>
+          PartyKit cloud deploy requires <code>PARTYKIT_LOGIN</code> +{" "}
+          <code>PARTYKIT_TOKEN</code> (generate via{" "}
+          <code>npx partykit token generate</code>). Until redeployed, production
+          sockets still speak the old Rushmore Bank protocol. GitHub Action{" "}
+          <code>Deploy PartyKit</code> runs on main after secrets are set; or run{" "}
+          <code>npm run deploy:party</code> once locally after merge.
+        </p>
       </section>
 
       <section className="panel space-y-2 text-sm">

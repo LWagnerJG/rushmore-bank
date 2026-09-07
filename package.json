@@ -9,6 +9,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
+    "smoke:three": "tsx scripts/smoke-three.ts",
     "dev:next": "next dev --turbopack",
     "dev:party": "partykit dev",
     "deploy:party": "partykit deploy"
@@ -32,6 +33,7 @@
     "eslint-config-next": "16.3.4",
     "partykit": "^0.0.115",
     "tailwindcss": "^4",
+    "tsx": "^4.23.13",
     "typescript": "^5",
     "vitest": "^3.2.7"
   }
