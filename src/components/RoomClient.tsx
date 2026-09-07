@@ -58,6 +58,14 @@ export function RoomClient({
   // AI judging is server-authoritative — no host browser fetch/submit.
 
   const phase: Phase | null = state?.phase ?? null;
+  const partyOn = state?.settings.partyMode === true;
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (partyOn) root.classList.add("party-on");
+    else root.classList.remove("party-on");
+    return () => root.classList.remove("party-on");
+  }, [partyOn]);
 
   const body = useMemo(() => {
     if (!state || !you) return null;
@@ -120,13 +128,14 @@ export function RoomClient({
           Room {code}
         </h1>
         <p className="text-sm text-[var(--muted)]">
-          {connected ? "Connected — enter nickname" : "Connecting…"}
+          {connected ? "Connected — enter a nickname" : "Connecting…"}
         </p>
         <input
           className="field"
           value={name}
           maxLength={18}
           placeholder="Nickname"
+          autoFocus
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") join(name, preferSpectate ? "spectator" : "player");
@@ -134,17 +143,17 @@ export function RoomClient({
         />
         <button
           type="button"
-          className="btn-primary"
+          className="btn-primary text-lg"
           onClick={() => join(name, preferSpectate ? "spectator" : "player")}
         >
-          Join
+          Join game
         </button>
         <button
           type="button"
           className="btn-secondary"
           onClick={() => join(name || "Spectator", "spectator")}
         >
-          Watch (TV / spectator)
+          Watch only
         </button>
         {error && <p className="text-sm text-[var(--coral)]">{error}</p>}
         <Link href="/" className="text-sm font-semibold text-[var(--coral)]">
@@ -156,11 +165,25 @@ export function RoomClient({
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col px-4 pb-8 pt-3">
-      <header className="sticky top-0 z-20 -mx-4 mb-3 border-b border-[rgba(35,72,62,0.08)] bg-[rgba(245,240,231,0.92)] px-4 py-2 backdrop-blur">
+      <header
+        className={
+          "sticky top-0 z-20 -mx-4 mb-3 border-b px-4 py-2 backdrop-blur " +
+          (partyOn
+            ? "border-[rgba(255,107,74,0.18)] bg-[rgba(255,248,236,0.94)]"
+            : "border-[rgba(35,72,62,0.08)] bg-[rgba(245,240,231,0.92)]")
+        }
+      >
         <div className="flex items-center justify-between gap-2">
           <BrandMark />
           <div className="text-right text-xs font-bold uppercase tracking-wide text-[var(--muted)]">
-            <div>{phase ? phaseLabel(phase) : "…"}</div>
+            <div className="flex items-center justify-end gap-1.5">
+              {partyOn && (
+                <span className="rounded-full bg-[rgba(255,107,74,0.25)] px-2 py-0.5 text-[0.65rem] font-extrabold normal-case tracking-normal text-[var(--text)]">
+                  Party
+                </span>
+              )}
+              <span>{phase ? phaseLabel(phase) : "…"}</span>
+            </div>
             <div className="text-[var(--text)]">
               {you.stones} {RULES.currencyName}
             </div>

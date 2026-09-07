@@ -25,17 +25,17 @@ export function PlayerRail({
 function PlayerChip({ player, you }: { player: Player; you: boolean }) {
   return (
     <div
-      className={`shrink-0 rounded-xl px-2.5 py-1.5 text-xs font-bold ${
+      className={`shrink-0 rounded-xl px-3 py-2 text-xs font-bold ${
         you
           ? "bg-[var(--coral)] text-white"
-          : "bg-white/70 text-[var(--text)]"
+          : "bg-white/75 text-[var(--text)]"
       } ${player.connected ? "" : "opacity-50"}`}
     >
       <div className="flex items-center gap-1">
         {player.isHost && <span title="Host">★</span>}
         <span>{player.name}</span>
       </div>
-      <div className="opacity-80">{player.stones}</div>
+      <div className="opacity-90 tabular-nums">{player.stones}</div>
     </div>
   );
 }

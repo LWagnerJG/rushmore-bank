@@ -32,22 +32,32 @@ export function VotePanel({
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between gap-2">
-        <h2 className="font-[family-name:var(--font-display)] text-xl font-extrabold">
-          Vote for one roster
-        </h2>
-        <Countdown until={state.phaseDeadlineAt} />
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <h2 className="font-[family-name:var(--font-display)] text-xl font-extrabold">
+            Pick one roster
+          </h2>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            Private · no self-vote · {state.humanVotesCast}/
+            {state.humanVotesNeeded} in
+            {state.judgeStatus === "pending" ? " · Judge scoring…" : ""}
+          </p>
+        </div>
+        <span className="text-sm font-bold tabular-nums text-[var(--muted)]">
+          <Countdown until={state.phaseDeadlineAt} />
+        </span>
       </div>
-      <p className="text-sm text-[var(--muted)]">
-        Private ballot — no self-vote.{" "}
-        <strong>
-          {state.humanVotesCast} of {state.humanVotesNeeded} voted
-        </strong>
-        {state.judgeStatus === "pending" && " · Judge working…"}
-        {state.judgeStatus === "failed" && state.judgeNotice
-          ? ` · ${state.judgeNotice}`
-          : ""}
-      </p>
+      {state.judgeStatus === "failed" && state.judgeNotice && (
+        <p className="text-sm font-semibold text-[var(--coral)]">
+          {state.judgeNotice}
+        </p>
+      )}
+      {myVote && (
+        <p className="text-sm font-bold text-[var(--text)]" aria-live="polite">
+          You picked {state.players.find((p) => p.id === myVote)?.name}. Tap
+          another to change.
+        </p>
+      )}
       {state.seatOrder
         .filter((pid) => pid !== youId)
         .map((pid) => {
@@ -60,7 +70,7 @@ export function VotePanel({
             <button
               key={pid}
               type="button"
-              className={`panel w-full text-left ${
+              className={`panel w-full min-h-[72px] text-left transition ${
                 selected ? "ring-2 ring-[var(--coral)]" : ""
               }`}
               disabled={you.role !== "player" || busy}
@@ -71,7 +81,10 @@ export function VotePanel({
                 setTimeout(() => setBusy(false), 400);
               }}
             >
-              <p className="font-extrabold">{p?.name}</p>
+              <p className="font-extrabold">
+                {p?.name}
+                {selected ? " · your pick" : ""}
+              </p>
               <ol className="mt-1 list-decimal pl-5 text-sm">
                 {picks.map((pk) => (
                   <li key={pk.turnIndex}>{pk.text}</li>

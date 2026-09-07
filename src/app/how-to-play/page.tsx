@@ -20,6 +20,10 @@ export default function HowToPlayPage() {
             Nickname only. Host Starts at {RULES.minPlayers}–
             {RULES.maxPlayers} players.
           </li>
+          <li>
+            Optional Party Mode (off by default): light sip prompts after busts
+            or wins. Pass anytime — no score effect.
+          </li>
         </ol>
       </section>
 

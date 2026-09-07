@@ -27,13 +27,19 @@ export function ReviewPanel({
 }) {
   return (
     <div className="space-y-4">
-      <div className="flex justify-between">
-        <h2 className="font-extrabold">Review / pitch</h2>
-        <Countdown until={state.phaseDeadlineAt} />
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <h2 className="font-[family-name:var(--font-display)] text-xl font-extrabold">
+            Review rosters
+          </h2>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            Look over picks — vote is next.
+          </p>
+        </div>
+        <span className="text-sm font-bold tabular-nums text-[var(--muted)]">
+          <Countdown until={state.phaseDeadlineAt} />
+        </span>
       </div>
-      <p className="text-sm text-[var(--muted)]">
-        Optional one-sentence defense. Voting starts next.
-      </p>
       {state.seatOrder.map((pid) => {
         const p = state.players.find((x) => x.id === pid);
         const picks = state.picks
@@ -53,11 +59,16 @@ export function ReviewPanel({
       {you.isHost && (
         <button
           type="button"
-          className="btn-primary w-full"
+          className="btn-primary w-full text-lg"
           onClick={() => send({ type: "skip_review" })}
         >
-          Start Vote
+          Start vote
         </button>
+      )}
+      {!you.isHost && (
+        <p className="text-center text-sm text-[var(--muted)]">
+          Waiting for host…
+        </p>
       )}
     </div>
   );

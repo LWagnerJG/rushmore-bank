@@ -22,7 +22,7 @@ export default function HomePage() {
   function join() {
     const room = normalizeRoomCode(code);
     if (room.length < 4) {
-      setJoinError("Enter the 4-character room code");
+      setJoinError("Enter the 4-letter room code");
       return;
     }
     setJoinError(null);
@@ -32,44 +32,56 @@ export default function HomePage() {
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col px-4 pb-10 pt-8">
-      <div className="animate-rise flex flex-1 flex-col justify-center gap-8">
-        <header className="space-y-3 text-center">
+      <div className="animate-rise flex flex-1 flex-col justify-center gap-7">
+        <header className="space-y-2 text-center">
           <div className="flex justify-center">
             <BrandMark large />
           </div>
-          <p className="text-lg font-semibold text-[var(--muted)]">
+          <p className="font-[family-name:var(--font-display)] text-xl font-bold text-[var(--text)]">
             {RULES.tagline}
           </p>
           <p className="text-sm text-[var(--muted)]">
-            {RULES.minPlayers}–{RULES.maxPlayers} players · phones as
-            controllers
+            {RULES.minPlayers}–{RULES.maxPlayers} players · phones only
           </p>
         </header>
 
         <section className="panel space-y-3">
-          <label className="block text-sm font-bold">Nickname</label>
+          <label className="block text-sm font-bold" htmlFor="home-name">
+            Your nickname
+          </label>
           <input
+            id="home-name"
             className="field w-full"
-            placeholder="Your name"
+            placeholder="What friends call you"
             value={name}
             maxLength={18}
             onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && create()}
           />
-          <button type="button" className="btn-primary w-full" onClick={create}>
-            Create Game
+          <button
+            type="button"
+            className="btn-primary w-full text-lg"
+            onClick={create}
+          >
+            Create game
           </button>
+          <div className="relative py-1 text-center text-xs font-bold uppercase tracking-wide text-[var(--muted)]">
+            <span className="bg-[var(--panel)] relative z-10 px-2">or join</span>
+            <span className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-[rgba(35,72,62,0.12)]" />
+          </div>
           <div className="flex gap-2">
             <input
-              className="field w-full uppercase tracking-[0.2em]"
+              className="field w-full uppercase tracking-[0.22em]"
               placeholder="CODE"
               value={code}
               maxLength={4}
+              aria-label="Room code"
               onChange={(e) => setCode(e.target.value.toUpperCase())}
               onKeyDown={(e) => e.key === "Enter" && join()}
             />
             <button
               type="button"
-              className="btn-secondary shrink-0 px-5"
+              className="btn-secondary shrink-0 px-5 text-base"
               onClick={join}
             >
               Join
@@ -82,12 +94,12 @@ export default function HomePage() {
           )}
         </section>
 
-        <nav className="flex flex-wrap justify-center gap-4 text-sm font-semibold">
+        <nav className="flex flex-wrap justify-center gap-5 text-sm font-semibold">
           <Link
             className="text-[var(--coral)] underline-offset-2 hover:underline"
             href="/how-to-play"
           >
-            How to Play
+            How to play
           </Link>
           <Link
             className="text-[var(--muted)] underline-offset-2 hover:underline"

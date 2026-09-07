@@ -78,17 +78,20 @@ export function WagerPanel({
     <div className="space-y-4">
       <header className="space-y-1">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-2xl font-extrabold">Risk how many?</h2>
+          <h2 className="font-[family-name:var(--font-display)] text-2xl font-extrabold">
+            Risk how many?
+          </h2>
           {left !== null && (
-            <span className="text-sm font-bold tabular-nums">{left}s</span>
+            <span className="text-sm font-bold tabular-nums text-[var(--muted)]">
+              {left}s
+            </span>
           )}
         </div>
         <p className="text-sm text-[var(--muted)]">
-          Earned {earned} this round
+          You earned {earned}
           {fromBankCap > 0
-            ? ` · can add up to ${fromBankCap} from earlier`
+            ? ` · can add up to ${fromBankCap} banked`
             : ""}
-          .
         </p>
       </header>
 

@@ -43,18 +43,20 @@ export function TopicPanel({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="font-[family-name:var(--font-display)] text-xl font-extrabold">
-          Pick a topic
-        </h2>
-        <span className="text-sm font-bold text-[var(--muted)]">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <h2 className="font-[family-name:var(--font-display)] text-xl font-extrabold">
+            Pick a topic
+          </h2>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            Round {state.topicRound + 1} of {state.configuredTopicRounds} ·
+            private vote
+          </p>
+        </div>
+        <span className="text-sm font-bold tabular-nums text-[var(--muted)]">
           <Countdown until={state.phaseDeadlineAt} />
         </span>
       </div>
-      <p className="text-sm text-[var(--muted)]">
-        Round {state.topicRound + 1} of {state.configuredTopicRounds} · vote is
-        private
-      </p>
 
       <div className={`space-y-2 ${spinning ? "topic-spinner" : ""}`}>
         {state.topicOptions.map((t) => {
@@ -64,7 +66,7 @@ export function TopicPanel({
             <button
               key={t.id}
               type="button"
-              className={`panel w-full text-left transition ${
+              className={`panel w-full min-h-[64px] text-left transition ${
                 selected ? "ring-2 ring-[var(--coral)]" : ""
               }`}
               onClick={() => send({ type: "vote_topic", topicId: t.id })}
@@ -72,12 +74,12 @@ export function TopicPanel({
             >
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <p className="font-extrabold">{t.text}</p>
+                  <p className="font-extrabold text-base">{t.text}</p>
                   <p className="mt-1 text-xs text-[var(--muted)]">
-                    {t.scope} · {t.scopeBoundary}
+                    {t.scopeBoundary}
                   </p>
                 </div>
-                <span className="rounded-full bg-[var(--mint)] px-2 py-0.5 text-xs font-bold">
+                <span className="rounded-full bg-[var(--mint)] px-2.5 py-1 text-xs font-bold">
                   {votes}
                 </span>
               </div>

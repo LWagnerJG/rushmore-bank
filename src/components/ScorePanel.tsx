@@ -15,9 +15,14 @@ export function ScorePanel({
   const sorted = [...state.scores].sort((a, b) => b.earned - a.earned);
   return (
     <div className="space-y-4">
-      <h2 className="font-[family-name:var(--font-display)] text-xl font-extrabold">
-        This round
-      </h2>
+      <header className="space-y-1">
+        <h2 className="font-[family-name:var(--font-display)] text-xl font-extrabold">
+          Beans earned
+        </h2>
+        <p className="text-sm text-[var(--muted)]">
+          Votes + AI judge · next up: wager
+        </p>
+      </header>
       {state.judgeNotice && (
         <p className="panel text-sm font-semibold text-[var(--coral)]">
           {state.judgeNotice}
@@ -42,22 +47,27 @@ export function ScorePanel({
         );
       })}
       {you.isHost && (
-        <div className="flex gap-2">
+        <div className="space-y-2">
           <button
             type="button"
-            className="btn-primary flex-1"
+            className="btn-primary w-full text-lg"
             onClick={() => send({ type: "advance" })}
           >
-            Continue
+            Continue to wager
           </button>
           <button
             type="button"
-            className="btn-secondary"
+            className="btn-secondary w-full"
             onClick={() => send({ type: "void_topic" })}
           >
-            Void
+            Void this topic
           </button>
         </div>
+      )}
+      {!you.isHost && (
+        <p className="text-center text-sm text-[var(--muted)]">
+          Waiting for host…
+        </p>
       )}
     </div>
   );

@@ -36,13 +36,13 @@ export function PrepPanel({
         {topic?.text}
       </h2>
       <p className="panel text-sm">{topic?.scopeBoundary}</p>
-      <p className="text-sm text-[var(--muted)]">
-        Jot ideas privately. Snake draft starts soon.
+      <p className="text-sm font-semibold">
+        Think of answers — draft starts next.
       </p>
       {you.isHost && (
         <button
           type="button"
-          className="btn-secondary"
+          className="btn-secondary w-full"
           onClick={() => send({ type: "advance" })}
         >
           Skip prep

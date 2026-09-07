@@ -2,6 +2,7 @@
 
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
 import { RULES } from "@/shared/rules";
+import { PartyModeSwitch } from "@/components/PartyModeSwitch";
 
 export function ResultsPanel({
   state,
@@ -20,23 +21,23 @@ export function ResultsPanel({
 
   return (
     <div className="space-y-4">
-      <h2 className="font-[family-name:var(--font-display)] text-2xl font-extrabold">
-        {final ? "Final standings" : "Round results"}
-      </h2>
-      <p className="text-sm text-[var(--muted)]">
-        {final
-          ? `All ${state.configuredTopicRounds} rounds done — most beans wins.`
-          : `Round ${state.topicRound} of ${state.configuredTopicRounds}`}
-      </p>
+      <header className="space-y-1">
+        <h2 className="font-[family-name:var(--font-display)] text-2xl font-extrabold">
+          {final ? "Final standings" : "Round results"}
+        </h2>
+        <p className="text-sm text-[var(--muted)]">
+          {final
+            ? `Most ${RULES.currencyName} wins.`
+            : `Round ${state.topicRound} of ${state.configuredTopicRounds}`}
+        </p>
+      </header>
 
       <ol className="space-y-2">
         {ranked.map((p, i) => (
-          <li
-            key={p.id}
-            className="panel flex items-center justify-between font-extrabold"
-          >
+          <li key={p.id} className="player-row font-extrabold">
             <span>
               {i + 1}. {p.name}
+              {p.id === you.id ? " (you)" : ""}
             </span>
             <span className="text-[var(--coral)]">
               {p.stones} {RULES.currencyName}
@@ -46,8 +47,13 @@ export function ResultsPanel({
       </ol>
 
       {state.partyPrompt && !state.partyPrompt.resolved && (
-        <div className="panel space-y-2">
-          <p className="font-extrabold">Party Mode sip</p>
+        <div className="panel party-sip space-y-3">
+          <p className="font-[family-name:var(--font-display)] text-lg font-extrabold">
+            {state.partyPrompt.kind === "bust_sip"
+              ? "Bust sip (optional)"
+              : "Winner sip (optional)"}
+          </p>
+          <p className="text-sm">One sip, or Pass — no score effect.</p>
           <div className="flex gap-2">
             <button
               type="button"
@@ -68,26 +74,23 @@ export function ResultsPanel({
       )}
 
       {you.isHost && !final && (
-        <div className="space-y-2">
-          <label className="flex items-center justify-between panel text-sm font-semibold">
-            Party Mode
-            <input
-              type="checkbox"
-              checked={state.settings.partyMode}
-              onChange={(e) =>
-                send({
-                  type: "update_settings",
-                  settings: { partyMode: e.target.checked },
-                })
-              }
-            />
-          </label>
+        <div className="space-y-3">
+          <PartyModeSwitch
+            compact
+            on={state.settings.partyMode}
+            onChange={(next) =>
+              send({
+                type: "update_settings",
+                settings: { partyMode: next },
+              })
+            }
+          />
           <button
             type="button"
-            className="btn-primary w-full"
+            className="btn-primary w-full text-lg"
             onClick={() => send({ type: "next_topic" })}
           >
-            Next Topic
+            Next topic
           </button>
           <button
             type="button"
@@ -102,11 +105,17 @@ export function ResultsPanel({
       {you.isHost && final && (
         <button
           type="button"
-          className="btn-primary w-full"
+          className="btn-primary w-full text-lg"
           onClick={() => send({ type: "play_again" })}
         >
-          Play Again
+          Play again
         </button>
+      )}
+
+      {!you.isHost && (
+        <p className="text-center text-sm text-[var(--muted)]">
+          Waiting for host…
+        </p>
       )}
     </div>
   );
