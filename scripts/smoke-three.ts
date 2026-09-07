@@ -135,26 +135,13 @@ async function main() {
   }
 
   await luke.waitPhase("VOTING_AND_JUDGING", 10000);
-  console.log("VOTING");
-  // Each votes for someone else
+  console.log("VOTING — waiting for server-side judge + ballots");
   luke.send({ type: "submit_vote", targetPlayerId: brynna.youId });
   brynna.send({ type: "submit_vote", targetPlayerId: friend.youId });
   friend.send({ type: "submit_vote", targetPlayerId: luke.youId });
-  // AI fallback from "host" client path isn't here — submit fallback judgments
-  const seatOrder = luke.state?.seatOrder as string[];
-  luke.send({
-    type: "submit_ai_judgments",
-    fallback: true,
-    judgments: seatOrder.map((playerId) => ({
-      playerId,
-      topicFit: 5,
-      pickStrength: 10,
-      rosterQuality: 5,
-      explanation: "Smoke fallback",
-    })),
-  });
+  // Judging is server-authoritative — do not submit client AI scores.
 
-  await luke.waitPhase("SCORE_REVEAL", 15000);
+  await luke.waitPhase("SCORE_REVEAL", 25000);
   console.log("SCORE_REVEAL", luke.state?.scores);
   luke.send({ type: "advance" });
 

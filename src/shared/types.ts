@@ -29,6 +29,8 @@ export type DiceSubphase =
 
 export type PlayerRole = "player" | "spectator";
 
+export type JudgeStatus = "idle" | "pending" | "ready" | "failed";
+
 export interface Player {
   id: string;
   name: string;
@@ -88,7 +90,9 @@ export interface LedgerEntry {
   topicRound: number;
 }
 
+/** Authoritative dice outcome (server-internal until revealed). */
 export interface DiceBroadcast {
+  rollId: string;
   rollerId: string;
   d1: number;
   d2: number;
@@ -97,10 +101,30 @@ export interface DiceBroadcast {
   potAfter: number;
   busted: boolean;
   note: string;
-  /** Animation sync */
   animStartedAt: number;
+  animSettleAt: number;
   animSeed: number;
   outcomeKind: string;
+  /** False while tumbling — clients must not show faces/outcome. */
+  revealed: boolean;
+}
+
+/** Recipient-safe dice view — faces omitted until settle. */
+export interface PublicDiceBroadcast {
+  rollId: string;
+  rollerId: string;
+  personalRollNumber: number;
+  animStartedAt: number;
+  animSettleAt: number;
+  animSeed: number;
+  revealed: boolean;
+  potBefore: number;
+  d1?: number;
+  d2?: number;
+  potAfter?: number;
+  busted?: boolean;
+  note?: string;
+  outcomeKind?: string;
 }
 
 export interface PartyPrompt {
@@ -117,49 +141,51 @@ export interface HostSettings {
   partyMode: boolean;
 }
 
+/**
+ * Authoritative durable room state (PartyKit storage).
+ * Contains private ballot maps — never broadcast as-is.
+ */
 export interface RoomState {
   code: string;
   phase: Phase;
   phaseRevision: number;
   players: Player[];
-  /** Locked at game start */
   rosterLocked: boolean;
   settings: HostSettings;
   createdAt: number;
   /** Topic rounds completed */
   topicRound: number;
-  /** Topics already used this game */
+  /** Rounds to play this game (set at start from player count) */
+  configuredTopicRounds: number;
   usedTopicIds: string[];
-  /** Current topic selection */
   topicOptions: TopicOption[];
-  topicVotes: Record<string, string>; // playerId → topicId
+  /** PRIVATE — voter → topicId; never in public projection */
+  topicVotes: Record<string, string>;
   selectedTopic: TopicOption | null;
   topicRerollsUsed: number;
-  /** Draft */
-  seatOrder: string[]; // player ids in seat order
+  seatOrder: string[];
   starterOffset: number;
   draftCursor: number;
-  draftOrder: number[]; // seat indices snake
+  draftOrder: number[];
   picks: DraftPick[];
-  takenNormalized: string[]; // lowercased locked picks
+  takenNormalized: string[];
   pickDeadlineAt: number | null;
   pickPaused: boolean;
   pickPauseRemainingMs: number | null;
-  correctionTargetPickId: string | null; // turnIndex as string key
+  correctionTargetPickId: string | null;
   correctionReason: "duplicate" | "invalid" | null;
-  /** Voting */
-  humanVotes: Record<string, string>; // voterId → targetPlayerId
+  /** PRIVATE — voter → targetPlayerId */
+  humanVotes: Record<string, string>;
   scores: RosterScore[];
   scoresLocked: boolean;
-  /** Per-player earned this topic (before wager) */
+  judgeStatus: JudgeStatus;
+  judgeJobId: string | null;
+  judgeNotice: string | null;
   earnedThisRound: Record<string, number>;
-  /** Wagers */
-  wagers: Record<string, number>; // playerId → W
+  wagers: Record<string, number>;
   wagerDeadlineAt: number | null;
-  /** Dice */
   diceSubphase: DiceSubphase;
   diceTurnSeat: number;
-  /** Players still active in dice (not busted / not pulled out) */
   diceActiveIds: string[];
   personalRollCounts: Record<string, number>;
   pots: Record<string, number>;
@@ -169,24 +195,80 @@ export interface RoomState {
   diceIdleDeadlineAt: number | null;
   diceRoundStartedAt: number | null;
   diceLapsCompleted: number;
-  /** Party mode */
   partyPrompt: PartyPrompt | null;
-  /** Append-only stone ledger */
   ledger: LedgerEntry[];
-  /** Checkpoint for Void Topic */
   checkpoint: {
     stones: Record<string, number>;
     topicRound: number;
   } | null;
-  /** Timers */
   phaseDeadlineAt: number | null;
-  /** Host last seen (for failover) */
   hostLastSeenAt: number;
-  /** Action idempotency — last processed action ids */
   processedActionIds: string[];
-  /** Game over flag */
   gameOver: boolean;
-  /** Spectator-friendly notice */
+  notice: string | null;
+}
+
+/**
+ * Recipient-specific public snapshot. No ballot maps, no action-id list,
+ * no judge job internals. Dice faces only when revealed.
+ */
+export interface PublicRoomState {
+  code: string;
+  phase: Phase;
+  phaseRevision: number;
+  players: Player[];
+  rosterLocked: boolean;
+  settings: HostSettings;
+  createdAt: number;
+  topicRound: number;
+  configuredTopicRounds: number;
+  usedTopicIds: string[];
+  topicOptions: TopicOption[];
+  topicVoteCounts: Record<string, number>;
+  myTopicVote: string | null;
+  selectedTopic: TopicOption | null;
+  topicRerollsUsed: number;
+  seatOrder: string[];
+  starterOffset: number;
+  draftCursor: number;
+  draftOrder: number[];
+  picks: DraftPick[];
+  takenNormalized: string[];
+  pickDeadlineAt: number | null;
+  pickPaused: boolean;
+  pickPauseRemainingMs: number | null;
+  correctionTargetPickId: string | null;
+  correctionReason: "duplicate" | "invalid" | null;
+  humanVotesCast: number;
+  humanVotesNeeded: number;
+  myHumanVote: string | null;
+  scores: RosterScore[];
+  scoresLocked: boolean;
+  judgeStatus: JudgeStatus;
+  judgeNotice: string | null;
+  earnedThisRound: Record<string, number>;
+  wagers: Record<string, number>;
+  wagerDeadlineAt: number | null;
+  diceSubphase: DiceSubphase;
+  diceTurnSeat: number;
+  diceActiveIds: string[];
+  personalRollCounts: Record<string, number>;
+  pots: Record<string, number>;
+  protectedStones: Record<string, number>;
+  lastDice: PublicDiceBroadcast | null;
+  diceDecisionDeadlineAt: number | null;
+  diceIdleDeadlineAt: number | null;
+  diceRoundStartedAt: number | null;
+  diceLapsCompleted: number;
+  partyPrompt: PartyPrompt | null;
+  ledger: LedgerEntry[];
+  checkpoint: {
+    stones: Record<string, number>;
+    topicRound: number;
+  } | null;
+  phaseDeadlineAt: number | null;
+  hostLastSeenAt: number;
+  gameOver: boolean;
   notice: string | null;
 }
 
@@ -204,13 +286,8 @@ export type ClientMessage =
   | { type: "host_extend"; actionId?: string }
   | { type: "host_correct"; turnIndex: number; reason: "duplicate" | "invalid"; actionId?: string }
   | { type: "submit_vote"; targetPlayerId: string; actionId?: string }
-  | { type: "submit_ai_judgments"; judgments: Array<{
-      playerId: string;
-      topicFit: number;
-      pickStrength: number;
-      rosterQuality: number;
-      explanation: string;
-    }>; fallback?: boolean; actionId?: string }
+  /** @deprecated Rejected by server — judging is server-authoritative. */
+  | { type: "submit_ai_judgments"; judgments?: unknown; fallback?: boolean; actionId?: string }
   | { type: "submit_wager"; amount: number; actionId?: string }
   | { type: "dice_ready_ack"; actionId?: string }
   | { type: "roll"; actionId?: string }
@@ -229,23 +306,20 @@ export type ServerMessage =
   | { type: "error"; message: string }
   | { type: "joined"; youId: string; state: PublicRoomState };
 
-/** Public state is RoomState (My Ideas never live on server). */
-export type PublicRoomState = RoomState;
-
 export function phaseLabel(phase: Phase): string {
   switch (phase) {
     case "LOBBY":
       return "Lobby";
     case "TOPIC_SELECTION":
-      return "Pick Topic";
+      return "Pick a topic";
     case "PREP":
-      return "Prep";
+      return "Prep your ideas";
     case "DRAFT":
       return "Draft";
     case "CORRECTION":
-      return "Correction";
+      return "Fix a pick";
     case "REVIEW":
-      return "Review";
+      return "Review rosters";
     case "VOTING_AND_JUDGING":
       return "Vote";
     case "SCORE_REVEAL":
@@ -255,9 +329,9 @@ export function phaseLabel(phase: Phase): string {
     case "DICE":
       return "Dice";
     case "ROUND_RESULTS":
-      return "Round Results";
+      return "Round results";
     case "GAME_RESULTS":
-      return "Final";
+      return "Final standings";
   }
 }
 
@@ -300,6 +374,7 @@ export function emptyRoomState(code: string): RoomState {
     settings: emptyHostSettings(),
     createdAt: Date.now(),
     topicRound: 0,
+    configuredTopicRounds: RULES.topicRoundsSmall,
     usedTopicIds: [],
     topicOptions: [],
     topicVotes: {},
@@ -319,6 +394,9 @@ export function emptyRoomState(code: string): RoomState {
     humanVotes: {},
     scores: [],
     scoresLocked: false,
+    judgeStatus: "idle",
+    judgeJobId: null,
+    judgeNotice: null,
     earnedThisRound: {},
     wagers: {},
     wagerDeadlineAt: null,

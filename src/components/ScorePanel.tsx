@@ -15,10 +15,17 @@ export function ScorePanel({
   const sorted = [...state.scores].sort((a, b) => b.earned - a.earned);
   return (
     <div className="space-y-4">
-      <h2 className="font-extrabold">Scores</h2>
+      <h2 className="font-[family-name:var(--font-display)] text-xl font-extrabold">
+        Scores
+      </h2>
       <p className="text-xs text-[var(--muted)]">
         Earned = {RULES.scoreBase} + AI (0–40) + {RULES.stonesPerHumanVote}×votes
       </p>
+      {state.judgeNotice && (
+        <p className="panel text-sm font-semibold text-[var(--coral)]">
+          {state.judgeNotice}
+        </p>
+      )}
       {sorted.map((s) => {
         const p = state.players.find((x) => x.id === s.playerId);
         return (
@@ -29,8 +36,9 @@ export function ScorePanel({
             </div>
             <p className="text-xs text-[var(--muted)]">
               votes {s.votes} · AI {s.aiAward}
-              {s.aiFallback ? " (fallback)" : ""} · fit {s.topicFit} / strength{" "}
-              {s.pickStrength} / quality {s.rosterQuality}
+              {s.aiFallback ? " · Judge unavailable · neutral award" : ""} · fit{" "}
+              {s.topicFit} / strength {s.pickStrength} / quality{" "}
+              {s.rosterQuality}
             </p>
             <p className="text-sm">{s.explanation}</p>
           </div>
@@ -43,14 +51,14 @@ export function ScorePanel({
             className="btn-primary flex-1"
             onClick={() => send({ type: "advance" })}
           >
-            Wager
+            Continue to wager
           </button>
           <button
             type="button"
             className="btn-secondary"
             onClick={() => send({ type: "void_topic" })}
           >
-            Void Topic
+            Void topic
           </button>
         </div>
       )}
