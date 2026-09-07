@@ -1,7 +1,7 @@
 {
   "name": "Beans",
   "short_name": "Beans",
-  "description": "Draft four. Bank beans. A party game for 3–10 friends.",
+  "description": "Draft four. Bank beans. A party game for 2–10 friends.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#F5F0E7",

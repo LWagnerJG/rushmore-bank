@@ -10,6 +10,7 @@ const config = ".partykit-browser-ci.json";
 fs.writeFileSync(config, JSON.stringify({ name: "beans-browser-ci", main: "party/server.ts", compatibilityDate: "2024-09-01", port: 1999, vars: { JUDGE_URL: "http://localhost:3000", JUDGE_SECRET: "ci-local-only" } }));
 const env = { ...process.env, JUDGE_SECRET: "ci-local-only", GEMINI_API_KEY: "", GOOGLE_GENERATIVE_AI_API_KEY: "", OPENAI_API_KEY: "", NEXT_TELEMETRY_DISABLED: "1" };
 const children = [];
+const report = { passed: [], errors: [], pages: [], logs: {} };
 function start(command, args, name) {
   const child = spawn(command, args, { env, stdio: ["ignore", "pipe", "pipe"] });
   const log = fs.createWriteStream(`${out}/${name}.log`);
@@ -61,6 +62,8 @@ async function smoke(type, engine) {
     assert.match(await roster.innerText(), /Brynna/);
     assert.equal((await roster.boundingBox()).y < 350, true, "arrivals visible before sharing controls");
     await host.page.screenshot({ path: `${out}/${type}-lobby.png`, fullPage: true });
+    await host.page.screenshot({ path: `${out}/${type}-lobby.jpg`, type: "jpeg", quality: 30 });
+    guest.state = null;
     await guest.page.reload();
     await until(() => guest.state?.players.find((player) => player.id === guest.id)?.connected, "rejoin");
     await host.page.getByRole("button", { name: "Start game", exact: true }).click();
@@ -94,6 +97,7 @@ async function smoke(type, engine) {
           assert.match(await host.page.getByRole("table").innerText(), new RegExp(answer.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
           assert.equal(await host.page.locator("td").count(), 8);
           await host.page.screenshot({ path: `${out}/${type}-draft.png`, fullPage: true });
+          await host.page.screenshot({ path: `${out}/${type}-draft.jpg`, type: "jpeg", quality: 30 });
           await host.page.getByRole("button", { name: "Available", exact: true }).click();
         }
       }
@@ -108,8 +112,9 @@ async function smoke(type, engine) {
         const slider = client.page.getByRole("slider", { name: "Wager slider" });
         await slider.waitFor();
         assert.equal(Number(await slider.getAttribute("max")), totals[client.id]);
-        await slider.fill(i === 0 ? "0" : String(Math.floor(totals[client.id] / 2)));
-        assert.equal(await client.page.getByLabel("Beans to wager").inputValue(), i === 0 ? "0" : String(Math.floor(totals[client.id] / 2)));
+        await slider.focus();
+        await slider.press(i === 0 ? "Home" : "End");
+        assert.equal(await client.page.getByLabel("Beans to wager").inputValue(), i === 0 ? "0" : String(totals[client.id]));
         if (i === 0 && round === 0) await client.page.screenshot({ path: `${out}/${type}-wager.png`, fullPage: true });
         await client.page.getByRole("button", { name: /^Lock \d+ beans$/ }).click();
       }
@@ -133,7 +138,18 @@ async function smoke(type, engine) {
           assert.equal(await client.page.locator(".bean-die").first().getAttribute("data-face"), String(dice.d1));
           assert.equal(await client.page.locator(".bean-die").nth(1).getAttribute("data-face"), String(dice.d2));
         }
-        if (turn === 0 && round === 0) await host.page.screenshot({ path: `${out}/${type}-dice.png`, fullPage: true });
+        for (const client of clients) await until(async () => {
+          const frontPips = await client.page.locator(".bean-die").evaluateAll((dice) => dice.map((die) => {
+            const rotation = new DOMMatrix(getComputedStyle(die).transform);
+            const front = [...die.children].sort((a, b) => rotation.multiply(new DOMMatrix(getComputedStyle(b).transform)).m33 - rotation.multiply(new DOMMatrix(getComputedStyle(a).transform)).m33)[0];
+            return front.querySelectorAll(".bean-pip").length;
+          }));
+          return frontPips[0] === dice.d1 && frontPips[1] === dice.d2;
+        }, "visible pip faces match server dice", 2000);
+        if (turn === 0 && round === 0) {
+          await host.page.screenshot({ path: `${out}/${type}-dice.png`, fullPage: true });
+          await host.page.screenshot({ path: `${out}/${type}-dice.jpg`, type: "jpeg", quality: 30 });
+        }
       }
       for (const client of clients) {
         await client.page.getByRole("button", { name: /^Bank \d+$/ }).click();
@@ -144,7 +160,15 @@ async function smoke(type, engine) {
     }
     assert.deepEqual(errors, []);
     await host.page.screenshot({ path: `${out}/${type}-final.png`, fullPage: true });
+    report.passed.push(type);
     console.log(`PASS ${type}: create/join, live lobby, rejoin, queue privacy, snake board, wager slider, synced dice and 3-round two-player game`);
+  } catch (error) {
+    report.errors.push(`${type}: ${error.stack || error}`);
+    for (const client of clients) {
+      report.pages.push({ engine: type, name: client.name, phase: client.state?.phase, cursor: client.state?.draftCursor, body: (await client.page.locator("body").innerText().catch(() => "")).slice(0, 2500) });
+      await client.page.screenshot({ path: `${out}/${type}-${client.name}-failure.jpg`, type: "jpeg", quality: 30 }).catch(() => {});
+    }
+    throw error;
   } finally {
     for (let i = 0; i < contexts.length; i++) await contexts[i].tracing.stop({ path: `${out}/${type}-${i}.zip` });
     await browser.close();
@@ -156,7 +180,15 @@ try {
   await until(async () => { try { return (await fetch(address)).ok && (await fetch("http://localhost:1999/parties/main/CHECK")).ok; } catch { return false; } }, "local servers", 60000);
   const checks = await Promise.allSettled([smoke("chromium", chromium), smoke("webkit", webkit)]);
   for (const result of checks) if (result.status === "rejected") throw result.reason;
+} catch (error) {
+  report.errors.push(String(error.stack || error));
+  throw error;
 } finally {
+  for (const name of ["next", "partykit"]) {
+    const file = `${out}/${name}.log`;
+    if (fs.existsSync(file)) report.logs[name] = fs.readFileSync(file, "utf8").slice(-4000);
+  }
+  fs.writeFileSync(`${out}/report.json`, JSON.stringify(report, null, 2));
   for (const child of children) child.kill("SIGTERM");
   fs.rmSync(config, { force: true });
 }

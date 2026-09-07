@@ -197,7 +197,6 @@ body {
 }
 
 /* Readable controls and safe insets on phones. */
-button:disabled { cursor: not-allowed; opacity: 0.5; }
 button:focus-visible, a:focus-visible, summary:focus-visible {
   outline: 3px solid var(--text);
   outline-offset: 4px;
@@ -214,7 +213,6 @@ main { padding-bottom: max(2rem, env(safe-area-inset-bottom)); }
 }
 .bean-slider:focus-visible { outline: 3px solid var(--coral); outline-offset: 4px; border-radius: 8px; }
 button:disabled { cursor: not-allowed; opacity: 0.5; }
-button:focus-visible, summary:focus-visible { outline: 3px solid var(--coral); outline-offset: 3px; }
 
 .bean-dice-tray {
   position: relative;

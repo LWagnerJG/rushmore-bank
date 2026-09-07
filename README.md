@@ -1,15 +1,15 @@
-# Beans — test preview
+# Beans
 
 **Draft four. Bank beans.** — mobile-first party game. 2–10 players. Currency: **beans**.
 
-> Test only. Production stays at [roundacats.vercel.app](https://roundacats.vercel.app). Fudge’s release is PR #12; the Codex follow-up targets that test branch. Do not merge to main before Luke and Brynna approve.
+Release target: [roundacats.vercel.app](https://roundacats.vercel.app). Publish both the Next frontend and the PartyKit server after the release checks pass.
 
 ## Stack
 
 - Next.js (App Router) + TypeScript + Tailwind CSS 4
 - PartyKit for durable realtime rooms + server alarms (deadlines survive host tab sleep)
 - Optional AI roster judging via Gemini (`GEMINI_API_KEY`) or OpenAI (`OPENAI_API_KEY`) at `/api/judge`; uniform neutral fallback if unavailable
-- three.js synchronized 3D dice
+- Synchronized six-face CSS pip dice (no WebGL required)
 
 ## Local development
 
@@ -44,17 +44,21 @@ npm run dev
 ## How to play (short)
 
 1. Create Game / Join with a nickname. Share code, link, or QR.
-2. Spin topics → vote one. Snake draft 4 answers (**Lock In**). Private **My Ideas** while waiting.
+2. Spin topics → vote one. Snake draft 4 answers (**Lock pick**). Private **My queue** while waiting.
 3. Host can remove duplicate/invalid → replacement turn.
 4. AI judges everyone. With 3+ players, private votes add beans; with 2, AI-only scoring skips the ballot. Everyone earns beans.
-5. Wager into a personal pot. Rotating personal dice: first 2 rolls safe; then 7 busts that player only; doubles double pot. **Bank** banks.
+5. Slide from 0 through your full balance to wager. Everyone enters BANK, including zero wagers. One roll, then pass; first 2 personal rolls are safe, then 7 busts only that player and doubles double their pot. Bank to leave; everyone returns next topic.
 6. Most banked Beans wins.
 
 Full rules: [`docs/RULES.md`](docs/RULES.md). Build notes: [`/build-notes`](https://roundacats.vercel.app/build-notes).
 
-## Deploy (test only)
+## Deploy
 
-Use the separate frontend/backend setup in `docs/BEANS_TEST_RELEASE.md`. Do not run the production PartyKit deploy script from this test branch.
+The `main` branch deploys the frontend through Vercel and the backend through `.github/workflows/deploy-partykit.yml`. The backend workflow requires `PARTYKIT_TOKEN` and `PARTYKIT_LOGIN` repository secrets. Missing credentials must be fixed before promoting a release with server changes.
+
+The expected backend health response at `/parties/main/CHECK` includes `release: beans-roundrobin-v1`. Keep the existing Gemini key and matching `JUDGE_SECRET` on Vercel and PartyKit. Suggestions use the same secret and Gemini configuration; the scoring route is unchanged.
+
+For local browser checks, build with `NEXT_PUBLIC_APP_ENV=development NEXT_PUBLIC_PARTYKIT_HOST=localhost:1999`, install Playwright, then run `node scripts/browser-smoke.mjs`. The script only runs local servers and never calls paid AI.
 
 Beans uses a coral bean character on the favicon, home-screen icons, share image, and in-app brand mark.
 
