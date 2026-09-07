@@ -361,3 +361,15 @@ assert.equal(late.state.draftOptions.length, 0);
 assert.equal("draftOptionsJobId" in late.publicStateFor("p0"), false);
 console.log("PASS: suggestion auth, bounds, deduplication, private payload, provider failure and stale-job isolation");
 console.log("No live rooms, real credentials, or paid AI calls used.");
+
+const { projectDie } = await get("src/shared/engine/dice-geometry.ts");
+for (const index of [0, 1]) for (let face = 1; face <= 6; face++) {
+  const projection = projectDie({ face, index });
+  assert.equal(projection.front, face);
+  const visible = projection.faces.filter((f) => f.visible);
+  assert.equal(visible.length, 3);
+  const area = (f) => { const m = f.transform.slice(7, -1).split(" ").map(Number); return Math.abs(m[0] * m[3] - m[1] * m[2]); };
+  assert.equal(visible.sort((a, b) => area(b) - area(a))[0].value, face);
+  assert.equal(projection.outline.includes("NaN"), false);
+}
+console.log("PASS: all six die faces on both cubes retain the correct dominant face and three visible sides");

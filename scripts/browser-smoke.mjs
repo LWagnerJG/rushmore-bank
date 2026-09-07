@@ -140,8 +140,10 @@ async function smoke(type, engine) {
         }
         for (const client of clients) await until(async () => {
           const frontPips = await client.page.locator(".bean-die").evaluateAll((dice) => dice.map((die) => {
-            const rotation = new DOMMatrix(getComputedStyle(die).transform);
-            const front = [...die.children].sort((a, b) => rotation.multiply(new DOMMatrix(getComputedStyle(b).transform)).m33 - rotation.multiply(new DOMMatrix(getComputedStyle(a).transform)).m33)[0];
+            // Visible face with the largest projected area must show the result.
+            const visible = [...die.querySelectorAll(".bean-die-face")].filter((face) => getComputedStyle(face).display !== "none");
+            const area = (face) => { const m = face.transform.baseVal.consolidate().matrix; return Math.abs(m.a * m.d - m.b * m.c); };
+            const front = visible.sort((a, b) => area(b) - area(a))[0];
             return front.querySelectorAll(".bean-pip").length;
           }));
           return frontPips[0] === dice.d1 && frontPips[1] === dice.d2;
@@ -149,8 +151,8 @@ async function smoke(type, engine) {
         if (turn === 0 && round === 0) {
           await new Promise(resolve => setTimeout(resolve, 300));
           report.dice.push({ engine: type, faces: [dice.d1, dice.d2], styles: await host.page.locator(".bean-die").evaluateAll((elements) => elements.map((element) => ({
-            transform: getComputedStyle(element).transform, style: getComputedStyle(element).transformStyle,
-            faceTransforms: [...element.children].map((face) => getComputedStyle(face).transform),
+            front: element.getAttribute("data-front-face"),
+            visibleFaces: [...element.querySelectorAll(".bean-die-face")].filter((face) => getComputedStyle(face).display !== "none").map((face) => face.getAttribute("data-face-value")),
           }))) });
           await host.page.locator(".bean-dice-tray").screenshot({ path: `${out}/${type}-dice-tray.jpg`, type: "jpeg", quality: 65, scale: "css" });
           await host.page.screenshot({ path: `${out}/${type}-dice.png`, fullPage: true });

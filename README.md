@@ -9,7 +9,7 @@ Release target: [roundacats.vercel.app](https://roundacats.vercel.app). Publish 
 - Next.js (App Router) + TypeScript + Tailwind CSS 4
 - PartyKit for durable realtime rooms + server alarms (deadlines survive host tab sleep)
 - Optional AI roster judging via Gemini (`GEMINI_API_KEY`) or OpenAI (`OPENAI_API_KEY`) at `/api/judge`; uniform neutral fallback if unavailable
-- Synchronized six-face CSS pip dice (no WebGL required)
+- Synchronized SVG dice projected from shared 3D geometry (no WebGL required)
 
 ## Local development
 

@@ -1,81 +1,78 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { CSSProperties, RefObject } from "react";
+import type { RefObject } from "react";
 import type { PublicDiceBroadcast } from "@/shared/types";
 import { animProgress, tumblePose } from "@/shared/engine/dice-sync";
-
-const PIPS: Record<number, number[]> = {
-  1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8],
-  5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8],
-};
-// CSS cube faces: front, top, right, left, bottom, back. Opposites sum to seven.
-const FACE_ROTATIONS = ["", "rotateX(90deg)", "rotateY(90deg)", "rotateY(-90deg)", "rotateX(-90deg)", "rotateY(180deg)"];
-const SETTLED_ROTATIONS = ["rotateX(0deg)", "rotateX(-90deg)", "rotateY(-90deg)", "rotateY(90deg)", "rotateX(90deg)", "rotateY(180deg)"];
+import { DIE_PIPS, projectDie, type DieProjection } from "@/shared/engine/dice-geometry";
 
 function Die({ elementRef, value, index }: {
-  elementRef: RefObject<HTMLDivElement | null>; value: number; index: number;
+  elementRef: RefObject<SVGSVGElement | null>; value: number; index: 0 | 1;
 }) {
-  return <div className={`bean-die-space bean-die-space-${index}`}>
-    <div ref={elementRef} className="bean-die" data-face={value} style={{ transform: `rotateX(-12deg) rotateY(-14deg) rotateZ(${index ? 8 : -8}deg) ${SETTLED_ROTATIONS[value - 1]}` }} aria-hidden="true">
-      {Array.from({ length: 6 }, (_, face) => <div key={face} className="bean-die-face" style={{ transform: `${FACE_ROTATIONS[face]} translateZ(var(--die-half))` }}>
-        {Array.from({ length: 9 }, (_, position) => <span key={position} className={PIPS[face + 1].includes(position) ? "bean-pip" : ""} />)}
-      </div>)}
-    </div>
-  </div>;
+  const projection = projectDie({ face: value, index });
+  return <svg ref={elementRef} className={`bean-die bean-die-${index}`} viewBox="-62 -82 124 150" aria-hidden="true" data-face={value} data-front-face={projection.front}>
+    <ellipse cx="0" cy="46" rx="39" ry="8" fill="#102d25" opacity="0.25" />
+    <polygon data-outline="true" points={projection.outline} className="bean-die-body" strokeLinejoin="round" strokeWidth="3" />
+    {projection.faces.map((face) => <g key={face.value} data-face-value={face.value} className="bean-die-face" transform={face.transform} style={{ display: face.visible ? "" : "none" }}>
+      <rect x="-32" y="-32" width="64" height="64" rx="5" className="bean-die-body" strokeWidth="0.7" />
+      <rect data-shade="true" x="-32" y="-32" width="64" height="64" rx="5" fill="#23483e" opacity={face.shade} />
+      {DIE_PIPS[face.value].map((pip) => <circle key={pip} className="bean-pip" cx={(pip % 3 - 1) * 17} cy={(Math.floor(pip / 3) - 1) * 17} r="5" fill="#23483e" />)}
+    </g>)}
+  </svg>;
 }
 
-/** Real six-face CSS cubes; no WebGL dependency or renderer reset on room updates. */
+function paint(element: SVGSVGElement | null, projection: DieProjection) {
+  if (!element) return;
+  element.dataset.frontFace = String(projection.front);
+  element.querySelector("[data-outline]")?.setAttribute("points", projection.outline);
+  for (const face of projection.faces) {
+    const group = element.querySelector<SVGGElement>(`[data-face-value="${face.value}"]`);
+    if (!group) continue;
+    group.style.display = face.visible ? "" : "none";
+    group.setAttribute("transform", face.transform);
+    group.querySelector("[data-shade]")?.setAttribute("opacity", String(face.shade));
+    // Painter's order: closest faces last. No CSS 3D compositing required.
+    element.appendChild(group);
+  }
+}
+
+/** Shared 3D geometry projected into SVG, including on Safari without GPU layers. */
 export function DiceScene({ broadcast, reducedMotion, isHost }: {
   broadcast: PublicDiceBroadcast | null; reducedMotion: boolean; isHost: boolean;
 }) {
-  const dieA = useRef<HTMLDivElement>(null);
-  const dieB = useRef<HTMLDivElement>(null);
+  const dieA = useRef<SVGSVGElement>(null), dieB = useRef<SVGSVGElement>(null);
   const [sound, setSound] = useState(false);
   const audio = useRef<AudioContext | null>(null);
   const sounded = useRef<string | null>(null);
   const rolling = !!broadcast && !broadcast.revealed;
   const rollId = broadcast?.rollId;
   const seed = broadcast?.animSeed ?? 0;
-  const started = broadcast?.animStartedAt ?? 0;
-  const settled = broadcast?.animSettleAt ?? 0;
+  const started = broadcast?.animStartedAt ?? 0, settled = broadcast?.animSettleAt ?? 0;
   const d1 = broadcast?.revealed ? broadcast.d1 ?? 1 : 1;
   const d2 = broadcast?.revealed ? broadcast.d2 ?? 1 : 1;
 
   useEffect(() => {
-    if (!rolling || reducedMotion) return;
+    if (!rolling || reducedMotion) {
+      paint(dieA.current, projectDie({ face: d1, index: 0 }));
+      paint(dieB.current, projectDie({ face: d2, index: 1 }));
+      return;
+    }
     let frame = 0;
     const tick = () => {
-      // The same seed and timestamps give every phone the same tumble.
-      const progress = animProgress(Date.now(), started, settled);
-      [dieA.current, dieB.current].forEach((element, index) => {
-        if (!element) return;
-        const pose = tumblePose(Math.min(progress, 0.97), seed, index === 0 ? 0 : 1);
-        const baseline = index === 0 ? -1.1 : 1.1;
-        const drift = Math.max(-18, Math.min(18, (pose.x - baseline) * 18));
-        const lift = Math.max(-45, Math.min(8, -(pose.y - 0.55) * 20));
-        element.style.transform = `translate(${drift}px, ${lift}px) rotateX(${pose.rx}rad) rotateY(${pose.ry}rad) rotateZ(${pose.rz}rad)`;
-      });
+      const progress = Math.min(0.97, animProgress(Date.now(), started, settled));
+      for (const index of [0, 1] as const) paint(index ? dieB.current : dieA.current, projectDie({ face: 1, index, tumble: tumblePose(progress, seed, index) }));
       frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [rolling, reducedMotion, rollId, seed, started, settled]);
-
-  useEffect(() => {
-    if (rolling) return;
-    [dieA.current, dieB.current].forEach((element, index) => {
-      if (element) element.style.transform = `rotateX(-12deg) rotateY(-14deg) rotateZ(${index ? 8 : -8}deg) ${SETTLED_ROTATIONS[(index ? d2 : d1) - 1]}`;
-    });
-  }, [rolling, d1, d2]);
+  }, [rolling, reducedMotion, rollId, seed, started, settled, d1, d2]);
 
   useEffect(() => {
     if (!broadcast?.revealed || !sound || !isHost || sounded.current === broadcast.rollId) return;
     sounded.current = broadcast.rollId;
     const ctx = audio.current;
     if (!ctx || ctx.state !== "running") return;
-    const oscillator = ctx.createOscillator();
-    const gain = ctx.createGain();
+    const oscillator = ctx.createOscillator(), gain = ctx.createGain();
     oscillator.type = "triangle";
     oscillator.frequency.setValueAtTime(230, ctx.currentTime);
     oscillator.frequency.exponentialRampToValueAtTime(70, ctx.currentTime + 0.08);
@@ -94,8 +91,7 @@ export function DiceScene({ broadcast, reducedMotion, isHost }: {
     }
     setSound(!sound);
   }
-
-  return <div className={`bean-dice-tray ${rolling && !reducedMotion ? "is-rolling" : ""} ${reducedMotion ? "is-reduced" : ""}`} style={{ "--die-size": "64px", "--die-half": "32px" } as CSSProperties}>
+  return <div className="bean-dice-tray">
     <div className="bean-dice-pair" role="img" aria-label={rolling ? "Dice rolling; result pending" : broadcast ? `Dice show ${d1} and ${d2}, total ${d1 + d2}` : "Two dice ready to roll"}>
       <Die elementRef={dieA} value={d1} index={0} />
       <Die elementRef={dieB} value={d2} index={1} />

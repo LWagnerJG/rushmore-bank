@@ -80,7 +80,7 @@ pot = W
 - Atomic Roll vs Bank.
 - Synchronized 3D scene with authoritative faces (all 36 outcomes). Fair backend RNG (rejection sampling).
 - The dice round ends when everyone banks or busts. No global timer forces the table to finish.
-- Pip dice use six-face CSS cubes, a shared seed and timestamps. Reduced motion shows a still roll state before the result. Sound is optional, host only.
+- Pip dice use shared 3D geometry projected into SVG, a shared seed and timestamps. Reduced motion shows a still roll state before the result. Sound is optional, host only.
 
 ### Worked path (tests)
 
