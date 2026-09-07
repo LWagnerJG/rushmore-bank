@@ -23,8 +23,10 @@ cp .env.example .env.local
 
 | Variable | Required | Description |
 |---|---|---|
-| `NEXT_PUBLIC_PARTYKIT_HOST` | Yes (for clients) | PartyKit host. Local: `127.0.0.1:1999`. Production: `your-project.yourname.partykit.dev` (no `https://`) |
+| `NEXT_PUBLIC_PARTYKIT_HOST` | No | Override PartyKit host (no `https://`). **Default (production):** `rushmore-bank.lwagnerjg.partykit.dev`. For local PartyKit: `127.0.0.1:1999` (see `.env.example`) |
 | `OPENAI_API_KEY` | No | If set, `/api/bot` uses OpenAI for ranking suggestions; otherwise a fun heuristic bot |
+
+Production app at [https://rushmore-bank.vercel.app](https://rushmore-bank.vercel.app) connects to `rushmore-bank.lwagnerjg.partykit.dev` automatically when this env var is unset.
 
 ### 3. Run (Next + PartyKit together)
 
