@@ -101,8 +101,46 @@ export function LobbyPanel({
 
       {you.isHost && (
         <section className="panel space-y-3">
-          <h2 className="font-extrabold">Ready?</h2>
+          <h2 className="font-extrabold">Ready to play?</h2>
           <p className="text-sm text-[var(--muted)]">{topicRoundsForPlayerCount(players.length)} rounds · 4 picks each</p>
+          <details><summary className="cursor-pointer text-sm font-bold">More settings</summary>
+          <label className="flex items-center justify-between text-sm font-semibold">
+            Topic choices
+            <select
+              className="field !min-h-0 !py-2"
+              value={topicOverrideLabel}
+              onChange={(e) => {
+                const v = e.target.value;
+                send({
+                  type: "update_settings",
+                  settings: {
+                    topicCountOverride: v === "Auto" ? null : Number(v),
+                  },
+                });
+              }}
+            >
+              <option>Auto</option>
+              <option>2</option>
+              <option>3</option>
+            </select>
+          </label>
+          </details>
+          <label className="flex items-center justify-between text-sm font-semibold">
+            Party Mode
+            <input
+              type="checkbox"
+              checked={state.settings.partyMode}
+              onChange={(e) =>
+                send({
+                  type: "update_settings",
+                  settings: { partyMode: e.target.checked },
+                })
+              }
+            />
+          </label>
+          <p className="text-xs text-[var(--muted)]">
+            Party Mode is off by default. Optional sips — no score effect.
+          </p>
           <button
             type="button"
             className="btn-primary w-full"
@@ -111,47 +149,6 @@ export function LobbyPanel({
           >
             Start game
           </button>
-          <details>
-            <summary className="cursor-pointer text-sm font-bold">More settings</summary>
-            <div className="mt-3 space-y-3">
-              <label className="flex items-center justify-between text-sm font-semibold">
-                Topic choices
-                <select
-                  className="field !min-h-0 !py-2"
-                  value={topicOverrideLabel}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    send({
-                      type: "update_settings",
-                      settings: {
-                        topicCountOverride: v === "Auto" ? null : Number(v),
-                      },
-                    });
-                  }}
-                >
-                  <option>Auto</option>
-                  <option>2</option>
-                  <option>3</option>
-                </select>
-              </label>
-              <label className="flex items-center justify-between text-sm font-semibold">
-                Party Mode
-                <input
-                  type="checkbox"
-                  checked={state.settings.partyMode}
-                  onChange={(e) =>
-                    send({
-                      type: "update_settings",
-                      settings: { partyMode: e.target.checked },
-                    })
-                  }
-                />
-              </label>
-              <p className="text-xs text-[var(--muted)]">
-                Optional sips — no score effect.
-              </p>
-            </div>
-          </details>
           {!canStart && (
             <p className="text-xs text-[var(--muted)]">
               Need {RULES.minPlayers}–{RULES.maxPlayers} players.

@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
-import { loadIdeas, saveIdeas } from "@/lib/party";
+import { IdeasPanel } from "@/components/IdeasPanel";
 import { RULES } from "@/shared/rules";
 
 function Countdown({ until }: { until: number | null }) {
@@ -31,35 +31,11 @@ export function DraftPanel({
 }) {
   const topicId = state.selectedTopic?.id ?? "none";
   const [text, setText] = useState("");
-  const [ideaDraft, setIdeaDraft] = useState("");
-  const [ideas, setIdeas] = useState<string[]>([]);
-
-  useEffect(() => {
-    const t = setTimeout(() => {
-      setIdeas(loadIdeas(state.code, youId, topicId));
-    }, 0);
-    return () => clearTimeout(t);
-  }, [state.code, youId, topicId]);
-
   const turnSeat = state.draftOrder[state.draftCursor];
   const turnPlayerId =
     turnSeat !== undefined ? state.seatOrder[turnSeat] : null;
   const turnPlayer = state.players.find((p) => p.id === turnPlayerId);
   const myTurn = turnPlayerId === youId;
-  const taken = new Set(state.takenNormalized);
-
-  const myRoster = useMemo(
-    () =>
-      state.picks
-        .filter((p) => p.playerId === youId)
-        .sort((a, b) => a.pickIndex - b.pickIndex),
-    [state.picks, youId],
-  );
-
-  function persistIdeas(next: string[]) {
-    setIdeas(next);
-    saveIdeas(state.code, youId, topicId, next);
-  }
 
   return (
     <div className="space-y-4">
@@ -84,13 +60,14 @@ export function DraftPanel({
       {myTurn && you.role === "player" && (
         <section className="panel space-y-2">
           <input
+            aria-label="Your draft pick"
             className="field w-full"
             value={text}
             placeholder="Your pick"
             maxLength={48}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && text.trim()) {
+              if (e.key === "Enter" && text.trim() && !state.pickPaused) {
                 send({ type: "lock_in", text });
                 setText("");
               }
@@ -105,72 +82,12 @@ export function DraftPanel({
               setText("");
             }}
           >
-            Lock In
+            Lock pick
           </button>
         </section>
       )}
 
-      <section className="panel space-y-2">
-        <h3 className="font-extrabold">My Ideas (private)</h3>
-        <div className="flex gap-2">
-          <input
-            className="field w-full"
-            value={ideaDraft}
-            placeholder="Jot an idea"
-            onChange={(e) => setIdeaDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && ideaDraft.trim()) {
-                persistIdeas([...ideas, ideaDraft.trim()]);
-                setIdeaDraft("");
-              }
-            }}
-          />
-          <button
-            type="button"
-            className="btn-secondary"
-            onClick={() => {
-              if (!ideaDraft.trim()) return;
-              persistIdeas([...ideas, ideaDraft.trim()]);
-              setIdeaDraft("");
-            }}
-          >
-            Save
-          </button>
-        </div>
-        <ul className="space-y-1">
-          {ideas.map((idea) => {
-            const takenNow = taken.has(idea.trim().toLowerCase());
-            return (
-              <li
-                key={idea}
-                className="flex items-center justify-between gap-2 text-sm"
-              >
-                <span className={takenNow ? "line-through opacity-50" : ""}>
-                  {idea}
-                  {takenNow ? " · taken" : ""}
-                </span>
-                <button
-                  type="button"
-                  className="text-xs font-bold text-[var(--coral)]"
-                  disabled={!myTurn || takenNow}
-                  onClick={() => setText(idea)}
-                >
-                  Use
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
-
-      <section className="panel space-y-2">
-        <h3 className="font-extrabold">Your Mount ({myRoster.length}/{RULES.picksPerPlayer})</h3>
-        <ol className="list-decimal space-y-1 pl-5 text-sm font-semibold">
-          {myRoster.map((p) => (
-            <li key={p.turnIndex}>{p.text}</li>
-          ))}
-        </ol>
-      </section>
+      {you.role === "player" && <IdeasPanel key={topicId} room={state.code} playerId={youId} topicId={topicId} taken={state.takenNormalized} onUse={myTurn && !state.pickPaused ? setText : undefined} />}
 
       <section className="panel space-y-2">
         <h3 className="font-extrabold">Board</h3>
@@ -181,41 +98,19 @@ export function DraftPanel({
             .sort((a, b) => a.pickIndex - b.pickIndex);
           return (
             <div key={pid} className="text-sm">
-              <p className="font-bold">{p?.name}</p>
+              <p className="font-bold">{p?.name}{pid === youId ? " (you)" : ""}</p>
               <p className="text-[var(--muted)]">
                 {picks.map((pk) => pk.text).join(" · ") || "—"}
               </p>
-              {you.isHost &&
-                picks.map((pk) => (
-                  <div key={pk.turnIndex} className="mt-1 flex gap-2">
-                    <button
-                      type="button"
-                      className="text-xs font-bold text-[var(--coral)]"
-                      onClick={() =>
-                        send({
-                          type: "host_correct",
-                          turnIndex: pk.turnIndex,
-                          reason: "duplicate",
-                        })
-                      }
-                    >
-                      Duplicate
-                    </button>
-                    <button
-                      type="button"
-                      className="text-xs font-bold text-[var(--coral)]"
-                      onClick={() =>
-                        send({
-                          type: "host_correct",
-                          turnIndex: pk.turnIndex,
-                          reason: "invalid",
-                        })
-                      }
-                    >
-                      Invalid
-                    </button>
-                  </div>
-                ))}
+              {you.isHost && state.phase === "DRAFT" && picks.length > 0 && <details className="mt-2">
+                <summary className="cursor-pointer text-xs font-semibold text-[var(--muted)]">Correct a pick</summary>
+                {picks.map((pk) => <div key={pk.turnIndex} className="mt-2 rounded-lg border border-[var(--mint)] p-2">
+                  <p className="font-semibold">{pk.text}</p>
+                  <div className="flex gap-4">{(["duplicate", "invalid"] as const).map((reason) => <button key={reason} type="button" className="min-h-11 text-xs font-bold capitalize" onClick={() => {
+                    if (window.confirm(`Replace “${pk.text}” as ${reason}?`)) send({ type: "host_correct", turnIndex: pk.turnIndex, reason });
+                  }}>{reason}</button>)}</div>
+                </div>)}
+              </details>}
             </div>
           );
         })}
@@ -244,3 +139,4 @@ export function DraftPanel({
     </div>
   );
 }
+

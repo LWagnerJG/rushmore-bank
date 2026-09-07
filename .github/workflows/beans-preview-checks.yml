@@ -1,7 +1,9 @@
 name: Beans preview checks
 on:
   pull_request:
-    branches: [main]
+    branches: [main, cursor/beans-test-preview-3333]
+  push:
+    branches: [codex/beans-preview]
 permissions:
   contents: read
 jobs:

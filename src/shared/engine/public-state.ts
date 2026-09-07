@@ -61,7 +61,7 @@ export function projectPublicState(
   }
 
   const humanVotesCast = Object.keys(state.humanVotes).length;
-  const humanVotesNeeded = state.seatOrder.filter((pid) => {
+  const humanVotesNeeded = state.seatOrder.length === 2 ? 0 : state.seatOrder.filter((pid) => {
     const p = state.players.find((x) => x.id === pid);
     return p && p.role === "player" && p.connected;
   }).length;
@@ -144,3 +144,4 @@ export function publicStateLeaksBallots(
     Object.prototype.hasOwnProperty.call(pub, "judgeJobId")
   );
 }
+

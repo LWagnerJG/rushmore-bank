@@ -5,7 +5,7 @@ import { heuristicJudgeUniform } from "@/shared/engine/judge";
 export const runtime = "nodejs";
 
 /** Cheap/fast Gemini model for structured JSON scoring. */
-const GEMINI_MODEL = "gemini-3.5-flash";
+const DEFAULT_GEMINI_MODEL = "gemini-3.5-flash";
 
 interface JudgeBody {
   topic: string;
@@ -60,8 +60,8 @@ function authorize(req: NextRequest): "ok" | "fallback_only" | "deny" {
   if (secret) {
     return token === secret ? "ok" : "deny";
   }
-  // A caller-controlled header is not authentication. Paid calls require a secret.
-  if (hasKey) return "deny";
+  // No JUDGE_SECRET: never burn paid AI credits from anonymous callers.
+  if (hasKey) return "deny"; // A caller-supplied header is not authentication.
   return "fallback_only";
 }
 
@@ -144,11 +144,12 @@ async function callGemini(
   system: string,
   user: string,
 ): Promise<{ ok: true; content: string } | { ok: false; limitation: string }> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(key)}`;
+  const model = process.env.GEMINI_MODEL?.trim() || DEFAULT_GEMINI_MODEL;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;
   const res = await fetch(url, {
     method: "POST",
-    signal: AbortSignal.timeout(RULES.judgeTimeoutMs),
     headers: { "Content-Type": "application/json" },
+    signal: AbortSignal.timeout(RULES.judgeTimeoutMs),
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: system }] },
       contents: [{ role: "user", parts: [{ text: user }] }],
@@ -186,11 +187,11 @@ async function callOpenAI(
 ): Promise<{ ok: true; content: string } | { ok: false; limitation: string }> {
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
-    signal: AbortSignal.timeout(RULES.judgeTimeoutMs),
     headers: {
       Authorization: `Bearer ${key}`,
       "Content-Type": "application/json",
     },
+    signal: AbortSignal.timeout(RULES.judgeTimeoutMs),
     body: JSON.stringify({
       model: "gpt-4o-mini",
       temperature: 0.4,
@@ -285,3 +286,4 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+

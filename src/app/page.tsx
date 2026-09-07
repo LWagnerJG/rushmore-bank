@@ -30,9 +30,6 @@ export default function HomePage() {
       <header className="space-y-4 text-center">
         <BrandMark large />
         <h1 className="text-xl font-extrabold">{RULES.tagline}</h1>
-        <p className="mx-auto max-w-xs text-[var(--muted)]">
-          Draft four. Bank beans. Roll for more.
-        </p>
         <p className="text-sm font-bold">2–10 friends · one phone each</p>
       </header>
 
@@ -51,13 +48,12 @@ export default function HomePage() {
             <input id="room-code" className="field w-full uppercase tracking-[0.2em]" autoCapitalize="characters" autoComplete="off" spellCheck={false} placeholder="ABCD" value={code} maxLength={4} onChange={(e) => setCode(e.target.value.toUpperCase())} />
           </div>}
           {error && <p id="entry-error" className="text-sm font-bold text-[var(--coral)]" role="alert">{error}</p>}
-          <button type="submit" className="btn-danger w-full text-lg" disabled={busy}>{busy ? "Opening…" : mode === "create" ? "Make a room" : "Join room"}</button>
+          <button type="submit" className="btn-danger w-full text-lg" disabled={busy}>{busy ? "Opening your room…" : mode === "create" ? "Make a room" : "Join the room"}</button>
         </form>
       </section>
 
       <nav className="flex justify-center gap-6 text-sm font-bold">
         <Link href="/how-to-play" className="underline underline-offset-4">How to play</Link>
-        <Link href="/how-to-play#homescreen" className="underline underline-offset-4">Add to home screen</Link>
       </nav>
     </main>
   );

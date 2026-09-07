@@ -54,7 +54,7 @@ export const RULES = {
   aiPromptVersion: "quarry-judge-v1",
 
   /** Wagers */
-  /** Earlier banked stones wagerable per topic: min(cap, balance) */
+  /** Earlier banked beans wagerable per topic: min(cap, balance) */
   earlierWagerCap: 25,
   wagerTimeoutSeconds: 20,
 

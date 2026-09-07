@@ -9,9 +9,9 @@ export default function HowToPlayPage() {
     <p>One friend makes a room. Others join with the link, QR, or room code. 2–10 players, one phone each.</p>
     <ol className="space-y-3">
       <li className="panel"><strong>1. Pick a topic.</strong><p className="mt-1 text-sm">Vote for the one you want.</p></li>
-      <li className="panel"><strong>2. Draft your best four.</strong><p className="mt-1 text-sm">Take turns locking one answer. Order reverses each pass. Use My Ideas privately while you wait.</p></li>
-      <li className="panel"><strong>3. Earn beans.</strong><p className="mt-1 text-sm">Vote for someone else&apos;s four. Everyone gets 20 beans, plus AI score and 5 per room vote.</p></li>
-      <li className="panel"><strong>4. Roll or bank.</strong><p className="mt-1 text-sm">Put beans in your dice pot. Roll on your turn, or bank while you wait.</p></li>
+      <li className="panel"><strong>2. Draft your best four.</strong><p className="mt-1 text-sm">Take turns locking one answer. Order reverses each pass. Picks cannot repeat. Use My Ideas to prepare privately.</p></li>
+      <li className="panel"><strong>3. Earn beans.</strong><p className="mt-1 text-sm">Everyone gets 20 beans, plus up to 40 from the AI judge. With 3 or more players, vote for someone else&apos;s best four: each vote adds 5 beans. Two players? The AI judges both drafts.</p></li>
+      <li className="panel"><strong>4. Roll or bank.</strong><p className="mt-1 text-sm">Choose beans for your dice pot. Roll on your turn, or bank your pot while you wait. Only your own rolls affect your beans.</p></li>
     </ol>
     <section className="panel space-y-3">
       <h2 className="text-xl font-extrabold">The dice, in plain English</h2>

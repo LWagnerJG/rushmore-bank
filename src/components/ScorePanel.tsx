@@ -8,20 +8,19 @@ export function ScorePanel({ state, you, send }: {
 }) {
   const sorted = [...state.scores].sort((a, b) => b.earned - a.earned);
   return <div className="space-y-4">
-    <h2 className="text-2xl font-extrabold">Scores</h2>
-    <p className="text-sm text-[var(--muted)]">Everyone earns beans. Votes and the judge add extras.</p>
-    {state.judgeNotice && <p className="panel text-sm font-semibold">Judge unavailable — everyone gets the same neutral award.</p>}
+    <h2 className="text-2xl font-extrabold">Round scores</h2>
+    {state.judgeNotice && <p className="panel text-sm font-semibold">Judge unavailable. Everyone gets the same 20-bean judge award.</p>}
     {sorted.map((score) => {
       const player = state.players.find((p) => p.id === score.playerId);
       return <article key={score.playerId} className="panel space-y-3">
         <div className="flex items-center justify-between gap-3 font-extrabold"><span>{player?.name}{player?.id === you.id ? " (you)" : ""}</span><span className="text-lg">+{score.earned} beans</span></div>
         <p className="text-sm">{score.explanation}</p>
         <details className="text-sm">
-          <summary className="cursor-pointer text-[var(--muted)]">Where did my beans come from?</summary>
+          <summary className="cursor-pointer text-[var(--muted)]">Score breakdown</summary>
           <ul className="mt-3 space-y-1">
             <li>Joining in: {RULES.scoreBase} beans</li>
             <li>{score.aiFallback ? "Neutral judge award" : "AI judge"}: {score.aiAward} beans</li>
-            <li>Room votes: {score.votes * RULES.stonesPerHumanVote} beans ({score.votes} votes)</li>
+            {state.seatOrder.length > 2 && <li>Room votes: {score.votes * RULES.stonesPerHumanVote} beans ({score.votes} votes)</li>}
           </ul>
           {!score.aiFallback && <p className="mt-2 text-xs text-[var(--muted)]">Topic fit {score.topicFit}/10 · Pick strength {score.pickStrength}/20 · Set quality {score.rosterQuality}/10</p>}
         </details>
