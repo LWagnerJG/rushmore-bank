@@ -9,7 +9,6 @@ import type { TopicScope } from "./topics";
 export type Phase =
   | "LOBBY"
   | "TOPIC_SELECTION"
-  | "PREP"
   | "DRAFT"
   | "CORRECTION"
   | "REVIEW"
@@ -313,8 +312,6 @@ export function phaseLabel(phase: Phase): string {
       return "Lobby";
     case "TOPIC_SELECTION":
       return "Pick a topic";
-    case "PREP":
-      return "Prep your ideas";
     case "DRAFT":
       return "Draft";
     case "CORRECTION":

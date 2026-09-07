@@ -53,6 +53,10 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
+            <strong>No prep phase</strong> — topic lock goes straight into
+            draft (prep countdown removed).
+          </li>
+          <li>
             <strong>Lobby</strong> — clear status (gathering / ready), who’s
             in, share invite, how-we-start steps, large Start.
           </li>
@@ -61,6 +65,11 @@ export default function BuildNotesPage() {
             default). When on: warmer accent, playful copy, optional sip
             prompts (Pass / nonalcoholic OK, no score penalty, no escalating
             drinking).
+          </li>
+          <li>
+            <strong>Dice stability</strong> — WebGL scene mounts once; mute
+            is a ref (no remount/flicker); time-based tumble; proper dispose;
+            readable pips.
           </li>
           <li>
             <strong>Phone flow polish</strong> — home, vote, wager, bank,
@@ -111,9 +120,9 @@ export default function BuildNotesPage() {
             a bank boundary.
           </li>
           <li>
-            Party Mode UI is client-only on top of existing party prompt
-            protocol — PartyKit redeploy only needed if <code>party/</code>{" "}
-            server logic changes in a future commit.
+            Party Mode / dice mute are client UI on existing protocols.
+            Redeploy PartyKit after merge because <code>party/</code> drops the
+            PREP phase (topic → draft).
           </li>
           <li>
             AI judging needs <code>GEMINI_API_KEY</code> (preferred) or OpenAI

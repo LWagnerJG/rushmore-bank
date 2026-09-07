@@ -31,7 +31,7 @@ export default function HowToPlayPage() {
         <h2 className="font-extrabold">Each topic</h2>
         <ol className="list-decimal space-y-1 pl-5 text-sm">
           <li>Vote a spun topic.</li>
-          <li>Snake draft four answers — Lock In on your turn.</li>
+          <li>Snake draft four answers right away — Lock In on your turn.</li>
           <li>Vote another’s roster; AI judges too. Earn beans.</li>
           <li>
             Slider: how many beans to risk. Then each player gets their own

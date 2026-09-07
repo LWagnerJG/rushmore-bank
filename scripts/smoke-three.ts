@@ -95,15 +95,7 @@ async function main() {
   brynna.send({ type: "vote_topic", topicId });
   friend.send({ type: "vote_topic", topicId });
 
-  // May go PREP then DRAFT via alarms — wait for DRAFT (prep is 20s)
-  // Force: wait PREP then DRAFT with long timeout
-  try {
-    await luke.waitPhase("PREP", 10000);
-    console.log("PREP — host advance");
-    luke.send({ type: "advance" });
-  } catch {
-    /* may already be draft */
-  }
+  // Topic lock goes straight to DRAFT (no prep phase).
   await luke.waitPhase("DRAFT", 10000);
   console.log("DRAFT start");
 

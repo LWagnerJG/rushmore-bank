@@ -18,11 +18,11 @@ Against local PartyKit `127.0.0.1:1999`:
 | Step | Result |
 |---|---|
 | 3 sockets join one room | Pass |
-| Topic vote → Prep → Draft (12 Lock Ins) | Pass |
+| Topic vote → Draft (12 Lock Ins) | Pass |
 | Review → Vote → AI fallback scores | Pass (45 each = 20+20+5) |
 | Wager → Dice → Pull Out → ROUND_RESULTS | Pass |
 
-Room `SMK3` measured ~19s for one compressed topic (host skip prep/review; pull-out path).
+Room `SMK3` measured ~19s for one compressed topic (host skip review; pull-out path).
 
 ## Multi-context browser smoke (local)
 

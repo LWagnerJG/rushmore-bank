@@ -34,8 +34,7 @@ export const RULES = {
   targetMinutesMin: 25,
   targetMinutesMax: 30,
 
-  /** Prep + draft */
-  prepSeconds: 20,
+  /** Draft (no prep phase — topic lock goes straight to draft) */
   pickClockSeconds: 30,
   /** Short grace after pick clock hits 0 before miss */
   pickGraceSeconds: 5,

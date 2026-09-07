@@ -55,9 +55,14 @@ function migrateState(raw: RoomState): RoomState {
   const base = emptyRoomState(raw.code || "ROOM");
   const legacyLaps = (raw as RoomState & { diceLapsCompleted?: number })
     .diceLapsCompleted;
+  // PREP phase removed — resume into draft if an old room was mid-prep.
+  const legacyPhase = raw.phase as string;
+  const phase =
+    legacyPhase === "PREP" ? ("DRAFT" as RoomState["phase"]) : raw.phase;
   return {
     ...base,
     ...raw,
+    phase,
     configuredTopicRounds:
       raw.configuredTopicRounds ?? base.configuredTopicRounds,
     judgeStatus: raw.judgeStatus ?? "idle",
@@ -126,6 +131,7 @@ export default class QuarryServer implements Party.Server {
   async onStart() {
     const saved = await this.room.storage.get<RoomState>("state");
     const alarm = await this.room.storage.get<AlarmPayload>("alarm");
+    const wasPrep = saved ? (saved.phase as string) === "PREP" : false;
     if (saved) {
       this.state = migrateState(saved);
       this.state.players = this.state.players.map((p) =>
@@ -133,6 +139,15 @@ export default class QuarryServer implements Party.Server {
       );
     }
     if (alarm) this.alarmPayload = alarm;
+    // Old PREP rooms: ensure draft clocks exist after migration.
+    if (
+      wasPrep &&
+      this.state.phase === "DRAFT" &&
+      this.state.draftOrder.length === 0
+    ) {
+      await this.beginDraft();
+      await this.persist();
+    }
   }
 
   async persist() {
@@ -621,17 +636,8 @@ export default class QuarryServer implements Party.Server {
       topicRound: this.state.topicRound,
     };
     bump(this.state);
-    await this.beginPrep();
-  }
-
-  async beginPrep() {
-    this.state.phase = "PREP";
-    this.state.phaseDeadlineAt = Date.now() + RULES.prepSeconds * 1000;
-    bump(this.state);
-    await this.setAlarmAt(this.state.phaseDeadlineAt, {
-      kind: "phase",
-      revision: this.state.phaseRevision,
-    });
+    // Topic locked → straight into draft (no prep countdown).
+    await this.beginDraft();
   }
 
   async beginDraft() {
@@ -1058,9 +1064,6 @@ export default class QuarryServer implements Party.Server {
   async handleAdvance(id: string) {
     if (!this.requireHost(id)) throw new Error("Host only");
     switch (this.state.phase) {
-      case "PREP":
-        await this.beginDraft();
-        return;
       case "SCORE_REVEAL":
         await this.beginWagers();
         return;
@@ -1579,9 +1582,6 @@ export default class QuarryServer implements Party.Server {
     switch (this.state.phase) {
       case "TOPIC_SELECTION":
         await this.tallyTopicVotes();
-        break;
-      case "PREP":
-        await this.beginDraft();
         break;
       case "REVIEW":
         await this.beginVoting();

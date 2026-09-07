@@ -8,7 +8,6 @@ import { RULES } from "@/shared/rules";
 import { BrandMark } from "@/components/BrandMark";
 import { LobbyPanel } from "@/components/LobbyPanel";
 import { TopicPanel } from "@/components/TopicPanel";
-import { PrepPanel } from "@/components/PrepPanel";
 import { DraftPanel } from "@/components/DraftPanel";
 import { ReviewPanel } from "@/components/ReviewPanel";
 import { VotePanel } from "@/components/VotePanel";
@@ -74,10 +73,6 @@ export function RoomClient({
         return <LobbyPanel state={state} you={you} send={send} />;
       case "TOPIC_SELECTION":
         return <TopicPanel state={state} you={you} send={send} />;
-      case "PREP":
-        return (
-          <PrepPanel state={state} you={you} youId={youId} send={send} />
-        );
       case "DRAFT":
       case "CORRECTION":
         return (

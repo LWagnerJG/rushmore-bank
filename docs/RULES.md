@@ -15,7 +15,7 @@ Tunable defaults live in `src/shared/rules.ts` (`RULES`). Do not quietly change 
 ## Phases
 
 ```
-LOBBY → TOPIC_SELECTION → PREP → DRAFT (+ CORRECTION) → REVIEW
+LOBBY → TOPIC_SELECTION → DRAFT (+ CORRECTION) → REVIEW
   → VOTING_AND_JUDGING → SCORE_REVEAL → WAGER_SELECTION
   → DICE / BANK (COOLDOWN / READY / COMMITTED / SETTLED)
   → ROUND_RESULTS → GAME_RESULTS
@@ -33,7 +33,8 @@ LOBBY → TOPIC_SELECTION → PREP → DRAFT (+ CORRECTION) → REVIEW
 
 ## Draft
 
-- 20s prep. Fair random seat order; starter rotates later topics.
+- Topic lock goes **straight into draft** (no prep countdown).
+- Fair random seat order; starter rotates later topics.
 - 4 snake passes for N=2..10. One **Lock In** per turn (server-validated).
 - Pick clock 30s + short grace (5s); host pause / extend (+15s).
 - Missed after grace → placeholder miss pick.
