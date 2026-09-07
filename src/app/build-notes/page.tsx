@@ -68,6 +68,13 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What changed</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
+            <strong>Gemini-first AI judge</strong> —{" "}
+            <code>/api/judge</code> prefers <code>GEMINI_API_KEY</code> (or{" "}
+            <code>GOOGLE_GENERATIVE_AI_API_KEY</code>) with Gemini 2.0 Flash;
+            falls back to <code>OPENAI_API_KEY</code> if Gemini unset; uniform
+            neutral award if neither key is present.
+          </li>
+          <li>
             <strong>Pull Out for waiting players</strong> — every active player
             can bank during cooldown / another roll; current roller blocked only
             after their own committed roll. Waiting banks do not clear alarms or
@@ -102,9 +109,9 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">Tests run</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <code>npm test</code> — 39 vitest cases (banking out of turn,
-            privacy snapshots, judge validation, 3/6/10 flow sims, all 36 face
-            pairs, 469 banked-total example).
+            <code>npm test</code> — vitest cases (banking out of turn,
+            privacy snapshots, judge validation, Gemini/OpenAI route mocks,
+            3/6/10 flow sims, all 36 face pairs, 469 banked-total example).
           </li>
           <li>
             <code>npx tsc --noEmit</code>, <code>npm run lint</code>,{" "}
@@ -122,20 +129,19 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">Known limits</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>PartyKit backend redeploy blocked:</strong> GitHub Action
-            “Deploy PartyKit” failed on main because{" "}
-            <code>PARTYKIT_TOKEN</code> / <code>PARTYKIT_LOGIN</code> secrets
-            are unset. Until someone with repo access adds those secrets and
-            re-runs the workflow (or runs <code>npm run deploy:party</code>{" "}
-            locally), production rooms still use the prior PartyKit server —
-            waiting-player Pull Out / privacy / server judging need that
-            redeploy.
+            <strong>PartyKit:</strong> manually redeployed successfully via{" "}
+            <code>npm run deploy:party</code>. GitHub Action “Deploy PartyKit”
+            may still fail if <code>PARTYKIT_TOKEN</code> /{" "}
+            <code>PARTYKIT_LOGIN</code> CI secrets are unset — that is separate
+            from the live PartyKit host already being current.
           </li>
           <li>
-            Actual OpenAI judging requires <code>OPENAI_API_KEY</code> on the
-            Vercel server (and preferably <code>JUDGE_SECRET</code> on Vercel +
-            PartyKit). Confirmed unset on production today — rooms use labeled
-            neutral awards, not presented as real AI.
+            AI judging prefers <code>GEMINI_API_KEY</code> (or{" "}
+            <code>GOOGLE_GENERATIVE_AI_API_KEY</code>) on Vercel;{" "}
+            <code>OPENAI_API_KEY</code> is optional fallback. Preferably also set{" "}
+            <code>JUDGE_SECRET</code> on Vercel + PartyKit. Without a Gemini or
+            OpenAI key, rooms use labeled neutral awards (not presented as real
+            AI).
           </li>
           <li>
             Soft 25–30 min session target is guidance; measured length depends on

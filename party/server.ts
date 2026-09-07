@@ -963,7 +963,7 @@ export default class QuarryServer implements Party.Server {
         jobId,
         secret
           ? RULES.aiFallbackLabel
-          : "Judge unavailable · neutral award. (OPENAI_API_KEY / JUDGE_SECRET not configured on server)",
+          : "Judge unavailable · neutral award. (AI judge key / JUDGE_SECRET not configured on server)",
       );
     }
   }

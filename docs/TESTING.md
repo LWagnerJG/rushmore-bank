@@ -51,8 +51,9 @@ Room `SMK3` measured ~19s for one compressed topic (host skip prep/review; pull-
 
 ## AI
 
-- With key: OpenAI `gpt-4o-mini` structured judgments via `/api/judge`
-- Without key (this environment): fallback award 20 + label — stated plainly
+- Preferred: Gemini 2.0 Flash via `GEMINI_API_KEY` (or `GOOGLE_GENERATIVE_AI_API_KEY`) structured JSON at `/api/judge`
+- Optional fallback: OpenAI `gpt-4o-mini` when Gemini unset but `OPENAI_API_KEY` present
+- Without either key: fallback award 20 + label — stated plainly
 
 ## Per-tab guest IDs
 
