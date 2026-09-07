@@ -53,20 +53,12 @@ export const RULES = {
   aiExplanationMaxWords: 45,
   aiPromptVersion: "quarry-judge-v1",
 
-  /** Wagers */
-  /** Earlier banked stones wagerable per topic: min(cap, balance) */
-  earlierWagerCap: 25,
+  /** Wagers — every owned bean is wagerable (E + B) */
   wagerTimeoutSeconds: 20,
 
-  /** Dice — per-player BANK mini-rounds (not rotating single throws) */
+  /** Dice — round-robin: one roll then pass around the table */
   diceDecisionCountdownSeconds: 5,
   diceIdleBankSeconds: 10,
-  diceSoftBudgetMs: 3 * 60 * 1000,
-  /**
-   * Soft settle after budget once this many personal BANK turns finished.
-   * 0 = time alone is enough at the next bank boundary.
-   */
-  diceMinBanksBeforeSettlement: 0,
   /** Shared tumble duration before authoritative reveal */
   diceAnimMs: 2400,
   safePersonalRolls: 2,

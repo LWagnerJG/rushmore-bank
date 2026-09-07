@@ -57,28 +57,28 @@ earned = 20 + ai_award(0–40) + 5 × human_votes
 ## Wagers
 
 ```
-max_wager = E + min(25, B)
+max_wager = E + B
 protected = B + E − W
 pot = W
 ```
 
 - UX: slider 0…max with protected vs at-risk; presets Keep all / Half new / All new.
-- No response in 20s → W=0.
+- No response in 20s → W=0. Zero-wager players still enter the dice circuit.
 - Integers only; append-only ledger.
 
 ## Bank / Dice (exact)
 
-- After wagers, **each active player** gets a **personal BANK mini-round** in seat order:
-  safe rolls → risk rolls → Bank (or bust) before the next player starts.
-- 2d6. Personal roll count. Outcomes affect **only** the roller.
+- After wagers, **every seated player** enters dice — including W=0.
+- **Round-robin**: one roll, then pass around the table. Repeat until everyone banks or busts.
+- Personal safe counts reset each topic. First **2** personal rolls are safe.
+- 2d6. Outcomes affect **only** the roller.
 - Rolls 1–2 (safe): seven → **+70**; else **+sum** (doubles add faces).
 - Rolls 3+: seven → **bust** pot=0 exit; doubles → **double pot** (no add faces); else **+sum**.
-- **Bank** locks pot between rolls. Waiting players may Bank during another’s cooldown/animation without clearing alarms or advancing the seat.
-- Countdown 5s → unlock Roll (do not auto-throw). Idle 10s → auto bank pot.
+- **Bank** locks pot between rolls (including banking zero to sit out). Waiting players may Bank during another’s cooldown/animation without clearing alarms or advancing the seat.
+- Countdown 5s → unlock Roll (do not auto-throw). Idle 10s → auto bank.
 - Atomic Roll vs Bank.
-- Synchronized 3D scene with authoritative faces (all 36 outcomes).
-- Soft budget 3 min; remaining pots auto-banked at the next bank boundary.
-- Reduced-motion fallback. Prefer host sound.
+- Synchronized SVG dice with authoritative faces (all 36 outcomes).
+- Reduced-motion fallback. Prefer host sound (opt-in toggle).
 
 ### Worked path (tests)
 
@@ -94,7 +94,7 @@ Banking that pot yields **95 + 374 = 469** total beans — **469 is the banked t
 
 ## Superseded (do not implement)
 
-Bets on roster winning, individual-pick side bets, quarter-step multipliers, 4× cap, shared pots/busts, rotating single-throw “one roll each then pass” as the primary bank feel (replaced by per-player BANK mini-rounds).
+Bets on roster winning, individual-pick side bets, quarter-step multipliers, 4× cap, shared pots/busts, solo “personal BANK mini-round until bank/bust then next seat” (replaced by round-robin one-roll-then-pass), PREP countdown phase.
 
 ## Architecture notes
 
@@ -103,3 +103,4 @@ Bets on roster winning, individual-pick side bets, quarter-step multipliers, 4×
 - Idempotent actions + phase revisions + append-only ledger.
 - Host failover ~20s when host disconnects.
 - Waiting-player Bank must **not** bump `phaseRevision` (pending dice alarms own it).
+- Soft bank time budget removed — round ends when everyone banks/busts.

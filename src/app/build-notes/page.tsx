@@ -16,8 +16,8 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Production ship — lobby + Party Mode switch + Fudge polish on{" "}
-        <code>main</code> → {RULES.productionUrl}
+        Production ship — Beans lobby / Party Mode / Codex draft + round-robin
+        BANK → {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -53,40 +53,37 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>No prep phase</strong> — topic lock goes straight into
-            draft (prep countdown removed).
+            <strong>Draft UX (from Codex)</strong> — Available / My queue /
+            Board tabs, shared suggestions + search/add, sticky Lock pick,
+            strong on-the-clock banner, fantasy snake board.
           </li>
           <li>
-            <strong>Lobby</strong> — clear status (gathering / ready), who’s
-            in, share invite, how-we-start steps, large Start.
+            <strong>Round-robin BANK (from Codex)</strong> — one roll then
+            pass; everyone re-enters each topic (incl. W=0); two safe personal
+            rolls; waiting Bank OK. Replaces Fudge solo mini-rounds.
           </li>
           <li>
-            <strong>Party Mode switch</strong> — slider-style toggle (off by
-            default). When on: warmer accent, playful copy, optional sip
-            prompts (Pass / nonalcoholic OK, no score penalty, no escalating
-            drinking).
+            <strong>SVG pip dice (from Codex)</strong> — synced CSS/SVG cubes
+            (no flaky WebGL); host sound opt-in toggle isolated from scene
+            lifecycle.
           </li>
           <li>
-            <strong>Dice stability</strong> — WebGL scene mounts once; mute
-            is a ref (no remount/flicker); time-based tumble; proper dispose;
-            readable pips.
+            <strong>2-player scoring (from Codex)</strong> — AI-only, no forced
+            votes.
           </li>
           <li>
-            <strong>Phone flow polish</strong> — home, vote, wager, bank,
-            results: one obvious primary action, plain language, fluff cut.
+            <strong>No PREP</strong> — topic → draft immediately.
           </li>
           <li>
-            <strong>Per-player BANK</strong> — personal bank sequence after
-            wagers; waiting players can Bank without advancing the current
-            banker.
+            <strong>Lobby + Party Mode switch (this branch)</strong> — gathering
+            / ready, who’s in, share invite, fun Party accent when on.
           </li>
           <li>
-            <strong>Wager slider</strong> · fantasy snake draft board · dice
-            polish · Beans naming · {RULES.minPlayers}–{RULES.maxPlayers}{" "}
-            players.
+            <strong>Wager slider</strong> — full balance (E+B); Beans naming ·{" "}
+            {RULES.minPlayers}–{RULES.maxPlayers} players.
           </li>
           <li>
-            Preserved: Gemini-first <code>gemini-3.5-flash</code> judge,{" "}
+            Preserved: Gemini-first <code>gemini-3.5-flash</code>,{" "}
             <code>JUDGE_SECRET</code>, ballot privacy, server-authoritative AI,
             production PartyKit host.
           </li>
@@ -107,8 +104,7 @@ export default function BuildNotesPage() {
         </p>
         <p className="text-[var(--muted)]">
           DEFAULT_PARTYKIT_HOST ={" "}
-          <code>rushmore-bank.lwagnerjg.partykit.dev</code> (not fudge/test
-          hosts).
+          <code>rushmore-bank.lwagnerjg.partykit.dev</code>
         </p>
       </section>
 
@@ -116,17 +112,12 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">Follow-ups</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            Soft bank budget is time-based (3 min); remaining pots auto-lock at
-            a bank boundary.
+            <strong>Redeploy PartyKit</strong> after merge — round-robin BANK +
+            no PREP + draft-options fetch live in <code>party/</code>.
           </li>
           <li>
-            Party Mode / dice mute are client UI on existing protocols.
-            Redeploy PartyKit after merge because <code>party/</code> drops the
-            PREP phase (topic → draft).
-          </li>
-          <li>
-            AI judging needs <code>GEMINI_API_KEY</code> (preferred) or OpenAI
-            fallback + matching <code>JUDGE_SECRET</code>.
+            AI judging / draft suggestions need <code>GEMINI_API_KEY</code>{" "}
+            (preferred) + matching <code>JUDGE_SECRET</code>.
           </li>
         </ul>
       </section>

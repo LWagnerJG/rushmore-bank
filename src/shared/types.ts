@@ -168,6 +168,11 @@ export interface RoomState {
   draftOrder: number[];
   picks: DraftPick[];
   takenNormalized: string[];
+  /** Shared suggestion pool for the current topic (not ranked) */
+  draftOptions: string[];
+  draftOptionsStatus: "idle" | "pending" | "ready" | "unavailable";
+  /** PRIVATE — in-flight suggestion fetch id */
+  draftOptionsJobId: string | null;
   pickDeadlineAt: number | null;
   pickPaused: boolean;
   pickPauseRemainingMs: number | null;
@@ -193,8 +198,8 @@ export interface RoomState {
   diceDecisionDeadlineAt: number | null;
   diceIdleDeadlineAt: number | null;
   diceRoundStartedAt: number | null;
-  /** How many personal BANK mini-rounds finished (pull out / bust) this dice phase */
-  diceBanksCompleted: number;
+  /** How many full seat passes completed this dice phase (round-robin) */
+  diceLapsCompleted: number;
   partyPrompt: PartyPrompt | null;
   ledger: LedgerEntry[];
   checkpoint: {
@@ -234,6 +239,8 @@ export interface PublicRoomState {
   draftOrder: number[];
   picks: DraftPick[];
   takenNormalized: string[];
+  draftOptions: string[];
+  draftOptionsStatus: "idle" | "pending" | "ready" | "unavailable";
   pickDeadlineAt: number | null;
   pickPaused: boolean;
   pickPauseRemainingMs: number | null;
@@ -259,7 +266,7 @@ export interface PublicRoomState {
   diceDecisionDeadlineAt: number | null;
   diceIdleDeadlineAt: number | null;
   diceRoundStartedAt: number | null;
-  diceBanksCompleted: number;
+  diceLapsCompleted: number;
   partyPrompt: PartyPrompt | null;
   ledger: LedgerEntry[];
   checkpoint: {
@@ -384,6 +391,9 @@ export function emptyRoomState(code: string): RoomState {
     draftOrder: [],
     picks: [],
     takenNormalized: [],
+    draftOptions: [],
+    draftOptionsStatus: "idle",
+    draftOptionsJobId: null,
     pickDeadlineAt: null,
     pickPaused: false,
     pickPauseRemainingMs: null,
@@ -408,7 +418,7 @@ export function emptyRoomState(code: string): RoomState {
     diceDecisionDeadlineAt: null,
     diceIdleDeadlineAt: null,
     diceRoundStartedAt: null,
-    diceBanksCompleted: 0,
+    diceLapsCompleted: 0,
     partyPrompt: null,
     ledger: [],
     checkpoint: null,

@@ -424,3 +424,37 @@ html.party-on .status-pill-ready {
     transition: none !important;
   }
 }
+
+/* Codex-style SVG dice — no WebGL */
+.bean-dice-tray {
+  position: relative;
+  height: 220px;
+  overflow: hidden;
+  border: 1.5px solid rgba(35, 72, 62, 0.35);
+  border-radius: 1.15rem;
+  background: radial-gradient(ellipse at 50% 40%, #3f6d5e, #23483e 80%);
+  box-shadow: inset 0 0 0 7px #ffffff08, inset 0 10px 28px #0002;
+}
+.bean-dice-pair {
+  display: flex;
+  gap: 4px;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+}
+.bean-die {
+  width: 144px;
+  height: 176px;
+  overflow: visible;
+}
+.bean-die-body {
+  fill: #fff6e4;
+  stroke: #ded1b8;
+}
+.bean-die-1 .bean-die-body {
+  fill: #f4c95b;
+  stroke: #d3aa49;
+}
+.bean-pip {
+  fill: #23483e;
+}

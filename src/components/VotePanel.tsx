@@ -7,7 +7,8 @@ function Countdown({ until }: { until: number | null }) {
   const [left, setLeft] = useState(0);
   useEffect(() => {
     if (!until) return;
-    const tick = () => setLeft(Math.max(0, Math.ceil((until - Date.now()) / 1000)));
+    const tick = () =>
+      setLeft(Math.max(0, Math.ceil((until - Date.now()) / 1000)));
     tick();
     const t = setInterval(tick, 250);
     return () => clearInterval(t);
@@ -29,6 +30,37 @@ export function VotePanel({
 }) {
   const myVote = state.myHumanVote;
   const [busy, setBusy] = useState(false);
+
+  if (state.seatOrder.length === 2) {
+    return (
+      <div className="space-y-4">
+        <h2
+          className="font-[family-name:var(--font-display)] text-xl font-extrabold"
+          role="status"
+        >
+          The judge is deciding…
+        </h2>
+        <p className="text-sm text-[var(--muted)]">
+          Two players — AI scores both drafts (no vote needed).
+        </p>
+        {state.seatOrder.map((pid) => (
+          <article key={pid} className="panel">
+            <p className="font-extrabold">
+              {state.players.find((p) => p.id === pid)?.name}
+            </p>
+            <ol className="mt-2 list-decimal pl-5 text-sm">
+              {state.picks
+                .filter((pick) => pick.playerId === pid)
+                .sort((a, b) => a.pickIndex - b.pickIndex)
+                .map((pick) => (
+                  <li key={pick.turnIndex}>{pick.text}</li>
+                ))}
+            </ol>
+          </article>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">

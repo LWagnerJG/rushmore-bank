@@ -2,7 +2,6 @@
 
 import { useEffect, useId, useState } from "react";
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
-import { RULES } from "@/shared/rules";
 import { maxWager, wagerFromPreset } from "@/shared/engine/wager";
 
 export function WagerPanel({
@@ -20,7 +19,6 @@ export function WagerPanel({
   const banked = you.stones;
   const max = maxWager(earned, banked);
   const locked = state.wagers[youId];
-  const fromBankCap = Math.min(RULES.earlierWagerCap, banked);
   const defaultAmt = Math.min(max, wagerFromPreset("half_new", earned, banked));
   const [amount, setAmount] = useState<number | null>(null);
   const [left, setLeft] = useState<number | null>(null);
@@ -89,9 +87,8 @@ export function WagerPanel({
         </div>
         <p className="text-sm text-[var(--muted)]">
           You earned {earned}
-          {fromBankCap > 0
-            ? ` · can add up to ${fromBankCap} banked`
-            : ""}
+          {banked > 0 ? ` · ${banked} banked available` : ""} · zero still
+          plays (2 safe rolls)
         </p>
       </header>
 

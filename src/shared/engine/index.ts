@@ -29,12 +29,6 @@ export {
   type PullOutKind,
 } from "./banking";
 export {
-  nextActiveBankSeat,
-  shouldContinuePersonalBank,
-  isDiceSoftBudgetExceeded,
-  bankQueue,
-} from "./bank-turn";
-export {
   buildAnonymousRosters,
   judgeRequestPayload,
   neutralJudgments,
@@ -49,3 +43,4 @@ export {
   tumblePose,
   animProgress,
 } from "./dice-sync";
+export { DIE_PIPS, projectDie, type DieProjection } from "./dice-geometry";

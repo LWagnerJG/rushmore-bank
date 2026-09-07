@@ -1,10 +1,12 @@
-import { RULES } from "../rules";
+function wholeBeans(value: number): number {
+  return Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
+}
 
-/** max_wager = E + min(25, B) */
+/** Every bean currently owned is available; no hidden cap on earlier winnings. */
 export function maxWager(earned: number, banked: number): number {
-  const E = Math.max(0, Math.floor(earned));
-  const B = Math.max(0, Math.floor(banked));
-  return E + Math.min(RULES.earlierWagerCap, B);
+  const E = wholeBeans(earned);
+  const B = wholeBeans(banked);
+  return E + B;
 }
 
 export type WagerPreset = "keep_all" | "half_new" | "all_new" | "custom";
@@ -15,7 +17,7 @@ export function wagerFromPreset(
   banked: number,
   customAmount?: number,
 ): number {
-  const E = Math.max(0, Math.floor(earned));
+  const E = wholeBeans(earned);
   const max = maxWager(E, banked);
   switch (preset) {
     case "keep_all":
@@ -25,7 +27,7 @@ export function wagerFromPreset(
     case "all_new":
       return Math.min(max, E);
     case "custom": {
-      const w = Math.max(0, Math.floor(customAmount ?? 0));
+      const w = wholeBeans(customAmount ?? 0);
       return Math.min(max, w);
     }
   }
@@ -37,10 +39,10 @@ export function applyWager(opts: {
   earned: number;
   wager: number;
 }): { protected: number; pot: number; bankedAfter: number } {
-  const B = Math.max(0, Math.floor(opts.banked));
-  const E = Math.max(0, Math.floor(opts.earned));
+  const B = wholeBeans(opts.banked);
+  const E = wholeBeans(opts.earned);
   const max = maxWager(E, B);
-  const W = Math.min(max, Math.max(0, Math.floor(opts.wager)));
+  const W = Math.min(max, wholeBeans(opts.wager));
   const protectedBal = B + E - W;
   return {
     protected: protectedBal,

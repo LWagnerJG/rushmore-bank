@@ -49,6 +49,7 @@ function stripDiceForPublic(
  * - Ballots: progress + own vote only (never voter→choice maps)
  * - Dice: hide faces / outcome text until settle (pots applied server-side only after settle)
  * - My Ideas never live on RoomState
+ * - draftOptionsJobId stays server-only
  */
 export function projectPublicState(
   state: RoomState,
@@ -61,10 +62,14 @@ export function projectPublicState(
   }
 
   const humanVotesCast = Object.keys(state.humanVotes).length;
-  const humanVotesNeeded = state.seatOrder.filter((pid) => {
-    const p = state.players.find((x) => x.id === pid);
-    return p && p.role === "player" && p.connected;
-  }).length;
+  // Two-player games: AI-only scoring (no forced human votes).
+  const humanVotesNeeded =
+    state.seatOrder.length === 2
+      ? 0
+      : state.seatOrder.filter((pid) => {
+          const p = state.players.find((x) => x.id === pid);
+          return p && p.role === "player" && p.connected;
+        }).length;
 
   const scores = state.scoresLocked
     ? state.scores.map((s) => ({ ...s }))
@@ -92,6 +97,8 @@ export function projectPublicState(
     draftOrder: [...state.draftOrder],
     picks: state.picks.map((p) => ({ ...p })),
     takenNormalized: [...state.takenNormalized],
+    draftOptions: [...state.draftOptions],
+    draftOptionsStatus: state.draftOptionsStatus,
     pickDeadlineAt: state.pickDeadlineAt,
     pickPaused: state.pickPaused,
     pickPauseRemainingMs: state.pickPauseRemainingMs,
@@ -117,7 +124,7 @@ export function projectPublicState(
     diceDecisionDeadlineAt: state.diceDecisionDeadlineAt,
     diceIdleDeadlineAt: state.diceIdleDeadlineAt,
     diceRoundStartedAt: state.diceRoundStartedAt,
-    diceBanksCompleted: state.diceBanksCompleted,
+    diceLapsCompleted: state.diceLapsCompleted,
     partyPrompt: state.partyPrompt ? { ...state.partyPrompt } : null,
     ledger: state.ledger.map((e) => ({ ...e })),
     checkpoint: state.checkpoint
@@ -141,6 +148,7 @@ export function publicStateLeaksBallots(
     Object.prototype.hasOwnProperty.call(pub, "topicVotes") ||
     Object.prototype.hasOwnProperty.call(pub, "humanVotes") ||
     Object.prototype.hasOwnProperty.call(pub, "processedActionIds") ||
-    Object.prototype.hasOwnProperty.call(pub, "judgeJobId")
+    Object.prototype.hasOwnProperty.call(pub, "judgeJobId") ||
+    Object.prototype.hasOwnProperty.call(pub, "draftOptionsJobId")
   );
 }

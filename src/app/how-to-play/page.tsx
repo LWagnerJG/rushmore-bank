@@ -31,11 +31,16 @@ export default function HowToPlayPage() {
         <h2 className="font-extrabold">Each topic</h2>
         <ol className="list-decimal space-y-1 pl-5 text-sm">
           <li>Vote a spun topic.</li>
-          <li>Snake draft four answers right away — Lock In on your turn.</li>
-          <li>Vote another’s roster; AI judges too. Earn beans.</li>
           <li>
-            Slider: how many beans to risk. Then each player gets their own
-            bank turn (two safe rolls, then risk) — Bank to lock them in.
+            Snake draft four answers — Available / My queue / Board. Lock pick
+            on your turn.
+          </li>
+          <li>
+            Vote another’s roster (2 players: AI only). Earn beans.
+          </li>
+          <li>
+            Slider: risk beans (zero still plays). Then round-robin bank —
+            one roll, pass, two safe rolls. Bank anytime.
           </li>
         </ol>
       </section>
