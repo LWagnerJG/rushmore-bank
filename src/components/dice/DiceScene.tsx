@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { CSSProperties } from "react";
+import type { CSSProperties, RefObject } from "react";
 import type { PublicDiceBroadcast } from "@/shared/types";
 import { animProgress, tumblePose } from "@/shared/engine/dice-sync";
 
@@ -14,7 +14,7 @@ const FACE_ROTATIONS = ["", "rotateX(90deg)", "rotateY(90deg)", "rotateY(-90deg)
 const SETTLED_ROTATIONS = ["rotateX(0deg)", "rotateX(-90deg)", "rotateY(-90deg)", "rotateY(90deg)", "rotateX(90deg)", "rotateY(180deg)"];
 
 function Die({ elementRef, value, index }: {
-  elementRef: React.RefObject<HTMLDivElement | null>; value: number; index: number;
+  elementRef: RefObject<HTMLDivElement | null>; value: number; index: number;
 }) {
   return <div className={`bean-die-space bean-die-space-${index}`}>
     <div ref={elementRef} className="bean-die" data-face={value} style={{ transform: `rotateX(-12deg) rotateY(-14deg) rotateZ(${index ? 8 : -8}deg) ${SETTLED_ROTATIONS[value - 1]}` }} aria-hidden="true">
@@ -50,7 +50,7 @@ export function DiceScene({ broadcast, reducedMotion, isHost }: {
       const progress = animProgress(Date.now(), started, settled);
       [dieA.current, dieB.current].forEach((element, index) => {
         if (!element) return;
-        const pose = tumblePose(Math.min(progress, 0.97), seed, index);
+        const pose = tumblePose(Math.min(progress, 0.97), seed, index === 0 ? 0 : 1);
         const baseline = index === 0 ? -1.1 : 1.1;
         const drift = Math.max(-18, Math.min(18, (pose.x - baseline) * 18));
         const lift = Math.max(-45, Math.min(8, -(pose.y - 0.55) * 20));
