@@ -351,12 +351,15 @@ describe("synchronized dice animation", () => {
 });
 
 describe("session length: choices vs rounds", () => {
-  it("shortlist choices ≠ rounds played", () => {
-    expect(topicShortlistCount(4)).toBe(3);
+  it("always offers 4 topic choices; rounds still scale with player count", () => {
+    expect(topicShortlistCount(2)).toBe(4);
+    expect(topicShortlistCount(4)).toBe(4);
+    expect(topicShortlistCount(8)).toBe(4);
+    expect(topicShortlistCount(10)).toBe(4);
+    expect(RULES.topicShortlistSize).toBe(4);
     expect(topicRoundsForPlayerCount(4)).toBe(3);
-    expect(topicShortlistCount(8)).toBe(2);
     expect(topicRoundsForPlayerCount(8)).toBe(2);
-    expect(topicShortlistCount(3)).not.toBe(topicRoundsForPlayerCount(10));
+    expect(topicShortlistCount(8)).not.toBe(topicRoundsForPlayerCount(8));
   });
 
   it("does not silently shorten draft timer", () => {

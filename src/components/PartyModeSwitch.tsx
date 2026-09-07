@@ -41,8 +41,8 @@ export function PartyModeSwitch({
             }
           >
             {on
-              ? "Optional sips after busts & wins — Pass anytime, no score hit."
-              : "Turn on for light sip prompts. Still optional."}
+              ? "Optional sips — Pass anytime"
+              : "Optional sip prompts"}
           </p>
         </div>
         <span className="party-switch-track" aria-hidden="true">

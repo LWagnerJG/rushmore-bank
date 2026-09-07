@@ -16,8 +16,8 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Production ship — Beans lobby / Party Mode / Codex draft + round-robin
-        BANK → {RULES.productionUrl}
+        Production polish — 4 topic choices + reroll, leaner lobby →{" "}
+        {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -53,38 +53,17 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>Draft UX (from Codex)</strong> — Available / My queue /
-            Board tabs, shared suggestions + search/add, sticky Lock pick,
-            strong on-the-clock banner, fantasy snake board.
+            <strong>Topics = 4 + reroll</strong> — always four vote options;
+            host or any player can reroll the set as needed (no 1-reroll cap,
+            no Auto/2/3 override).
           </li>
           <li>
-            <strong>Round-robin BANK (from Codex)</strong> — one roll then
-            pass; everyone re-enters each topic (incl. W=0); two safe personal
-            rolls; waiting Bank OK. Replaces Fudge solo mini-rounds.
+            <strong>Cut fluff</strong> — removed “How we start”, home player-count
+            line, and redundant lobby / Party Mode microcopy.
           </li>
           <li>
-            <strong>SVG pip dice (from Codex)</strong> — synced CSS/SVG cubes
-            (no flaky WebGL); host sound opt-in toggle isolated from scene
-            lifecycle.
-          </li>
-          <li>
-            <strong>2-player scoring (from Codex)</strong> — AI-only, no forced
-            votes.
-          </li>
-          <li>
-            <strong>No PREP</strong> — topic → draft immediately.
-          </li>
-          <li>
-            <strong>Lobby + Party Mode switch (this branch)</strong> — gathering
-            / ready, who’s in, share invite, fun Party accent when on.
-          </li>
-          <li>
-            <strong>Wager slider</strong> — full balance (E+B); Beans naming ·{" "}
-            {RULES.minPlayers}–{RULES.maxPlayers} players.
-          </li>
-          <li>
-            Preserved: Gemini-first <code>gemini-3.5-flash</code>,{" "}
-            <code>JUDGE_SECRET</code>, ballot privacy, server-authoritative AI,
+            Preserved: Beans branding, Party Mode switch, no PREP, fantasy draft,
+            round-robin BANK, Gemini-first <code>gemini-3.5-flash</code>,
             production PartyKit host.
           </li>
         </ul>
@@ -112,8 +91,8 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">Follow-ups</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>Redeploy PartyKit</strong> after merge — round-robin BANK +
-            no PREP + draft-options fetch live in <code>party/</code>.
+            <strong>Redeploy PartyKit</strong> after merge — topic shortlist is
+            always 4 + unlimited reroll in <code>party/server.ts</code>.
           </li>
           <li>
             AI judging / draft suggestions need <code>GEMINI_API_KEY</code>{" "}

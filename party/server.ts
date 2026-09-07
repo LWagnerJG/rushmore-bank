@@ -534,9 +534,7 @@ export default class QuarryServer implements Party.Server {
   }
 
   spinShortlist() {
-    const n = seatedPlayers(this.state).length;
-    const count =
-      this.state.settings.topicCountOverride ?? topicShortlistCount(n);
+    const count = topicShortlistCount();
     let pool = pickRandomTopics(count * 3, this.state.usedTopicIds);
     const mix = this.state.settings.scopeMix.filter((s) => s !== "custom");
     if (mix.length > 0) {
@@ -554,15 +552,11 @@ export default class QuarryServer implements Party.Server {
   }
 
   async handleSpinTopics(id: string, isReroll: boolean) {
-    if (!this.requireHost(id) && !isReroll) throw new Error("Host only");
+    // Host can spin anytime; any seated player may reroll as needed (unlimited).
+    if (!isReroll && !this.requireHost(id)) throw new Error("Host only");
+    if (isReroll && !this.requirePlayer(id)) throw new Error("Players only");
     if (this.state.phase !== "TOPIC_SELECTION") throw new Error("Wrong phase");
     if (isReroll) {
-      if (this.state.topicRerollsUsed >= RULES.majorityRerollsPerSelection) {
-        throw new Error("Reroll already used");
-      }
-      // Majority of connected players must have voted for __reroll__ via vote? 
-      // Spec: 1 majority reroll/topic selection — host can trigger after majority agrees.
-      // Simplify: host triggers reroll once, or if ≥ half voted the special id.
       this.state.topicRerollsUsed += 1;
     }
     this.spinShortlist();

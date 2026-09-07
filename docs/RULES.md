@@ -23,11 +23,11 @@ LOBBY → TOPIC_SELECTION → DRAFT (+ CORRECTION) → REVIEW
 
 ## Topics
 
-- Random shortlist: **3** choices if 2–5 players, **2** if 6–10 (host override allowed).
+- Random shortlist: always **4** choices. Anyone can **reroll** the set as needed.
 - Scopes: sports / food / everyday / entertainment + host custom.
 - ≥120 curated topics with scope tags (`src/shared/topics.ts`).
 - Vote 20s or all-in; ties → server random among tied.
-- 1 majority reroll per topic selection. No topic repeat in a game.
+- No topic repeat in a game.
 - Scope boundary shown before draft.
 - Topic rounds played: **3** with 2–5 players; **2** with 6–10.
 

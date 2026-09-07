@@ -18,18 +18,16 @@ export const RULES = {
   picksPerPlayer: 4,
 
   /** Topics */
-  /** Shortlist size (choices offered): 3 when 2–5 players, 2 when 6–10 */
-  topicShortlistSmall: 3,
-  topicShortlistLarge: 2,
-  topicShortlistSmallMaxPlayers: 5,
+  /** Always offer exactly this many topic choices for voting */
+  topicShortlistSize: 4,
   /**
    * Topic rounds *played* (not choices offered):
    * 3 rounds with 2–5 players; 2 rounds with 6–10.
    */
+  topicRoundsSmallMaxPlayers: 5,
   topicRoundsSmall: 3,
   topicRoundsLarge: 2,
   topicVoteSeconds: 20,
-  majorityRerollsPerSelection: 1,
   /** Soft target session length */
   targetMinutesMin: 25,
   targetMinutesMax: 30,
@@ -84,16 +82,14 @@ export const RULES = {
 
 export type Rules = typeof RULES;
 
-export function topicShortlistCount(playerCount: number): number {
-  if (playerCount <= RULES.topicShortlistSmallMaxPlayers) {
-    return RULES.topicShortlistSmall;
-  }
-  return RULES.topicShortlistLarge;
+/** Always exactly `RULES.topicShortlistSize` choices (player count ignored). */
+export function topicShortlistCount(_playerCount?: number): number {
+  return RULES.topicShortlistSize;
 }
 
 /** Rounds played this game (distinct from shortlist / choices offered). */
 export function topicRoundsForPlayerCount(playerCount: number): number {
-  if (playerCount <= RULES.topicShortlistSmallMaxPlayers) {
+  if (playerCount <= RULES.topicRoundsSmallMaxPlayers) {
     return RULES.topicRoundsSmall;
   }
   return RULES.topicRoundsLarge;

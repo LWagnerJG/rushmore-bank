@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { RULES } from "@/shared/rules";
 
 export default function HowToPlayPage() {
   return (
@@ -10,19 +9,14 @@ export default function HowToPlayPage() {
       <h1 className="font-[family-name:var(--font-display)] text-3xl font-extrabold">
         How to Play
       </h1>
-      <p className="text-[var(--muted)]">{RULES.tagline}</p>
-
       <section className="panel space-y-2">
         <h2 className="font-extrabold">Setup</h2>
         <ol className="list-decimal space-y-1 pl-5 text-sm">
           <li>One friend Creates; others Join with the code, link, or QR.</li>
+          <li>Host Starts when the crew is in.</li>
           <li>
-            Nickname only. Host Starts at {RULES.minPlayers}–
-            {RULES.maxPlayers} players.
-          </li>
-          <li>
-            Optional Party Mode (off by default): light sip prompts after busts
-            or wins. Pass anytime — no score effect.
+            Optional Party Mode: sip prompts after busts or wins. Pass anytime —
+            no score effect.
           </li>
         </ol>
       </section>
@@ -30,7 +24,7 @@ export default function HowToPlayPage() {
       <section className="panel space-y-2">
         <h2 className="font-extrabold">Each topic</h2>
         <ol className="list-decimal space-y-1 pl-5 text-sm">
-          <li>Vote a spun topic.</li>
+          <li>Vote one of four topics (reroll anytime).</li>
           <li>
             Snake draft four answers — Available / My queue / Board. Lock pick
             on your turn.
