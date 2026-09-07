@@ -1,6 +1,7 @@
 # Beans: isolated test release
 
-Branch: `codex/beans-preview`. Draft PR: https://github.com/LWagnerJG/rushmore-bank/pull/10.
+Fudge’s test release: `cursor/beans-test-preview-3333`, PR https://github.com/LWagnerJG/rushmore-bank/pull/12.
+Codex follow-up: `codex/beans-preview`, targeting that test branch. PR #10 was closed by the coordinator; it is not the release path.
 Production remains `main` at https://roundacats.vercel.app.
 
 ## Current preview and access
@@ -9,7 +10,7 @@ The GitHub Vercel integration created this branch preview:
 https://roundacats-git-codex-bean-606892-luke-wagners-projects-f997cc34.vercel.app.
 Check the Vercel bot and commit status for the latest build before testing. Until the settings below are present, room pages show a setup message instead of connecting to production.
 
-The requested `roundacats-test.vercel.app` has not been provisioned. An owning-account operator can create a separate Vercel project named `roundacats-test`, point it at this branch, and verify the assigned hostname. The existing branch preview is also suitable once connected to an isolated backend.
+The requested `roundacats-test.vercel.app` has not been provisioned. An owning-account operator can create a separate Vercel project named `roundacats-test`, point it at the reviewed combined test branch, and verify the assigned hostname. The existing branch preview is also suitable once connected to an isolated backend.
 
 Codex's connected Vercel account returned no teams and 403 for project `prj_xzzfvPRqpyh90IrQENKBnL7amWGR` on 2026-09-07. GitHub access worked. These access results do not establish a public-site firewall bug and are not a reason to weaken production protection.
 
@@ -20,7 +21,7 @@ Codex's connected Vercel account returned no teams and 403 for project `prj_xzzf
 - Shorter home, draft, topic, and score screens. Private ideas work in prep and draft. Wagers require an explicit lock after choosing an amount.
 - Waiting players banking preserve the current dice alarm and seat.
 - Earlier-pick corrections resume the interrupted cursor, including replacement timeouts. Locked-score corrections cannot remove picks. Stale judge jobs are invalidated.
-- Fudge's Gemini integration and provider tests are incorporated from main PR #9 and PR #11's Gemini 3.5 Flash update, rather than replaced with the older OpenAI route.
+- Fudge's Gemini integration and provider tests are incorporated from main PR #9, PR #11's model update, and test PR #12, rather than replaced with the older OpenAI route.
 - `GEMINI_MODEL` is configurable, default `gemini-3.5-flash`. Google lists the old hardcoded model's June 1, 2026 shutdown in its [model schedule](https://ai.google.dev/gemini-api/docs/deprecations).
 - Paid judge calls require matching `JUDGE_SECRET`; a caller-supplied PartyKit header alone is not authentication. Both provider calls have deadlines.
 
@@ -32,7 +33,7 @@ Use the Vercel and PartyKit accounts that own the project. Do not use the defaul
 
 | Location | Setting | Value |
 | --- | --- | --- |
-| Existing Vercel project, Preview env scoped to `codex/beans-preview` | `NEXT_PUBLIC_PARTYKIT_HOST` | Actual isolated test PartyKit hostname, no protocol |
+| Existing Vercel project, Preview env scoped to the selected test branch | `NEXT_PUBLIC_PARTYKIT_HOST` | Actual isolated test PartyKit hostname, no protocol |
 | Separate Vercel test project, if used instead | `NEXT_PUBLIC_APP_ENV` | `test` |
 | Separate Vercel test project | `NEXT_PUBLIC_PARTYKIT_HOST` | Same isolated test hostname |
 | Test frontend server only | `JUDGE_SECRET` | A new test-only shared secret |
@@ -79,4 +80,4 @@ Main PR #9's notes report a successful manual production PartyKit deploy. Its CI
 
 ## Promotion after Luke and Brynna approve
 
-Refresh from main and preserve newer Fudge commits. Require the current commit's build, lint, tests, and actual multiplayer checks. Merge the reviewed PR only after approval, then build with production variables and deploy the matching production PartyKit revision. Do not blindly promote a test artifact with a compiled test-backend address. Retain previous frontend/backend revisions for rollback. No automatic merge to main.
+Integrate the Codex follow-up into test PR #12 after its checks, then refresh from main and preserve newer Fudge commits. Require the current commit's build, lint, tests, and actual multiplayer checks. Merge the reviewed PR only after approval, then build with production variables and deploy the matching production PartyKit revision. Do not blindly promote a test artifact with a compiled test-backend address. Retain previous frontend/backend revisions for rollback. No automatic merge to main.

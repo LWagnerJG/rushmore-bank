@@ -1,8 +1,8 @@
-# Beans
+# Beans — test preview
 
 **Draft four. Bank beans.** — mobile-first party game. 2–10 players. Currency: **beans**.
 
-Play at [https://roundacats.vercel.app](https://roundacats.vercel.app).
+> Test only. Production stays at [roundacats.vercel.app](https://roundacats.vercel.app). Fudge’s release is PR #12; the Codex follow-up targets that test branch. Do not merge to main before Luke and Brynna approve.
 
 ## Stack
 
@@ -52,11 +52,9 @@ npm run dev
 
 Full rules: [`docs/RULES.md`](docs/RULES.md). Build notes: [`/build-notes`](https://roundacats.vercel.app/build-notes).
 
-## Deploy
+## Deploy (test only)
 
-1. `npm run deploy:party` — note PartyKit host.
-2. Vercel project **`roundacats`** (domain `roundacats.vercel.app`) auto-deploys from GitHub `LWagnerJG/rushmore-bank`.
-3. Set `NEXT_PUBLIC_PARTYKIT_HOST` if not using the baked default; set `GEMINI_API_KEY` (preferred) or `OPENAI_API_KEY` for AI.
+Use the separate frontend/backend setup in `docs/BEANS_TEST_RELEASE.md`. Do not run the production PartyKit deploy script from this test branch.
 
 Beans uses a coral bean character on the favicon, home-screen icons, share image, and in-app brand mark.
 

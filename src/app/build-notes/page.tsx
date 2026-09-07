@@ -7,7 +7,8 @@ export default function BuildNotesPage() {
   return <main className="mx-auto max-w-lg space-y-5 px-5 py-8">
     <Link href="/" className="text-sm font-bold underline">Back to Beans</Link>
     <BrandMark />
-    <h1 className="text-2xl font-extrabold">Build notes</h1>
+    <h1 className="text-2xl font-extrabold">Beans test build</h1>
+    <p className="text-sm font-bold">Test only. Production stays at <a href="https://roundacats.vercel.app" className="underline">roundacats.vercel.app</a>. This follow-up targets Fudge&apos;s test PR #12.</p>
     <section className="panel space-y-2 text-sm">
       <p>Environment: {environment}</p>
       <p>Frontend commit: <code className="break-all">{sha || "Local build"}</code></p>
