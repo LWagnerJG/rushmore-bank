@@ -36,7 +36,8 @@ LOBBY → TOPIC_SELECTION → PREP → DRAFT (+ CORRECTION) → REVIEW
 - 4 snake passes for N=2..10. One **Lock pick** per turn (server-validated).
 - Pick clock 30s + short grace (5s); host pause / extend (+15s).
 - Missed after grace → placeholder miss pick.
-- **My Ideas**: private, persisted per device/room/player/topic; Use → field; Taken markers from public events; never in AI/spectator payloads.
+- **My queue**: private, saved per device/room/player/topic. Available answers can be searched and queued, and players can type their own. Taken answers are removed from Available and marked in the queue. The four-row board shows the snake order and current pick.
+- Suggestions come from a starter catalog or one bounded, authenticated Gemini request per topic. Failure leaves manual entry available. Suggestions do not affect the judge.
 - Host may mark Duplicate or Group Invalid → replacement turn (30s), resume cursor.
 - Review/pitch 30s optional. Correction after ballots → invalidate + re-vote.
 - After scores locked: **Discard round** only (checkpoint restore).
@@ -58,12 +59,13 @@ earned = 20 + ai_award(0–40) + 5 × human_votes
 ## Wagers
 
 ```
-max_wager = E + min(25, B)
+max_wager = E + B
 protected = B + E − W
 pot = W
 ```
 
-- Choices: Keep all / Roll half / Roll this round + custom. Selection alone does not place a wager; the player must lock it.
+- Slider and visible number field: 0 through the full current balance. None / Half / All in shortcuts. Players must lock the amount.
+- Every player enters dice play, including a zero wager. All un-wagered beans remain protected.
 - No response in 20s → W=0.
 - Integers only; append-only ledger.
 
@@ -72,12 +74,13 @@ pot = W
 - 2d6. Personal roll count. Outcomes affect **only** the roller.
 - Rolls 1–2 (safe): seven → **+70**; else **+sum** (doubles add faces).
 - Rolls 3+: seven → **bust** pot=0 exit; doubles → **double pot** (no add faces); else **+sum**.
-- Rotate one throw each. **Bank** banks pot between rolls.
+- One throw per active player, then pass around the table again. **Bank** keeps the pot and exits this dice round. Even a zero pot can bank or time out.
+- Each new topic starts a fresh BANK round: everyone returns, current winnings carry forward, and personal safe-roll counts reset.
 - Countdown 5s → unlock Roll (do not auto-throw). Idle 10s → auto bank pot.
 - Atomic Roll vs Bank.
 - Synchronized 3D scene with authoritative faces (all 36 outcomes). Fair backend RNG (rejection sampling).
-- Soft budget 3 min; finish current lap; ≥3 laps before timed settlement for remaining players.
-- Reduced-motion fallback. Prefer host sound.
+- The dice round ends when everyone banks or busts. No global timer forces the table to finish.
+- Pip dice use six-face CSS cubes, a shared seed and timestamps. Reduced motion shows a still roll state before the result. Sound is optional, host only.
 
 ### Worked path (tests)
 

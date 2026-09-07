@@ -170,6 +170,8 @@ export interface RoomState {
   draftOrder: number[];
   picks: DraftPick[];
   takenNormalized: string[];
+  draftOptions: string[];
+  draftOptionsStatus: "idle" | "pending" | "ready" | "unavailable";
   pickDeadlineAt: number | null;
   pickPaused: boolean;
   pickPauseRemainingMs: number | null;
@@ -189,6 +191,8 @@ export interface RoomState {
   scoresLocked: boolean;
   judgeStatus: JudgeStatus;
   judgeJobId: string | null;
+  /** Private generation identity; never sent to players. */
+  draftOptionsJobId: string | null;
   judgeNotice: string | null;
   earnedThisRound: Record<string, number>;
   wagers: Record<string, number>;
@@ -243,6 +247,8 @@ export interface PublicRoomState {
   draftOrder: number[];
   picks: DraftPick[];
   takenNormalized: string[];
+  draftOptions: string[];
+  draftOptionsStatus: "idle" | "pending" | "ready" | "unavailable";
   pickDeadlineAt: number | null;
   pickPaused: boolean;
   pickPauseRemainingMs: number | null;
@@ -395,6 +401,9 @@ export function emptyRoomState(code: string): RoomState {
     draftOrder: [],
     picks: [],
     takenNormalized: [],
+    draftOptions: [],
+    draftOptionsStatus: "idle",
+    draftOptionsJobId: null,
     pickDeadlineAt: null,
     pickPaused: false,
     pickPauseRemainingMs: null,

@@ -54,15 +54,11 @@ export const RULES = {
   aiPromptVersion: "quarry-judge-v1",
 
   /** Wagers */
-  /** Earlier banked beans wagerable per topic: min(cap, balance) */
-  earlierWagerCap: 25,
   wagerTimeoutSeconds: 20,
 
   /** Dice */
   diceDecisionCountdownSeconds: 5,
   diceIdleBankSeconds: 10,
-  diceSoftBudgetMs: 3 * 60 * 1000,
-  diceMinLapsBeforeSettlement: 3,
   /** Shared tumble duration before authoritative reveal */
   diceAnimMs: 2200,
   safePersonalRolls: 2,

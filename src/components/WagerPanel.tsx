@@ -2,17 +2,15 @@
 
 import { useEffect, useState } from "react";
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
-import { RULES } from "@/shared/rules";
-import { maxWager, wagerFromPreset } from "@/shared/engine/wager";
+import { maxWager } from "@/shared/engine/wager";
 
 export function WagerPanel({ state, you, youId, send }: {
   state: PublicRoomState; you: Player; youId: string; send: (m: ClientMessage) => void;
 }) {
   const earned = state.earnedThisRound[youId] ?? 0;
-  const banked = you.stones;
-  const max = maxWager(earned, banked);
+  const total = maxWager(earned, you.stones);
   const locked = state.wagers[youId];
-  const [selection, setSelection] = useState(String(wagerFromPreset("half_new", earned, banked)));
+  const [selection, setSelection] = useState(String(Math.floor(earned / 2)));
   const [left, setLeft] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   useEffect(() => {
@@ -27,50 +25,41 @@ export function WagerPanel({ state, you, youId, send }: {
     return () => clearTimeout(timer);
   }, [busy]);
   const amount = Number(selection);
-  const valid = selection.trim() !== "" && Number.isSafeInteger(amount) && amount >= 0 && amount <= max;
-  const kept = valid ? banked + earned - amount : null;
-  const options = [
-    { label: "Keep all", amount: 0 },
-    { label: "Roll half", amount: wagerFromPreset("half_new", earned, banked) },
-    { label: "Roll this round", amount: earned },
-  ];
+  const valid = selection.trim() !== "" && Number.isSafeInteger(amount) && amount >= 0 && amount <= total;
 
-  if (you.role !== "player") return <p className="panel">Everyone is choosing how many beans to roll.</p>;
+  if (you.role !== "player") return <p className="panel">Everyone is choosing their wager.</p>;
   if (locked !== undefined) return <section className="panel space-y-2 text-center" aria-live="polite">
-    <h2 className="text-xl font-extrabold">{locked === 0 ? "Your beans are safe." : "You're in."}</h2>
-    <p>{locked === 0 ? "Sit back and watch the dice." : locked + " beans ready to roll."}</p>
+    <h2 className="text-2xl font-extrabold">{locked} beans in.</h2>
+    <p>{total - locked} stay safe. You still get to roll.</p>
     <p className="text-sm text-[var(--muted)]">Waiting for the others…</p>
   </section>;
 
-  return <div className="space-y-4">
+  return <div className="space-y-5">
     <header className="space-y-2">
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="text-2xl font-extrabold">How many beans?</h2>
-        {left !== null && <span className="text-sm font-bold tabular-nums">{left}s</span>}
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-extrabold">What’s your wager?</h2>
+        {left !== null && <span className="font-bold tabular-nums">{left}s</span>}
       </div>
-      <p>You earned <strong>{earned} beans</strong> this round.</p>
-      <p className="text-sm text-[var(--muted)]">Keep them safe, or put some in your dice pot.</p>
+      <p className="text-sm text-[var(--muted)]">{total} beans available · {earned} earned this round</p>
     </header>
-    <div className="grid grid-cols-3 gap-2">
-      {options.map((option) => <button key={option.label} type="button" className={"btn-secondary !px-2 text-sm " + (valid && amount === option.amount ? "ring-2 ring-[var(--text)]" : "")} aria-pressed={valid && amount === option.amount} onClick={() => setSelection(String(option.amount))}>
-        <span className="block">{option.label}</span>
-        <span className="mt-1 block text-lg font-extrabold">{option.amount}</span>
-      </button>)}
-    </div>
-    <section className="panel grid grid-cols-2 gap-4 text-center" aria-live="polite">
-      <div><p className="text-sm text-[var(--muted)]">Staying safe</p><p className="text-3xl font-extrabold">{kept ?? "—"}</p><p className="text-sm">beans</p></div>
-      <div><p className="text-sm text-[var(--muted)]">Ready to roll</p><p className="text-3xl font-extrabold">{valid ? amount : "—"}</p><p className="text-sm">beans</p></div>
+    <section className="panel space-y-5">
+      <div className="text-center">
+        <label htmlFor="bean-wager-amount" className="block text-sm font-bold">Beans to wager</label>
+        <input id="bean-wager-amount" className="mx-auto block w-40 rounded-lg bg-transparent p-2 text-center text-5xl font-extrabold tabular-nums focus:outline-2 focus:outline-[var(--coral)]" type="number" inputMode="numeric" min={0} max={total} step={1} value={selection} onChange={(e) => setSelection(e.target.value)} aria-invalid={!valid} />
+      </div>
+      <div>
+        <input aria-label="Wager slider" className="bean-slider w-full" type="range" min={0} max={total} step={1} value={valid ? amount : 0} onChange={(e) => setSelection(e.target.value)} aria-valuetext={`${valid ? amount : 0} beans wagered, ${valid ? total - amount : total} safe`} />
+        <div className="flex justify-between text-sm"><span>0</span><span>{total}</span></div>
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        {[{ label: "None", value: 0 }, { label: "Half", value: Math.floor(total / 2) }, { label: "All in", value: total }].map(({ label, value }) => <button key={label} className="btn-secondary !px-2 text-sm" type="button" aria-pressed={valid && amount === value} onClick={() => setSelection(String(value))}>{label}</button>)}
+      </div>
+      <p className="text-center text-sm" aria-live="polite"><strong>{valid ? total - amount : "—"} beans</strong> stay safe.</p>
     </section>
-    <details className="panel space-y-3">
-      <summary className="cursor-pointer font-bold">Choose another amount</summary>
-      <label htmlFor="bean-wager" className="block pt-3 text-sm">Beans to roll, from 0 to {max}</label>
-      <input id="bean-wager" className="field w-full" type="number" inputMode="numeric" min={0} max={max} step={1} value={selection} onChange={(e) => setSelection(e.target.value)} aria-invalid={!valid} />
-      <p className="text-xs text-[var(--muted)]">You can add up to {Math.min(RULES.earlierWagerCap, banked)} beans from earlier winnings.</p>
-    </details>
-    {!valid && <p role="alert" className="text-sm font-bold">Choose a whole number between 0 and {max}.</p>}
-    <button type="button" className="btn-danger w-full text-lg" disabled={!valid || busy} onClick={() => { if (!valid || busy) return; setBusy(true); send({ type: "submit_wager", amount }); }}>
-      {busy ? "Locking…" : amount === 0 ? "Keep all my beans" : "Roll with " + amount + " beans"}
+    {!valid && <p role="alert" className="text-sm font-bold">Choose a whole number from 0 to {total}.</p>}
+    <button type="button" className="btn-primary w-full text-lg" disabled={!valid || busy} onClick={() => { if (!valid || busy) return; setBusy(true); send({ type: "submit_wager", amount }); }}>
+      {busy ? "Locking…" : `Lock ${valid ? amount : ""} beans`}
     </button>
-    <p className="text-center text-xs text-[var(--muted)]">No choice in time? All your beans stay safe.</p>
+    <p className="text-center text-sm text-[var(--muted)]">Everyone rolls, even with 0 wagered. No choice in time? We wager 0.</p>
   </div>;
 }

@@ -39,10 +39,10 @@ export function IdeasPanel({ room, playerId, topicId, taken = [], onUse }: {
   }
 
   return <section className="panel space-y-3 text-left">
-    <div className="flex items-center justify-between"><h3 className="font-extrabold">My ideas</h3><span className="text-xs text-[var(--muted)]">Only you</span></div>
+    <div className="flex items-center justify-between"><h3 className="font-extrabold">My queue</h3><span className="text-xs text-[var(--muted)]">Only you</span></div>
     <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); add(); }}>
       <input className="field min-w-0 flex-1" aria-label="Private idea" placeholder="Keep a pick in mind" maxLength={48} value={draft} onChange={(e) => setDraft(e.target.value)} />
-      <button type="submit" className="btn-secondary" disabled={!draft.trim() || ideas.length >= 40}>Save</button>
+      <button type="submit" className="btn-secondary" disabled={!draft.trim() || ideas.length >= 40}>Queue</button>
     </form>
     {ideas.length > 0 && <ul className="space-y-2">{ideas.map((idea) => {
       const unavailable = taken.includes(normalizePick(idea));

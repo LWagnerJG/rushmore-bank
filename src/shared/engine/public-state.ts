@@ -92,6 +92,8 @@ export function projectPublicState(
     draftOrder: [...state.draftOrder],
     picks: state.picks.map((p) => ({ ...p })),
     takenNormalized: [...state.takenNormalized],
+    draftOptions: [...state.draftOptions],
+    draftOptionsStatus: state.draftOptionsStatus,
     pickDeadlineAt: state.pickDeadlineAt,
     pickPaused: state.pickPaused,
     pickPauseRemainingMs: state.pickPauseRemainingMs,
@@ -141,7 +143,8 @@ export function publicStateLeaksBallots(
     Object.prototype.hasOwnProperty.call(pub, "topicVotes") ||
     Object.prototype.hasOwnProperty.call(pub, "humanVotes") ||
     Object.prototype.hasOwnProperty.call(pub, "processedActionIds") ||
-    Object.prototype.hasOwnProperty.call(pub, "judgeJobId")
+    Object.prototype.hasOwnProperty.call(pub, "judgeJobId") ||
+    Object.prototype.hasOwnProperty.call(pub, "draftOptionsJobId")
   );
 }
 

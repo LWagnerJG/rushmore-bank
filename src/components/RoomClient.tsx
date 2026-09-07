@@ -84,7 +84,7 @@ function ConnectedRoomClient({
       case "DRAFT":
       case "CORRECTION":
         return (
-          <DraftPanel state={state} you={you} youId={youId} send={send} />
+          <DraftPanel key={state.selectedTopic?.id} state={state} you={you} youId={youId} send={send} />
         );
       case "REVIEW":
         return <ReviewPanel state={state} you={you} send={send} />;
@@ -168,7 +168,7 @@ function ConnectedRoomClient({
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col px-4 pb-8 pt-3">
+    <main className={`mx-auto flex min-h-dvh flex-col px-4 pb-8 pt-3 ${phase === "DRAFT" || phase === "CORRECTION" ? "max-w-3xl" : "max-w-md"}`}>
       <header className="sticky top-0 z-20 -mx-4 mb-3 border-b border-[rgba(35,72,62,0.08)] bg-[rgba(245,240,231,0.92)] px-4 py-2 backdrop-blur">
         <div className="flex items-center justify-between gap-2">
           <BrandMark />
@@ -179,7 +179,7 @@ function ConnectedRoomClient({
             </div>
           </div>
         </div>
-        {state && <PlayerRail state={state} youId={youId} />}
+        {state && phase !== "LOBBY" && phase !== "DRAFT" && phase !== "CORRECTION" && phase !== "DICE" && <PlayerRail state={state} youId={youId} />}
         {state?.notice && (
           <p className="mt-1 text-xs font-semibold text-[var(--coral)]">
             {state.notice}

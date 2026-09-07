@@ -51,32 +51,7 @@ export function LobbyPanel({
 
   return (
     <div className="space-y-4">
-      <section className="panel space-y-3 text-center">
-        <p className="text-xs font-bold uppercase tracking-widest text-[var(--muted)]">
-          Room code
-        </p>
-        <p className="font-[family-name:var(--font-display)] text-5xl font-extrabold tracking-[0.2em]">
-          {state.code}
-        </p>
-        <div className="mx-auto w-fit rounded-xl bg-white p-3">
-          <QRCodeSVG value={url} size={148} bgColor="#ffffff" fgColor="#23483E" />
-        </div>
-        <div className="flex gap-2">
-          <button type="button" className="btn-secondary flex-1" onClick={share}>
-            {copied ? "Copied!" : "Invite friends"}
-          </button>
-          <button
-            type="button"
-            className="btn-secondary flex-1"
-            onClick={() => { void navigator.clipboard?.writeText(state.code).catch(() => setShareError("Read the room code above to your friends.")); }}
-          >
-            Copy code
-          </button>
-        </div>
-        {shareError && <p className="text-sm" role="status">{shareError}</p>}
-      </section>
-
-      <section className="panel space-y-2">
+      <section className="panel space-y-2" aria-live="polite" aria-label="Lobby players">
         <h2 className="font-extrabold">
           Players ({players.length}/{RULES.maxPlayers})
         </h2>
@@ -98,6 +73,32 @@ export function LobbyPanel({
           </p>
         )}
       </section>
+
+      <section className="panel space-y-3 text-center">
+        <p className="text-xs font-bold uppercase tracking-widest text-[var(--muted)]">
+          Room code
+        </p>
+        <p className="font-[family-name:var(--font-display)] text-5xl font-extrabold tracking-[0.2em]">
+          {state.code}
+        </p>
+        <details><summary className="min-h-11 cursor-pointer text-sm font-bold">Show QR code</summary><div className="mx-auto w-fit rounded-xl bg-white p-3">
+          <QRCodeSVG value={url} size={148} bgColor="#ffffff" fgColor="#23483E" />
+        </div></details>
+        <div className="flex gap-2">
+          <button type="button" className="btn-secondary flex-1" onClick={share}>
+            {copied ? "Copied!" : "Invite friends"}
+          </button>
+          <button
+            type="button"
+            className="btn-secondary flex-1"
+            onClick={() => { void navigator.clipboard?.writeText(state.code).catch(() => setShareError("Read the room code above to your friends.")); }}
+          >
+            Copy code
+          </button>
+        </div>
+        {shareError && <p className="text-sm" role="status">{shareError}</p>}
+      </section>
+
 
       {you.isHost && (
         <section className="panel space-y-3">

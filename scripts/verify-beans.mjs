@@ -17,27 +17,30 @@ const context = vm.createContext({
   fetch: async () => { throw new Error("External fetch prohibited in local regression tests"); },
 });
 const modules = new Map();
-async function load(file) {
+function load(file) {
   if (modules.has(file)) return modules.get(file);
+  if (file === "next/server") {
+    const mod = new vm.SyntheticModule(["NextRequest", "NextResponse"], function () {
+      this.setExport("NextRequest", Request);
+      this.setExport("NextResponse", { json: (data, options) => Response.json(data, options) });
+    }, { context });
+    modules.set(file, mod);
+    return mod;
+  }
   const source = stripTypeScriptTypes(fs.readFileSync(file, "utf8"), { mode: "transform" });
   const mod = new vm.SourceTextModule(source, { context, identifier: file });
   modules.set(file, mod);
-  await mod.link(async (spec, ref) => {
-    if (spec === "next/server") {
-      if (!modules.has(spec)) modules.set(spec, new vm.SyntheticModule(["NextRequest", "NextResponse"], function () {
-        this.setExport("NextRequest", Request);
-        this.setExport("NextResponse", { json: (data, options) => Response.json(data, options) });
-      }, { context }));
-      return modules.get(spec);
-    }
-    let resolved = spec.startsWith("@/") ? path.join(root, "src", spec.slice(2)) : path.resolve(path.dirname(ref.identifier), spec);
-    resolved = fs.existsSync(resolved + ".ts") ? resolved + ".ts" : path.join(resolved, "index.ts");
-    return load(resolved);
-  });
   return mod;
 }
+function linker(spec, ref) {
+  if (spec === "next/server") return load(spec);
+  let resolved = spec.startsWith("@/") ? path.join(root, "src", spec.slice(2)) : path.resolve(path.dirname(ref.identifier), spec);
+  resolved = fs.existsSync(resolved + ".ts") ? resolved + ".ts" : path.join(resolved, "index.ts");
+  return load(resolved);
+}
 async function get(relative) {
-  const mod = await load(path.join(root, relative));
+  const mod = load(path.join(root, relative));
+  if (mod.status === "unlinked") await mod.link(linker);
   if (mod.status !== "evaluated") await mod.evaluate();
   return mod.namespace;
 }
@@ -140,6 +143,7 @@ async function settleJob(server) {
 let providerCalls = [];
 context.fetch = async (url, options) => {
   if (url === "https://judge.test/api/judge") return POST(new Request(url, options));
+  if (url === "https://judge.test/api/draft-options") return Response.json({ options: [] });
   const u = new URL(url);
   providerCalls.push(u.hostname);
   if (u.hostname === "generativelanguage.googleapis.com") assert.equal(u.pathname, "/v1beta/models/" + (context.process.env.GEMINI_MODEL || "gemini-3.5-flash") + ":generateContent");
@@ -259,4 +263,100 @@ for (const n of [2, 3, 10]) for (const stage of ["DRAFT", "REVIEW", "VOTING_AND_
   assert.equal(JSON.stringify(s.state.picks), snapshot);
 }
 console.log("PASS: corrections and expired replacement turns resume correctly for 2, 3, 10 players; locked corrections do not mutate picks");
+
+
+const { maxWager, applyWager } = await get("src/shared/engine/wager.ts");
+assert.equal(maxWager(40, 900), 940);
+assert.equal(applyWager({ earned: 40, banked: 900, wager: 940 }).protected, 0);
+assert.equal(Number.isFinite(applyWager({ earned: 40, banked: 900, wager: NaN }).pot), true);
+const nativeMath = context.Math;
+context.Math = Object.create(Math);
+context.Math.random = () => 0;
+for (const n of [2, 3, 10]) {
+  const s = fresh(n);
+  await s.handleStart("p0");
+  s.state.players.forEach((p) => p.stones = 100);
+  s.state.earnedThisRound = Object.fromEntries(s.state.seatOrder.map((id) => [id, 40]));
+  await s.beginWagers();
+  for (const bad of [NaN, Infinity, -1, 1.5, 141]) await assert.rejects(s.handleWager("p0", bad));
+  await s.handleWager("p0", 0);
+  await assert.rejects(s.handleWager("p0", 20), /locked/);
+  for (let i = 1; i < n; i++) await s.handleWager("p" + i, 0);
+  assert.equal(s.state.phase, "DICE", "all-zero wagers must still play BANK");
+  assert.equal(s.state.diceActiveIds.length, n);
+  assert.equal(s.state.players.every((p) => p.stones === 140), true);
+  const order = [...s.state.seatOrder];
+  // Two complete circuits: each person rolls exactly once per circuit.
+  for (let circuit = 0; circuit < 2; circuit++) for (const id of order) {
+    assert.equal(s.currentDicePlayerId(), id);
+    await s.onAlarm();
+    await s.handleRoll(id);
+    assert.equal(s.state.personalRollCounts[id], circuit + 1);
+    await s.onAlarm();
+    assert.equal(s.state.diceActiveIds.length, n);
+    assert.equal(s.state.pots[id], (circuit + 1) * 2);
+  }
+  // A seven after the two safe rolls only busts its roller.
+  let randomCall = 0;
+  context.Math.random = () => (randomCall++ % 2 === 0 ? 0 : 5 / 0x100000000);
+  s.state.diceRoundStartedAt = Date.now() - 600_000;
+  s.state.diceLapsCompleted = 9;
+  const busted = s.currentDicePlayerId();
+  await s.onAlarm(); await s.handleRoll(busted); await s.onAlarm();
+  assert.equal(s.state.phase, "DICE", "no global timer prematurely ends everyone's BANK round");
+  assert.equal(s.state.pots[busted], 0);
+  assert.equal(s.state.diceActiveIds.length, n - 1);
+  assert.equal(s.state.players.find((p) => p.id === busted).stones, 140);
+  for (const id of [...s.state.diceActiveIds]) await s.handlePullOut(id);
+  for (const p of s.state.players) assert.equal(p.stones, p.id === busted ? 140 : 144);
+  await s.handleAdvance("p0");
+  assert.equal(s.state.lastDice, null);
+  assert.equal(Object.keys(s.state.personalRollCounts).length, 0);
+  s.state.earnedThisRound = Object.fromEntries(order.map((id) => [id, 40]));
+  await s.beginWagers();
+  for (const id of order) await s.handleWager(id, 0);
+  assert.equal(s.state.diceActiveIds.length, n, "banked and busted players re-enter next topic");
+  assert.equal(Object.values(s.state.personalRollCounts).every((count) => count === 0), true);
+  // Idle banking must work for zero pots too, or absent players stall the table.
+  for (let i = 0; i < n; i++) { await s.onAlarm(); await s.onAlarm(); }
+  assert.equal(s.state.diceActiveIds.length, 0);
+  assert.equal(s.state.phase === "ROUND_RESULTS" || s.state.phase === "GAME_RESULTS", true);
+  context.Math.random = () => 0;
+}
+context.Math = nativeMath;
+console.log("PASS: full round-robin BANK circuits, zero/all wagers, personal safe-roll resets, individual busts, carryover and idle exits for 2, 3, 10 players");
+
+const { cleanDraftOptions, starterDraftOptions } = await get("src/shared/draft-options.ts");
+assert.deepEqual(Array.from(cleanDraftOptions(["  Aaron Judge ", "aaron judge", 5, "", "a".repeat(49), "Babe Ruth"])), ["Aaron Judge", "Babe Ruth"]);
+assert.equal(starterDraftOptions("greatest-nba-players").length >= 40, true);
+const { POST: draftOptionsPost } = await get("src/app/api/draft-options/route.ts");
+function draftRequest(auth = "Bearer test-only-secret", data = { topic: "Greatest NBA players", scopeBoundary: "NBA only" }) {
+  return new Request("http://local/api/draft-options", { method: "POST", headers: { authorization: auth, "Content-Type": "application/json" }, body: JSON.stringify(data) });
+}
+context.process.env = { GEMINI_API_KEY: "test" };
+assert.equal((await draftOptionsPost(draftRequest())).status, 401);
+context.process.env.JUDGE_SECRET = "test-only-secret";
+assert.equal((await draftOptionsPost(draftRequest("Bearer wrong"))).status, 401);
+assert.equal((await draftOptionsPost(draftRequest(undefined, { topic: 123 }))).status, 400);
+context.fetch = async (url, options) => {
+  assert.equal(new URL(url).hostname, "generativelanguage.googleapis.com");
+  const input = JSON.parse(JSON.parse(options.body).contents[0].parts[0].text);
+  assert.deepEqual(Object.keys(input).sort(), ["scopeBoundary", "topic"]);
+  return Response.json({ candidates: [{ content: { parts: [{ text: JSON.stringify({ options: ["Jordan", " Jordan ", "Curry"] }) }] } }] });
+};
+assert.deepEqual((await (await draftOptionsPost(draftRequest())).json()).options, ["Jordan", "Curry"]);
+context.fetch = async () => { throw new Error("Provider down"); };
+assert.deepEqual((await (await draftOptionsPost(draftRequest())).json()).options, []);
+const late = fresh(2);
+late.state.selectedTopic = { id: "old", text: "Old", scope: "everyday", scopeBoundary: "Old" };
+late.state.phase = "PREP"; late.state.draftOptionsJobId = "old-job";
+let release;
+context.fetch = () => new Promise((resolve) => { release = resolve; });
+const pendingOptions = late.loadDraftOptions(late.state.selectedTopic, "old-job");
+await late.beginTopicSelection();
+release(Response.json({ options: ["Stale pick"] }));
+await pendingOptions;
+assert.equal(late.state.draftOptions.length, 0);
+assert.equal("draftOptionsJobId" in late.publicStateFor("p0"), false);
+console.log("PASS: suggestion auth, bounds, deduplication, private payload, provider failure and stale-job isolation");
 console.log("No live rooms, real credentials, or paid AI calls used.");

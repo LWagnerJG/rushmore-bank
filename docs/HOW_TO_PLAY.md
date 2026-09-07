@@ -12,11 +12,11 @@
 
 1. **Topics** — shortlist spins; vote your favorite (or host locks a custom topic).
 2. **Prep** — read the scope boundary; jot private ideas.
-3. **Draft** — snake draft. On your turn type a pick and tap **Lock pick**. Use **My Ideas** while waiting.
+3. **Draft** — snake draft. On your turn type a pick and tap **Lock pick**. Use **My queue** while waiting.
 4. **Review** — glance at everyone’s Mount Rushmore.
 5. **Judge** — AI scores every draft. With 3+ players, privately vote for another player too. Two players skip the ballot.
 6. **Scores** — beans = 20 + AI award, plus 5 per human vote when playing with 3+ people.
-7. **Wager** — risk some beans into your personal pot (Keep all / Roll half / Roll this round).
+7. **Wager** — risk some beans into your personal pot with the slider (0 through your full balance).
 8. **Dice** — rotating personal 2d6. First two rolls are safe (seven pays +70). After that, seven busts *your* pot. Doubles double your pot. Tap **Bank** to bank.
 9. **Next Topic** or end — most banked beans wins.
 

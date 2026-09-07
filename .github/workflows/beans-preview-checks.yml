@@ -1,14 +1,19 @@
-name: Beans preview checks
+name: Beans release checks
 on:
   pull_request:
     branches: [main, cursor/beans-test-preview-3333]
   push:
-    branches: [codex/beans-preview]
+    branches: [codex/beans-preview, codex/beans-release]
 permissions:
   contents: read
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NEXT_PUBLIC_PARTYKIT_HOST: localhost:1999
+      NEXT_PUBLIC_APP_ENV: development
+      NEXT_TELEMETRY_DISABLED: 1
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -20,3 +25,27 @@ jobs:
       - run: npm run lint
       - run: node --experimental-vm-modules scripts/verify-beans.mjs
       - run: npm run build
+      - name: Install browser test tools
+        run: npm install --no-save --package-lock=false playwright@1.62.1
+      - name: Install browsers
+        run: npx playwright install --with-deps chromium webkit
+      - name: Play complete games in Chromium and WebKit
+        run: node scripts/browser-smoke.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: beans-browser-${{ github.run_id }}
+          path: test-results/
+  deployment-access:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/beans-release'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PartyKit release access
+        env:
+          PARTYKIT_TOKEN: ${{ secrets.PARTYKIT_TOKEN }}
+          PARTYKIT_LOGIN: ${{ secrets.PARTYKIT_LOGIN }}
+        run: |
+          if [ -z "$PARTYKIT_TOKEN" ] || [ -z "$PARTYKIT_LOGIN" ]; then
+            echo "::error::Production release needs PARTYKIT_TOKEN and PARTYKIT_LOGIN in repository Actions secrets. No credential values were printed."
+            exit 1
+          fi
