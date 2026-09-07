@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useGameRoom } from "@/hooks/useGameRoom";
 import { phaseLabel, type Phase } from "@/shared/types";
 import { RULES } from "@/shared/rules";
+import { BrandMark } from "@/components/BrandMark";
+import { getPartyHost } from "@/lib/party";
 import { LobbyPanel } from "@/components/LobbyPanel";
 import { TopicPanel } from "@/components/TopicPanel";
 import { PrepPanel } from "@/components/PrepPanel";
@@ -17,24 +19,17 @@ import { DicePanel } from "@/components/DicePanel";
 import { ResultsPanel } from "@/components/ResultsPanel";
 import { PlayerRail } from "@/components/PlayerRail";
 
-function BrandMark() {
-  return (
-    <div className="flex items-center gap-1.5">
-      <div className="flex gap-0.5">
-        {[1, 2, 3, 4].map((n) => (
-          <span key={n} className="stone-tile !h-5 !w-5 !text-[0.55rem]">
-            {n}
-          </span>
-        ))}
-      </div>
-      <span className="font-[family-name:var(--font-display)] text-lg font-extrabold">
-        {RULES.displayName}
-      </span>
-    </div>
-  );
+export function RoomClient(props: { code: string; presetName: string; preferSpectate: boolean }) {
+  if (!getPartyHost()) return <main className="mx-auto max-w-md space-y-5 px-5 py-12">
+    <BrandMark />
+    <h1 className="text-2xl font-extrabold">Almost ready for friends.</h1>
+    <p>This test build is waiting for its own game server. The live game stays separate.</p>
+    <Link href="/" className="btn-secondary inline-flex items-center">Back to Beans</Link>
+  </main>;
+  return <ConnectedRoomClient {...props} />;
 }
 
-export function RoomClient({
+function ConnectedRoomClient({
   code,
   presetName,
   preferSpectate,
@@ -143,6 +138,7 @@ export function RoomClient({
           value={name}
           maxLength={18}
           placeholder="Nickname"
+          aria-label="Your nickname"
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") join(name, preferSpectate ? "spectator" : "player");
@@ -151,6 +147,7 @@ export function RoomClient({
         <button
           type="button"
           className="btn-primary"
+          disabled={!connected || !name.trim()}
           onClick={() => join(name, preferSpectate ? "spectator" : "player")}
         >
           Join

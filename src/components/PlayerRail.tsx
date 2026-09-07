@@ -35,7 +35,7 @@ function PlayerChip({ player, you }: { player: Player; you: boolean }) {
         {player.isHost && <span title="Host">★</span>}
         <span>{player.name}</span>
       </div>
-      <div className="opacity-80">{player.stones}◆</div>
+      <div className="opacity-80">{player.stones} beans</div>
     </div>
   );
 }

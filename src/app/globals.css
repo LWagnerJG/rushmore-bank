@@ -62,7 +62,7 @@ body {
 }
 
 .btn-primary {
-  background: var(--coral);
+  background: var(--text);
   color: #fff;
   padding: 0.85rem 1.1rem;
 }
@@ -195,3 +195,13 @@ body {
     animation: none !important;
   }
 }
+
+/* Readable controls and safe insets on phones. */
+button:disabled { cursor: not-allowed; opacity: 0.5; }
+button:focus-visible, a:focus-visible, summary:focus-visible {
+  outline: 3px solid var(--text);
+  outline-offset: 4px;
+}
+input, select, textarea { min-width: 0; max-width: 100%; }
+summary { min-height: 44px; align-content: center; }
+main { padding-bottom: max(2rem, env(safe-area-inset-bottom)); }
