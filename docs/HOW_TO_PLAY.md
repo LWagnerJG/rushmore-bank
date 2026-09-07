@@ -1,42 +1,16 @@
-# How to Play — Quarry
+# How to Play — Beans
 
-**Draft four. Roll for more.**
+1. **Create / Join** — nickname + room code, link, or QR. Host starts at 2–10 players.
+2. **Topic** — vote the spun shortlist (or host custom).
+3. **Draft** — snake draft four answers right away. Browse Available suggestions, save a private My queue, or watch the Board. **Lock pick** on your turn.
+4. **Review / Vote** — skim rosters; vote for someone else’s (2 players: AI only).
+5. **Scores** — beans = 20 + AI award + 5× votes (votes skipped at 2 players).
+6. **Wager** — slider for how many beans to risk (you can risk all banked). Zero still plays.
+7. **Bank** — one roll, then pass around the table. Two safe rolls each. **Bank** locks your pot anytime. Waiting players can Bank early.
+8. **Next topic** or end — most banked beans wins.
 
-## Setup
+Optional **Party Mode** (off by default): light sip prompts after busts or wins. Pass anytime — no score effect.
 
-1. Open [https://roundacats.vercel.app](https://roundacats.vercel.app) on your phone.
-2. One person taps **Create Game**, others **Join** with the 4-character code (or open the shared link / scan QR).
-3. Enter a nickname. Host taps **Start** when 3–10 friends are in.
+## Add to Home Screen
 
-## Flow
-
-1. **Topics** — shortlist spins; vote your favorite (or host locks a custom topic).
-2. **Prep** — read the scope boundary; jot private ideas.
-3. **Draft** — snake draft. On your turn type a pick and tap **Lock In**. Use **My Ideas** while waiting.
-4. **Review** — glance at everyone’s Mount Rushmore.
-5. **Vote** — secretly pick one other player’s full roster. AI scores everyone too.
-6. **Scores** — Stones = 20 + AI award + 5× votes.
-7. **Wager** — risk some Stones into your personal pot (Keep All / Half New / All New).
-8. **Dice** — rotating personal 2d6. First two rolls are safe (seven pays +70). After that, seven busts *your* pot. Doubles double your pot. Tap **Pull Out** to bank.
-9. **Next Topic** or end — most banked Stones wins.
-
-## Party Mode
-
-Optional. Host can enable between topics. Winner sip / bust sip prompts — no score effect.
-
-## Add to Home Screen (Safari)
-
-1. Open the site in Safari.
-2. Tap the Share button.
-3. Tap **Add to Home Screen**.
-4. Confirm **Add**. Quarry opens full-screen with the dog icon.
-
-### Android Chrome
-
-Chrome menu → **Add to Home screen** / **Install app**.
-
-## Tips
-
-- Rejoin the same phone/browser to keep your seat (guest token).
-- Late joiners watch as spectators until the next game.
-- Host can Pause / Extend the draft clock and remove duplicate or invalid picks.
+Safari: Share → Add to Home Screen. Chrome: Menu → Install app.

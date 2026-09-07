@@ -1,14 +1,14 @@
-# Quarry
+# Beans
 
-**Draft four. Roll for more.** — mobile-first party game. Currency: **Stones**.
+**Draft four. Bank beans.** — mobile-first party game. Currency: **beans** (protocol fields still named `stones`).
 
-Play at [https://roundacats.vercel.app](https://roundacats.vercel.app).
+Production today: [https://roundacats.vercel.app](https://roundacats.vercel.app) (Quarry on `main`). This branch is a Fudge polish candidate.
 
 ## Stack
 
 - Next.js (App Router) + TypeScript + Tailwind CSS 4
-- PartyKit for durable realtime rooms + server alarms (deadlines survive host tab sleep)
-- Optional AI roster judging via Gemini (`GEMINI_API_KEY`) or OpenAI (`OPENAI_API_KEY`) at `/api/judge`; heuristic fallback if unset
+- PartyKit for durable realtime rooms + server alarms
+- Optional AI roster judging via Gemini (`GEMINI_API_KEY`) or OpenAI at `/api/judge`
 - three.js synchronized 3D dice
 
 ## Local development
@@ -24,9 +24,9 @@ npm run dev
 
 | Variable | Required | Description |
 |---|---|---|
-| `NEXT_PUBLIC_PARTYKIT_HOST` | No | Override PartyKit host (no protocol). Default production: `rushmore-bank.lwagnerjg.partykit.dev` |
-| `GEMINI_API_KEY` / `GOOGLE_GENERATIVE_AI_API_KEY` | No | Preferred AI judge (Gemini 2.0 Flash) |
-| `OPENAI_API_KEY` | No | Optional AI judge fallback if Gemini unset |
+| `NEXT_PUBLIC_PARTYKIT_HOST` | No | Override PartyKit host (no protocol) |
+| `GEMINI_API_KEY` / `GOOGLE_GENERATIVE_AI_API_KEY` | No | Preferred AI judge (Gemini 3.5 Flash) |
+| `OPENAI_API_KEY` | No | Optional AI judge fallback |
 | `JUDGE_SECRET` | No | Shared secret so only PartyKit can call paid `/api/judge` |
 
 ### Scripts
@@ -41,22 +41,13 @@ npm run dev
 
 ## How to play (short)
 
-1. Create Game / Join with a nickname. Share code, link, or QR.
-2. Spin topics → vote one. Snake draft 4 answers (**Lock In**). Private **My Ideas** while waiting.
-3. Host can remove duplicate/invalid → replacement turn.
-4. Vote for another’s roster; AI judges all. Everyone earns Stones.
-5. Wager into a personal pot. Rotating personal dice: first 2 rolls safe; then 7 busts that player only; doubles double pot. **Pull Out** banks.
-6. Most banked Stones wins.
+1. Create / Join with a nickname. Share code, link, or QR.
+2. Snake draft 4 answers (**Lock In**). Private **My Ideas** while waiting.
+3. Vote for another’s roster; AI judges all. Everyone earns beans.
+4. Slider: how many beans to risk. Then each player gets a personal **bank** turn (2 safe rolls, then risk). **Bank** locks the pot.
+5. Most banked beans wins.
 
-Full rules: [`docs/RULES.md`](docs/RULES.md). Build notes: [`/build-notes`](https://roundacats.vercel.app/build-notes).
-
-## Deploy
-
-1. `npm run deploy:party` — note PartyKit host.
-2. Vercel project **`roundacats`** (domain `roundacats.vercel.app`) auto-deploys from GitHub `LWagnerJG/rushmore-bank`.
-3. Set `NEXT_PUBLIC_PARTYKIT_HOST` if not using the baked default; set `GEMINI_API_KEY` (preferred) or `OPENAI_API_KEY` for AI.
-
-Dog mascot remains favicon / apple-touch / OG / PWA icons. In-app brand mark uses four stone tiles + **Quarry**.
+Full rules: [`docs/RULES.md`](docs/RULES.md).
 
 ## License
 

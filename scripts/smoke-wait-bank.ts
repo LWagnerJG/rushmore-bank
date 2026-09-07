@@ -77,8 +77,8 @@ async function main() {
     scope: "food",
     scopeBoundary: "edible",
   });
-  await a.wait(() => a.state?.phase === "PREP" || a.state?.phase === "DRAFT");
-  if (a.state?.phase === "PREP") a.send({ type: "advance" });
+  await a.wait(() => a.state?.phase === "DRAFT");
+  // Draft starts immediately after topic lock (no prep).
   await a.wait(() => a.state?.phase === "DRAFT");
 
   // Fast draft — 12 picks

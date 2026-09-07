@@ -22,6 +22,7 @@ export type PullOutKind = "current_roller" | "waiting_player";
 /**
  * Decide whether a Pull Out may proceed and which path to take.
  * Own committed roll blocks banking until settle.
+ * Zero pots may bank (sit out) — everyone re-enters each topic.
  */
 export function classifyPullOut(opts: {
   phase: string;
@@ -35,7 +36,6 @@ export function classifyPullOut(opts: {
   if (!opts.diceActiveIds.includes(opts.playerId)) {
     return { ok: false, reason: "Not active" };
   }
-  if (opts.pot <= 0) return { ok: false, reason: "Nothing to bank" };
 
   const isCurrent = opts.currentRollerId === opts.playerId;
 

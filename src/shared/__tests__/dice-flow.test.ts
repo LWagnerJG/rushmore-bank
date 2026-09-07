@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { applyDiceRoll } from "../engine/dice";
-import { RULES } from "../rules";
+import { classifyPullOut } from "../engine/banking";
+import { maxWager, applyWager } from "../engine/wager";
 
 /**
  * Pull Out vs Roll atomicity is enforced server-side by diceSubphase.
@@ -20,14 +21,21 @@ describe("pull out banking", () => {
     const protectedBal = 25;
     expect(protectedBal + o.potAfter).toBe(25);
   });
+
+  it("allows banking a zero pot (sit out)", () => {
+    const ok = classifyPullOut({
+      phase: "DICE",
+      diceSubphase: "READY",
+      playerId: "a",
+      currentRollerId: "a",
+      diceActiveIds: ["a", "b"],
+      pot: 0,
+    });
+    expect(ok.ok).toBe(true);
+  });
 });
 
-describe("settlement laps", () => {
-  it("requires min laps before soft-budget settlement", () => {
-    expect(RULES.diceMinLapsBeforeSettlement).toBe(3);
-    expect(RULES.diceSoftBudgetMs).toBe(3 * 60 * 1000);
-  });
-
+describe("round-robin seat advance", () => {
   it("rotating seats completes a lap when index wraps", () => {
     const n = 4;
     let seat = 3;
@@ -37,5 +45,14 @@ describe("settlement laps", () => {
     if (seat <= prev) laps += 1;
     expect(seat).toBe(0);
     expect(laps).toBe(1);
+  });
+});
+
+describe("full-balance wager", () => {
+  it("allows wagering all banked beans", () => {
+    expect(maxWager(40, 100)).toBe(140);
+    const locked = applyWager({ banked: 30, earned: 40, wager: 70 });
+    expect(locked.pot).toBe(70);
+    expect(locked.protected).toBe(0);
   });
 });

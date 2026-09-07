@@ -15,12 +15,14 @@ export function ScorePanel({
   const sorted = [...state.scores].sort((a, b) => b.earned - a.earned);
   return (
     <div className="space-y-4">
-      <h2 className="font-[family-name:var(--font-display)] text-xl font-extrabold">
-        Scores
-      </h2>
-      <p className="text-xs text-[var(--muted)]">
-        Earned = {RULES.scoreBase} + AI (0–40) + {RULES.stonesPerHumanVote}×votes
-      </p>
+      <header className="space-y-1">
+        <h2 className="font-[family-name:var(--font-display)] text-xl font-extrabold">
+          Beans earned
+        </h2>
+        <p className="text-sm text-[var(--muted)]">
+          Votes + AI judge · next up: wager
+        </p>
+      </header>
       {state.judgeNotice && (
         <p className="panel text-sm font-semibold text-[var(--coral)]">
           {state.judgeNotice}
@@ -32,35 +34,40 @@ export function ScorePanel({
           <div key={s.playerId} className="panel space-y-1">
             <div className="flex justify-between font-extrabold">
               <span>{p?.name}</span>
-              <span className="text-[var(--coral)]">+{s.earned}◆</span>
+              <span className="text-[var(--coral)]">
+                +{s.earned} {RULES.currencyName}
+              </span>
             </div>
             <p className="text-xs text-[var(--muted)]">
-              votes {s.votes} · AI {s.aiAward}
-              {s.aiFallback ? " · Judge unavailable · neutral award" : ""} · fit{" "}
-              {s.topicFit} / strength {s.pickStrength} / quality{" "}
-              {s.rosterQuality}
+              {s.votes} vote{s.votes === 1 ? "" : "s"} · AI {s.aiAward}
+              {s.aiFallback ? " · neutral" : ""}
             </p>
             <p className="text-sm">{s.explanation}</p>
           </div>
         );
       })}
       {you.isHost && (
-        <div className="flex gap-2">
+        <div className="space-y-2">
           <button
             type="button"
-            className="btn-primary flex-1"
+            className="btn-primary w-full text-lg"
             onClick={() => send({ type: "advance" })}
           >
             Continue to wager
           </button>
           <button
             type="button"
-            className="btn-secondary"
+            className="btn-secondary w-full"
             onClick={() => send({ type: "void_topic" })}
           >
-            Void topic
+            Void this topic
           </button>
         </div>
+      )}
+      {!you.isHost && (
+        <p className="text-center text-sm text-[var(--muted)]">
+          Waiting for host…
+        </p>
       )}
     </div>
   );

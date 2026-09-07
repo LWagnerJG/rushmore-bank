@@ -87,7 +87,7 @@ describe("pull out classification (waiting vs current)", () => {
     if (!r.ok) expect(r.reason).toMatch(/committed/i);
   });
 
-  it("rejects inactive / zero pot", () => {
+  it("rejects inactive; allows zero pot sit-out", () => {
     expect(
       classifyPullOut({
         ...base,
@@ -105,7 +105,7 @@ describe("pull out classification (waiting vs current)", () => {
         currentRollerId: "a",
         pot: 0,
       }).ok,
-    ).toBe(false);
+    ).toBe(true);
   });
 });
 
@@ -363,8 +363,8 @@ describe("session length: choices vs rounds", () => {
     expect(RULES.pickClockSeconds).toBe(30);
   });
 
-  it("soft dice budget requires min laps", () => {
-    expect(RULES.diceMinLapsBeforeSettlement).toBe(3);
-    expect(RULES.diceSoftBudgetMs).toBe(180_000);
+  it("dice is round-robin with two safe rolls", () => {
+    expect(RULES.safePersonalRolls).toBe(2);
+    expect(RULES.diceAnimMs).toBe(2400);
   });
 });

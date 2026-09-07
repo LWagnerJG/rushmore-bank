@@ -1,6 +1,6 @@
 /**
- * Quarry shared protocol — client + PartyKit server.
- * Currency = Stones. Display name = Quarry.
+ * Beans shared protocol — client + PartyKit server.
+ * UI currency = beans; protocol fields remain `stones` for compatibility.
  */
 
 import { RULES } from "./rules";
@@ -9,7 +9,6 @@ import type { TopicScope } from "./topics";
 export type Phase =
   | "LOBBY"
   | "TOPIC_SELECTION"
-  | "PREP"
   | "DRAFT"
   | "CORRECTION"
   | "REVIEW"
@@ -169,6 +168,11 @@ export interface RoomState {
   draftOrder: number[];
   picks: DraftPick[];
   takenNormalized: string[];
+  /** Shared suggestion pool for the current topic (not ranked) */
+  draftOptions: string[];
+  draftOptionsStatus: "idle" | "pending" | "ready" | "unavailable";
+  /** PRIVATE — in-flight suggestion fetch id */
+  draftOptionsJobId: string | null;
   pickDeadlineAt: number | null;
   pickPaused: boolean;
   pickPauseRemainingMs: number | null;
@@ -194,6 +198,7 @@ export interface RoomState {
   diceDecisionDeadlineAt: number | null;
   diceIdleDeadlineAt: number | null;
   diceRoundStartedAt: number | null;
+  /** How many full seat passes completed this dice phase (round-robin) */
   diceLapsCompleted: number;
   partyPrompt: PartyPrompt | null;
   ledger: LedgerEntry[];
@@ -234,6 +239,8 @@ export interface PublicRoomState {
   draftOrder: number[];
   picks: DraftPick[];
   takenNormalized: string[];
+  draftOptions: string[];
+  draftOptionsStatus: "idle" | "pending" | "ready" | "unavailable";
   pickDeadlineAt: number | null;
   pickPaused: boolean;
   pickPauseRemainingMs: number | null;
@@ -312,8 +319,6 @@ export function phaseLabel(phase: Phase): string {
       return "Lobby";
     case "TOPIC_SELECTION":
       return "Pick a topic";
-    case "PREP":
-      return "Prep your ideas";
     case "DRAFT":
       return "Draft";
     case "CORRECTION":
@@ -327,7 +332,7 @@ export function phaseLabel(phase: Phase): string {
     case "WAGER_SELECTION":
       return "Wager";
     case "DICE":
-      return "Dice";
+      return "Bank";
     case "ROUND_RESULTS":
       return "Round results";
     case "GAME_RESULTS":
@@ -386,6 +391,9 @@ export function emptyRoomState(code: string): RoomState {
     draftOrder: [],
     picks: [],
     takenNormalized: [],
+    draftOptions: [],
+    draftOptionsStatus: "idle",
+    draftOptionsJobId: null,
     pickDeadlineAt: null,
     pickPaused: false,
     pickPauseRemainingMs: null,

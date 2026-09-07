@@ -1,22 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
-import { RULES } from "@/shared/rules";
-import { maxWager, wagerFromPreset } from "@/shared/engine";
-
-function Countdown({ until }: { until: number | null }) {
-  const [left, setLeft] = useState(0);
-  useEffect(() => {
-    if (!until) return;
-    const tick = () => setLeft(Math.max(0, Math.ceil((until - Date.now()) / 1000)));
-    tick();
-    const t = setInterval(tick, 250);
-    return () => clearInterval(t);
-  }, [until]);
-  if (!until) return null;
-  return <span className="tabular-nums">{left}s</span>;
-}
+import { maxWager, wagerFromPreset } from "@/shared/engine/wager";
 
 export function WagerPanel({
   state,
@@ -29,91 +15,180 @@ export function WagerPanel({
   youId: string;
   send: (m: ClientMessage) => void;
 }) {
-  const E = state.earnedThisRound[youId] ?? 0;
-  const B = you.stones;
-  const max = maxWager(E, B);
+  const earned = state.earnedThisRound[youId] ?? 0;
+  const banked = you.stones;
+  const max = maxWager(earned, banked);
   const locked = state.wagers[youId];
-  const [custom, setCustom] = useState(String(Math.min(max, E)));
+  const defaultAmt = Math.min(max, wagerFromPreset("half_new", earned, banked));
+  const [amount, setAmount] = useState<number | null>(null);
+  const [left, setLeft] = useState<number | null>(null);
+  const [busy, setBusy] = useState(false);
+  const sliderId = useId();
+
+  const clamped =
+    amount == null
+      ? defaultAmt
+      : Math.min(max, Math.max(0, Math.floor(amount)));
+  const protectedBal = banked + earned - clamped;
+  const atRisk = clamped;
+
+  useEffect(() => {
+    const tick = () =>
+      setLeft(
+        state.wagerDeadlineAt
+          ? Math.max(0, Math.ceil((state.wagerDeadlineAt - Date.now()) / 1000))
+          : null,
+      );
+    tick();
+    const timer = setInterval(tick, 250);
+    return () => clearInterval(timer);
+  }, [state.wagerDeadlineAt]);
+
+  useEffect(() => {
+    if (!busy) return;
+    const timer = setTimeout(() => setBusy(false), 1200);
+    return () => clearTimeout(timer);
+  }, [busy]);
+
+  if (you.role !== "player") {
+    return (
+      <p className="panel">Everyone is choosing how many beans to risk.</p>
+    );
+  }
+
+  if (locked !== undefined) {
+    return (
+      <section className="panel space-y-2 text-center" aria-live="polite">
+        <h2 className="text-xl font-extrabold">
+          {locked === 0 ? "Beans locked safe." : "You’re in."}
+        </h2>
+        <p>
+          {locked === 0
+            ? "Sit this bank out."
+            : `${locked} beans ready for your bank turn.`}
+        </p>
+        <p className="text-sm text-[var(--muted)]">Waiting for the others…</p>
+      </section>
+    );
+  }
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between">
-        <h2 className="font-extrabold">Wager Stones</h2>
-        <Countdown until={state.wagerDeadlineAt} />
-      </div>
-      <div className="panel text-sm">
-        <p>
-          Earned this topic: <strong>{E}</strong>
-        </p>
-        <p>
-          Banked: <strong>{B}</strong> · max wager <strong>{max}</strong> (= E +
-          min({RULES.earlierWagerCap}, B))
-        </p>
-      </div>
-
-      {locked === undefined && you.role === "player" ? (
-        <div className="space-y-2">
-          <button
-            type="button"
-            className="btn-secondary w-full"
-            onClick={() =>
-              send({
-                type: "submit_wager",
-                amount: wagerFromPreset("keep_all", E, B),
-              })
-            }
-          >
-            Keep All (0)
-          </button>
-          <button
-            type="button"
-            className="btn-secondary w-full"
-            onClick={() =>
-              send({
-                type: "submit_wager",
-                amount: wagerFromPreset("half_new", E, B),
-              })
-            }
-          >
-            Half New ({wagerFromPreset("half_new", E, B)})
-          </button>
-          <button
-            type="button"
-            className="btn-secondary w-full"
-            onClick={() =>
-              send({
-                type: "submit_wager",
-                amount: wagerFromPreset("all_new", E, B),
-              })
-            }
-          >
-            All New ({wagerFromPreset("all_new", E, B)})
-          </button>
-          <div className="flex gap-2">
-            <input
-              className="field w-full"
-              type="number"
-              min={0}
-              max={max}
-              value={custom}
-              onChange={(e) => setCustom(e.target.value)}
-            />
-            <button
-              type="button"
-              className="btn-primary"
-              onClick={() =>
-                send({ type: "submit_wager", amount: Number(custom) || 0 })
-              }
-            >
-              Lock
-            </button>
-          </div>
+      <header className="space-y-1">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="font-[family-name:var(--font-display)] text-2xl font-extrabold">
+            Risk how many?
+          </h2>
+          {left !== null && (
+            <span className="text-sm font-bold tabular-nums text-[var(--muted)]">
+              {left}s
+            </span>
+          )}
         </div>
-      ) : (
-        <p className="panel font-bold">
-          Locked wager: {locked ?? "—"} ◆ — waiting for others…
+        <p className="text-sm text-[var(--muted)]">
+          You earned {earned}
+          {banked > 0 ? ` · ${banked} banked available` : ""} · zero still
+          plays (2 safe rolls)
         </p>
-      )}
+      </header>
+
+      <section
+        className="panel grid grid-cols-2 gap-3 text-center"
+        aria-live="polite"
+      >
+        <div className="rounded-xl bg-[rgba(167,215,194,0.35)] px-3 py-3">
+          <p className="text-xs font-bold uppercase text-[var(--muted)]">
+            Protected
+          </p>
+          <p className="text-3xl font-extrabold">{protectedBal}</p>
+          <p className="text-sm">beans</p>
+        </div>
+        <div className="rounded-xl bg-[rgba(231,111,78,0.18)] px-3 py-3">
+          <p className="text-xs font-bold uppercase text-[var(--muted)]">
+            At risk
+          </p>
+          <p className="text-3xl font-extrabold">{atRisk}</p>
+          <p className="text-sm">beans</p>
+        </div>
+      </section>
+
+      <section className="panel space-y-3">
+        <label htmlFor={sliderId} className="block text-sm font-bold">
+          Beans to risk · 0–{max}
+        </label>
+        <input
+          id={sliderId}
+          className="wager-slider w-full"
+          type="range"
+          min={0}
+          max={max}
+          step={1}
+          value={clamped}
+          onChange={(e) => setAmount(Number(e.target.value))}
+          aria-valuemin={0}
+          aria-valuemax={max}
+          aria-valuenow={clamped}
+          aria-valuetext={`${clamped} beans at risk, ${protectedBal} protected`}
+        />
+        <div className="flex justify-between text-xs font-bold text-[var(--muted)]">
+          <span>0</span>
+          <span className="text-base text-[var(--text)] tabular-nums">
+            {clamped}
+          </span>
+          <span>{max}</span>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {(
+            [
+              { label: "Keep all", value: 0 },
+              {
+                label: "Half new",
+                value: wagerFromPreset("half_new", earned, banked),
+              },
+              {
+                label: "All new",
+                value: wagerFromPreset("all_new", earned, banked),
+              },
+            ] as const
+          ).map((preset) => (
+            <button
+              key={preset.label}
+              type="button"
+              className={
+                "btn-secondary !min-h-12 !px-2 text-sm " +
+                (clamped === preset.value ? "ring-2 ring-[var(--text)]" : "")
+              }
+              aria-pressed={clamped === preset.value}
+              onClick={() => setAmount(preset.value)}
+            >
+              <span className="block">{preset.label}</span>
+              <span className="mt-0.5 block text-lg font-extrabold">
+                {preset.value}
+              </span>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <button
+        type="button"
+        className="btn-danger w-full text-lg"
+        disabled={busy}
+        onClick={() => {
+          if (busy) return;
+          setBusy(true);
+          send({ type: "submit_wager", amount: clamped });
+        }}
+      >
+        {busy
+          ? "Locking…"
+          : clamped === 0
+            ? "Keep all beans safe"
+            : `Lock in ${clamped} at risk`}
+      </button>
+      <p className="text-center text-xs text-[var(--muted)]">
+        No choice in time? Everything stays protected.
+      </p>
     </div>
   );
 }
