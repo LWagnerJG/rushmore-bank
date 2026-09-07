@@ -1,17 +1,10 @@
+/** Deployed PartyKit host — used when NEXT_PUBLIC_PARTYKIT_HOST is unset. */
+export const DEFAULT_PARTYKIT_HOST =
+  "rushmore-bank.lwagnerjg.partykit.dev";
+
 /** PartyKit host for browser clients. */
 export function getPartyHost(): string {
-  if (process.env.NEXT_PUBLIC_PARTYKIT_HOST) {
-    return process.env.NEXT_PUBLIC_PARTYKIT_HOST;
-  }
-  if (typeof window !== "undefined") {
-    const { hostname } = window.location;
-    if (hostname === "localhost" || hostname === "127.0.0.1") {
-      return "127.0.0.1:1999";
-    }
-    // Production fallback guess — prefer setting NEXT_PUBLIC_PARTYKIT_HOST
-    return hostname;
-  }
-  return "127.0.0.1:1999";
+  return process.env.NEXT_PUBLIC_PARTYKIT_HOST || DEFAULT_PARTYKIT_HOST;
 }
 
 export function getStablePlayerId(roomCode: string): string {
