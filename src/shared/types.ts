@@ -1,6 +1,7 @@
 /**
- * Quarry shared protocol — client + PartyKit server.
- * Currency = Stones. Display name = Quarry.
+ * Shared protocol — client + PartyKit server.
+ * Display name / UI currency = Beans. Internal field names still use `stones`
+ * for compatibility with persisted room state and storage keys.
  */
 
 import { RULES } from "./rules";

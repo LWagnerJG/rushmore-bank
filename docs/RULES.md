@@ -1,13 +1,13 @@
-# Quarry — confirmed rules
+# Beans — confirmed rules
 
-Display name: **Quarry**. Tagline: *Draft four. Roll for more.* Currency: **Stones**.  
+Display name: **Beans**. Tagline: *Draft four. Roll for more.* Currency: **beans**.  
 Production: https://roundacats.vercel.app
 
 Tunable defaults live in `src/shared/rules.ts` (`RULES`). Do not quietly change confirmed behavior.
 
 ## Players
 
-- 3–10 players (max 10). Individual competition; a “team” is one’s 4 picks.
+- 2–10 players (max 10). Individual competition; a “team” is one’s 4 picks.
 - Nickname only. Rejoin via secure guest token (stable per-device room id), not nickname alone.
 - Roster locks at Start; late joiners are spectators until the next game.
 - Optional TV/spectator view (no seat).
@@ -23,7 +23,7 @@ LOBBY → TOPIC_SELECTION → PREP → DRAFT (+ CORRECTION) → REVIEW
 
 ## Topics
 
-- Random shortlist: **3** choices if 3–5 players, **2** if 6–10 (host override allowed).
+- Random shortlist: **3** choices if 2–5 players, **2** if 6–10 (host override allowed).
 - Scopes: sports / food / everyday / entertainment + host custom.
 - ≥120 curated topics with scope tags (`src/shared/topics.ts`).
 - Vote 20s or all-in; ties → server random among tied.
@@ -51,7 +51,7 @@ earned = 20 + ai_award(0–40) + 5 × human_votes
 - AI: one bounded request for all rosters; `topic_fit` 0–10, `pick_strength` 0–20, `roster_quality` 0–10; sum = `ai_award`; explanation ≤45 words.
 - Prompt version: `quarry-judge-v1` (locked in `RULES.aiPromptVersion`).
 - Fallback if AI fails: `20 + 20 + 5×votes`, labeled “Judge unavailable…”.
-- Everyone earns Stones (even 0 votes). Start balance **0**.
+- Everyone earns beans (even 0 votes). Start balance **0**.
 
 ## Wagers
 
@@ -80,7 +80,7 @@ pot = W
 ### Worked path (tests)
 
 Protected **95**. Pot path: `105 → 175` (safe seven) → `187` (safe 6+6) → `374` (dangerous doubles).  
-Banking that pot yields **95 + 374 = 469** total Stones — **469 is the banked total, not the next dice pot**.  
+Banking that pot yields **95 + 374 = 469** total beans — **469 is the banked total, not the next dice pot**.  
 A following non-seven face-sum on the pot (without banking) adds normally (e.g. 5+6 → 385).
 
 ## Party Mode

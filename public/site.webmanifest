@@ -1,7 +1,7 @@
 {
-  "name": "Quarry",
-  "short_name": "Quarry",
-  "description": "Draft four. Roll for more. Party game with Stones and dice.",
+  "name": "Beans",
+  "short_name": "Beans",
+  "description": "Draft four. Bank beans. A party game for 2–10 friends.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#F5F0E7",
@@ -19,5 +19,6 @@
       "type": "image/png",
       "purpose": "any"
     }
-  ]
+  ],
+  "id": "/"
 }

@@ -1,14 +1,17 @@
-# Quarry
+# Beans (TEST branch)
 
-**Draft four. Roll for more.** — mobile-first party game. Currency: **Stones**.
+**Draft four. Roll for more.** — mobile-first party game. Currency: **beans**.
 
-Play at [https://roundacats.vercel.app](https://roundacats.vercel.app).
+> **TEST ONLY** — compare against production Quarry at
+> [https://roundacats.vercel.app](https://roundacats.vercel.app).
+> Do not merge this branch to `main` until Luke picks. See
+> [`docs/BEANS_TEST_RELEASE.md`](docs/BEANS_TEST_RELEASE.md).
 
 ## Stack
 
 - Next.js (App Router) + TypeScript + Tailwind CSS 4
 - PartyKit for durable realtime rooms + server alarms (deadlines survive host tab sleep)
-- Optional AI roster judging via Gemini (`GEMINI_API_KEY`) or OpenAI (`OPENAI_API_KEY`) at `/api/judge`; heuristic fallback if unset
+- Optional AI roster judging via Gemini `gemini-3.5-flash` (`GEMINI_API_KEY`) or OpenAI (`OPENAI_API_KEY`) at `/api/judge`; heuristic fallback if unset
 - three.js synchronized 3D dice
 
 ## Local development
@@ -24,10 +27,11 @@ npm run dev
 
 | Variable | Required | Description |
 |---|---|---|
-| `NEXT_PUBLIC_PARTYKIT_HOST` | No | Override PartyKit host (no protocol). Default production: `rushmore-bank.lwagnerjg.partykit.dev` |
-| `GEMINI_API_KEY` / `GOOGLE_GENERATIVE_AI_API_KEY` | No | Preferred AI judge (Gemini 2.0 Flash) |
+| `NEXT_PUBLIC_PARTYKIT_HOST` | Yes for test/preview | PartyKit host (no protocol). Test/preview refuse production host fallback. |
+| `NEXT_PUBLIC_APP_ENV` | For test deploys | Set `test` (or `preview`) on the Beans test frontend |
+| `GEMINI_API_KEY` / `GOOGLE_GENERATIVE_AI_API_KEY` | No | Preferred AI judge (`gemini-3.5-flash`) |
 | `OPENAI_API_KEY` | No | Optional AI judge fallback if Gemini unset |
-| `JUDGE_SECRET` | No | Shared secret so only PartyKit can call paid `/api/judge` |
+| `JUDGE_SECRET` | Yes when a paid key is set | Shared secret so only PartyKit can call paid `/api/judge` |
 
 ### Scripts
 
@@ -41,22 +45,24 @@ npm run dev
 
 ## How to play (short)
 
-1. Create Game / Join with a nickname. Share code, link, or QR.
+1. Create Game / Join with a nickname. Share code, link, or QR. **2–10** players.
 2. Spin topics → vote one. Snake draft 4 answers (**Lock In**). Private **My Ideas** while waiting.
 3. Host can remove duplicate/invalid → replacement turn.
-4. Vote for another’s roster; AI judges all. Everyone earns Stones.
-5. Wager into a personal pot. Rotating personal dice: first 2 rolls safe; then 7 busts that player only; doubles double pot. **Pull Out** banks.
-6. Most banked Stones wins.
+4. Vote for another’s roster; AI judges all. Everyone earns beans.
+5. Wager into a personal pot. Rotating personal dice: first 2 rolls safe; then 7 busts that player only; doubles double pot. **Bank beans** / Pull Out banks.
+6. Most banked beans wins.
 
-Full rules: [`docs/RULES.md`](docs/RULES.md). Build notes: [`/build-notes`](https://roundacats.vercel.app/build-notes).
+Internal protocol still uses `stones` field names for compatibility; UI says beans.
 
-## Deploy
+Full rules: [`docs/RULES.md`](docs/RULES.md). Build notes: `/build-notes` on the deployed test URL.
 
-1. `npm run deploy:party` — note PartyKit host.
-2. Vercel project **`roundacats`** (domain `roundacats.vercel.app`) auto-deploys from GitHub `LWagnerJG/rushmore-bank`.
-3. Set `NEXT_PUBLIC_PARTYKIT_HOST` if not using the baked default; set `GEMINI_API_KEY` (preferred) or `OPENAI_API_KEY` for AI.
+## Deploy (test only)
 
-Dog mascot remains favicon / apple-touch / OG / PWA icons. In-app brand mark uses four stone tiles + **Quarry**.
+1. Deploy a **separate** PartyKit project via `partykit.test.json` — note that host.
+2. Point a separate Vercel project (requested alias `roundacats-test.vercel.app`) at this branch.
+3. Set `NEXT_PUBLIC_APP_ENV=test`, `NEXT_PUBLIC_PARTYKIT_HOST=<test-host>`, matching `JUDGE_SECRET` / `JUDGE_URL`, plus `GEMINI_API_KEY`.
+
+Do **not** deploy this branch to production alias `roundacats.vercel.app`.
 
 ## License
 

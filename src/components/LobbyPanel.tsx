@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
-import { RULES } from "@/shared/rules";
+import { topicRoundsForPlayerCount, RULES } from "@/shared/rules";
 
 export function LobbyPanel({
   state,
@@ -15,6 +15,7 @@ export function LobbyPanel({
   send: (m: ClientMessage) => void;
 }) {
   const [copied, setCopied] = useState(false);
+  const [shareError, setShareError] = useState("");
   const url =
     typeof window !== "undefined"
       ? `${window.location.origin}/room/${state.code}`
@@ -28,17 +29,18 @@ export function LobbyPanel({
     players.length <= RULES.maxPlayers;
 
   const share = async () => {
+    setShareError("");
     try {
       if (navigator.share) {
-        await navigator.share({ title: "Quarry", url, text: `Join Quarry: ${state.code}` });
+        await navigator.share({ title: "Beans", url, text: `Join Beans: ${state.code}` });
       } else {
         await navigator.clipboard.writeText(url);
         setCopied(true);
         setTimeout(() => setCopied(false), 1500);
       }
-    } catch {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") return;
+      setShareError("Could not share the link. Friends can use the room code above.");
     }
   };
 
@@ -61,16 +63,17 @@ export function LobbyPanel({
         </div>
         <div className="flex gap-2">
           <button type="button" className="btn-secondary flex-1" onClick={share}>
-            {copied ? "Copied!" : "Copy link"}
+            {copied ? "Copied!" : "Invite friends"}
           </button>
           <button
             type="button"
             className="btn-secondary flex-1"
-            onClick={() => navigator.clipboard.writeText(state.code)}
+            onClick={() => { void navigator.clipboard?.writeText(state.code).catch(() => setShareError("Read the room code above to your friends.")); }}
           >
             Copy code
           </button>
         </div>
+        {shareError && <p className="text-sm" role="status">{shareError}</p>}
       </section>
 
       <section className="panel space-y-2">
@@ -85,7 +88,7 @@ export function LobbyPanel({
                 {p.name}
                 {!p.connected && " (away)"}
               </span>
-              <span className="text-[var(--muted)]">{p.stones}◆</span>
+              <span className="text-[var(--muted)]">{p.stones} beans</span>
             </li>
           ))}
         </ul>
@@ -98,43 +101,8 @@ export function LobbyPanel({
 
       {you.isHost && (
         <section className="panel space-y-3">
-          <h2 className="font-extrabold">Host settings</h2>
-          <label className="flex items-center justify-between text-sm font-semibold">
-            Topic choices
-            <select
-              className="field !min-h-0 !py-2"
-              value={topicOverrideLabel}
-              onChange={(e) => {
-                const v = e.target.value;
-                send({
-                  type: "update_settings",
-                  settings: {
-                    topicCountOverride: v === "Auto" ? null : Number(v),
-                  },
-                });
-              }}
-            >
-              <option>Auto</option>
-              <option>2</option>
-              <option>3</option>
-            </select>
-          </label>
-          <label className="flex items-center justify-between text-sm font-semibold">
-            Party Mode
-            <input
-              type="checkbox"
-              checked={state.settings.partyMode}
-              onChange={(e) =>
-                send({
-                  type: "update_settings",
-                  settings: { partyMode: e.target.checked },
-                })
-              }
-            />
-          </label>
-          <p className="text-xs text-[var(--muted)]">
-            Party Mode is off by default. Optional sips — no score effect.
-          </p>
+          <h2 className="font-extrabold">Ready?</h2>
+          <p className="text-sm text-[var(--muted)]">{topicRoundsForPlayerCount(players.length)} rounds · 4 picks each</p>
           <button
             type="button"
             className="btn-primary w-full"
@@ -143,6 +111,47 @@ export function LobbyPanel({
           >
             Start game
           </button>
+          <details>
+            <summary className="cursor-pointer text-sm font-bold">More settings</summary>
+            <div className="mt-3 space-y-3">
+              <label className="flex items-center justify-between text-sm font-semibold">
+                Topic choices
+                <select
+                  className="field !min-h-0 !py-2"
+                  value={topicOverrideLabel}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    send({
+                      type: "update_settings",
+                      settings: {
+                        topicCountOverride: v === "Auto" ? null : Number(v),
+                      },
+                    });
+                  }}
+                >
+                  <option>Auto</option>
+                  <option>2</option>
+                  <option>3</option>
+                </select>
+              </label>
+              <label className="flex items-center justify-between text-sm font-semibold">
+                Party Mode
+                <input
+                  type="checkbox"
+                  checked={state.settings.partyMode}
+                  onChange={(e) =>
+                    send({
+                      type: "update_settings",
+                      settings: { partyMode: e.target.checked },
+                    })
+                  }
+                />
+              </label>
+              <p className="text-xs text-[var(--muted)]">
+                Optional sips — no score effect.
+              </p>
+            </div>
+          </details>
           {!canStart && (
             <p className="text-xs text-[var(--muted)]">
               Need {RULES.minPlayers}–{RULES.maxPlayers} players.

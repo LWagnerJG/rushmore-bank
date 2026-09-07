@@ -66,7 +66,7 @@ export function DicePanel({
         : `${roller?.name ?? "Player"} unlocks soon`;
     }
     if (state.diceSubphase === "READY") {
-      return myTurn ? "Your turn — Roll or Pull Out" : "You’re waiting — you can still Pull Out";
+      return myTurn ? "Your turn. Roll or bank your beans." : active ? "You can bank your beans while you wait." : "Watch the next throw.";
     }
     return "Watching the table";
   })();
@@ -85,7 +85,7 @@ export function DicePanel({
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div className="rounded-xl bg-[rgba(167,215,194,0.35)] px-3 py-2">
             <p className="text-xs font-bold uppercase text-[var(--muted)]">
-              Protected
+              Safe beans
             </p>
             <p className="font-extrabold">
               {protectedBal} {RULES.currencyName}
@@ -93,7 +93,7 @@ export function DicePanel({
           </div>
           <div className="rounded-xl bg-[rgba(231,111,78,0.18)] px-3 py-2">
             <p className="text-xs font-bold uppercase text-[var(--muted)]">
-              Pot at risk
+              Dice pot
             </p>
             <p className="font-extrabold">
               {pot} {RULES.currencyName}
@@ -101,8 +101,7 @@ export function DicePanel({
           </div>
         </div>
         <p className="text-sm text-[var(--muted)]">
-          Personal rolls: {personal} (
-          {personal < RULES.safePersonalRolls ? "safe zone" : "danger zone"})
+          {active ? (personal < RULES.safePersonalRolls ? String(RULES.safePersonalRolls - personal) + " safe rolls left. You cannot bust yet." : "Your next roll: 7 busts, doubles double your pot.") : "Your dice round is over."}
         </p>
         {state.diceSubphase === "COOLDOWN" && (
           <p className="text-sm font-bold text-[var(--coral)]">
@@ -147,7 +146,7 @@ export function DicePanel({
               setTimeout(() => setPullBusy(false), 800);
             }}
           >
-            Pull Out · {pot} {RULES.currencyName}
+            Bank {pot} {RULES.currencyName}
           </button>
           {myTurn && (
             <button
@@ -166,8 +165,7 @@ export function DicePanel({
           )}
           {!myTurn && (
             <p className="text-center text-xs text-[var(--muted)]">
-              Waiting for {roller?.name ?? "roller"} — your pot is still at risk
-              until you Pull Out.
+              Waiting for {roller?.name ?? "roller"}. Only your own rolls affect your pot.
             </p>
           )}
         </div>
@@ -175,7 +173,7 @@ export function DicePanel({
 
       {!active && you.role === "player" && (
         <p className="panel text-sm font-semibold">
-          You’re banked or busted this dice round — watch the others.
+          Your dice round is over. You have {you.stones} beans safe.
         </p>
       )}
 
@@ -192,7 +190,7 @@ export function DicePanel({
                 {pid === youId ? " (you)" : ""}
               </span>
               <span>
-                {state.pots[pid] ?? 0} ◆ · roll #
+                {state.pots[pid] ?? 0}  beans · roll #
                 {state.personalRollCounts[pid] ?? 0}
               </span>
             </div>

@@ -5,105 +5,60 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { normalizeRoomCode, randomRoomCode } from "@/shared/types";
 import { RULES } from "@/shared/rules";
-
-function BrandMark() {
-  return (
-    <div className="flex items-center gap-2" aria-label="Quarry">
-      <div className="flex gap-1">
-        {[1, 2, 3, 4].map((n) => (
-          <span key={n} className="stone-tile">
-            {n}
-          </span>
-        ))}
-      </div>
-      <span className="font-[family-name:var(--font-display)] text-2xl font-extrabold tracking-tight brand-shimmer">
-        {RULES.displayName}
-      </span>
-    </div>
-  );
-}
+import { BrandMark } from "@/components/BrandMark";
 
 export default function HomePage() {
   const router = useRouter();
+  const [mode, setMode] = useState<"create" | "join">("create");
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
-  const [joinError, setJoinError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  function create() {
-    const room = randomRoomCode();
-    const q = name.trim() ? `?name=${encodeURIComponent(name.trim())}` : "";
-    router.push(`/room/${room}${q}`);
-  }
-
-  function join() {
-    const room = normalizeRoomCode(code);
-    if (room.length < 4) {
-      setJoinError("Enter the 4-character room code");
-      return;
-    }
-    setJoinError(null);
-    const q = name.trim() ? `?name=${encodeURIComponent(name.trim())}` : "";
-    router.push(`/room/${room}${q}`);
+  function enter() {
+    if (busy) return;
+    if (!name.trim()) { setError("What should we call you?"); return; }
+    const room = mode === "create" ? randomRoomCode() : normalizeRoomCode(code);
+    if (room.length !== 4) { setError("Enter the 4-character room code."); return; }
+    setError(null);
+    setBusy(true);
+    router.push("/room/" + room + "?name=" + encodeURIComponent(name.trim()));
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col px-4 pb-10 pt-8">
-      <div className="animate-rise flex flex-1 flex-col justify-center gap-8">
-        <header className="space-y-3 text-center">
-          <div className="flex justify-center">
-            <BrandMark />
-          </div>
-          <p className="text-lg font-semibold text-[var(--muted)]">
-            {RULES.tagline}
-          </p>
-          <p className="text-sm text-[var(--muted)]">
-            3–10 friends. Phones as controllers. Currency:{" "}
-            <strong>Stones</strong>.
-          </p>
-        </header>
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-7 px-5 py-10">
+      <header className="space-y-4 text-center">
+        <BrandMark large />
+        <h1 className="text-xl font-extrabold">{RULES.tagline}</h1>
+        <p className="mx-auto max-w-xs text-[var(--muted)]">
+          Draft four. Bank beans. Roll for more.
+        </p>
+        <p className="text-sm font-bold">2–10 friends · one phone each</p>
+      </header>
 
-        <section className="panel space-y-3">
-          <label className="block text-sm font-bold">Nickname</label>
-          <input
-            className="field w-full"
-            placeholder="Your name"
-            value={name}
-            maxLength={18}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <button type="button" className="btn-primary w-full" onClick={create}>
-            Create Game
-          </button>
-          <div className="flex gap-2">
-            <input
-              className="field w-full uppercase tracking-[0.2em]"
-              placeholder="CODE"
-              value={code}
-              maxLength={4}
-              onChange={(e) => setCode(e.target.value.toUpperCase())}
-              onKeyDown={(e) => e.key === "Enter" && join()}
-            />
-            <button type="button" className="btn-secondary shrink-0 px-5" onClick={join}>
-              Join
-            </button>
+      <section className="panel space-y-5" aria-label="Play Beans">
+        <div className="grid grid-cols-2 gap-2" aria-label="How are you joining?">
+          <button type="button" className={mode === "create" ? "btn-primary" : "btn-secondary"} aria-pressed={mode === "create"} onClick={() => { setMode("create"); setError(null); }}>New game</button>
+          <button type="button" className={mode === "join" ? "btn-primary" : "btn-secondary"} aria-pressed={mode === "join"} onClick={() => { setMode("join"); setError(null); }}>Join friends</button>
+        </div>
+        <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); enter(); }}>
+          <div className="space-y-2">
+            <label htmlFor="player-name" className="block text-sm font-extrabold">Your name</label>
+            <input id="player-name" name="nickname" className="field w-full" autoComplete="nickname" placeholder="Nickname" value={name} maxLength={18} onChange={(e) => setName(e.target.value)} aria-describedby={error ? "entry-error" : undefined} />
           </div>
-          {joinError && (
-            <p className="text-sm font-semibold text-[var(--coral)]">{joinError}</p>
-          )}
-        </section>
+          {mode === "join" && <div className="space-y-2">
+            <label htmlFor="room-code" className="block text-sm font-extrabold">Room code</label>
+            <input id="room-code" className="field w-full uppercase tracking-[0.2em]" autoCapitalize="characters" autoComplete="off" spellCheck={false} placeholder="ABCD" value={code} maxLength={4} onChange={(e) => setCode(e.target.value.toUpperCase())} />
+          </div>}
+          {error && <p id="entry-error" className="text-sm font-bold text-[var(--coral)]" role="alert">{error}</p>}
+          <button type="submit" className="btn-danger w-full text-lg" disabled={busy}>{busy ? "Opening…" : mode === "create" ? "Make a room" : "Join room"}</button>
+        </form>
+      </section>
 
-        <nav className="flex flex-wrap justify-center gap-4 text-sm font-semibold">
-          <Link className="text-[var(--coral)] underline-offset-2 hover:underline" href="/how-to-play">
-            How to Play
-          </Link>
-          <Link className="text-[var(--coral)] underline-offset-2 hover:underline" href="/how-to-play#homescreen">
-            Home Screen help
-          </Link>
-          <Link className="text-[var(--muted)] underline-offset-2 hover:underline" href="/build-notes">
-            Build notes
-          </Link>
-        </nav>
-      </div>
+      <nav className="flex justify-center gap-6 text-sm font-bold">
+        <Link href="/how-to-play" className="underline underline-offset-4">How to play</Link>
+        <Link href="/how-to-play#homescreen" className="underline underline-offset-4">Add to home screen</Link>
+      </nav>
     </main>
   );
 }

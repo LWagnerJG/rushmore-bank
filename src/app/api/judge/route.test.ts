@@ -16,7 +16,7 @@ function partyRequest(body: unknown = sampleBody): NextRequest {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      "x-quarry-judge": "partykit",
+      authorization: "Bearer test-judge-secret",
     },
     body: JSON.stringify(body),
   });
@@ -41,6 +41,10 @@ describe("/api/judge Gemini preference", () => {
     vi.unstubAllGlobals();
   });
 
+  function withSecret() {
+    process.env.JUDGE_SECRET = "test-judge-secret";
+  }
+
   it("returns neutral fallback when no AI keys are set", async () => {
     const { POST } = await import("./route");
     const res = await POST(partyRequest());
@@ -55,6 +59,7 @@ describe("/api/judge Gemini preference", () => {
   });
 
   it("calls Gemini when GEMINI_API_KEY is set (even if OpenAI is also set)", async () => {
+    withSecret();
     process.env.GEMINI_API_KEY = "test-gemini";
     process.env.OPENAI_API_KEY = "test-openai";
 
@@ -108,6 +113,7 @@ describe("/api/judge Gemini preference", () => {
   });
 
   it("uses OpenAI only when Gemini keys are absent", async () => {
+    withSecret();
     process.env.OPENAI_API_KEY = "test-openai";
 
     fetchMock.mockResolvedValue(
@@ -152,6 +158,7 @@ describe("/api/judge Gemini preference", () => {
   });
 
   it("falls back uniformly on Gemini HTTP failure", async () => {
+    withSecret();
     process.env.GEMINI_API_KEY = "test-gemini";
     fetchMock.mockResolvedValue(new Response("nope", { status: 503 }));
 
@@ -166,6 +173,7 @@ describe("/api/judge Gemini preference", () => {
   });
 
   it("accepts GOOGLE_GENERATIVE_AI_API_KEY as Gemini alias", async () => {
+    withSecret();
     process.env.GOOGLE_GENERATIVE_AI_API_KEY = "test-google";
     fetchMock.mockResolvedValue(
       new Response(
@@ -210,6 +218,22 @@ describe("/api/judge Gemini preference", () => {
     expect(String(fetchMock.mock.calls[0][0])).toContain(
       "generativelanguage.googleapis.com",
     );
+  });
+
+  it("denies spoofed party headers when a paid key is set and JUDGE_SECRET is unset", async () => {
+    process.env.GEMINI_API_KEY = "test-gemini";
+    const { POST } = await import("./route");
+    const req = new NextRequest("http://localhost/api/judge", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-quarry-judge": "partykit",
+      },
+      body: JSON.stringify(sampleBody),
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(401);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("denies anonymous callers when a paid key is set and JUDGE_SECRET is unset", async () => {
