@@ -53,3 +53,7 @@ Room `SMK3` measured ~19s for one compressed topic (host skip prep/review; pull-
 
 - With key: OpenAI `gpt-4o-mini` structured judgments via `/api/judge`
 - Without key (this environment): fallback award 20 + label — stated plainly
+
+## Per-tab guest IDs
+
+Active guest player ids are stored in `sessionStorage` (`quarry:pid:session:${roomCode}`), so two tabs in the same browser join as distinct players instead of reconnecting as one. `localStorage` (`quarry:pid:last:${roomCode}`) only remembers the last id for an explicit Rejoin path — new tabs do not auto-reuse it.

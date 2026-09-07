@@ -6,23 +6,55 @@ export function getPartyHost(): string {
   return process.env.NEXT_PUBLIC_PARTYKIT_HOST || DEFAULT_PARTYKIT_HOST;
 }
 
-/** Secure guest token per room — not nickname-based. */
+function newGuestId(): string {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `p-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function sessionPidKey(roomCode: string): string {
+  return `quarry:pid:session:${roomCode}`;
+}
+
+function lastPidKey(roomCode: string): string {
+  return `quarry:pid:last:${roomCode}`;
+}
+
+/**
+ * Per-tab guest id for this room. Uses sessionStorage so a second browser tab
+ * gets a distinct id (localStorage would make handleJoin treat it as reconnect).
+ * Also records the id in localStorage for explicit Rejoin only — never auto-reuse
+ * a prior tab's localStorage id when opening a new tab.
+ */
 export function getStablePlayerId(roomCode: string): string {
   if (typeof window === "undefined") return "ssr";
-  const key = `quarry:pid:${roomCode}`;
-  // migrate old key if present
-  const legacy = window.localStorage.getItem(`rushmore-bank:pid:${roomCode}`);
-  const existing = window.localStorage.getItem(key) ?? legacy;
+  const sessionKey = sessionPidKey(roomCode);
+  const existing = window.sessionStorage.getItem(sessionKey);
   if (existing) {
-    window.localStorage.setItem(key, existing);
+    window.localStorage.setItem(lastPidKey(roomCode), existing);
     return existing;
   }
-  const id =
-    typeof crypto !== "undefined" && "randomUUID" in crypto
-      ? crypto.randomUUID()
-      : `p-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-  window.localStorage.setItem(key, id);
+  const id = newGuestId();
+  window.sessionStorage.setItem(sessionKey, id);
+  window.localStorage.setItem(lastPidKey(roomCode), id);
   return id;
+}
+
+/** Last guest id used in this room (any tab) — for explicit Rejoin UI only. */
+export function getLastPlayerIdForRejoin(roomCode: string): string | null {
+  if (typeof window === "undefined") return null;
+  return (
+    window.localStorage.getItem(lastPidKey(roomCode)) ??
+    window.localStorage.getItem(`quarry:pid:${roomCode}`) ??
+    window.localStorage.getItem(`rushmore-bank:pid:${roomCode}`)
+  );
+}
+
+/** Adopt a prior guest id into this tab's session (explicit Rejoin). */
+export function adoptPlayerIdForRejoin(roomCode: string, id: string) {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.setItem(sessionPidKey(roomCode), id);
+  window.localStorage.setItem(lastPidKey(roomCode), id);
 }
 
 export function rememberDisplayName(name: string) {
