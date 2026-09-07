@@ -8,7 +8,7 @@ Play at [https://roundacats.vercel.app](https://roundacats.vercel.app).
 
 - Next.js (App Router) + TypeScript + Tailwind CSS 4
 - PartyKit for durable realtime rooms + server alarms (deadlines survive host tab sleep)
-- Optional `OPENAI_API_KEY` for AI roster judging (`/api/judge`); heuristic fallback if unset
+- Optional AI roster judging via Gemini (`GEMINI_API_KEY`) or OpenAI (`OPENAI_API_KEY`) at `/api/judge`; heuristic fallback if unset
 - three.js synchronized 3D dice
 
 ## Local development
@@ -25,7 +25,9 @@ npm run dev
 | Variable | Required | Description |
 |---|---|---|
 | `NEXT_PUBLIC_PARTYKIT_HOST` | No | Override PartyKit host (no protocol). Default production: `rushmore-bank.lwagnerjg.partykit.dev` |
-| `OPENAI_API_KEY` | No | AI judge; fallback scoring if missing |
+| `GEMINI_API_KEY` / `GOOGLE_GENERATIVE_AI_API_KEY` | No | Preferred AI judge (Gemini 2.0 Flash) |
+| `OPENAI_API_KEY` | No | Optional AI judge fallback if Gemini unset |
+| `JUDGE_SECRET` | No | Shared secret so only PartyKit can call paid `/api/judge` |
 
 ### Scripts
 
@@ -52,7 +54,7 @@ Full rules: [`docs/RULES.md`](docs/RULES.md). Build notes: [`/build-notes`](http
 
 1. `npm run deploy:party` — note PartyKit host.
 2. Vercel project **`roundacats`** (domain `roundacats.vercel.app`) auto-deploys from GitHub `LWagnerJG/rushmore-bank`.
-3. Set `NEXT_PUBLIC_PARTYKIT_HOST` if not using the baked default; set `OPENAI_API_KEY` for AI.
+3. Set `NEXT_PUBLIC_PARTYKIT_HOST` if not using the baked default; set `GEMINI_API_KEY` (preferred) or `OPENAI_API_KEY` for AI.
 
 Dog mascot remains favicon / apple-touch / OG / PWA icons. In-app brand mark uses four stone tiles + **Quarry**.
 
