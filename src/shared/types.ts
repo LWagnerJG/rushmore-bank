@@ -133,7 +133,10 @@ export interface PartyPrompt {
 }
 
 export interface HostSettings {
-  /** Override shortlist size; null = auto from player count */
+  /**
+   * Legacy field — ignored. Shortlist is always `RULES.topicShortlistSize` (4).
+   * Kept so older stored rooms still deserialize.
+   */
   topicCountOverride: number | null;
   /** Preferred scope mix weights — empty = all */
   scopeMix: TopicScope[];

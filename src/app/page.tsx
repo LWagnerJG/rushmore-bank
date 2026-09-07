@@ -40,19 +40,16 @@ export default function HomePage() {
           <p className="font-[family-name:var(--font-display)] text-xl font-bold text-[var(--text)]">
             {RULES.tagline}
           </p>
-          <p className="text-sm text-[var(--muted)]">
-            {RULES.minPlayers}–{RULES.maxPlayers} players · phones only
-          </p>
         </header>
 
         <section className="panel space-y-3">
           <label className="block text-sm font-bold" htmlFor="home-name">
-            Your nickname
+            Nickname
           </label>
           <input
             id="home-name"
             className="field w-full"
-            placeholder="What friends call you"
+            placeholder="Nickname"
             value={name}
             maxLength={18}
             onChange={(e) => setName(e.target.value)}

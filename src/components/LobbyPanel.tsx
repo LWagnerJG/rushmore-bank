@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
 import { RULES } from "@/shared/rules";
@@ -47,18 +47,11 @@ export function LobbyPanel({
     }
   };
 
-  const topicOverrideLabel = useMemo(() => {
-    if (state.settings.topicCountOverride == null) return "Auto";
-    return String(state.settings.topicCountOverride);
-  }, [state.settings.topicCountOverride]);
-
   const statusText = enough
     ? you.isHost
-      ? "Ready — hit Start when everyone’s here"
+      ? "Ready — Start when everyone is here"
       : "Ready — waiting on host"
-    : `Need ${RULES.minPlayers - players.length} more player${
-        RULES.minPlayers - players.length === 1 ? "" : "s"
-      }`;
+    : `Need ${RULES.minPlayers - players.length} more`;
 
   return (
     <div className="space-y-4">
@@ -144,14 +137,9 @@ export function LobbyPanel({
       </section>
 
       {!you.isHost && (
-        <section className="panel space-y-2 text-center">
+        <section className="panel text-center">
           <p className="font-extrabold">
-            {partyOn ? "Party Mode is on" : "Waiting for host…"}
-          </p>
-          <p className="text-sm text-[var(--muted)]">
-            {partyOn
-              ? "Optional sip prompts later — Pass anytime."
-              : "Host starts when the crew is ready."}
+            {partyOn ? "Party Mode on — waiting for host" : "Waiting for host"}
           </p>
         </section>
       )}
@@ -168,52 +156,6 @@ export function LobbyPanel({
             }
           />
 
-          <div className="panel space-y-3">
-            <h2 className="font-extrabold">How we start</h2>
-            <div className="space-y-2.5">
-              <div className="lobby-step">
-                <span className="lobby-step-num">1</span>
-                <p>Friends join with the code, link, or QR.</p>
-              </div>
-              <div className="lobby-step">
-                <span className="lobby-step-num">2</span>
-                <p>
-                  {RULES.minPlayers}–{RULES.maxPlayers} players — then you
-                  Start.
-                </p>
-              </div>
-              <div className="lobby-step">
-                <span className="lobby-step-num">3</span>
-                <p>
-                  {partyOn
-                    ? "Draft → vote → bank. Sip prompts stay optional."
-                    : "Draft four, vote, then bank beans."}
-                </p>
-              </div>
-            </div>
-
-            <label className="flex items-center justify-between gap-3 text-sm font-semibold">
-              Topic choices
-              <select
-                className="field !min-h-0 !w-auto !py-2"
-                value={topicOverrideLabel}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  send({
-                    type: "update_settings",
-                    settings: {
-                      topicCountOverride: v === "Auto" ? null : Number(v),
-                    },
-                  });
-                }}
-              >
-                <option>Auto</option>
-                <option>2</option>
-                <option>3</option>
-              </select>
-            </label>
-          </div>
-
           <button
             type="button"
             className={
@@ -226,7 +168,7 @@ export function LobbyPanel({
               ? partyOn
                 ? "Start the party"
                 : "Start game"
-              : `Waiting · need ${RULES.minPlayers}+`}
+              : `Need ${RULES.minPlayers}+ players`}
           </button>
         </section>
       )}

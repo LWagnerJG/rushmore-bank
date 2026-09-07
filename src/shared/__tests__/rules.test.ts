@@ -10,6 +10,10 @@ describe("topics", () => {
   it("has at least 120 curated topics", () => {
     expect(TOPIC_COUNT).toBeGreaterThanOrEqual(120);
   });
+
+  it("always offers exactly 4 topic choices", () => {
+    expect(RULES.topicShortlistSize).toBe(4);
+  });
 });
 
 describe("snake draft", () => {

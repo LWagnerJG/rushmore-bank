@@ -31,6 +31,7 @@ export function TopicPanel({
   const [custom, setCustom] = useState("");
   const [scope, setScope] = useState<TopicScope>("everyday");
   const myVote = state.myTopicVote;
+  const canReroll = you.role === "player";
 
   useEffect(() => {
     const t = setTimeout(() => setSpinning(true), 0);
@@ -49,8 +50,7 @@ export function TopicPanel({
             Pick a topic
           </h2>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            Round {state.topicRound + 1} of {state.configuredTopicRounds} ·
-            private vote
+            Round {state.topicRound + 1} of {state.configuredTopicRounds}
           </p>
         </div>
         <span className="text-sm font-bold tabular-nums text-[var(--muted)]">
@@ -88,16 +88,18 @@ export function TopicPanel({
         })}
       </div>
 
+      {canReroll && (
+        <button
+          type="button"
+          className="btn-secondary w-full"
+          onClick={() => send({ type: "majority_reroll" })}
+        >
+          Reroll topics
+        </button>
+      )}
+
       {you.isHost && (
         <div className="panel space-y-2">
-          <button
-            type="button"
-            className="btn-secondary w-full"
-            onClick={() => send({ type: "majority_reroll" })}
-            disabled={state.topicRerollsUsed >= 1}
-          >
-            Reroll shortlist ({1 - state.topicRerollsUsed} left)
-          </button>
           <p className="text-xs font-bold">Custom topic</p>
           <input
             className="field w-full"
