@@ -1,11 +1,11 @@
 {
-  "name": "RoundaCats",
-  "short_name": "RoundaCats",
-  "description": "Multiplayer party game: Mount Rushmore rankings + BANK wagering.",
+  "name": "Quarry",
+  "short_name": "Quarry",
+  "description": "Draft four. Roll for more. Party game with Stones and dice.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0b1220",
-  "theme_color": "#0b1220",
+  "background_color": "#F5F0E7",
+  "theme_color": "#F5F0E7",
   "icons": [
     {
       "src": "/icons/icon-192.png",

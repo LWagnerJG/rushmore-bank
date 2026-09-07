@@ -1,21 +1,52 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useGameRoom } from "../hooks/useGameRoom";
-import { PhaseBanner } from "./PhaseBanner";
-import { PlayerRail } from "./PlayerRail";
-import { LobbyPanel } from "./LobbyPanel";
-import { CategoryPanel } from "./CategoryPanel";
-import { BuildPanel } from "./BuildPanel";
-import { RankPanel } from "./RankPanel";
-import { RevealPanel } from "./RevealPanel";
-import { BankPanel, BankRevealPanel } from "./BankPanel";
+import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { useGameRoom } from "@/hooks/useGameRoom";
+import { phaseLabel, type Phase } from "@/shared/types";
+import { RULES } from "@/shared/rules";
+import { LobbyPanel } from "@/components/LobbyPanel";
+import { TopicPanel } from "@/components/TopicPanel";
+import { PrepPanel } from "@/components/PrepPanel";
+import { DraftPanel } from "@/components/DraftPanel";
+import { ReviewPanel } from "@/components/ReviewPanel";
+import { VotePanel } from "@/components/VotePanel";
+import { ScorePanel } from "@/components/ScorePanel";
+import { WagerPanel } from "@/components/WagerPanel";
+import { DicePanel } from "@/components/DicePanel";
+import { ResultsPanel } from "@/components/ResultsPanel";
+import { PlayerRail } from "@/components/PlayerRail";
 
-export function RoomClient({ code }: { code: string }) {
+function BrandMark() {
+  return (
+    <div className="flex items-center gap-1.5">
+      <div className="flex gap-0.5">
+        {[1, 2, 3, 4].map((n) => (
+          <span key={n} className="stone-tile !h-5 !w-5 !text-[0.55rem]">
+            {n}
+          </span>
+        ))}
+      </div>
+      <span className="font-[family-name:var(--font-display)] text-lg font-extrabold">
+        {RULES.displayName}
+      </span>
+    </div>
+  );
+}
+
+export function RoomClient({
+  code,
+  presetName,
+  preferSpectate,
+}: {
+  code: string;
+  presetName: string;
+  preferSpectate: boolean;
+}) {
   const {
     state,
-    youId,
     you,
+    youId,
     error,
     setError,
     connected,
@@ -24,105 +55,178 @@ export function RoomClient({ code }: { code: string }) {
     send,
     defaultName,
   } = useGameRoom(code);
-  const [name, setName] = useState(defaultName);
-  const autoTried = useRef(false);
+  const [name, setName] = useState(presetName || defaultName);
+  const judgedRev = useRef<number>(-1);
 
+  // Trigger AI judge once when voting starts (host)
   useEffect(() => {
-    if (autoTried.current || joined || !connected || !defaultName) return;
-    autoTried.current = true;
-    join(defaultName);
-  }, [joined, connected, defaultName, join]);
+    if (!state || !you?.isHost) return;
+    if (state.phase !== "VOTING_AND_JUDGING") return;
+    if (state.scores.length > 0 || state.scoresLocked) return;
+    if (judgedRev.current === state.phaseRevision) return;
+    judgedRev.current = state.phaseRevision;
 
+    const topic = state.selectedTopic;
+    if (!topic) return;
 
-  if (!joined || !state || !you) {
+    const rosters = state.seatOrder.map((pid) => {
+      const p = state.players.find((x) => x.id === pid);
+      const picks = state.picks
+        .filter((pk) => pk.playerId === pid)
+        .sort((a, b) => a.pickIndex - b.pickIndex)
+        .map((pk) => pk.text);
+      return { playerId: pid, name: p?.name ?? "?", picks };
+    });
+
+    void (async () => {
+      try {
+        const res = await fetch("/api/judge", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            topic: topic.text,
+            scopeBoundary: topic.scopeBoundary,
+            rosters,
+          }),
+        });
+        const data = (await res.json()) as {
+          judgments: Array<{
+            playerId: string;
+            topicFit: number;
+            pickStrength: number;
+            rosterQuality: number;
+            explanation: string;
+          }>;
+          fallback?: boolean;
+        };
+        send({
+          type: "submit_ai_judgments",
+          judgments: data.judgments,
+          fallback: !!data.fallback,
+        });
+      } catch {
+        send({
+          type: "submit_ai_judgments",
+          judgments: [],
+          fallback: true,
+        });
+      }
+    })();
+  }, [state, you?.isHost, send]);
+
+  const phase: Phase | null = state?.phase ?? null;
+
+  const body = useMemo(() => {
+    if (!state || !you) return null;
+    switch (state.phase) {
+      case "LOBBY":
+        return <LobbyPanel state={state} you={you} send={send} />;
+      case "TOPIC_SELECTION":
+        return <TopicPanel state={state} you={you} send={send} />;
+      case "PREP":
+        return (
+          <PrepPanel state={state} you={you} youId={youId} send={send} />
+        );
+      case "DRAFT":
+      case "CORRECTION":
+        return (
+          <DraftPanel state={state} you={you} youId={youId} send={send} />
+        );
+      case "REVIEW":
+        return <ReviewPanel state={state} you={you} send={send} />;
+      case "VOTING_AND_JUDGING":
+        return <VotePanel state={state} you={you} youId={youId} send={send} />;
+      case "SCORE_REVEAL":
+        return <ScorePanel state={state} you={you} send={send} />;
+      case "WAGER_SELECTION":
+        return <WagerPanel state={state} you={you} youId={youId} send={send} />;
+      case "DICE":
+        return <DicePanel state={state} you={you} youId={youId} send={send} />;
+      case "ROUND_RESULTS":
+      case "GAME_RESULTS":
+        return <ResultsPanel state={state} you={you} send={send} />;
+      default:
+        return null;
+    }
+  }, [state, you, youId, send]);
+
+  if (!joined || !you) {
     return (
-      <div className="mx-auto flex min-h-[100dvh] w-full max-w-md flex-col justify-center gap-6 px-4 py-10">
-        <div>
-          <p className="text-xs uppercase tracking-[0.25em] text-[var(--gold)]">
-            Join room
-          </p>
-          <h1 className="font-[family-name:var(--font-display)] text-5xl text-[var(--foam)]">
-            Rushmore Bank
-          </h1>
-          <p className="mt-2 text-[var(--muted)]">
-            Room <span className="text-[var(--gold)]">{code.toUpperCase()}</span>
-            {" · "}
-            {connected ? "connected" : "connecting…"}
-          </p>
-        </div>
-        <label className="block">
-          <span className="mb-1 block text-xs uppercase tracking-wider text-[var(--muted)]">
-            Display name
-          </span>
-          <input
-            className="field w-full"
-            value={name}
-            maxLength={18}
-            placeholder="What should we call you?"
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") join(name);
-            }}
-          />
-        </label>
+      <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-4 px-4 py-8">
+        <BrandMark />
+        <h1 className="font-[family-name:var(--font-display)] text-2xl font-extrabold">
+          Room {code}
+        </h1>
+        <p className="text-sm text-[var(--muted)]">
+          {connected ? "Connected — enter nickname" : "Connecting…"}
+        </p>
+        <input
+          className="field"
+          value={name}
+          maxLength={18}
+          placeholder="Nickname"
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") join(name, preferSpectate ? "spectator" : "player");
+          }}
+        />
         <button
           type="button"
-          className="btn-primary w-full"
-          disabled={!connected}
-          onClick={() => join(name)}
+          className="btn-primary"
+          onClick={() => join(name, preferSpectate ? "spectator" : "player")}
         >
-          Enter lobby
+          Join
         </button>
-        {error && (
-          <p className="rounded-xl bg-rose-500/15 px-4 py-3 text-sm text-rose-200">
-            {error}
-          </p>
-        )}
-      </div>
+        <button
+          type="button"
+          className="btn-secondary"
+          onClick={() => join(name || "Spectator", "spectator")}
+        >
+          Watch (TV / spectator)
+        </button>
+        {error && <p className="text-sm text-[var(--coral)]">{error}</p>}
+        <Link href="/" className="text-sm font-semibold text-[var(--coral)]">
+          ← Home
+        </Link>
+      </main>
     );
   }
 
   return (
-    <div className="mx-auto flex min-h-[100dvh] w-full max-w-md flex-col gap-4 px-4 py-5 pb-10">
-      <PhaseBanner phase={state.phase} round={state.round} pot={state.pot} />
-      <PlayerRail players={state.players} youId={youId} />
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col px-4 pb-8 pt-3">
+      <header className="sticky top-0 z-20 -mx-4 mb-3 border-b border-[rgba(35,72,62,0.08)] bg-[rgba(245,240,231,0.92)] px-4 py-2 backdrop-blur">
+        <div className="flex items-center justify-between gap-2">
+          <BrandMark />
+          <div className="text-right text-xs font-bold uppercase tracking-wide text-[var(--muted)]">
+            <div>{phase ? phaseLabel(phase) : "…"}</div>
+            <div className="text-[var(--text)]">
+              {you.stones} {RULES.currencyName}
+            </div>
+          </div>
+        </div>
+        {state && <PlayerRail state={state} youId={youId} />}
+        {state?.notice && (
+          <p className="mt-1 text-xs font-semibold text-[var(--coral)]">
+            {state.notice}
+          </p>
+        )}
+      </header>
 
+      {!connected && (
+        <p className="mb-2 text-sm font-semibold text-[var(--coral)]">
+          Reconnecting…
+        </p>
+      )}
       {error && (
-        <div className="flex items-start justify-between gap-3 rounded-xl bg-rose-500/15 px-4 py-3 text-sm text-rose-200">
-          <span>{error}</span>
-          <button
-            type="button"
-            className="shrink-0 underline"
-            onClick={() => setError(null)}
-          >
+        <p className="mb-2 text-sm text-[var(--coral)]" role="alert">
+          {error}{" "}
+          <button type="button" className="underline" onClick={() => setError(null)}>
             dismiss
           </button>
-        </div>
+        </p>
       )}
 
-      <div className="animate-rise flex-1">
-        {state.phase === "lobby" && (
-          <LobbyPanel state={state} youId={youId} send={send} />
-        )}
-        {state.phase === "category" && (
-          <CategoryPanel state={state} youId={youId} send={send} />
-        )}
-        {state.phase === "build" && (
-          <BuildPanel state={state} youId={youId} send={send} />
-        )}
-        {state.phase === "rank" && (
-          <RankPanel state={state} youId={youId} send={send} />
-        )}
-        {state.phase === "reveal" && (
-          <RevealPanel state={state} youId={youId} send={send} />
-        )}
-        {state.phase === "bank" && (
-          <BankPanel state={state} youId={youId} send={send} />
-        )}
-        {state.phase === "bank_reveal" && (
-          <BankRevealPanel state={state} youId={youId} send={send} />
-        )}
-      </div>
-    </div>
+      <div className="animate-rise flex-1">{body}</div>
+    </main>
   );
 }

@@ -1,92 +1,100 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import {
-  normalizeRoomCode,
-  randomRoomCode,
-} from "@/shared/types";
-import { rememberDisplayName } from "../lib/party";
+import { normalizeRoomCode, randomRoomCode } from "@/shared/types";
+import { RULES } from "@/shared/rules";
+
+function BrandMark() {
+  return (
+    <div className="flex items-center gap-2" aria-label="Quarry">
+      <div className="flex gap-1">
+        {[1, 2, 3, 4].map((n) => (
+          <span key={n} className="stone-tile">
+            {n}
+          </span>
+        ))}
+      </div>
+      <span className="font-[family-name:var(--font-display)] text-2xl font-extrabold tracking-tight brand-shimmer">
+        {RULES.displayName}
+      </span>
+    </div>
+  );
+}
 
 export default function HomePage() {
   const router = useRouter();
-  const [joinCode, setJoinCode] = useState("");
+  const [code, setCode] = useState("");
   const [name, setName] = useState("");
 
-  function go(code: string) {
-    const clean = normalizeRoomCode(code);
-    if (!clean || clean.length < 4) return;
-    if (name.trim()) rememberDisplayName(name.trim());
-    router.push(`/room/${clean}`);
+  function create() {
+    const room = randomRoomCode();
+    const q = name.trim() ? `?name=${encodeURIComponent(name.trim())}` : "";
+    router.push(`/room/${room}${q}`);
+  }
+
+  function join() {
+    const room = normalizeRoomCode(code);
+    if (room.length < 4) return;
+    const q = name.trim() ? `?name=${encodeURIComponent(name.trim())}` : "";
+    router.push(`/room/${room}${q}`);
   }
 
   return (
-    <main className="relative mx-auto flex min-h-[100dvh] w-full max-w-md flex-col justify-end overflow-hidden px-4 pb-10 pt-16">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-40"
-        style={{
-          backgroundImage:
-            "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23e2b84a' fill-opacity='0.07'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
-        }}
-      />
-
-      <div className="animate-rise relative z-10 space-y-8">
-        <div>
-          <p className="text-xs uppercase tracking-[0.28em] text-[var(--muted)]">
-            Phone party game
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col px-4 pb-10 pt-8">
+      <div className="animate-rise flex flex-1 flex-col justify-center gap-8">
+        <header className="space-y-3 text-center">
+          <div className="flex justify-center">
+            <BrandMark />
+          </div>
+          <p className="text-lg font-semibold text-[var(--muted)]">
+            {RULES.tagline}
           </p>
-          <h1 className="brand-shimmer font-[family-name:var(--font-display)] text-6xl leading-[0.95] tracking-tight sm:text-7xl">
-            Rushmore Bank
-          </h1>
-          <p className="mt-4 max-w-[20rem] text-base leading-relaxed text-[var(--muted)]">
-            Carve a Mount Rushmore with friends, roast the rankings, then roll
-            the BANK.
+          <p className="text-sm text-[var(--muted)]">
+            3–10 friends. Phones as controllers. Currency:{" "}
+            <strong>Stones</strong>.
           </p>
-        </div>
+        </header>
 
-        <div className="space-y-3">
-          <label className="block">
-            <span className="mb-1 block text-xs uppercase tracking-wider text-[var(--muted)]">
-              Display name
-            </span>
-            <input
-              className="field w-full"
-              value={name}
-              maxLength={18}
-              placeholder="Optional — set in lobby too"
-              onChange={(e) => setName(e.target.value)}
-            />
-          </label>
-
-          <button
-            type="button"
-            className="btn-primary w-full text-lg"
-            onClick={() => go(randomRoomCode())}
-          >
-            Create room
+        <section className="panel space-y-3">
+          <label className="block text-sm font-bold">Nickname</label>
+          <input
+            className="field w-full"
+            placeholder="Your name"
+            value={name}
+            maxLength={18}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <button type="button" className="btn-primary w-full" onClick={create}>
+            Create Game
           </button>
-
           <div className="flex gap-2">
             <input
-              className="field flex-1 uppercase tracking-[0.2em]"
+              className="field w-full uppercase tracking-[0.2em]"
               placeholder="CODE"
+              value={code}
               maxLength={4}
-              value={joinCode}
-              onChange={(e) => setJoinCode(normalizeRoomCode(e.target.value))}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") go(joinCode);
-              }}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              onKeyDown={(e) => e.key === "Enter" && join()}
             />
-            <button
-              type="button"
-              className="btn-secondary shrink-0 px-5"
-              onClick={() => go(joinCode)}
-            >
+            <button type="button" className="btn-secondary shrink-0 px-5" onClick={join}>
               Join
             </button>
           </div>
-        </div>
+        </section>
+
+        <nav className="flex flex-wrap justify-center gap-4 text-sm font-semibold">
+          <Link className="text-[var(--coral)] underline-offset-2 hover:underline" href="/how-to-play">
+            How to Play
+          </Link>
+          <Link className="text-[var(--coral)] underline-offset-2 hover:underline" href="/how-to-play#homescreen">
+            Home Screen help
+          </Link>
+          <Link className="text-[var(--muted)] underline-offset-2 hover:underline" href="/build-notes">
+            Build notes
+          </Link>
+        </nav>
       </div>
     </main>
   );

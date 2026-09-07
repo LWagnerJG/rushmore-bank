@@ -1,14 +1,16 @@
 @import "tailwindcss";
 
 :root {
-  --ink: #0b1220;
-  --navy: #121c31;
-  --foam: #f4efe4;
-  --muted: #9aa6bc;
-  --gold: #e2b84a;
-  --felt: #1f6b52;
-  --background: var(--ink);
-  --foreground: var(--foam);
+  --bg: #f5f0e7;
+  --text: #23483e;
+  --coral: #e76f4e;
+  --yellow: #f4c95b;
+  --mint: #a7d7c2;
+  --ink: #23483e;
+  --foam: #f5f0e7;
+  --muted: #5a7a70;
+  --background: var(--bg);
+  --foreground: var(--text);
 }
 
 @theme inline {
@@ -18,28 +20,28 @@
 }
 
 body {
-  color: var(--foam);
+  color: var(--text);
   background:
-    radial-gradient(1200px 600px at 10% -10%, rgba(226, 184, 74, 0.18), transparent 55%),
-    radial-gradient(900px 500px at 100% 0%, rgba(31, 107, 82, 0.22), transparent 50%),
-    radial-gradient(700px 400px at 50% 100%, rgba(80, 110, 180, 0.12), transparent 45%),
-    linear-gradient(165deg, #0b1220 0%, #121c31 45%, #0e1828 100%);
+    radial-gradient(900px 480px at 0% -10%, rgba(244, 201, 91, 0.35), transparent 55%),
+    radial-gradient(800px 420px at 100% 0%, rgba(167, 215, 194, 0.45), transparent 50%),
+    radial-gradient(700px 400px at 50% 110%, rgba(231, 111, 78, 0.18), transparent 45%),
+    linear-gradient(165deg, #f7f3eb 0%, #f5f0e7 40%, #ebe4d6 100%);
   min-height: 100dvh;
 }
 
 .field {
-  border-radius: 0.9rem;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.06);
+  border-radius: 0.85rem;
+  border: 1.5px solid rgba(35, 72, 62, 0.18);
+  background: rgba(255, 255, 255, 0.72);
   padding: 0.85rem 1rem;
   font-size: 1rem;
-  color: var(--foam);
+  color: var(--text);
   outline: none;
 }
 
 .field:focus {
-  border-color: rgba(226, 184, 74, 0.7);
-  box-shadow: 0 0 0 3px rgba(226, 184, 74, 0.15);
+  border-color: var(--coral);
+  box-shadow: 0 0 0 3px rgba(231, 111, 78, 0.2);
 }
 
 .field:disabled {
@@ -48,10 +50,11 @@ body {
 
 .btn-primary,
 .btn-secondary,
+.btn-danger,
 .icon-btn {
   min-height: 48px;
-  border-radius: 0.9rem;
-  font-weight: 600;
+  border-radius: 0.85rem;
+  font-weight: 700;
   transition:
     transform 120ms ease,
     background 120ms ease,
@@ -59,8 +62,8 @@ body {
 }
 
 .btn-primary {
-  background: var(--gold);
-  color: var(--ink);
+  background: var(--coral);
+  color: #fff;
   padding: 0.85rem 1.1rem;
 }
 
@@ -73,9 +76,9 @@ body {
 }
 
 .btn-secondary {
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--foam);
+  border: 1.5px solid rgba(35, 72, 62, 0.16);
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--text);
   padding: 0.85rem 1.1rem;
 }
 
@@ -83,13 +86,19 @@ body {
   transform: scale(0.98);
 }
 
+.btn-danger {
+  background: var(--text);
+  color: var(--yellow);
+  padding: 0.85rem 1.1rem;
+}
+
 .icon-btn {
   min-height: 40px;
   min-width: 40px;
   border-radius: 0.7rem;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--foam);
+  border: 1.5px solid rgba(35, 72, 62, 0.14);
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--text);
 }
 
 @keyframes rise {
@@ -107,6 +116,33 @@ body {
   animation: rise 380ms ease-out both;
 }
 
+@keyframes spin-topics {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-50%);
+  }
+}
+
+.topic-spinner {
+  animation: spin-topics 0.8s ease-in-out;
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.03);
+  }
+}
+
+.pulse-soft {
+  animation: pulse-soft 1.6s ease-in-out infinite;
+}
+
 @keyframes shimmer {
   0% {
     background-position: 0% 50%;
@@ -119,14 +155,43 @@ body {
 .brand-shimmer {
   background: linear-gradient(
     100deg,
-    #e2b84a 0%,
-    #f4efe4 35%,
-    #e2b84a 70%,
-    #c9922e 100%
+    #23483e 0%,
+    #e76f4e 35%,
+    #23483e 70%,
+    #f4c95b 100%
   );
   background-size: 200% auto;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  animation: shimmer 4.5s linear infinite;
+  animation: shimmer 5s linear infinite;
+}
+
+.stone-tile {
+  display: inline-grid;
+  place-items: center;
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 0.35rem;
+  background: linear-gradient(145deg, #f4c95b, #e76f4e);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  box-shadow: 0 2px 0 rgba(35, 72, 62, 0.15);
+}
+
+.panel {
+  border-radius: 1.1rem;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1.5px solid rgba(35, 72, 62, 0.1);
+  padding: 1rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise,
+  .brand-shimmer,
+  .pulse-soft,
+  .topic-spinner {
+    animation: none !important;
+  }
 }
