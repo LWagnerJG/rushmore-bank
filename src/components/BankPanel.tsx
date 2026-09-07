@@ -30,12 +30,12 @@ export function BankPanel({
   return (
     <div className="space-y-4">
       <div className="rounded-2xl border border-emerald-400/30 bg-gradient-to-br from-emerald-900/40 to-transparent p-4">
-        <p className="text-xs uppercase tracking-[0.2em] text-emerald-200/80">
-          Lite craps energy
-        </p>
-        <h3 className="font-[family-name:var(--font-display)] text-3xl text-emerald-100">
-          BANK round
-        </h3>
+          <p className="text-xs uppercase tracking-[0.2em] text-emerald-200/80">
+            BANK table
+          </p>
+          <h3 className="font-[family-name:var(--font-display)] text-3xl text-emerald-100">
+            Place your wager
+          </h3>
         <p className="mt-1 text-sm text-emerald-100/70">
           One 2d6 resolves everyone. Pot sits at {state.pot}. You have{" "}
           {you?.chips ?? 0} chips. ~30 seconds — pick a wager.

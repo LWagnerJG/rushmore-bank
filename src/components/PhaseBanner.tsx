@@ -24,7 +24,7 @@ export function PhaseBanner({
 }) {
   return (
     <div
-      className={`relative overflow-hidden rounded-2xl border bg-gradient-to-r px-4 py-3 ${TONE[phase]}`}
+      className={`sticky top-0 z-20 relative overflow-hidden rounded-2xl border bg-gradient-to-r px-4 py-3 backdrop-blur-md ${TONE[phase]}`}
     >
       <div className="flex items-center justify-between gap-3">
         <div>

@@ -176,9 +176,9 @@ export function phaseLabel(phase: Phase): string {
     case "reveal":
       return "Reveal";
     case "bank":
-      return "BANK";
+      return "Wager";
     case "bank_reveal":
-      return "BANK Results";
+      return "Dice Results";
   }
 }
 
