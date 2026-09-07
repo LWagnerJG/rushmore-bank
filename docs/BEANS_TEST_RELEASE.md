@@ -1,58 +1,34 @@
-# Beans: isolated test release
+# Beans release and preview setup
 
-Fudge’s test release: `cursor/beans-test-preview-3333`, PR https://github.com/LWagnerJG/rushmore-bank/pull/12.
-Codex follow-up: `codex/beans-preview`, targeting that test branch. PR #10 was closed by the coordinator; it is not the release path.
-Production remains `main` at https://roundacats.vercel.app.
+Release candidate: `codex/beans-release`, [PR #15](https://github.com/LWagnerJG/rushmore-bank/pull/15).
+Production target: https://roundacats.vercel.app.
 
-## Current preview and access
+Luke authorized promotion after verification. Publish both the frontend and the PartyKit backend from the tested revision. A successful frontend build alone does not make the new multiplayer rules live.
 
-The GitHub Vercel integration created this branch preview:
-https://roundacats-git-codex-bean-606892-luke-wagners-projects-f997cc34.vercel.app.
-Check the Vercel bot and commit status for the latest build before testing. Until the settings below are present, room pages show a setup message instead of connecting to production.
+## What is included
 
-The requested `roundacats-test.vercel.app` has not been provisioned. An owning-account operator can create a separate Vercel project named `roundacats-test`, point it at the reviewed combined test branch, and verify the assigned hostname. The existing branch preview is also suitable once connected to an isolated backend.
+This release includes Fudge’s original Beans test in PR #12 and the two-player / correction fixes from PR #13. It preserves the create/join flow, Gemini provider preference, `gemini-3.5-flash` default, optional `GEMINI_MODEL`, private ballots and server-authoritative scoring. Fudge’s separate candidate in PR #14 is left untouched; its solo dice turns conflict with Luke’s later clarification to roll once and pass.
 
-Codex's connected Vercel account returned no teams and 403 for project `prj_xzzfvPRqpyh90IrQENKBnL7amWGR` on 2026-09-07. GitHub access worked. These access results do not establish a public-site firewall bug and are not a reason to weaken production protection.
+The new rules are in `docs/RULES.md`: full-balance wager slider, all players enter BANK even with zero wagered, one roll per active player in a circuit, two personal safe rolls reset each topic, and the dice round ends when everyone banks or busts. Drafting has available suggestions, a private queue, manual entry and a four-row snake board.
 
-## Changes prepared
+## Production prerequisites
 
-- Beans branding, currency labels, bean character, favicon, home-screen icons, and share image.
-- Two through ten players. Two-player games skip human ballots and use AI-only scoring; three or more retain private voting plus AI.
-- Shorter home, draft, topic, and score screens. Private ideas work in prep and draft. Wagers require an explicit lock after choosing an amount.
-- Waiting players banking preserve the current dice alarm and seat.
-- Earlier-pick corrections resume the interrupted cursor, including replacement timeouts. Locked-score corrections cannot remove picks. Stale judge jobs are invalidated.
-- Fudge's Gemini integration and provider tests are incorporated from main PR #9, PR #11's model update, and test PR #12, rather than replaced with the older OpenAI route.
-- `GEMINI_MODEL` is configurable, default `gemini-3.5-flash`. Google lists the old hardcoded model's June 1, 2026 shutdown in its [model schedule](https://ai.google.dev/gemini-api/docs/deprecations).
-- Paid judge calls require matching `JUDGE_SECRET`; a caller-supplied PartyKit header alone is not authentication. Both provider calls have deadlines.
+| Location | Requirement |
+| --- | --- |
+| GitHub Actions repository secrets | `PARTYKIT_TOKEN` and `PARTYKIT_LOGIN` for the existing backend deploy workflow |
+| Production Vercel public build setting | `NEXT_PUBLIC_APP_ENV=production` (normally derived from Vercel) |
+| Production browser backend | `NEXT_PUBLIC_PARTYKIT_HOST=rushmore-bank.lwagnerjg.partykit.dev`, or leave unset to use that production default |
+| Production Vercel server | Keep Fudge’s `GEMINI_API_KEY` or `GOOGLE_GENERATIVE_AI_API_KEY`; retain any `GEMINI_MODEL` override |
+| Vercel and PartyKit | Matching `JUDGE_SECRET` for authenticated judge and suggestion requests |
+| Production PartyKit | `JUDGE_URL=https://roundacats.vercel.app` |
 
-Legacy `stones` state fields, browser-storage keys, room identifiers, and the production PartyKit project name are retained for compatibility.
+The release branch’s deployment-access check verifies presence of the two Actions credentials without printing values. As of the initial release attempt, that check fails. An operator already logged into PartyKit can instead deploy the tested branch manually with `npx partykit deploy --config partykit.json` before promoting its frontend. Keep existing provider keys; do not put them in public browser settings.
 
-## Required setup
+The backend health endpoint `/parties/main/CHECK` returns `release: beans-roundrobin-v1` after this server revision is deployed. Confirm this response before calling production ready. The connected Vercel account used for this work could not access the owning project; GitHub’s Vercel integration still builds branch previews.
 
-Use the Vercel and PartyKit accounts that own the project. Do not use the default production PartyKit config to deploy this test branch.
+## Verification
 
-| Location | Setting | Value |
-| --- | --- | --- |
-| Existing Vercel project, Preview env scoped to the selected test branch | `NEXT_PUBLIC_PARTYKIT_HOST` | Actual isolated test PartyKit hostname, no protocol |
-| Separate Vercel test project, if used instead | `NEXT_PUBLIC_APP_ENV` | `test` |
-| Separate Vercel test project | `NEXT_PUBLIC_PARTYKIT_HOST` | Same isolated test hostname |
-| Test frontend server only | `JUDGE_SECRET` | A new test-only shared secret |
-| Test frontend server only | `GEMINI_API_KEY` or `GOOGLE_GENERATIVE_AI_API_KEY` | Valid Gemini key; never `NEXT_PUBLIC_` |
-| Test frontend server only | `GEMINI_MODEL` | Supported model ID; default `gemini-3.5-flash` |
-| Test frontend server only | `OPENAI_API_KEY` | Optional; used only if no Gemini key is set |
-| Test PartyKit | project name | Separate project such as `roundacats-test` |
-| Test PartyKit | `JUDGE_URL` | Exact test frontend origin, including `https://` |
-| Test PartyKit | `JUDGE_SECRET` | Identical to the test frontend's shared secret |
-
-`partykit.test.json` is a prepared config, not a deployment receipt. Confirm the installed CLI's configuration-file option in its help; deploy that config explicitly. Update `JUDGE_URL` to the actual preview origin if the short hostname has not been assigned. Provider API keys belong on the frontend server; PartyKit only needs the shared judge secret.
-
-Deploy the test backend from the same commit as the frontend. Record both revisions. Set the frontend variables, then rebuild: public backend settings are compiled into the browser bundle. Confirm the test backend can call the test judge route with its secret. If the preview requires authentication, configure supported service-to-service test access; do not expose credentials in browser URLs.
-
-The preview guard rejects a missing backend or the known production hostname. A different hostname must still be checked to ensure it really serves the isolated project. A frontend URL alone does not isolate room state.
-
-## Verification and release gate
-
-Run on Node 24:
+On Node 24:
 
 ```bash
 npm ci
@@ -62,22 +38,14 @@ node --experimental-vm-modules scripts/verify-beans.mjs
 npm run build
 ```
 
-The regression script exercises actual server handlers with mocked storage and provider responses. Coverage: 108 dice outcomes; 2–10 snake counts; waiting-bank timing at 2/3/6/10 players; complete three-round two-player games with Gemini, Google key alias, OpenAI and neutral responses; two-player vote rejection; retained group voting; and correction/replacement timeouts at 2/3/10 players. No live or paid API calls are made.
+CI also builds with a localhost backend address and plays complete three-round games in Chromium and WebKit against real local Next and PartyKit servers. It checks create/join, lobby arrivals, rejoin, private queues, snake picks, the wager slider, synchronized dice, visible pip counts, banking and carried balances. Screenshots and traces are stored in the workflow artifacts; a separate browser check includes results and selected phone screenshots. Provider calls are mocked or disabled; these checks do not claim real-key judging or a physical iPhone test.
 
-Local regression and Babel parse/transform checks passed. Local npm installation was blocked by an environment 403 for a tarball, so local Next build, lint, and Vitest execution are not claimed. The GitHub workflow runs those dependency-backed gates; inspect the latest commit's result.
+After deployment, verify a fresh two-player room and one group room, confirm real Gemini judging, then check Safari sharing and Add to Home Screen. Keep the previous frontend and backend revision available for rollback.
 
-Before calling the URL playable:
+## Isolated previews
 
-1. Complete a two-player game in two independent browser sessions against the actual test backend, using a real Gemini response. Both get explanations and beans without a human-ballot wait.
-2. Complete 3-, 6-, and 10-player browser flows. Confirm valid ballots, four picks each, and one shared result per throw.
-3. Bank while someone else waits, rolls, or settles. Their roll must still finish; no pot is paid twice.
-4. Correct an early pick during draft and review. Replacement resumes the original turn; totals stay four picks each. Also expire a replacement turn.
-5. Disconnect/reconnect the roller and host. State survives; private ideas and ballots remain private.
-6. Try physical iPhone Safari: keyboard, tap targets, background/rejoin, dice animation, sharing, and Add to Home Screen.
-7. Confirm test rooms are absent from production, installed branding says Beans, ties share rank, and provider secrets never enter public responses or assets.
+The branch preview is listed by the Vercel bot on PR #15. It needs its own PartyKit host to play. Preview/test builds intentionally refuse a missing backend or the known production hostname.
 
-Main PR #9's notes report a successful manual production PartyKit deploy. Its CI deploy failed because CI credentials were missing. Treat those as separate evidence; neither a frontend SHA nor that report independently proves the live backend revision.
+For a separate preview, set `NEXT_PUBLIC_APP_ENV=test`, set `NEXT_PUBLIC_PARTYKIT_HOST` to the isolated host, and use the same test-only `JUDGE_SECRET` on both servers. Deploy `partykit.test.json` only to the existing test project after coordinating its owner, or prepare a separately named config. Set that backend’s `JUDGE_URL` to the actual preview origin. Rebuild the frontend after public environment settings change.
 
-## Promotion after Luke and Brynna approve
-
-Integrate the Codex follow-up into test PR #12 after its checks, then refresh from main and preserve newer Fudge commits. Require the current commit's build, lint, tests, and actual multiplayer checks. Merge the reviewed PR only after approval, then build with production variables and deploy the matching production PartyKit revision. Do not blindly promote a test artifact with a compiled test-backend address. Retain previous frontend/backend revisions for rollback. No automatic merge to main.
+Do not promote an artifact compiled with a test backend into production. Do not overwrite Fudge’s `roundacats-test` while he is testing there. Legacy `stones` fields, guest storage keys and production project identifiers remain compatible.

@@ -223,13 +223,13 @@ button:disabled { cursor: not-allowed; opacity: 0.5; }
   background: radial-gradient(ellipse at 50% 40%, #3f6d5e, #23483e 80%);
   box-shadow: inset 0 0 0 7px #ffffff08, inset 0 10px 28px #0002;
 }
-.bean-dice-pair { display: flex; gap: 50px; height: 100%; align-items: center; justify-content: center; perspective: 700px; }
-.bean-die-space { position: relative; width: var(--die-size); height: var(--die-size); perspective: 700px; }
+.bean-dice-pair { display: flex; gap: 50px; height: 100%; align-items: center; justify-content: center; perspective: 700px; transform-style: preserve-3d; }
+.bean-die-space { position: relative; width: var(--die-size); height: var(--die-size); transform-style: preserve-3d; }
 .bean-die-space::after { content: ""; position: absolute; bottom: -22px; left: -10px; width: 88px; height: 20px; border-radius: 50%; background: #102d2580; filter: blur(7px); }
-.bean-die { position: relative; z-index: 1; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform 220ms ease-out; }
+.bean-die { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; -webkit-transform-style: preserve-3d; transition: transform 220ms ease-out; }
 .bean-die-face {
   position: absolute; inset: 0; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 5px; padding: 10px;
-  border: 1px solid #cfc5b3; border-radius: 10px; background: #fff6e4; backface-visibility: hidden;
+  border: 1px solid #cfc5b3; border-radius: 10px; background: #fff6e4; backface-visibility: hidden; -webkit-backface-visibility: hidden;
   box-shadow: inset 0 0 6px #8f775122;
 }
 .bean-die-space-1 .bean-die-face { background: #f4c95b; border-color: #d0a746; }

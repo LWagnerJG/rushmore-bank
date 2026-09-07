@@ -46,7 +46,7 @@ jobs:
             const file = 'test-results/report.json';
             if (!fs.existsSync(file)) return;
             const report = JSON.parse(fs.readFileSync(file, 'utf8'));
-            const paths = fs.readdirSync('test-results').filter(p => p.endsWith('.jpg')).sort((a,b) => (b.includes('webkit') - a.includes('webkit')) || (b.includes('dice') - a.includes('dice')));
+            const paths = fs.readdirSync('test-results').filter(p => p.endsWith('.jpg')).sort((a,b) => (b.includes('dice-tray') - a.includes('dice-tray')) || (b.includes('webkit') - a.includes('webkit')));
             const images = [];
             let size = 0;
             for (const name of paths) {

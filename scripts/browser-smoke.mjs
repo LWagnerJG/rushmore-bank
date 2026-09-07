@@ -10,7 +10,7 @@ const config = ".partykit-browser-ci.json";
 fs.writeFileSync(config, JSON.stringify({ name: "beans-browser-ci", main: "party/server.ts", compatibilityDate: "2024-09-01", port: 1999, vars: { JUDGE_URL: "http://localhost:3000", JUDGE_SECRET: "ci-local-only" } }));
 const env = { ...process.env, JUDGE_SECRET: "ci-local-only", GEMINI_API_KEY: "", GOOGLE_GENERATIVE_AI_API_KEY: "", OPENAI_API_KEY: "", NEXT_TELEMETRY_DISABLED: "1" };
 const children = [];
-const report = { passed: [], errors: [], pages: [], logs: {} };
+const report = { passed: [], errors: [], pages: [], dice: [], logs: {} };
 function start(command, args, name) {
   const child = spawn(command, args, { env, stdio: ["ignore", "pipe", "pipe"] });
   const log = fs.createWriteStream(`${out}/${name}.log`);
@@ -147,6 +147,12 @@ async function smoke(type, engine) {
           return frontPips[0] === dice.d1 && frontPips[1] === dice.d2;
         }, "visible pip faces match server dice", 2000);
         if (turn === 0 && round === 0) {
+          await new Promise(resolve => setTimeout(resolve, 300));
+          report.dice.push({ engine: type, faces: [dice.d1, dice.d2], styles: await host.page.locator(".bean-die").evaluateAll((elements) => elements.map((element) => ({
+            transform: getComputedStyle(element).transform, style: getComputedStyle(element).transformStyle,
+            faceTransforms: [...element.children].map((face) => getComputedStyle(face).transform),
+          }))) });
+          await host.page.locator(".bean-dice-tray").screenshot({ path: `${out}/${type}-dice-tray.jpg`, type: "jpeg", quality: 65, scale: "css" });
           await host.page.screenshot({ path: `${out}/${type}-dice.png`, fullPage: true });
           await host.page.screenshot({ path: `${out}/${type}-dice.jpg`, type: "jpeg", quality: 40, scale: "css" });
         }
