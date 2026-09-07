@@ -115,10 +115,11 @@ async function main() {
   a.lastError = null;
   a.send({ type: "submit_ai_judgments", judgments: [], fallback: true });
   await a.wait(() => a.lastError !== null, 5000);
-  if (!a.lastError?.includes("server-side")) {
+  const rejectMsg: string = a.lastError ?? "";
+  if (!rejectMsg.includes("server-side")) {
     throw new Error(`expected reject AI, got ${a.lastError}`);
   }
-  console.log("OK reject client AI:", a.lastError);
+  console.log("OK reject client AI:", rejectMsg);
 
   a.send({ type: "submit_vote", targetPlayerId: b.youId });
   b.send({ type: "submit_vote", targetPlayerId: c.youId });
