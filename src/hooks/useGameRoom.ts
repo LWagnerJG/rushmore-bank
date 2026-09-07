@@ -4,25 +4,28 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import usePartySocket from "partysocket/react";
 import type {
   ClientMessage,
-  RoomState,
+  PublicRoomState,
   ServerMessage,
 } from "@/shared/types";
 import {
   getPartyHost,
   getStablePlayerId,
+  newActionId,
   recallDisplayName,
   rememberDisplayName,
 } from "@/lib/party";
 
 export function useGameRoom(roomCode: string) {
   const code = roomCode.toUpperCase();
-  const [state, setState] = useState<RoomState | null>(null);
+  const [state, setState] = useState<PublicRoomState | null>(null);
   const [youId, setYouId] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
   const [joined, setJoined] = useState(false);
   const playerId = useMemo(() => getStablePlayerId(code), [code]);
-  const pendingJoin = useRef<string | null>(null);
+  const pendingJoin = useRef<{ name: string; role: "player" | "spectator" } | null>(
+    null,
+  );
 
   const socket = usePartySocket({
     host: getPartyHost(),
@@ -35,7 +38,9 @@ export function useGameRoom(roomCode: string) {
         socket.send(
           JSON.stringify({
             type: "join",
-            name: pendingJoin.current,
+            name: pendingJoin.current.name,
+            role: pendingJoin.current.role,
+            actionId: newActionId(),
           } satisfies ClientMessage),
         );
       }
@@ -66,34 +71,47 @@ export function useGameRoom(roomCode: string) {
   const send = useCallback(
     (msg: ClientMessage) => {
       setError(null);
-      socket.send(JSON.stringify(msg));
+      const withId = {
+        ...msg,
+        actionId: msg.actionId ?? newActionId(),
+      };
+      socket.send(JSON.stringify(withId));
     },
     [socket],
   );
 
   const join = useCallback(
-    (name: string) => {
+    (name: string, role: "player" | "spectator" = "player") => {
       const clean = name.trim();
       if (!clean) {
-        setError("Enter a display name");
+        setError("Enter a nickname");
         return;
       }
       rememberDisplayName(clean);
-      pendingJoin.current = clean;
+      pendingJoin.current = { name: clean, role };
       if (socket.readyState === WebSocket.OPEN) {
-        send({ type: "join", name: clean });
+        send({ type: "join", name: clean, role });
       }
     },
     [send, socket],
   );
 
   useEffect(() => {
-    // Auto-rejoin with saved name if we already have a seat after refresh
     const name = recallDisplayName();
     if (name && !joined) {
-      pendingJoin.current = name;
+      pendingJoin.current = { name, role: "player" };
     }
   }, [joined]);
+
+  // Host heartbeat for failover
+  useEffect(() => {
+    const you = state?.players.find((p) => p.id === youId);
+    if (!you?.isHost || !connected) return;
+    const t = setInterval(() => {
+      send({ type: "host_heartbeat" });
+    }, 8000);
+    return () => clearInterval(t);
+  }, [state?.players, youId, connected, send]);
 
   const you = state?.players.find((p) => p.id === youId) ?? null;
 

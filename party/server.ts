@@ -1,245 +1,354 @@
+/**
+ * Quarry — authoritative PartyKit room server.
+ * Durable state + storage alarms for deadlines (survive host tab sleep).
+ */
 import type * as Party from "partykit/server";
 import {
-  BANK_ACTIONS,
-  CATEGORY_PRESETS,
-  MIN_PLAYERS,
-  STARTING_CHIPS,
-  type BankAction,
-  type BankResult,
-  type BankWager,
+  emptyRoomState,
+  normalizePick,
   type ClientMessage,
+  type HostSettings,
+  type LedgerEntry,
   type Player,
+  type PublicRoomState,
   type RoomState,
+  type RosterScore,
   type ServerMessage,
+  type TopicOption,
 } from "../src/shared/types";
+import { RULES, topicShortlistCount } from "../src/shared/rules";
+import {
+  pickRandomTopics,
+  type TopicScope,
+} from "../src/shared/topics";
+import {
+  applyDiceRoll,
+  computeEarnedStones,
+  fallbackAiAward,
+  roll2d6,
+  snakeDraftOrder,
+} from "../src/shared/engine";
 
-const BOT_ID = "bot-rushbot";
+type AlarmKind =
+  | "phase"
+  | "pick"
+  | "wager"
+  | "dice_decision"
+  | "dice_idle"
+  | "dice_anim"
+  | "host_check";
 
-function emptyState(code: string): RoomState {
-  return {
-    code,
-    phase: "lobby",
-    players: [],
-    pot: 0,
-    round: 0,
-    category: null,
-    categoryVotes: {},
-    submissions: [],
-    rankings: [],
-    bankWagers: [],
-    bankResult: null,
-    lastRushmoreScores: {},
-    categoryPickerId: null,
-    createdAt: Date.now(),
-  };
+interface AlarmPayload {
+  kind: AlarmKind;
+  revision: number;
+  meta?: string;
 }
 
-function rollDie(): number {
-  return 1 + Math.floor(Math.random() * 6);
+function seatedPlayers(state: RoomState): Player[] {
+  return state.players
+    .filter((p) => p.role === "player" && p.seat !== null)
+    .sort((a, b) => (a.seat ?? 0) - (b.seat ?? 0));
 }
 
-function connectedHumans(state: RoomState): Player[] {
-  return state.players.filter((p) => p.connected && !p.isBot);
+function connectedPlayers(state: RoomState): Player[] {
+  return seatedPlayers(state).filter((p) => p.connected);
 }
 
-function activePlayers(state: RoomState): Player[] {
-  return state.players.filter((p) => p.connected || p.isBot);
+function bump(state: RoomState) {
+  state.phaseRevision += 1;
 }
 
-/** Heuristic Rushmore for the bot when no AI key is used client-side. */
-function botRushmore(category: string): [string, string, string, string] {
-  const c = category.toLowerCase();
-  if (c.includes("pizza")) {
-    return ["Pepperoni", "Mushroom", "Hot honey", "Extra cheese"];
+function ledgerPush(
+  state: RoomState,
+  entry: Omit<LedgerEntry, "id" | "at">,
+) {
+  state.ledger.push({
+    ...entry,
+    id: `L${state.ledger.length + 1}-${Date.now()}`,
+    at: Date.now(),
+  });
+  // Cap ledger growth
+  if (state.ledger.length > 400) {
+    state.ledger = state.ledger.slice(-300);
   }
-  if (c.includes("marvel")) {
-    return [
-      "Spider-Man: No Way Home",
-      "Iron Man",
-      "Guardians Vol. 2",
-      "Black Panther",
-    ];
-  }
-  if (c.includes("chore")) {
-    return ["Dishes", "Laundry", "Bathroom scrub", "Taking out trash"];
-  }
-  if (c.includes("snack")) {
-    return ["Chips & guac", "Gummy bears", "Trail mix", "Cheese sticks"];
-  }
-  if (c.includes("music")) {
-    return ["90s", "70s", "2010s", "80s"];
-  }
-  const words = category
-    .replace(/[^a-zA-Z0-9 ]/g, "")
-    .split(/\s+/)
-    .filter(Boolean);
-  const base = words[words.length - 1] || "Pick";
-  return [
-    `Peak ${base}`,
-    `Solid ${base}`,
-    `Underrated ${base}`,
-    `Wildcard ${base}`,
-  ];
 }
 
-function botRationale(category: string): string {
-  const lines = [
-    `This Mount has the strongest vibe for "${category}" — cohesive and spicy.`,
-    `Clean hierarchy. The #1 pick actually earns the stone face.`,
-    `I'd defend this Rushmore at a bar. The bottom two still slap.`,
-    `Balanced takes, zero chaos bait. Judges respect consistency.`,
-  ];
-  return lines[Math.floor(Math.random() * lines.length)];
-}
-
-export default class RushmoreBankServer implements Party.Server {
+export default class QuarryServer implements Party.Server {
   state: RoomState;
+  private alarmPayload: AlarmPayload | null = null;
 
   constructor(readonly room: Party.Room) {
-    this.state = emptyState(room.id.toUpperCase());
+    this.state = emptyRoomState(room.id.toUpperCase());
   }
 
   async onStart() {
     const saved = await this.room.storage.get<RoomState>("state");
+    const alarm = await this.room.storage.get<AlarmPayload>("alarm");
     if (saved) {
       this.state = saved;
-      // Mark everyone disconnected until they reconnect
       this.state.players = this.state.players.map((p) =>
-        p.isBot ? p : { ...p, connected: false },
+        p.role === "spectator" ? p : { ...p, connected: false },
       );
     }
+    if (alarm) this.alarmPayload = alarm;
   }
 
   async persist() {
     await this.room.storage.put("state", this.state);
+    if (this.alarmPayload) {
+      await this.room.storage.put("alarm", this.alarmPayload);
+    }
+  }
+
+  async setAlarmAt(when: number, payload: AlarmPayload) {
+    this.alarmPayload = payload;
+    await this.room.storage.put("alarm", payload);
+    await this.room.storage.setAlarm(when);
+  }
+
+  async clearAlarm() {
+    this.alarmPayload = null;
+    await this.room.storage.delete("alarm");
+    try {
+      await this.room.storage.deleteAlarm();
+    } catch {
+      /* ignore */
+    }
   }
 
   send(conn: Party.Connection, msg: ServerMessage) {
     conn.send(JSON.stringify(msg));
   }
 
+  publicState(): PublicRoomState {
+    return this.state;
+  }
+
   broadcastState() {
+    const pub = this.publicState();
     for (const conn of this.room.getConnections()) {
+      this.send(conn, { type: "state", state: pub, youId: conn.id });
+    }
+  }
+
+  ensureHost() {
+    const humans = this.state.players.filter(
+      (p) => p.role === "player" && p.connected,
+    );
+    if (humans.length === 0) return;
+    if (
+      !this.state.players.some(
+        (p) => p.isHost && p.connected && p.role === "player",
+      )
+    ) {
+      const next = humans[0]!;
+      this.state.players = this.state.players.map((p) => ({
+        ...p,
+        isHost: p.id === next.id,
+      }));
+      this.state.hostLastSeenAt = Date.now();
+      this.state.notice = `${next.name} is now host`;
+    }
+  }
+
+  requireHost(playerId: string): boolean {
+    const p = this.state.players.find((x) => x.id === playerId);
+    return !!p?.isHost;
+  }
+
+  requirePlayer(playerId: string): Player | null {
+    const p = this.state.players.find((x) => x.id === playerId);
+    if (!p || p.role !== "player") return null;
+    return p;
+  }
+
+  seenAction(actionId?: string): boolean {
+    if (!actionId) return false;
+    if (this.state.processedActionIds.includes(actionId)) return true;
+    this.state.processedActionIds.push(actionId);
+    if (this.state.processedActionIds.length > 200) {
+      this.state.processedActionIds = this.state.processedActionIds.slice(-100);
+    }
+    return false;
+  }
+
+  onConnect(conn: Party.Connection) {
+    const playerId = conn.id;
+    const existing = this.state.players.find((p) => p.id === playerId);
+    if (existing) {
+      existing.connected = true;
+      this.ensureHost();
+      void this.persist().then(() => this.broadcastState());
+    } else {
       this.send(conn, {
         type: "state",
-        state: this.state,
+        state: this.publicState(),
         youId: conn.id,
       });
     }
   }
 
-  ensureHost() {
-    const humans = this.state.players.filter((p) => !p.isBot && p.connected);
-    if (humans.length === 0) return;
-    if (!this.state.players.some((p) => p.isHost && p.connected && !p.isBot)) {
-      this.state.players = this.state.players.map((p) => ({
-        ...p,
-        isHost: p.id === humans[0].id,
-      }));
-    }
-  }
-
-  onConnect(conn: Party.Connection) {
-    // Rejoin existing player slot if same connection id was stored (rare);
-    // normally clients join via "join" message with a stable player id in query.
-    const playerId = (conn as Party.Connection & { id: string }).id;
-    const existing = this.state.players.find((p) => p.id === playerId);
-    if (existing) {
-      existing.connected = true;
-      this.ensureHost();
-      void this.persist();
-    }
-    this.send(conn, {
-      type: "state",
-      state: this.state,
-      youId: playerId,
-    });
-  }
-
   onClose(conn: Party.Connection) {
     const p = this.state.players.find((x) => x.id === conn.id);
-    if (p && !p.isBot) {
+    if (p) {
       p.connected = false;
-      if (p.isHost) {
-        p.isHost = false;
-        this.ensureHost();
-      }
-      void this.persist();
-      this.broadcastState();
+      this.ensureHost();
+      void this.persist().then(() => this.broadcastState());
     }
+  }
+
+  async onAlarm() {
+    const payload = this.alarmPayload;
+    this.alarmPayload = null;
+    if (!payload) return;
+    if (payload.revision !== this.state.phaseRevision) return;
+
+    switch (payload.kind) {
+      case "phase":
+        await this.onPhaseTimeout();
+        break;
+      case "pick":
+        await this.onPickTimeout();
+        break;
+      case "wager":
+        await this.finalizeWagers();
+        break;
+      case "dice_decision":
+        await this.unlockRoll();
+        break;
+      case "dice_idle":
+        await this.autoBankCurrent();
+        break;
+      case "dice_anim":
+        await this.afterDiceAnim();
+        break;
+      case "host_check":
+        await this.checkHostFailover();
+        break;
+    }
+    await this.persist();
+    this.broadcastState();
   }
 
   async onMessage(message: string, sender: Party.Connection) {
-    let data: ClientMessage;
+    let msg: ClientMessage;
     try {
-      data = JSON.parse(message) as ClientMessage;
+      msg = JSON.parse(message) as ClientMessage;
     } catch {
       this.send(sender, { type: "error", message: "Bad message" });
       return;
     }
 
     try {
-      await this.handle(data, sender);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Something went wrong";
-      this.send(sender, { type: "error", message: msg });
-    }
-  }
-
-  async handle(data: ClientMessage, sender: Party.Connection) {
-    switch (data.type) {
-      case "join":
-        this.handleJoin(sender, data.name);
-        break;
-      case "start":
-        this.requireHost(sender);
-        this.startCategoryPhase();
-        break;
-      case "vote_category":
-        this.handleVoteCategory(sender, data.category);
-        break;
-      case "pick_category":
-        this.handlePickCategory(sender, data.category);
-        break;
-      case "submit_rushmore":
-        this.handleSubmitRushmore(sender, data.items);
-        break;
-      case "submit_ranking":
-        this.handleSubmitRanking(sender, data.orderedPlayerIds, data.rationale);
-        break;
-      case "submit_bank":
-        this.handleSubmitBank(sender, data.action, data.amount);
-        break;
-      case "roll_bank":
-        this.requireHost(sender);
-        this.resolveBank();
-        break;
-      case "advance":
-        this.requireHost(sender);
-        this.advance();
-        break;
-      case "add_bot":
-        this.requireHost(sender);
-        this.addBot();
-        break;
-      default:
-        this.send(sender, { type: "error", message: "Unknown action" });
+      if (this.seenAction(msg.actionId)) {
+        this.broadcastState();
         return;
+      }
+      await this.handle(msg, sender);
+      await this.persist();
+      this.broadcastState();
+    } catch (e) {
+      const text = e instanceof Error ? e.message : "Server error";
+      this.send(sender, { type: "error", message: text });
     }
-    await this.persist();
-    this.broadcastState();
   }
 
-  requireHost(sender: Party.Connection) {
-    const p = this.state.players.find((x) => x.id === sender.id);
-    if (!p?.isHost) throw new Error("Only the host can do that");
+  async handle(msg: ClientMessage, sender: Party.Connection) {
+    const id = sender.id;
+
+    switch (msg.type) {
+      case "join":
+        this.handleJoin(id, msg.name, msg.role ?? "player");
+        this.send(sender, {
+          type: "joined",
+          youId: id,
+          state: this.publicState(),
+        });
+        return;
+      case "host_heartbeat": {
+        const p = this.state.players.find((x) => x.id === id);
+        if (p?.isHost) this.state.hostLastSeenAt = Date.now();
+        return;
+      }
+      case "update_settings":
+        this.handleSettings(id, msg.settings);
+        return;
+      case "start":
+        await this.handleStart(id);
+        return;
+      case "spin_topics":
+      case "majority_reroll":
+        await this.handleSpinTopics(id, msg.type === "majority_reroll");
+        return;
+      case "vote_topic":
+        await this.handleVoteTopic(id, msg.topicId);
+        return;
+      case "custom_topic":
+        await this.handleCustomTopic(id, msg.text, msg.scope, msg.scopeBoundary);
+        return;
+      case "lock_in":
+        await this.handleLockIn(id, msg.text);
+        return;
+      case "host_pause":
+        this.handlePause(id);
+        return;
+      case "host_resume":
+        await this.handleResume(id);
+        return;
+      case "host_extend":
+        await this.handleExtend(id);
+        return;
+      case "host_correct":
+        await this.handleCorrect(id, msg.turnIndex, msg.reason);
+        return;
+      case "submit_vote":
+        await this.handleVote(id, msg.targetPlayerId);
+        return;
+      case "submit_ai_judgments":
+        await this.handleAi(id, msg.judgments, !!msg.fallback);
+        return;
+      case "submit_wager":
+        await this.handleWager(id, msg.amount);
+        return;
+      case "roll":
+        await this.handleRoll(id);
+        return;
+      case "pull_out":
+        await this.handlePullOut(id);
+        return;
+      case "party_resolve":
+        this.handlePartyResolve(id, msg.choice);
+        return;
+      case "skip_review":
+        await this.handleSkipReview(id);
+        return;
+      case "next_topic":
+        await this.handleNextTopic(id);
+        return;
+      case "end_game":
+        this.handleEndGame(id);
+        return;
+      case "play_again":
+        await this.handlePlayAgain(id);
+        return;
+      case "void_topic":
+        this.handleVoidTopic(id);
+        return;
+      case "advance":
+        await this.handleAdvance(id);
+        return;
+      case "dice_ready_ack":
+        return;
+      default:
+        throw new Error("Unknown action");
+    }
   }
 
-  handleJoin(sender: Party.Connection, name: string) {
+  handleJoin(id: string, name: string, role: "player" | "spectator") {
     const clean = name.trim().slice(0, 18);
-    if (!clean) throw new Error("Enter a display name");
+    if (!clean) throw new Error("Enter a nickname");
 
-    const existing = this.state.players.find((p) => p.id === sender.id);
+    const existing = this.state.players.find((p) => p.id === id);
     if (existing) {
       existing.name = clean;
       existing.connected = true;
@@ -247,502 +356,1057 @@ export default class RushmoreBankServer implements Party.Server {
       return;
     }
 
-    // Late join mid-game: allowed into lobby-like spectate chips, can play next round
-    const isFirstHuman = connectedHumans(this.state).length === 0;
+    if (role === "player" && this.state.rosterLocked) {
+      // Late join → spectator until next game
+      role = "spectator";
+      this.state.notice = `${clean} joined as spectator (roster locked)`;
+    }
+
+    const playerCount = this.state.players.filter((p) => p.role === "player")
+      .length;
+    if (role === "player" && playerCount >= RULES.maxPlayers) {
+      role = "spectator";
+      this.state.notice = "Room full — joined as spectator";
+    }
+
+    const isFirst =
+      this.state.players.filter((p) => p.role === "player").length === 0 &&
+      role === "player";
+
     const player: Player = {
-      id: sender.id,
+      id,
       name: clean,
-      chips: STARTING_CHIPS,
+      stones: RULES.startBalance,
       connected: true,
-      isHost: isFirstHuman,
-      isBot: false,
-      doubleJudge: false,
-      hasRematchToken: false,
+      isHost: isFirst,
+      role,
+      seat: null,
+      joinedAt: Date.now(),
     };
     this.state.players.push(player);
-    this.ensureHost();
+    if (isFirst) this.state.hostLastSeenAt = Date.now();
   }
 
-  addBot() {
-    if (this.state.players.some((p) => p.isBot)) {
-      throw new Error("RushBot is already in the room");
+  handleSettings(id: string, partial: Partial<HostSettings>) {
+    if (!this.requireHost(id)) throw new Error("Host only");
+    if (this.state.phase !== "LOBBY") {
+      // Party mode may change between topics
+      if (
+        this.state.phase === "ROUND_RESULTS" ||
+        this.state.phase === "SCORE_REVEAL"
+      ) {
+        if (typeof partial.partyMode === "boolean") {
+          this.state.settings.partyMode = partial.partyMode;
+        }
+        return;
+      }
+      throw new Error("Settings locked during play");
     }
-    this.state.players.push({
-      id: BOT_ID,
-      name: "RushBot",
-      chips: STARTING_CHIPS,
-      connected: true,
-      isHost: false,
-      isBot: true,
-      doubleJudge: false,
-      hasRematchToken: false,
+    this.state.settings = { ...this.state.settings, ...partial };
+  }
+
+  async handleStart(id: string) {
+    if (!this.requireHost(id)) throw new Error("Host only");
+    if (this.state.phase !== "LOBBY") throw new Error("Already started");
+    const hopeful = this.state.players.filter((p) => p.role === "player");
+    if (hopeful.length < RULES.minPlayers) {
+      throw new Error(`Need ${RULES.minPlayers}–${RULES.maxPlayers} players`);
+    }
+    if (hopeful.length > RULES.maxPlayers) {
+      throw new Error("Too many players");
+    }
+
+    // Lock roster + assign seats (shuffle)
+    const shuffled = [...hopeful].sort(() => Math.random() - 0.5);
+    this.state.players = this.state.players.map((p) => {
+      if (p.role !== "player") return { ...p, seat: null };
+      const idx = shuffled.findIndex((s) => s.id === p.id);
+      return { ...p, seat: idx };
     });
-    // If mid-phase, bot auto-acts
-    this.maybeBotAct();
+    this.state.seatOrder = shuffled.map((p) => p.id);
+    this.state.rosterLocked = true;
+    this.state.starterOffset = 0;
+    this.state.topicRound = 0;
+    this.state.usedTopicIds = [];
+    this.state.checkpoint = {
+      stones: Object.fromEntries(
+        seatedPlayers(this.state).map((p) => [p.id, p.stones]),
+      ),
+      topicRound: 0,
+    };
+    bump(this.state);
+    await this.beginTopicSelection();
   }
 
-  startCategoryPhase() {
-    if (activePlayers(this.state).length < MIN_PLAYERS) {
-      throw new Error(`Need at least ${MIN_PLAYERS} players (add RushBot?)`);
-    }
-    this.state.phase = "category";
-    this.state.round += 1;
-    this.state.category = null;
-    this.state.categoryVotes = {};
-    this.state.submissions = [];
-    this.state.rankings = [];
-    this.state.bankWagers = [];
-    this.state.bankResult = null;
-    this.state.lastRushmoreScores = {};
-
-    // Clear spent rematch after it's used to force picker
-    if (this.state.categoryPickerId) {
-      // picker must pick — others wait
-    }
-    this.maybeBotAct();
+  async beginTopicSelection() {
+    this.state.phase = "TOPIC_SELECTION";
+    this.state.topicVotes = {};
+    this.state.selectedTopic = null;
+    this.state.topicRerollsUsed = 0;
+    this.state.scores = [];
+    this.state.scoresLocked = false;
+    this.state.earnedThisRound = {};
+    this.state.wagers = {};
+    this.state.humanVotes = {};
+    this.state.picks = [];
+    this.state.takenNormalized = [];
+    this.state.draftCursor = 0;
+    this.state.notice = null;
+    bump(this.state);
+    this.spinShortlist();
+    this.state.phaseDeadlineAt =
+      Date.now() + RULES.topicVoteSeconds * 1000;
+    await this.setAlarmAt(this.state.phaseDeadlineAt, {
+      kind: "phase",
+      revision: this.state.phaseRevision,
+    });
   }
 
-  handleVoteCategory(sender: Party.Connection, category: string) {
-    if (this.state.phase !== "category") throw new Error("Not voting now");
-    if (this.state.categoryPickerId) {
-      throw new Error("Someone holds the rematch token — they pick");
+  spinShortlist() {
+    const n = seatedPlayers(this.state).length;
+    const count =
+      this.state.settings.topicCountOverride ?? topicShortlistCount(n);
+    let pool = pickRandomTopics(count * 3, this.state.usedTopicIds);
+    const mix = this.state.settings.scopeMix.filter((s) => s !== "custom");
+    if (mix.length > 0) {
+      const filtered = pool.filter((t) => mix.includes(t.scope));
+      if (filtered.length >= count) pool = filtered;
     }
-    const cat = category.trim().slice(0, 80);
-    if (!cat) throw new Error("Pick a category");
-    this.state.categoryVotes[sender.id] = cat;
-
-    const voters = activePlayers(this.state).filter((p) => !p.isBot);
-    const allVoted = voters.every((p) => this.state.categoryVotes[p.id]);
-    if (allVoted && voters.length > 0) {
-      this.tallyCategoryVotes();
-    }
-    this.maybeBotAct();
-  }
-
-  handlePickCategory(sender: Party.Connection, category: string) {
-    if (this.state.phase !== "category") throw new Error("Not picking now");
-    const cat = category.trim().slice(0, 80);
-    if (!cat) throw new Error("Enter a category");
-
-    const picker = this.state.categoryPickerId;
-    const player = this.state.players.find((p) => p.id === sender.id);
-    if (picker) {
-      if (sender.id !== picker) throw new Error("Rematch token holder picks");
-    } else if (!player?.isHost) {
-      // Host can force-pick to speed up
-      throw new Error("Vote or wait for host");
-    }
-
-    this.state.category = cat;
-    this.state.categoryPickerId = null;
-    this.state.players = this.state.players.map((p) => ({
-      ...p,
-      hasRematchToken: false,
+    const picked = pool.slice(0, count);
+    this.state.topicOptions = picked.map((t) => ({
+      id: t.id,
+      text: t.text,
+      scope: t.scope,
+      scopeBoundary: t.scopeBoundary,
     }));
-    this.state.phase = "build";
-    this.maybeBotAct();
+    this.state.topicVotes = {};
   }
 
-  tallyCategoryVotes() {
-    const counts = new Map<string, number>();
-    for (const cat of Object.values(this.state.categoryVotes)) {
-      counts.set(cat, (counts.get(cat) ?? 0) + 1);
-    }
-    let best: string = CATEGORY_PRESETS[0];
-    let bestN = -1;
-    for (const [cat, n] of counts) {
-      if (n > bestN) {
-        best = cat;
-        bestN = n;
+  async handleSpinTopics(id: string, isReroll: boolean) {
+    if (!this.requireHost(id) && !isReroll) throw new Error("Host only");
+    if (this.state.phase !== "TOPIC_SELECTION") throw new Error("Wrong phase");
+    if (isReroll) {
+      if (this.state.topicRerollsUsed >= RULES.majorityRerollsPerSelection) {
+        throw new Error("Reroll already used");
       }
+      // Majority of connected players must have voted for __reroll__ via vote? 
+      // Spec: 1 majority reroll/topic selection — host can trigger after majority agrees.
+      // Simplify: host triggers reroll once, or if ≥ half voted the special id.
+      this.state.topicRerollsUsed += 1;
     }
-    this.state.category = best;
-    this.state.phase = "build";
-    this.maybeBotAct();
-  }
-
-  handleSubmitRushmore(
-    sender: Party.Connection,
-    items: [string, string, string, string],
-  ) {
-    if (this.state.phase !== "build") throw new Error("Not building now");
-    const cleaned = items.map((x) => x.trim().slice(0, 40)) as [
-      string,
-      string,
-      string,
-      string,
-    ];
-    if (cleaned.some((x) => !x)) throw new Error("Fill all 4 faces");
-    this.upsertSubmission(sender.id, cleaned);
-    this.maybeFinishBuild();
-  }
-
-  upsertSubmission(
-    playerId: string,
-    items: [string, string, string, string],
-  ) {
-    const rest = this.state.submissions.filter((s) => s.playerId !== playerId);
-    rest.push({ playerId, items });
-    this.state.submissions = rest;
-  }
-
-  maybeFinishBuild() {
-    const need = activePlayers(this.state);
-    const done = need.every((p) =>
-      this.state.submissions.some((s) => s.playerId === p.id),
-    );
-    if (done) {
-      this.state.phase = "rank";
-      this.maybeBotAct();
-    }
-  }
-
-  handleSubmitRanking(
-    sender: Party.Connection,
-    orderedPlayerIds: string[],
-    rationale: string,
-  ) {
-    if (this.state.phase !== "rank") throw new Error("Not ranking now");
-    const others = this.state.submissions
-      .map((s) => s.playerId)
-      .filter((id) => id !== sender.id);
-    if (orderedPlayerIds.length !== others.length) {
-      throw new Error("Rank everyone else's Rushmore");
-    }
-    for (const id of others) {
-      if (!orderedPlayerIds.includes(id)) {
-        throw new Error("Invalid ranking list");
-      }
-    }
-    const text = rationale.trim().slice(0, 200);
-    if (!text) throw new Error("Add a short rationale");
-
-    const rest = this.state.rankings.filter((r) => r.judgeId !== sender.id);
-    rest.push({
-      judgeId: sender.id,
-      orderedPlayerIds,
-      rationale: text,
+    this.spinShortlist();
+    bump(this.state);
+    this.state.phaseDeadlineAt =
+      Date.now() + RULES.topicVoteSeconds * 1000;
+    await this.setAlarmAt(this.state.phaseDeadlineAt, {
+      kind: "phase",
+      revision: this.state.phaseRevision,
     });
-    this.state.rankings = rest;
-    this.maybeFinishRank();
   }
 
-  maybeFinishRank() {
-    const need = activePlayers(this.state);
-    // Need at least 2 submissions to rank; if only 1 human + bot, both rank
-    const done = need.every((p) =>
-      this.state.rankings.some((r) => r.judgeId === p.id),
+  async handleCustomTopic(
+    id: string,
+    text: string,
+    scope: TopicScope,
+    scopeBoundary: string,
+  ) {
+    if (!this.requireHost(id)) throw new Error("Host only");
+    if (this.state.phase !== "TOPIC_SELECTION") throw new Error("Wrong phase");
+    const clean = text.trim().slice(0, 80);
+    if (clean.length < 3) throw new Error("Topic too short");
+    const option: TopicOption = {
+      id: `custom-${Date.now()}`,
+      text: clean,
+      scope: scope === "custom" ? "everyday" : scope,
+      scopeBoundary: (scopeBoundary || "Host custom topic.").slice(0, 160),
+      isCustom: true,
+    };
+    this.state.topicOptions = [option];
+    this.state.selectedTopic = option;
+    await this.lockTopic(option);
+  }
+
+  async handleVoteTopic(id: string, topicId: string) {
+    if (!this.requirePlayer(id)) throw new Error("Players only");
+    if (this.state.phase !== "TOPIC_SELECTION") throw new Error("Wrong phase");
+    if (!this.state.topicOptions.some((t) => t.id === topicId)) {
+      throw new Error("Invalid topic");
+    }
+    this.state.topicVotes[id] = topicId;
+    const needed = connectedPlayers(this.state).length;
+    const votes = Object.keys(this.state.topicVotes).length;
+    if (votes >= needed && needed > 0) {
+      await this.tallyTopicVotes();
+    }
+  }
+
+  async tallyTopicVotes() {
+    const counts = new Map<string, number>();
+    for (const tid of Object.values(this.state.topicVotes)) {
+      counts.set(tid, (counts.get(tid) ?? 0) + 1);
+    }
+    let best = 0;
+    for (const c of counts.values()) best = Math.max(best, c);
+    const tied = [...counts.entries()]
+      .filter(([, c]) => c === best)
+      .map(([id]) => id);
+    const winnerId =
+      tied[Math.floor(Math.random() * tied.length)] ??
+      this.state.topicOptions[0]?.id;
+    const option =
+      this.state.topicOptions.find((t) => t.id === winnerId) ??
+      this.state.topicOptions[0];
+    if (!option) throw new Error("No topics");
+    await this.lockTopic(option);
+  }
+
+  async lockTopic(option: TopicOption) {
+    this.state.selectedTopic = option;
+    if (!option.isCustom) {
+      this.state.usedTopicIds.push(option.id);
+    }
+    this.state.checkpoint = {
+      stones: Object.fromEntries(
+        seatedPlayers(this.state).map((p) => [p.id, p.stones]),
+      ),
+      topicRound: this.state.topicRound,
+    };
+    bump(this.state);
+    await this.beginPrep();
+  }
+
+  async beginPrep() {
+    this.state.phase = "PREP";
+    this.state.phaseDeadlineAt = Date.now() + RULES.prepSeconds * 1000;
+    bump(this.state);
+    await this.setAlarmAt(this.state.phaseDeadlineAt, {
+      kind: "phase",
+      revision: this.state.phaseRevision,
+    });
+  }
+
+  async beginDraft() {
+    const n = this.state.seatOrder.length;
+    this.state.draftOrder = snakeDraftOrder(n, RULES.picksPerPlayer, this.state.starterOffset);
+    this.state.draftCursor = 0;
+    this.state.picks = [];
+    this.state.takenNormalized = [];
+    this.state.phase = "DRAFT";
+    this.state.pickPaused = false;
+    bump(this.state);
+    await this.startPickClock();
+  }
+
+  currentDraftPlayerId(): string | null {
+    const seatIdx = this.state.draftOrder[this.state.draftCursor];
+    if (seatIdx === undefined) return null;
+    return this.state.seatOrder[seatIdx] ?? null;
+  }
+
+  async startPickClock() {
+    this.state.pickDeadlineAt =
+      Date.now() + (RULES.pickClockSeconds + RULES.pickGraceSeconds) * 1000;
+    await this.setAlarmAt(this.state.pickDeadlineAt, {
+      kind: "pick",
+      revision: this.state.phaseRevision,
+    });
+  }
+
+  async handleLockIn(id: string, text: string) {
+    if (
+      this.state.phase !== "DRAFT" &&
+      this.state.phase !== "CORRECTION"
+    ) {
+      throw new Error("Not drafting");
+    }
+    if (this.state.pickPaused) throw new Error("Clock paused");
+    const expected = this.currentDraftPlayerId();
+    if (expected !== id) throw new Error("Not your turn");
+    const clean = text.trim().slice(0, 48);
+    if (clean.length < 1) throw new Error("Enter a pick");
+    const norm = normalizePick(clean);
+    if (this.state.takenNormalized.includes(norm)) {
+      throw new Error("Already taken");
+    }
+
+    const playerPicks = this.state.picks.filter((p) => p.playerId === id);
+    const pickIndex = playerPicks.length;
+    if (pickIndex >= RULES.picksPerPlayer && this.state.phase === "DRAFT") {
+      throw new Error("Roster full");
+    }
+
+    if (this.state.phase === "CORRECTION") {
+      // Replace removed pick slot
+      const turnIndex = this.state.draftCursor;
+      this.state.picks.push({
+        playerId: id,
+        text: clean,
+        pickIndex: Math.min(pickIndex, RULES.picksPerPlayer - 1),
+        turnIndex,
+      });
+      this.state.takenNormalized.push(norm);
+      this.state.phase = "DRAFT";
+      this.state.correctionReason = null;
+      this.state.correctionTargetPickId = null;
+      this.state.draftCursor += 1;
+      bump(this.state);
+      if (this.state.draftCursor >= this.state.draftOrder.length) {
+        await this.beginReview();
+      } else {
+        await this.startPickClock();
+      }
+      return;
+    }
+
+    this.state.picks.push({
+      playerId: id,
+      text: clean,
+      pickIndex,
+      turnIndex: this.state.draftCursor,
+    });
+    this.state.takenNormalized.push(norm);
+    this.state.draftCursor += 1;
+    bump(this.state);
+
+    if (this.state.draftCursor >= this.state.draftOrder.length) {
+      await this.beginReview();
+    } else {
+      await this.startPickClock();
+    }
+  }
+
+  async onPickTimeout() {
+    if (this.state.phase !== "DRAFT" && this.state.phase !== "CORRECTION") return;
+    if (this.state.pickPaused) return;
+    // Missed pick — placeholder with unique miss tag
+    const pid = this.currentDraftPlayerId();
+    if (!pid) return;
+    const miss = `Missed pick (${this.state.draftCursor + 1})`;
+    const norm = normalizePick(`${miss}-${pid}-${this.state.draftCursor}`);
+    const playerPicks = this.state.picks.filter((p) => p.playerId === pid);
+    this.state.picks.push({
+      playerId: pid,
+      text: miss,
+      pickIndex: playerPicks.length,
+      turnIndex: this.state.draftCursor,
+    });
+    this.state.takenNormalized.push(norm);
+    this.state.notice = `Clock expired — missed pick for ${
+      this.state.players.find((p) => p.id === pid)?.name ?? "player"
+    }`;
+    this.state.draftCursor += 1;
+    bump(this.state);
+    if (this.state.draftCursor >= this.state.draftOrder.length) {
+      await this.beginReview();
+    } else {
+      await this.startPickClock();
+      await this.persist();
+    }
+  }
+
+  handlePause(id: string) {
+    if (!this.requireHost(id)) throw new Error("Host only");
+    if (this.state.phase !== "DRAFT" && this.state.phase !== "CORRECTION") {
+      throw new Error("Wrong phase");
+    }
+    if (this.state.pickPaused) return;
+    this.state.pickPaused = true;
+    if (this.state.pickDeadlineAt) {
+      this.state.pickPauseRemainingMs = Math.max(
+        0,
+        this.state.pickDeadlineAt - Date.now(),
+      );
+    }
+    void this.clearAlarm();
+  }
+
+  async handleResume(id: string) {
+    if (!this.requireHost(id)) throw new Error("Host only");
+    if (!this.state.pickPaused) return;
+    this.state.pickPaused = false;
+    const rem = this.state.pickPauseRemainingMs ?? RULES.pickClockSeconds * 1000;
+    this.state.pickDeadlineAt = Date.now() + rem;
+    this.state.pickPauseRemainingMs = null;
+    await this.setAlarmAt(this.state.pickDeadlineAt, {
+      kind: "pick",
+      revision: this.state.phaseRevision,
+    });
+  }
+
+  async handleExtend(id: string) {
+    if (!this.requireHost(id)) throw new Error("Host only");
+    if (!this.state.pickDeadlineAt) return;
+    this.state.pickDeadlineAt += RULES.hostExtendSeconds * 1000;
+    if (!this.state.pickPaused) {
+      await this.setAlarmAt(this.state.pickDeadlineAt, {
+        kind: "pick",
+        revision: this.state.phaseRevision,
+      });
+    } else if (this.state.pickPauseRemainingMs != null) {
+      this.state.pickPauseRemainingMs += RULES.hostExtendSeconds * 1000;
+    }
+  }
+
+  async handleCorrect(
+    id: string,
+    turnIndex: number,
+    reason: "duplicate" | "invalid",
+  ) {
+    if (!this.requireHost(id)) throw new Error("Host only");
+    const pick = this.state.picks.find((p) => p.turnIndex === turnIndex);
+    if (!pick) throw new Error("Pick not found");
+
+    // Remove pick
+    this.state.picks = this.state.picks.filter((p) => p.turnIndex !== turnIndex);
+    this.state.takenNormalized = this.state.picks.map((p) =>
+      normalizePick(p.text),
     );
-    if (done) {
-      this.scoreRushmore();
-      this.state.phase = "reveal";
+
+    if (this.state.scoresLocked) {
+      throw new Error("Scores locked — use Void Topic");
+    }
+
+    if (
+      this.state.phase === "VOTING_AND_JUDGING" ||
+      this.state.phase === "REVIEW" ||
+      Object.keys(this.state.humanVotes).length > 0
+    ) {
+      // Invalidate ballots + re-vote after replacement
+      this.state.humanVotes = {};
+      this.state.scores = [];
+      this.state.scoresLocked = false;
+    }
+
+    this.state.phase = "CORRECTION";
+    this.state.correctionReason = reason;
+    this.state.correctionTargetPickId = String(turnIndex);
+    // Replacement turn: set cursor to that turn's seat, temporarily
+    this.state.draftCursor = turnIndex;
+    // Ensure draftOrder still has this index
+    bump(this.state);
+    this.state.pickPaused = false;
+    await this.startPickClock();
+  }
+
+  async beginReview() {
+    this.state.phase = "REVIEW";
+    this.state.phaseDeadlineAt = Date.now() + RULES.reviewSeconds * 1000;
+    bump(this.state);
+    await this.setAlarmAt(this.state.phaseDeadlineAt, {
+      kind: "phase",
+      revision: this.state.phaseRevision,
+    });
+  }
+
+  async handleSkipReview(id: string) {
+    if (!this.requireHost(id)) throw new Error("Host only");
+    if (this.state.phase !== "REVIEW") return;
+    await this.beginVoting();
+  }
+
+  async beginVoting() {
+    this.state.phase = "VOTING_AND_JUDGING";
+    this.state.humanVotes = {};
+    this.state.scores = [];
+    this.state.scoresLocked = false;
+    this.state.phaseDeadlineAt = Date.now() + RULES.humanVoteSeconds * 1000;
+    bump(this.state);
+    await this.setAlarmAt(this.state.phaseDeadlineAt, {
+      kind: "phase",
+      revision: this.state.phaseRevision,
+    });
+  }
+
+  async handleVote(id: string, targetPlayerId: string) {
+    if (!this.requirePlayer(id)) throw new Error("Players only");
+    if (this.state.phase !== "VOTING_AND_JUDGING") throw new Error("Wrong phase");
+    if (id === targetPlayerId) throw new Error("No self-vote");
+    if (!this.state.seatOrder.includes(targetPlayerId)) {
+      throw new Error("Invalid target");
+    }
+    this.state.humanVotes[id] = targetPlayerId;
+    const needed = seatedPlayers(this.state).filter((p) => p.connected).length;
+    if (Object.keys(this.state.humanVotes).length >= needed && needed > 0) {
+      // If AI already in, finalize; else wait for AI or timeout
+      if (this.state.scores.length > 0 || this.state.scoresLocked) {
+        await this.finalizeScores();
+      }
     }
   }
 
-  scoreRushmore() {
-    const scores: Record<string, number> = {};
-    for (const sub of this.state.submissions) {
-      scores[sub.playerId] = 0;
+  async handleAi(
+    id: string,
+    judgments: Array<{
+      playerId: string;
+      topicFit: number;
+      pickStrength: number;
+      rosterQuality: number;
+      explanation: string;
+    }>,
+    fallback: boolean,
+  ) {
+    if (this.state.phase !== "VOTING_AND_JUDGING") return;
+    if (this.state.scoresLocked) return;
+    // Accept from host preferentially; allow any player if host absent
+    if (!this.requireHost(id) && connectedPlayers(this.state).some((p) => p.isHost)) {
+      return;
     }
-    for (const ranking of this.state.rankings) {
-      const judge = this.state.players.find((p) => p.id === ranking.judgeId);
-      const weight = judge?.doubleJudge ? 2 : 1;
-      ranking.orderedPlayerIds.forEach((pid, index) => {
-        // Best rank (index 0) gets most points
-        const points = (ranking.orderedPlayerIds.length - index) * weight;
-        scores[pid] = (scores[pid] ?? 0) + points;
+
+    const voteCounts: Record<string, number> = {};
+    for (const t of Object.values(this.state.humanVotes)) {
+      voteCounts[t] = (voteCounts[t] ?? 0) + 1;
+    }
+
+    const scores: RosterScore[] = this.state.seatOrder.map((pid) => {
+      const j = judgments.find((x) => x.playerId === pid);
+      let aiAward: number;
+      let topicFit = 0;
+      let pickStrength = 0;
+      let rosterQuality = 0;
+      let explanation: string = RULES.aiFallbackLabel;
+      let aiFallback = fallback || !j;
+      if (j && !fallback) {
+        topicFit = Math.max(0, Math.min(10, Math.round(j.topicFit)));
+        pickStrength = Math.max(0, Math.min(20, Math.round(j.pickStrength)));
+        rosterQuality = Math.max(0, Math.min(10, Math.round(j.rosterQuality)));
+        aiAward = Math.max(
+          0,
+          Math.min(40, topicFit + pickStrength + rosterQuality),
+        );
+        explanation = j.explanation
+          .split(/\s+/)
+          .slice(0, RULES.aiExplanationMaxWords)
+          .join(" ");
+        aiFallback = false;
+      } else {
+        aiAward = fallbackAiAward();
+        topicFit = 5;
+        pickStrength = 10;
+        rosterQuality = 5;
+        aiFallback = true;
+      }
+      const votes = voteCounts[pid] ?? 0;
+      const earned = computeEarnedStones({ votes, aiAward });
+      return {
+        playerId: pid,
+        votes,
+        aiAward,
+        topicFit,
+        pickStrength,
+        rosterQuality,
+        explanation,
+        earned,
+        aiFallback,
+      };
+    });
+
+    this.state.scores = scores;
+    // Finalize when all votes in OR after we already timed out votes
+    const needed = seatedPlayers(this.state).filter((p) => p.connected).length;
+    if (
+      Object.keys(this.state.humanVotes).length >= needed ||
+      (this.state.phaseDeadlineAt !== null &&
+        Date.now() >= this.state.phaseDeadlineAt)
+    ) {
+      await this.finalizeScores();
+    }
+  }
+
+  async finalizeScores() {
+    if (this.state.scoresLocked) return;
+
+    // Ensure scores exist (fallback AI)
+    if (this.state.scores.length === 0) {
+      const voteCounts: Record<string, number> = {};
+      for (const t of Object.values(this.state.humanVotes)) {
+        voteCounts[t] = (voteCounts[t] ?? 0) + 1;
+      }
+      this.state.scores = this.state.seatOrder.map((pid) => {
+        const votes = voteCounts[pid] ?? 0;
+        const aiAward = fallbackAiAward();
+        return {
+          playerId: pid,
+          votes,
+          aiAward,
+          topicFit: 5,
+          pickStrength: 10,
+          rosterQuality: 5,
+          explanation: RULES.aiFallbackLabel,
+          earned: computeEarnedStones({ votes, aiAward }),
+          aiFallback: true,
+        };
+      });
+    } else {
+      // Refresh vote counts onto existing AI scores
+      const voteCounts: Record<string, number> = {};
+      for (const t of Object.values(this.state.humanVotes)) {
+        voteCounts[t] = (voteCounts[t] ?? 0) + 1;
+      }
+      this.state.scores = this.state.scores.map((s) => {
+        const votes = voteCounts[s.playerId] ?? 0;
+        return {
+          ...s,
+          votes,
+          earned: computeEarnedStones({ votes, aiAward: s.aiAward }),
+        };
       });
     }
-    this.state.lastRushmoreScores = scores;
 
-    // Award chips: top scored +3, second +2, others +1 if they submitted
-    const ranked = Object.entries(scores).sort((a, b) => b[1] - a[1]);
-    ranked.forEach(([pid], i) => {
-      const bonus = i === 0 ? 3 : i === 1 ? 2 : 1;
-      const player = this.state.players.find((p) => p.id === pid);
-      if (player) player.chips += bonus;
-    });
-
-    // Clear double judge after use
-    this.state.players = this.state.players.map((p) => ({
-      ...p,
-      doubleJudge: false,
-    }));
-  }
-
-  handleSubmitBank(
-    sender: Party.Connection,
-    action: BankAction,
-    amount: number,
-  ) {
-    if (this.state.phase !== "bank") throw new Error("Not banking now");
-    const player = this.state.players.find((p) => p.id === sender.id);
-    if (!player) throw new Error("Join first");
-
-    const meta = BANK_ACTIONS.find((a) => a.id === action);
-    if (!meta) throw new Error("Unknown wager");
-
-    let amt = action === "skip" ? 0 : amount;
-    if (amt < meta.minAmount || amt > meta.maxAmount) {
-      amt = meta.defaultAmount;
-    }
-    if (player.chips < amt) throw new Error("Not enough chips");
-
-    const rest = this.state.bankWagers.filter((w) => w.playerId !== sender.id);
-    rest.push({ playerId: sender.id, action, amount: amt });
-    this.state.bankWagers = rest;
-
-    this.maybeBotAct();
-    this.maybeAutoRollBank();
-  }
-
-  maybeAutoRollBank() {
-    const need = activePlayers(this.state);
-    const done = need.every((p) =>
-      this.state.bankWagers.some((w) => w.playerId === p.id),
+    this.state.earnedThisRound = Object.fromEntries(
+      this.state.scores.map((s) => [s.playerId, s.earned]),
     );
-    if (done) this.resolveBank();
+    this.state.scoresLocked = true;
+    this.state.phase = "SCORE_REVEAL";
+    this.state.phaseDeadlineAt = null;
+    await this.clearAlarm();
+    bump(this.state);
   }
 
-  resolveBank() {
-    if (this.state.phase !== "bank") throw new Error("Not in BANK");
-    for (const p of activePlayers(this.state)) {
-      if (!this.state.bankWagers.some((w) => w.playerId === p.id)) {
-        this.state.bankWagers.push({
-          playerId: p.id,
-          action: "skip",
-          amount: 0,
+  async handleAdvance(id: string) {
+    if (!this.requireHost(id)) throw new Error("Host only");
+    switch (this.state.phase) {
+      case "PREP":
+        await this.beginDraft();
+        return;
+      case "SCORE_REVEAL":
+        await this.beginWagers();
+        return;
+      case "ROUND_RESULTS":
+        await this.handleNextTopic(id);
+        return;
+      case "REVIEW":
+        await this.beginVoting();
+        return;
+      default:
+        throw new Error("Nothing to advance");
+    }
+  }
+
+  async beginWagers() {
+    this.state.phase = "WAGER_SELECTION";
+    this.state.wagers = {};
+    this.state.wagerDeadlineAt = Date.now() + RULES.wagerTimeoutSeconds * 1000;
+    bump(this.state);
+    await this.setAlarmAt(this.state.wagerDeadlineAt, {
+      kind: "wager",
+      revision: this.state.phaseRevision,
+    });
+  }
+
+  async handleWager(id: string, amount: number) {
+    if (!this.requirePlayer(id)) throw new Error("Players only");
+    if (this.state.phase !== "WAGER_SELECTION") throw new Error("Wrong phase");
+    const p = this.state.players.find((x) => x.id === id)!;
+    const E = this.state.earnedThisRound[id] ?? 0;
+    const B = p.stones;
+    const max = E + Math.min(RULES.earlierWagerCap, B);
+    const W = Math.max(0, Math.min(max, Math.floor(amount)));
+    this.state.wagers[id] = W;
+
+    const needed = seatedPlayers(this.state).length;
+    if (Object.keys(this.state.wagers).length >= needed) {
+      await this.finalizeWagers();
+    }
+  }
+
+  async finalizeWagers() {
+    if (this.state.phase !== "WAGER_SELECTION") return;
+    for (const pid of this.state.seatOrder) {
+      if (this.state.wagers[pid] === undefined) {
+        this.state.wagers[pid] = 0;
+      }
+    }
+
+    this.state.pots = {};
+    this.state.protectedStones = {};
+    this.state.personalRollCounts = {};
+    this.state.diceActiveIds = [];
+
+    for (const pid of this.state.seatOrder) {
+      const p = this.state.players.find((x) => x.id === pid)!;
+      const E = this.state.earnedThisRound[pid] ?? 0;
+      const B = p.stones;
+      const W = this.state.wagers[pid] ?? 0;
+      const protectedBal = B + E - W;
+      this.state.protectedStones[pid] = protectedBal;
+      this.state.pots[pid] = W;
+      this.state.personalRollCounts[pid] = 0;
+      // Players with pot 0 can still be "pulled out" immediately — skip dice
+      if (W > 0) {
+        this.state.diceActiveIds.push(pid);
+      } else {
+        // Bank nothing extra; stones become protected (B+E)
+        p.stones = protectedBal;
+        ledgerPush(this.state, {
+          playerId: pid,
+          kind: "earn",
+          amount: E,
+          balanceAfter: p.stones,
+          note: "Kept all — no dice",
+          topicRound: this.state.topicRound,
         });
       }
     }
 
-    const d1 = rollDie();
-    const d2 = rollDie();
-    const total = d1 + d2;
-    let pot = this.state.pot;
-    const outcomes: BankResult["outcomes"] = [];
-    const chipsBefore: Record<string, number> = {};
-    for (const p of this.state.players) chipsBefore[p.id] = p.chips;
-
-    for (const w of this.state.bankWagers) {
-      const player = this.state.players.find((p) => p.id === w.playerId);
-      if (!player) continue;
-      if (w.amount > 0) {
-        const pay = Math.min(w.amount, player.chips);
-        player.chips -= pay;
-        pot += pay;
-        w.amount = pay;
-      }
+    bump(this.state);
+    if (this.state.diceActiveIds.length === 0) {
+      await this.beginRoundResults();
+    } else {
+      await this.beginDice();
     }
-
-    const potBefore = pot;
-    const doubleJudgeWinnerIds: string[] = [];
-    let rematchWinnerId: string | null = null;
-
-    for (const w of this.state.bankWagers) {
-      const player = this.state.players.find((p) => p.id === w.playerId);
-      if (!player) continue;
-      let note = "Sat out.";
-
-      if (w.action === "skip") {
-        note = "Skipped — chips safe.";
-      } else if (w.action === "pot_shot") {
-        if (total >= 7) {
-          // Even money: return stake + profit. House tops up if pot is thin.
-          const profit = w.amount;
-          const need = w.amount + profit;
-          const fromPot = Math.min(need, pot);
-          pot -= fromPot;
-          player.chips += need;
-          note = `Hit ${total}! Even money +${profit}.`;
-        } else {
-          note = `Rolled ${total} — pot keeps your ${w.amount}.`;
-        }
-      } else if (w.action === "double_judge") {
-        if (total >= 8) {
-          player.doubleJudge = true;
-          const refund = Math.min(w.amount, pot);
-          pot -= refund;
-          player.chips += refund;
-          doubleJudgeWinnerIds.push(player.id);
-          note = `Rolled ${total}! Double Judge unlocked for next Rushmore.`;
-        } else {
-          note = `Needed 8+, got ${total}.`;
-        }
-      } else if (w.action === "rematch_token") {
-        if (total >= 10) {
-          rematchWinnerId = player.id;
-          const refund = Math.min(w.amount, pot);
-          pot -= refund;
-          player.chips += refund;
-          note = `Rolled ${total}! You pick the next category.`;
-        } else {
-          note = `Needed 10+, got ${total}.`;
-        }
-      } else if (w.action === "chip_heist") {
-        if (total === 2 || total === 12) {
-          const richest = [...this.state.players]
-            .filter((p) => p.id !== player.id && (p.connected || p.isBot))
-            .sort((a, b) => b.chips - a.chips)[0];
-          const steal = Math.min(2, richest?.chips ?? 0);
-          const refund = Math.min(w.amount, pot);
-          pot -= refund;
-          player.chips += refund;
-          if (richest && steal > 0) {
-            richest.chips -= steal;
-            player.chips += steal;
-            note = `HEIST! Stole ${steal} from ${richest.name}.`;
-          } else {
-            note = "Heist dice hit, but nobody to rob.";
-          }
-        } else {
-          note = `Needed 2 or 12, got ${total}.`;
-        }
-      }
-
-      outcomes.push({
-        playerId: w.playerId,
-        action: w.action,
-        amount: w.amount,
-        delta: player.chips - (chipsBefore[w.playerId] ?? 0),
-        note,
-      });
-    }
-
-    this.state.pot = Math.max(0, pot);
-
-    if (rematchWinnerId) {
-      this.state.categoryPickerId = rematchWinnerId;
-      this.state.players = this.state.players.map((p) => ({
-        ...p,
-        hasRematchToken: p.id === rematchWinnerId,
-      }));
-    }
-
-    this.state.bankResult = {
-      dice: [d1, d2],
-      total,
-      potBefore,
-      outcomes,
-      rematchWinnerId,
-      doubleJudgeWinnerIds,
-    };
-    this.state.phase = "bank_reveal";
   }
 
-  advance() {
-    switch (this.state.phase) {
-      case "lobby":
-        this.startCategoryPhase();
-        break;
-      case "category": {
-        // Host can force start with leading vote or preset
-        if (this.state.categoryPickerId) {
-          throw new Error("Waiting on rematch token holder to pick");
-        }
-        if (Object.keys(this.state.categoryVotes).length > 0) {
-          this.tallyCategoryVotes();
-        } else {
-          this.state.category = CATEGORY_PRESETS[this.state.round % CATEGORY_PRESETS.length];
-          this.state.phase = "build";
-          this.maybeBotAct();
-        }
-        break;
+  async beginDice() {
+    this.state.phase = "DICE";
+    this.state.diceRoundStartedAt = Date.now();
+    this.state.diceLapsCompleted = 0;
+    this.state.lastDice = null;
+    // Start with first active player in seat order
+    const first = this.state.seatOrder.find((id) =>
+      this.state.diceActiveIds.includes(id),
+    );
+    this.state.diceTurnSeat = first
+      ? this.state.seatOrder.indexOf(first)
+      : 0;
+    bump(this.state);
+    await this.startDiceTurn();
+  }
+
+  currentDicePlayerId(): string | null {
+    return this.state.seatOrder[this.state.diceTurnSeat] ?? null;
+  }
+
+  async startDiceTurn() {
+    // Skip inactive
+    let guard = 0;
+    while (guard++ < 20) {
+      const pid = this.currentDicePlayerId();
+      if (pid && this.state.diceActiveIds.includes(pid)) break;
+      this.advanceDiceSeat();
+    }
+    const pid = this.currentDicePlayerId();
+    if (!pid || this.state.diceActiveIds.length === 0) {
+      await this.beginRoundResults();
+      return;
+    }
+    this.state.diceSubphase = "COOLDOWN";
+    this.state.diceDecisionDeadlineAt =
+      Date.now() + RULES.diceDecisionCountdownSeconds * 1000;
+    this.state.diceIdleDeadlineAt = null;
+    await this.setAlarmAt(this.state.diceDecisionDeadlineAt, {
+      kind: "dice_decision",
+      revision: this.state.phaseRevision,
+    });
+  }
+
+  async unlockRoll() {
+    if (this.state.phase !== "DICE") return;
+    if (this.state.diceSubphase !== "COOLDOWN") return;
+    this.state.diceSubphase = "READY";
+    this.state.diceIdleDeadlineAt =
+      Date.now() + RULES.diceIdleBankSeconds * 1000;
+    await this.setAlarmAt(this.state.diceIdleDeadlineAt, {
+      kind: "dice_idle",
+      revision: this.state.phaseRevision,
+    });
+  }
+
+  advanceDiceSeat() {
+    const n = this.state.seatOrder.length;
+    if (n === 0) return;
+    const prev = this.state.diceTurnSeat;
+    this.state.diceTurnSeat = (this.state.diceTurnSeat + 1) % n;
+    if (this.state.diceTurnSeat <= prev) {
+      this.state.diceLapsCompleted += 1;
+    }
+  }
+
+  async handleRoll(id: string) {
+    if (this.state.phase !== "DICE") throw new Error("Wrong phase");
+    if (this.state.diceSubphase !== "READY") {
+      throw new Error("Wait for countdown");
+    }
+    if (this.currentDicePlayerId() !== id) throw new Error("Not your roll");
+    if (!this.state.diceActiveIds.includes(id)) throw new Error("Not active");
+
+    // Atomic: mark committed
+    this.state.diceSubphase = "COMMITTED";
+    await this.clearAlarm();
+
+    const rollNum = (this.state.personalRollCounts[id] ?? 0) + 1;
+    this.state.personalRollCounts[id] = rollNum;
+    const [d1, d2] = roll2d6();
+    const potBefore = this.state.pots[id] ?? 0;
+    const outcome = applyDiceRoll(potBefore, { d1, d2 }, rollNum);
+    this.state.pots[id] = outcome.potAfter;
+    this.state.lastDice = {
+      rollerId: id,
+      d1,
+      d2,
+      personalRollNumber: rollNum,
+      potBefore,
+      potAfter: outcome.potAfter,
+      busted: outcome.busted,
+      note: outcome.note,
+      animStartedAt: Date.now(),
+      animSeed: (Date.now() ^ (d1 * 10 + d2)) >>> 0,
+      outcomeKind: outcome.kind,
+    };
+
+    if (outcome.busted) {
+      this.state.diceActiveIds = this.state.diceActiveIds.filter((x) => x !== id);
+      ledgerPush(this.state, {
+        playerId: id,
+        kind: "bust",
+        amount: -potBefore,
+        balanceAfter: this.state.protectedStones[id] ?? 0,
+        note: "Busted",
+        topicRound: this.state.topicRound,
+      });
+      const p = this.state.players.find((x) => x.id === id);
+      if (p) p.stones = this.state.protectedStones[id] ?? 0;
+
+      if (this.state.settings.partyMode) {
+        this.state.partyPrompt = {
+          kind: "bust_sip",
+          targetPlayerIds: [id],
+          resolved: false,
+        };
       }
-      case "build":
-        // Host force-advance: fill missing with placeholders? Better require
-        throw new Error("Waiting for all Rushmores");
-      case "rank":
-        throw new Error("Waiting for all rankings");
-      case "reveal":
-        this.state.phase = "bank";
-        this.state.bankWagers = [];
-        this.state.bankResult = null;
-        this.maybeBotAct();
+    }
+
+    // Animation settle ~2.2s
+    await this.setAlarmAt(Date.now() + 2200, {
+      kind: "dice_anim",
+      revision: this.state.phaseRevision,
+    });
+  }
+
+  async afterDiceAnim() {
+    if (this.state.phase !== "DICE") return;
+    // Soft budget: finish current lap then settle if laps >= min and budget exceeded
+    const started = this.state.diceRoundStartedAt ?? Date.now();
+    const overBudget =
+      Date.now() - started >= RULES.diceSoftBudgetMs &&
+      this.state.diceLapsCompleted >= RULES.diceMinLapsBeforeSettlement;
+
+    if (overBudget) {
+      await this.settleRemainingDice();
+      return;
+    }
+
+    if (this.state.diceActiveIds.length === 0) {
+      await this.beginRoundResults();
+      return;
+    }
+
+    this.advanceDiceSeat();
+    bump(this.state);
+    await this.startDiceTurn();
+  }
+
+  async handlePullOut(id: string) {
+    if (this.state.phase !== "DICE") throw new Error("Wrong phase");
+    if (
+      this.state.diceSubphase !== "READY" &&
+      this.state.diceSubphase !== "COOLDOWN"
+    ) {
+      throw new Error("Cannot pull out now");
+    }
+    if (this.currentDicePlayerId() !== id) throw new Error("Not your turn");
+    if (!this.state.diceActiveIds.includes(id)) throw new Error("Not active");
+    // Atomic vs roll: COMMITTED already rejected by subphase gate above.
+
+    await this.clearAlarm();
+    const pot = this.state.pots[id] ?? 0;
+    const prot = this.state.protectedStones[id] ?? 0;
+    const p = this.state.players.find((x) => x.id === id)!;
+    p.stones = prot + pot;
+    this.state.pots[id] = 0;
+    this.state.diceActiveIds = this.state.diceActiveIds.filter((x) => x !== id);
+    ledgerPush(this.state, {
+      playerId: id,
+      kind: "bank",
+      amount: pot,
+      balanceAfter: p.stones,
+      note: "Pull Out",
+      topicRound: this.state.topicRound,
+    });
+    bump(this.state);
+
+    if (this.state.diceActiveIds.length === 0) {
+      await this.beginRoundResults();
+    } else {
+      this.advanceDiceSeat();
+      await this.startDiceTurn();
+    }
+  }
+
+  async autoBankCurrent() {
+    const pid = this.currentDicePlayerId();
+    if (!pid) return;
+    if (this.state.diceSubphase !== "READY") return;
+    try {
+      await this.handlePullOut(pid);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  async settleRemainingDice() {
+    for (const pid of [...this.state.diceActiveIds]) {
+      const pot = this.state.pots[pid] ?? 0;
+      const prot = this.state.protectedStones[pid] ?? 0;
+      const p = this.state.players.find((x) => x.id === pid);
+      if (p) {
+        p.stones = prot + pot;
+        ledgerPush(this.state, {
+          playerId: pid,
+          kind: "bank",
+          amount: pot,
+          balanceAfter: p.stones,
+          note: "Timed settlement",
+          topicRound: this.state.topicRound,
+        });
+      }
+      this.state.pots[pid] = 0;
+    }
+    this.state.diceActiveIds = [];
+    this.state.notice = "Dice soft budget — remaining pots banked";
+    await this.beginRoundResults();
+  }
+
+  async beginRoundResults() {
+    this.state.phase = "ROUND_RESULTS";
+    this.state.diceSubphase = "SETTLED";
+    this.state.topicRound += 1;
+    // Rotate starter for next topic
+    this.state.starterOffset =
+      (this.state.starterOffset + 1) % Math.max(1, this.state.seatOrder.length);
+
+    if (this.state.settings.partyMode) {
+      const ranked = [...seatedPlayers(this.state)].sort(
+        (a, b) => b.stones - a.stones,
+      );
+      const top = ranked[0]?.stones ?? 0;
+      const winners = ranked.filter((p) => p.stones === top).map((p) => p.id);
+      if (!this.state.partyPrompt) {
+        this.state.partyPrompt = {
+          kind: "winner_sip",
+          targetPlayerIds: winners,
+          resolved: false,
+        };
+      }
+    }
+
+    bump(this.state);
+    await this.clearAlarm();
+  }
+
+  handlePartyResolve(id: string, _choice: "done" | "pass") {
+    if (!this.state.partyPrompt) return;
+    // Any involved player or host can dismiss
+    if (
+      this.state.partyPrompt.targetPlayerIds.includes(id) ||
+      this.requireHost(id)
+    ) {
+      this.state.partyPrompt = { ...this.state.partyPrompt, resolved: true };
+      this.state.partyPrompt = null;
+    }
+  }
+
+  async handleNextTopic(id: string) {
+    if (!this.requireHost(id)) throw new Error("Host only");
+    if (
+      this.state.phase !== "ROUND_RESULTS" &&
+      this.state.phase !== "GAME_RESULTS"
+    ) {
+      throw new Error("Wrong phase");
+    }
+    this.state.partyPrompt = null;
+    await this.beginTopicSelection();
+  }
+
+  handleEndGame(id: string) {
+    if (!this.requireHost(id)) throw new Error("Host only");
+    this.state.phase = "GAME_RESULTS";
+    this.state.gameOver = true;
+    bump(this.state);
+    void this.clearAlarm();
+  }
+
+  async handlePlayAgain(id: string) {
+    if (!this.requireHost(id)) throw new Error("Host only");
+    const code = this.state.code;
+    const settings = this.state.settings;
+    const names = this.state.players.map((p) => ({
+      id: p.id,
+      name: p.name,
+      role: p.role,
+      connected: p.connected,
+    }));
+    this.state = emptyRoomState(code);
+    this.state.settings = settings;
+    this.state.players = names.map((n, i) => ({
+      id: n.id,
+      name: n.name,
+      stones: RULES.startBalance,
+      connected: n.connected,
+      isHost: i === 0,
+      role: n.role === "spectator" ? "player" : n.role,
+      seat: null,
+      joinedAt: Date.now(),
+    }));
+    // Re-promote first connected as host
+    this.ensureHost();
+    bump(this.state);
+    await this.clearAlarm();
+  }
+
+  handleVoidTopic(id: string) {
+    if (!this.requireHost(id)) throw new Error("Host only");
+    if (!this.state.checkpoint) throw new Error("No checkpoint");
+    if (!this.state.scoresLocked && this.state.phase !== "DICE") {
+      throw new Error("Void only after scores locked");
+    }
+    for (const p of this.state.players) {
+      if (p.id in this.state.checkpoint.stones) {
+        p.stones = this.state.checkpoint.stones[p.id]!;
+      }
+    }
+    this.state.notice = "Topic voided — stones restored";
+    this.state.partyPrompt = null;
+    void this.beginTopicSelection();
+  }
+
+  async onPhaseTimeout() {
+    switch (this.state.phase) {
+      case "TOPIC_SELECTION":
+        await this.tallyTopicVotes();
         break;
-      case "bank":
-        this.resolveBank();
+      case "PREP":
+        await this.beginDraft();
         break;
-      case "bank_reveal":
-        this.startCategoryPhase();
+      case "REVIEW":
+        await this.beginVoting();
+        break;
+      case "VOTING_AND_JUDGING":
+        await this.finalizeScores();
         break;
       default:
         break;
     }
   }
 
-  maybeBotAct() {
-    const bot = this.state.players.find((p) => p.isBot);
-    if (!bot) return;
-
-    if (this.state.phase === "category" && !this.state.categoryPickerId) {
-      if (!this.state.categoryVotes[bot.id]) {
-        const pick =
-          CATEGORY_PRESETS[Math.floor(Math.random() * CATEGORY_PRESETS.length)];
-        this.state.categoryVotes[bot.id] = pick;
+  async checkHostFailover() {
+    const elapsed = Date.now() - this.state.hostLastSeenAt;
+    if (elapsed > RULES.hostFailoverSeconds * 1000) {
+      const host = this.state.players.find((p) => p.isHost);
+      if (host && !host.connected) {
+        this.ensureHost();
       }
-    }
-
-    if (this.state.phase === "category" && this.state.categoryPickerId === bot.id) {
-      const pick =
-        CATEGORY_PRESETS[Math.floor(Math.random() * CATEGORY_PRESETS.length)];
-      this.state.category = pick;
-      this.state.categoryPickerId = null;
-      this.state.players = this.state.players.map((p) => ({
-        ...p,
-        hasRematchToken: false,
-      }));
-      this.state.phase = "build";
-    }
-
-    if (
-      this.state.phase === "build" &&
-      this.state.category &&
-      !this.state.submissions.some((s) => s.playerId === bot.id)
-    ) {
-      this.upsertSubmission(bot.id, botRushmore(this.state.category));
-      this.maybeFinishBuild();
-    }
-
-    if (
-      this.state.phase === "rank" &&
-      !this.state.rankings.some((r) => r.judgeId === bot.id)
-    ) {
-      const others = this.state.submissions
-        .map((s) => s.playerId)
-        .filter((id) => id !== bot.id);
-      // Shuffle preference
-      const ordered = [...others].sort(() => Math.random() - 0.5);
-      this.state.rankings.push({
-        judgeId: bot.id,
-        orderedPlayerIds: ordered,
-        rationale: botRationale(this.state.category ?? "this category"),
-      });
-      this.maybeFinishRank();
-    }
-
-    if (
-      this.state.phase === "bank" &&
-      !this.state.bankWagers.some((w) => w.playerId === bot.id)
-    ) {
-      const options: BankWager[] = [
-        { playerId: bot.id, action: "pot_shot", amount: 1 },
-        { playerId: bot.id, action: "skip", amount: 0 },
-        { playerId: bot.id, action: "chip_heist", amount: 1 },
-      ];
-      const choice = options[Math.floor(Math.random() * options.length)];
-      if (bot.chips >= choice.amount) {
-        this.state.bankWagers.push(choice);
-      } else {
-        this.state.bankWagers.push({
-          playerId: bot.id,
-          action: "skip",
-          amount: 0,
-        });
-      }
-      this.maybeAutoRollBank();
     }
   }
 }
 
-RushmoreBankServer satisfies Party.Worker;
+QuarryServer satisfies Party.Worker;

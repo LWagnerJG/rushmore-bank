@@ -1,28 +1,28 @@
 import type { Metadata, Viewport } from "next";
-import { Outfit, Syne } from "next/font/google";
+import { Nunito, Sora } from "next/font/google";
 import "./globals.css";
 
-const outfit = Outfit({
+const nunito = Nunito({
   variable: "--font-body",
   subsets: ["latin"],
 });
 
-const syne = Syne({
+const sora = Sora({
   variable: "--font-display",
   subsets: ["latin"],
   weight: ["600", "700", "800"],
 });
 
 const siteUrl = "https://roundacats.vercel.app";
-const title = "RoundaCats";
+const title = "Quarry";
 const description =
-  "Multiplayer party game: Mount Rushmore rankings + BANK wagering. Create a room, share a code, play on phones.";
+  "Draft four. Roll for more. — Party game with Stones, snake draft, and synchronized dice.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title,
   description,
-  applicationName: "RoundaCats",
+  applicationName: "Quarry",
   manifest: "/site.webmanifest",
   icons: {
     icon: [
@@ -35,21 +35,21 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    title: "RoundaCats",
-    statusBarStyle: "black-translucent",
+    title: "Quarry",
+    statusBarStyle: "default",
   },
   openGraph: {
     type: "website",
     url: siteUrl,
     title,
     description,
-    siteName: "RoundaCats",
+    siteName: "Quarry",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "RoundaCats — cool dog mascot with rainbow sunglasses",
+        alt: "Quarry — dog mascot with rainbow sunglasses",
       },
     ],
   },
@@ -65,7 +65,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#0b1220",
+  themeColor: "#F5F0E7",
 };
 
 export default function RootLayout({
@@ -74,7 +74,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${outfit.variable} ${syne.variable} h-full`}>
+    <html lang="en" className={`${nunito.variable} ${sora.variable} h-full`}>
       <body className="min-h-full font-[family-name:var(--font-body)] antialiased">
         {children}
       </body>
