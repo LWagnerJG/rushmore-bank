@@ -548,10 +548,13 @@ export default class RushmoreBankServer implements Party.Server {
         note = "Skipped — chips safe.";
       } else if (w.action === "pot_shot") {
         if (total >= 7) {
-          const payout = Math.min(2 * w.amount, pot);
-          pot -= payout;
-          player.chips += payout;
-          note = `Hit ${total}! Even money +${w.amount}.`;
+          // Even money: return stake + profit. House tops up if pot is thin.
+          const profit = w.amount;
+          const need = w.amount + profit;
+          const fromPot = Math.min(need, pot);
+          pot -= fromPot;
+          player.chips += need;
+          note = `Hit ${total}! Even money +${profit}.`;
         } else {
           note = `Rolled ${total} — pot keeps your ${w.amount}.`;
         }
