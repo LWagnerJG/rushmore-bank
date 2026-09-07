@@ -329,6 +329,7 @@ console.log("PASS: full round-robin BANK circuits, zero/all wagers, personal saf
 const { cleanDraftOptions, starterDraftOptions } = await get("src/shared/draft-options.ts");
 assert.deepEqual(Array.from(cleanDraftOptions(["  Aaron Judge ", "aaron judge", 5, "", "a".repeat(49), "Babe Ruth"])), ["Aaron Judge", "Babe Ruth"]);
 assert.equal(starterDraftOptions("greatest-nba-players").length >= 40, true);
+assert.equal(starterDraftOptions("custom-browser-check", "Greatest NBA players of all time").length >= 40, true);
 const { POST: draftOptionsPost } = await get("src/app/api/draft-options/route.ts");
 function draftRequest(auth = "Bearer test-only-secret", data = { topic: "Greatest NBA players", scopeBoundary: "NBA only" }) {
   return new Request("http://local/api/draft-options", { method: "POST", headers: { authorization: auth, "Content-Type": "application/json" }, body: JSON.stringify(data) });

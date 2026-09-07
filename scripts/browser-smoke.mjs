@@ -62,7 +62,7 @@ async function smoke(type, engine) {
     assert.match(await roster.innerText(), /Brynna/);
     assert.equal((await roster.boundingBox()).y < 350, true, "arrivals visible before sharing controls");
     await host.page.screenshot({ path: `${out}/${type}-lobby.png`, fullPage: true });
-    await host.page.screenshot({ path: `${out}/${type}-lobby.jpg`, type: "jpeg", quality: 30 });
+    await host.page.screenshot({ path: `${out}/${type}-lobby.jpg`, type: "jpeg", quality: 40, scale: "css" });
     guest.state = null;
     await guest.page.reload();
     await until(() => guest.state?.players.find((player) => player.id === guest.id)?.connected, "rejoin");
@@ -70,7 +70,7 @@ async function smoke(type, engine) {
     for (let round = 0; round < 3; round++) {
       await until(() => host.state?.phase === "TOPIC_SELECTION", "topic selection");
       await host.page.getByText("Write a topic", { exact: true }).click();
-      await host.page.getByLabel("Custom topic").fill("Greatest NBA players");
+      await host.page.getByLabel("Custom topic").fill("Greatest NBA players of all time");
       await host.page.getByRole("button", { name: "Use this topic", exact: true }).click();
       await until(() => clients.every((client) => client.state?.phase === "PREP"), "prep");
       await guest.page.getByLabel("Private idea").fill("Private queue check");
@@ -97,7 +97,7 @@ async function smoke(type, engine) {
           assert.match(await host.page.getByRole("table").innerText(), new RegExp(answer.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
           assert.equal(await host.page.locator("td").count(), 8);
           await host.page.screenshot({ path: `${out}/${type}-draft.png`, fullPage: true });
-          await host.page.screenshot({ path: `${out}/${type}-draft.jpg`, type: "jpeg", quality: 30 });
+          await host.page.screenshot({ path: `${out}/${type}-draft.jpg`, type: "jpeg", quality: 40, scale: "css" });
           await host.page.getByRole("button", { name: "Available", exact: true }).click();
         }
       }
@@ -148,7 +148,7 @@ async function smoke(type, engine) {
         }, "visible pip faces match server dice", 2000);
         if (turn === 0 && round === 0) {
           await host.page.screenshot({ path: `${out}/${type}-dice.png`, fullPage: true });
-          await host.page.screenshot({ path: `${out}/${type}-dice.jpg`, type: "jpeg", quality: 30 });
+          await host.page.screenshot({ path: `${out}/${type}-dice.jpg`, type: "jpeg", quality: 40, scale: "css" });
         }
       }
       for (const client of clients) {
@@ -166,7 +166,7 @@ async function smoke(type, engine) {
     report.errors.push(`${type}: ${error.stack || error}`);
     for (const client of clients) {
       report.pages.push({ engine: type, name: client.name, phase: client.state?.phase, cursor: client.state?.draftCursor, body: (await client.page.locator("body").innerText().catch(() => "")).slice(0, 2500) });
-      await client.page.screenshot({ path: `${out}/${type}-${client.name}-failure.jpg`, type: "jpeg", quality: 30 }).catch(() => {});
+      await client.page.screenshot({ path: `${out}/${type}-${client.name}-failure.jpg`, type: "jpeg", quality: 40, scale: "css" }).catch(() => {});
     }
     throw error;
   } finally {
