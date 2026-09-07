@@ -70,7 +70,7 @@ export default function BuildNotesPage() {
           <li>
             <strong>Gemini-first AI judge</strong> —{" "}
             <code>/api/judge</code> prefers <code>GEMINI_API_KEY</code> (or{" "}
-            <code>GOOGLE_GENERATIVE_AI_API_KEY</code>) with Gemini 2.0 Flash;
+            <code>GOOGLE_GENERATIVE_AI_API_KEY</code>) with Gemini 3.5 Flash;
             falls back to <code>OPENAI_API_KEY</code> if Gemini unset; uniform
             neutral award if neither key is present.
           </li>

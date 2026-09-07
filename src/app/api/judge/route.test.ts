@@ -103,7 +103,7 @@ describe("/api/judge Gemini preference", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const calledUrl = String(fetchMock.mock.calls[0][0]);
     expect(calledUrl).toContain("generativelanguage.googleapis.com");
-    expect(calledUrl).toContain("gemini-2.0-flash");
+    expect(calledUrl).toContain("gemini-3.5-flash");
     expect(calledUrl).not.toContain("api.openai.com");
   });
 
