@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useGameRoom } from "@/hooks/useGameRoom";
 import { phaseLabel, type Phase } from "@/shared/types";
 import { RULES } from "@/shared/rules";
+import { BrandMark } from "@/components/BrandMark";
+import { getPartyHost } from "@/lib/party";
 import { LobbyPanel } from "@/components/LobbyPanel";
 import { TopicPanel } from "@/components/TopicPanel";
 import { PrepPanel } from "@/components/PrepPanel";
@@ -17,24 +19,17 @@ import { DicePanel } from "@/components/DicePanel";
 import { ResultsPanel } from "@/components/ResultsPanel";
 import { PlayerRail } from "@/components/PlayerRail";
 
-function BrandMark() {
-  return (
-    <div className="flex items-center gap-1.5">
-      <div className="flex gap-0.5">
-        {[1, 2, 3, 4].map((n) => (
-          <span key={n} className="stone-tile !h-5 !w-5 !text-[0.55rem]">
-            {n}
-          </span>
-        ))}
-      </div>
-      <span className="font-[family-name:var(--font-display)] text-lg font-extrabold">
-        {RULES.displayName}
-      </span>
-    </div>
-  );
+export function RoomClient(props: { code: string; presetName: string; preferSpectate: boolean }) {
+  if (!getPartyHost()) return <main className="mx-auto max-w-md space-y-5 px-5 py-12">
+    <BrandMark />
+    <h1 className="text-2xl font-extrabold">Almost ready for friends.</h1>
+    <p>This test build is waiting for its own game server. The live game stays separate.</p>
+    <Link href="/" className="btn-secondary inline-flex items-center">Back to Beans</Link>
+  </main>;
+  return <ConnectedRoomClient {...props} />;
 }
 
-export function RoomClient({
+function ConnectedRoomClient({
   code,
   presetName,
   preferSpectate,
@@ -89,7 +84,7 @@ export function RoomClient({
       case "DRAFT":
       case "CORRECTION":
         return (
-          <DraftPanel state={state} you={you} youId={youId} send={send} />
+          <DraftPanel key={state.selectedTopic?.id} state={state} you={you} youId={youId} send={send} />
         );
       case "REVIEW":
         return <ReviewPanel state={state} you={you} send={send} />;
@@ -143,6 +138,7 @@ export function RoomClient({
           value={name}
           maxLength={18}
           placeholder="Nickname"
+          aria-label="Your nickname"
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") join(name, preferSpectate ? "spectator" : "player");
@@ -151,6 +147,7 @@ export function RoomClient({
         <button
           type="button"
           className="btn-primary"
+          disabled={!connected || !name.trim()}
           onClick={() => join(name, preferSpectate ? "spectator" : "player")}
         >
           Join
@@ -171,18 +168,18 @@ export function RoomClient({
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col px-4 pb-8 pt-3">
+    <main className={`mx-auto flex min-h-dvh flex-col px-4 pb-8 pt-3 ${phase === "DRAFT" || phase === "CORRECTION" ? "max-w-3xl" : "max-w-md"}`}>
       <header className="sticky top-0 z-20 -mx-4 mb-3 border-b border-[rgba(35,72,62,0.08)] bg-[rgba(245,240,231,0.92)] px-4 py-2 backdrop-blur">
         <div className="flex items-center justify-between gap-2">
           <BrandMark />
           <div className="text-right text-xs font-bold uppercase tracking-wide text-[var(--muted)]">
-            <div>{phase ? phaseLabel(phase) : "…"}</div>
+            <div>{phase === "VOTING_AND_JUDGING" && state?.seatOrder.length === 2 ? "Judging" : phase ? phaseLabel(phase) : "…"}</div>
             <div className="text-[var(--text)]">
               {you.stones} {RULES.currencyName}
             </div>
           </div>
         </div>
-        {state && <PlayerRail state={state} youId={youId} />}
+        {state && phase !== "LOBBY" && phase !== "DRAFT" && phase !== "CORRECTION" && phase !== "DICE" && <PlayerRail state={state} youId={youId} />}
         {state?.notice && (
           <p className="mt-1 text-xs font-semibold text-[var(--coral)]">
             {state.notice}

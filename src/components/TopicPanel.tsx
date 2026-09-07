@@ -52,8 +52,7 @@ export function TopicPanel({
         </span>
       </div>
       <p className="text-sm text-[var(--muted)]">
-        Round {state.topicRound + 1} of {state.configuredTopicRounds} · vote is
-        private
+        Round {state.topicRound + 1} of {state.configuredTopicRounds}
       </p>
 
       <div className={`space-y-2 ${spinning ? "topic-spinner" : ""}`}>
@@ -74,7 +73,7 @@ export function TopicPanel({
                 <div>
                   <p className="font-extrabold">{t.text}</p>
                   <p className="mt-1 text-xs text-[var(--muted)]">
-                    {t.scope} · {t.scopeBoundary}
+                    {t.scopeBoundary}
                   </p>
                 </div>
                 <span className="rounded-full bg-[var(--mint)] px-2 py-0.5 text-xs font-bold">
@@ -94,17 +93,20 @@ export function TopicPanel({
             onClick={() => send({ type: "majority_reroll" })}
             disabled={state.topicRerollsUsed >= 1}
           >
-            Reroll shortlist ({1 - state.topicRerollsUsed} left)
+            Spin again ({1 - state.topicRerollsUsed} left)
           </button>
-          <p className="text-xs font-bold">Custom topic</p>
+          <details className="space-y-2"><summary className="cursor-pointer text-sm font-bold">Write a topic</summary>
           <input
             className="field w-full"
             value={custom}
             placeholder="Your topic"
+            aria-label="Custom topic"
+            maxLength={120}
             onChange={(e) => setCustom(e.target.value)}
           />
           <select
             className="field w-full"
+            aria-label="Topic category"
             value={scope}
             onChange={(e) => setScope(e.target.value as TopicScope)}
           >
@@ -125,10 +127,12 @@ export function TopicPanel({
               })
             }
           >
-            Lock custom
+            Use this topic
           </button>
+          </details>
         </div>
       )}
     </div>
   );
 }
+

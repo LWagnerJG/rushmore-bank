@@ -1,14 +1,14 @@
-# Quarry — confirmed rules
+# Beans — confirmed rules
 
-Display name: **Quarry**. Tagline: *Draft four. Roll for more.* Currency: **Stones**.  
+Display name: **Beans**. Tagline: *Draft four. Bank beans.* Currency: **beans**.  
 Production: https://roundacats.vercel.app
 
 Tunable defaults live in `src/shared/rules.ts` (`RULES`). Do not quietly change confirmed behavior.
 
 ## Players
 
-- 3–10 players (max 10). Individual competition; a “team” is one’s 4 picks.
-- Nickname only. Rejoin via secure guest token (stable per-device room id), not nickname alone.
+- 2–10 players (max 10). Individual competition; a “team” is one’s 4 picks.
+- Nickname only. Rejoin via secure guest token (per-tab room id; closing a tab or switching to the installed app may require explicit seat recovery), not nickname alone.
 - Roster locks at Start; late joiners are spectators until the next game.
 - Optional TV/spectator view (no seat).
 
@@ -23,23 +23,24 @@ LOBBY → TOPIC_SELECTION → PREP → DRAFT (+ CORRECTION) → REVIEW
 
 ## Topics
 
-- Random shortlist: **3** choices if 3–5 players, **2** if 6–10 (host override allowed).
+- Random shortlist: **3** choices if 2–5 players, **2** if 6–10 (host override allowed).
 - Scopes: sports / food / everyday / entertainment + host custom.
 - ≥120 curated topics with scope tags (`src/shared/topics.ts`).
 - Vote 20s or all-in; ties → server random among tied.
-- 1 majority reroll per topic selection. No topic repeat in a game.
-- Scope boundary shown before draft. Bank supports 40 distinct answers for 10 players.
+- 1 host-triggered reroll per topic selection after the group agrees. No topic repeat in a game.
+- Scope boundary shown before draft. Ten players need 40 distinct valid answers: review narrow prompts before using them with large groups.
 
 ## Draft
 
-- 20s prep. Fair random seat order; starter rotates later topics.
-- 4 snake passes for N=3..10. One **Lock In** per turn (server-validated).
+- 20s prep. Random seat order; starter rotates later topics.
+- 4 snake passes for N=2..10. One **Lock pick** per turn (server-validated).
 - Pick clock 30s + short grace (5s); host pause / extend (+15s).
 - Missed after grace → placeholder miss pick.
-- **My Ideas**: private, persisted per device/room/player/topic; Use → field; Taken markers from public events; never in AI/spectator payloads.
+- **My queue**: private, saved per device/room/player/topic. Available answers can be searched and queued, and players can type their own. Taken answers are removed from Available and marked in the queue. The four-row board shows the snake order and current pick.
+- Suggestions come from a starter catalog or one bounded, authenticated Gemini request per topic. Failure leaves manual entry available. Suggestions do not affect the judge.
 - Host may mark Duplicate or Group Invalid → replacement turn (30s), resume cursor.
 - Review/pitch 30s optional. Correction after ballots → invalidate + re-vote.
-- After scores locked: **Void Topic** only (checkpoint restore).
+- After scores locked: **Discard round** only (checkpoint restore).
 
 ## Scoring
 
@@ -47,21 +48,24 @@ LOBBY → TOPIC_SELECTION → PREP → DRAFT (+ CORRECTION) → REVIEW
 earned = 20 + ai_award(0–40) + 5 × human_votes
 ```
 
-- One private human vote for another’s full roster (no self-vote). Show counts, not voters.
+- With 3–10 players: one private vote for another’s full roster (no self-vote). Show counts, not voters.
+- With 2 players: no human ballots or vote bonus; earned = 20 + AI award. Advance as soon as the judge finishes. The locked starting roster size determines this, even if someone disconnects.
+- Two-player AI failure gives 40 beans each; the game proceeds to wagers.
 - AI: one bounded request for all rosters; `topic_fit` 0–10, `pick_strength` 0–20, `roster_quality` 0–10; sum = `ai_award`; explanation ≤45 words.
 - Prompt version: `quarry-judge-v1` (locked in `RULES.aiPromptVersion`).
 - Fallback if AI fails: `20 + 20 + 5×votes`, labeled “Judge unavailable…”.
-- Everyone earns Stones (even 0 votes). Start balance **0**.
+- Everyone earns beans (even 0 votes). Start balance **0**.
 
 ## Wagers
 
 ```
-max_wager = E + min(25, B)
+max_wager = E + B
 protected = B + E − W
 pot = W
 ```
 
-- Defaults: Keep All / Half New / All New + custom.
+- Slider and visible number field: 0 through the full current balance. None / Half / All in shortcuts. Players must lock the amount.
+- Every player enters dice play, including a zero wager. All un-wagered beans remain protected.
 - No response in 20s → W=0.
 - Integers only; append-only ledger.
 
@@ -70,17 +74,18 @@ pot = W
 - 2d6. Personal roll count. Outcomes affect **only** the roller.
 - Rolls 1–2 (safe): seven → **+70**; else **+sum** (doubles add faces).
 - Rolls 3+: seven → **bust** pot=0 exit; doubles → **double pot** (no add faces); else **+sum**.
-- Rotate one throw each. **Pull Out** banks pot between rolls.
+- One throw per active player, then pass around the table again. **Bank** keeps the pot and exits this dice round. Even a zero pot can bank or time out.
+- Each new topic starts a fresh BANK round: everyone returns, current winnings carry forward, and personal safe-roll counts reset.
 - Countdown 5s → unlock Roll (do not auto-throw). Idle 10s → auto bank pot.
-- Atomic Roll vs Pull Out.
+- Atomic Roll vs Bank.
 - Synchronized 3D scene with authoritative faces (all 36 outcomes). Fair backend RNG (rejection sampling).
-- Soft budget 3 min; finish current lap; ≥3 laps before timed settlement for remaining players.
-- Reduced-motion fallback. Prefer host sound.
+- The dice round ends when everyone banks or busts. No global timer forces the table to finish.
+- Pip dice use shared 3D geometry projected into SVG, a shared seed and timestamps. Reduced motion shows a still roll state before the result. Sound is optional, host only.
 
 ### Worked path (tests)
 
 Protected **95**. Pot path: `105 → 175` (safe seven) → `187` (safe 6+6) → `374` (dangerous doubles).  
-Banking that pot yields **95 + 374 = 469** total Stones — **469 is the banked total, not the next dice pot**.  
+Banking that pot yields **95 + 374 = 469** total beans — **469 is the banked total, not the next dice pot**.  
 A following non-seven face-sum on the pot (without banking) adds normally (e.g. 5+6 → 385).
 
 ## Party Mode

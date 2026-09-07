@@ -17,6 +17,7 @@ function partyRequest(body: unknown = sampleBody): NextRequest {
     headers: {
       "content-type": "application/json",
       "x-quarry-judge": "partykit",
+      authorization: "Bearer test-judge-secret",
     },
     body: JSON.stringify(body),
   });
@@ -31,9 +32,10 @@ describe("/api/judge Gemini preference", () => {
     fetchMock.mockReset();
     vi.stubGlobal("fetch", fetchMock);
     delete process.env.GEMINI_API_KEY;
+    delete process.env.GEMINI_MODEL;
     delete process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     delete process.env.OPENAI_API_KEY;
-    delete process.env.JUDGE_SECRET;
+    process.env.JUDGE_SECRET = "test-judge-secret";
   });
 
   afterEach(() => {
@@ -213,6 +215,7 @@ describe("/api/judge Gemini preference", () => {
   });
 
   it("denies anonymous callers when a paid key is set and JUDGE_SECRET is unset", async () => {
+    delete process.env.JUDGE_SECRET;
     process.env.GEMINI_API_KEY = "test-gemini";
     const { POST } = await import("./route");
     const req = new NextRequest("http://localhost/api/judge", {
@@ -224,4 +227,22 @@ describe("/api/judge Gemini preference", () => {
     expect(res.status).toBe(401);
     expect(fetchMock).not.toHaveBeenCalled();
   });
+  it("rejects a spoofed PartyKit header without a configured shared secret", async () => {
+    delete process.env.JUDGE_SECRET;
+    process.env.GEMINI_API_KEY = "test-gemini";
+    const { POST } = await import("./route");
+    const res = await POST(partyRequest());
+    expect(res.status).toBe(401);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("honors the configured Gemini model without changing provider preference", async () => {
+    process.env.GEMINI_API_KEY = "test-gemini";
+    process.env.GEMINI_MODEL = "gemini-3.1-flash-lite";
+    fetchMock.mockResolvedValue(new Response("unavailable", { status: 503 }));
+    const { POST } = await import("./route");
+    await POST(partyRequest());
+    expect(String(fetchMock.mock.calls[0][0])).toContain("/models/gemini-3.1-flash-lite:generateContent");
+  });
+
 });

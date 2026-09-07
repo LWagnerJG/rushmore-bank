@@ -30,16 +30,25 @@ export function VotePanel({
   const myVote = state.myHumanVote;
   const [busy, setBusy] = useState(false);
 
+  if (state.seatOrder.length === 2) return <div className="space-y-4">
+    <h2 className="text-xl font-extrabold" role="status">The judge is deciding…</h2>
+    <p className="text-sm text-[var(--muted)]">Two players: AI scores both drafts.</p>
+    {state.seatOrder.map((pid) => <article key={pid} className="panel">
+      <p className="font-extrabold">{state.players.find((p) => p.id === pid)?.name}</p>
+      <ol className="mt-2 list-decimal pl-5 text-sm">{state.picks.filter((pick) => pick.playerId === pid).sort((a, b) => a.pickIndex - b.pickIndex).map((pick) => <li key={pick.turnIndex}>{pick.text}</li>)}</ol>
+    </article>)}
+  </div>;
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between gap-2">
         <h2 className="font-[family-name:var(--font-display)] text-xl font-extrabold">
-          Vote for one roster
+          Pick the best four
         </h2>
         <Countdown until={state.phaseDeadlineAt} />
       </div>
       <p className="text-sm text-[var(--muted)]">
-        Private ballot — no self-vote.{" "}
+        Choose another player.{" "}
         <strong>
           {state.humanVotesCast} of {state.humanVotesNeeded} voted
         </strong>
@@ -83,3 +92,4 @@ export function VotePanel({
     </div>
   );
 }
+

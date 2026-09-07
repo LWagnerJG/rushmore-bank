@@ -1,5 +1,5 @@
 /**
- * Quarry — authoritative PartyKit room server.
+ * Beans — authoritative PartyKit room server.
  * Durable state + storage alarms for deadlines (survive host tab sleep).
  */
 import type * as Party from "partykit/server";
@@ -28,6 +28,8 @@ import {
   animSeedFrom,
   applyDiceRoll,
   applyVoteCounts,
+  applyWager,
+  maxWager,
   bankPotIntoProtected,
   buildAnonymousRosters,
   classifyPullOut,
@@ -40,6 +42,8 @@ import {
   snakeDraftOrder,
   validateAndMapJudgments,
 } from "../src/shared/engine";
+
+import { cleanDraftOptions, starterDraftOptions } from "../src/shared/draft-options";
 
 function roomEnv(room: Party.Room): Record<string, string | undefined> {
   return (
@@ -114,6 +118,10 @@ export default class QuarryServer implements Party.Server {
 
   constructor(readonly room: Party.Room) {
     this.state = emptyRoomState(room.id.toUpperCase());
+  }
+
+  onRequest() {
+    return Response.json({ game: "Beans", release: "beans-roundrobin-v1", minPlayers: RULES.minPlayers, maxPlayers: RULES.maxPlayers });
   }
 
   async onStart() {
@@ -481,6 +489,9 @@ export default class QuarryServer implements Party.Server {
     this.state.phase = "TOPIC_SELECTION";
     this.state.topicVotes = {};
     this.state.selectedTopic = null;
+    this.state.draftOptions = [];
+    this.state.draftOptionsStatus = "idle";
+    this.state.draftOptionsJobId = null;
     this.state.topicRerollsUsed = 0;
     this.state.scores = [];
     this.state.scoresLocked = false;
@@ -489,6 +500,18 @@ export default class QuarryServer implements Party.Server {
     this.state.judgeNotice = null;
     this.state.earnedThisRound = {};
     this.state.wagers = {};
+    this.state.wagerDeadlineAt = null;
+    this.state.diceActiveIds = [];
+    this.state.personalRollCounts = {};
+    this.state.pots = {};
+    this.state.protectedStones = {};
+    this.state.lastDice = null;
+    this.state.diceSubphase = "WAITING";
+    this.state.diceDecisionDeadlineAt = null;
+    this.state.diceIdleDeadlineAt = null;
+    this.state.diceRoundStartedAt = null;
+    this.state.diceLapsCompleted = 0;
+    this.state.partyPrompt = null;
     this.state.humanVotes = {};
     this.state.picks = [];
     this.state.takenNormalized = [];
@@ -614,7 +637,37 @@ export default class QuarryServer implements Party.Server {
       topicRound: this.state.topicRound,
     };
     bump(this.state);
+    this.state.draftOptions = starterDraftOptions(option.id, option.text);
+    this.state.draftOptionsStatus = this.state.draftOptions.length ? "ready" : "pending";
     await this.beginPrep();
+    if (!this.state.draftOptions.length) {
+      const jobId = crypto.randomUUID();
+      this.state.draftOptionsJobId = jobId;
+      void this.loadDraftOptions(option, jobId);
+    }
+  }
+
+  async loadDraftOptions(topic: TopicOption, jobId: string) {
+    const env = roomEnv(this.room);
+    let options: string[] = [];
+    try {
+      if (env.JUDGE_URL && env.JUDGE_SECRET) {
+        const res = await fetch(`${env.JUDGE_URL.replace(/\/$/, "")}/api/draft-options`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${env.JUDGE_SECRET}` },
+          body: JSON.stringify({ topic: topic.text, scopeBoundary: topic.scopeBoundary }),
+          signal: AbortSignal.timeout(10000),
+        });
+        if (res.ok) options = cleanDraftOptions((await res.json() as { options?: unknown }).options);
+      }
+    } catch { /* Manual answers always remain available. */ }
+    if (this.state.draftOptionsJobId !== jobId || this.state.selectedTopic?.id !== topic.id) return;
+    if (!["PREP", "DRAFT", "CORRECTION"].includes(this.state.phase)) return;
+    this.state.draftOptions = options;
+    this.state.draftOptionsStatus = options.length ? "ready" : "unavailable";
+    this.state.draftOptionsJobId = null;
+    await this.persist();
+    this.broadcastState();
   }
 
   async beginPrep() {
@@ -634,6 +687,9 @@ export default class QuarryServer implements Party.Server {
     this.state.picks = [];
     this.state.takenNormalized = [];
     this.state.phase = "DRAFT";
+    this.state.correctionResume = null;
+    this.state.correctionReason = null;
+    this.state.correctionTargetPickId = null;
     this.state.pickPaused = false;
     bump(this.state);
     await this.startPickClock();
@@ -683,20 +739,11 @@ export default class QuarryServer implements Party.Server {
       this.state.picks.push({
         playerId: id,
         text: clean,
-        pickIndex: Math.min(pickIndex, RULES.picksPerPlayer - 1),
+        pickIndex: this.state.correctionResume?.pickIndex ?? Math.min(pickIndex, RULES.picksPerPlayer - 1),
         turnIndex,
       });
       this.state.takenNormalized.push(norm);
-      this.state.phase = "DRAFT";
-      this.state.correctionReason = null;
-      this.state.correctionTargetPickId = null;
-      this.state.draftCursor += 1;
-      bump(this.state);
-      if (this.state.draftCursor >= this.state.draftOrder.length) {
-        await this.beginReview();
-      } else {
-        await this.startPickClock();
-      }
+      await this.finishCorrection();
       return;
     }
 
@@ -729,13 +776,19 @@ export default class QuarryServer implements Party.Server {
     this.state.picks.push({
       playerId: pid,
       text: miss,
-      pickIndex: playerPicks.length,
+      pickIndex: this.state.phase === "CORRECTION"
+        ? (this.state.correctionResume?.pickIndex ?? playerPicks.length)
+        : playerPicks.length,
       turnIndex: this.state.draftCursor,
     });
     this.state.takenNormalized.push(norm);
     this.state.notice = `Clock expired — missed pick for ${
       this.state.players.find((p) => p.id === pid)?.name ?? "player"
     }`;
+    if (this.state.phase === "CORRECTION") {
+      await this.finishCorrection();
+      return;
+    }
     this.state.draftCursor += 1;
     bump(this.state);
     if (this.state.draftCursor >= this.state.draftOrder.length) {
@@ -795,39 +848,61 @@ export default class QuarryServer implements Party.Server {
     reason: "duplicate" | "invalid",
   ) {
     if (!this.requireHost(id)) throw new Error("Host only");
+    // Validate before touching picks; rejected corrections must be read-only.
+    if (this.state.scoresLocked) throw new Error("Scores locked — discard the round to restart");
+    if (!["DRAFT", "REVIEW", "VOTING_AND_JUDGING"].includes(this.state.phase)) {
+      throw new Error("Finish the current action before correcting a pick");
+    }
     const pick = this.state.picks.find((p) => p.turnIndex === turnIndex);
     if (!pick) throw new Error("Pick not found");
-
-    // Remove pick
+    this.state.correctionResume = {
+      phase: this.state.phase === "DRAFT" ? "DRAFT" : "REVIEW",
+      cursor: this.state.draftCursor,
+      pickIndex: pick.pickIndex,
+      remainingMs: this.state.pickPaused
+        ? this.state.pickPauseRemainingMs
+        : this.state.pickDeadlineAt === null ? null : Math.max(0, this.state.pickDeadlineAt - Date.now()),
+      paused: this.state.pickPaused,
+    };
     this.state.picks = this.state.picks.filter((p) => p.turnIndex !== turnIndex);
-    this.state.takenNormalized = this.state.picks.map((p) =>
-      normalizePick(p.text),
-    );
-
-    if (this.state.scoresLocked) {
-      throw new Error("Scores locked — use Void Topic");
-    }
-
-    if (
-      this.state.phase === "VOTING_AND_JUDGING" ||
-      this.state.phase === "REVIEW" ||
-      Object.keys(this.state.humanVotes).length > 0
-    ) {
-      // Invalidate ballots + re-vote after replacement
-      this.state.humanVotes = {};
-      this.state.scores = [];
-      this.state.scoresLocked = false;
-    }
-
+    this.state.takenNormalized = this.state.picks.map((p) => normalizePick(p.text));
+    this.state.humanVotes = {};
+    this.state.scores = [];
+    this.state.judgeJobId = null; // Any in-flight response belongs to the old picks.
+    this.state.judgeStatus = "idle";
+    this.state.judgeNotice = null;
     this.state.phase = "CORRECTION";
     this.state.correctionReason = reason;
     this.state.correctionTargetPickId = String(turnIndex);
-    // Replacement turn: set cursor to that turn's seat, temporarily
     this.state.draftCursor = turnIndex;
-    // Ensure draftOrder still has this index
+    this.state.phaseDeadlineAt = null;
     bump(this.state);
     this.state.pickPaused = false;
     await this.startPickClock();
+  }
+
+  async finishCorrection() {
+    const resume = this.state.correctionResume;
+    // Legacy persisted corrections have no resume record. Continue after the
+    // latest completed turn, not after the replaced slot.
+    const cursor = resume?.cursor ?? Math.max(0, ...this.state.picks.map((p) => p.turnIndex + 1));
+    this.state.correctionResume = null;
+    this.state.correctionReason = null;
+    this.state.correctionTargetPickId = null;
+    this.state.draftCursor = cursor;
+    this.state.pickPaused = false;
+    bump(this.state);
+    if (resume?.phase === "REVIEW" || cursor >= this.state.draftOrder.length) {
+      await this.beginReview();
+      return;
+    }
+    this.state.phase = "DRAFT";
+    const remaining = resume?.remainingMs ?? (RULES.pickClockSeconds + RULES.pickGraceSeconds) * 1000;
+    this.state.pickDeadlineAt = Date.now() + remaining;
+    this.state.pickPaused = resume?.paused ?? false;
+    this.state.pickPauseRemainingMs = this.state.pickPaused ? remaining : null;
+    if (this.state.pickPaused) await this.clearAlarm();
+    else await this.setAlarmAt(this.state.pickDeadlineAt, { kind: "pick", revision: this.state.phaseRevision });
   }
 
   async beginReview() {
@@ -963,7 +1038,7 @@ export default class QuarryServer implements Party.Server {
         jobId,
         secret
           ? RULES.aiFallbackLabel
-          : "Judge unavailable · neutral award. (AI judge key / JUDGE_SECRET not configured on server)",
+          : "Judge unavailable · neutral award. (AI key / JUDGE_SECRET not configured on server)",
       );
     }
   }
@@ -991,6 +1066,7 @@ export default class QuarryServer implements Party.Server {
     const needed = seatedPlayers(this.state).filter((p) => p.connected).length;
     const votesIn = Object.keys(this.state.humanVotes).length;
     if (
+      this.state.seatOrder.length === 2 ||
       (needed > 0 && votesIn >= needed) ||
       (this.state.phaseDeadlineAt !== null &&
         Date.now() >= this.state.phaseDeadlineAt)
@@ -1004,6 +1080,7 @@ export default class QuarryServer implements Party.Server {
   async handleVote(id: string, targetPlayerId: string) {
     if (!this.requirePlayer(id)) throw new Error("Players only");
     if (this.state.phase !== "VOTING_AND_JUDGING") throw new Error("Wrong phase");
+    if (this.state.seatOrder.length === 2) throw new Error("Two-player games use the AI judge");
     if (id === targetPlayerId) throw new Error("No self-vote");
     if (!this.state.seatOrder.includes(targetPlayerId)) {
       throw new Error("Invalid target");
@@ -1037,7 +1114,10 @@ export default class QuarryServer implements Party.Server {
       this.state.judgeNotice = RULES.aiFallbackLabel;
     }
 
-    this.state.scores = applyVoteCounts(this.state.scores, this.state.humanVotes);
+    this.state.scores = applyVoteCounts(
+      this.state.scores,
+      this.state.seatOrder.length === 2 ? {} : this.state.humanVotes,
+    );
     this.state.earnedThisRound = Object.fromEntries(
       this.state.scores.map((s) => [s.playerId, s.earned]),
     );
@@ -1085,9 +1165,12 @@ export default class QuarryServer implements Party.Server {
     const p = this.state.players.find((x) => x.id === id)!;
     const E = this.state.earnedThisRound[id] ?? 0;
     const B = p.stones;
-    const max = E + Math.min(RULES.earlierWagerCap, B);
-    const W = Math.max(0, Math.min(max, Math.floor(amount)));
-    this.state.wagers[id] = W;
+    const max = maxWager(E, B);
+    if (!Number.isSafeInteger(amount) || amount < 0 || amount > max) {
+      throw new Error(`Choose a whole number from 0 to ${max}`);
+    }
+    if (this.state.wagers[id] !== undefined) throw new Error("Wager already locked");
+    this.state.wagers[id] = amount;
 
     const needed = seatedPlayers(this.state).length;
     if (Object.keys(this.state.wagers).length >= needed) {
@@ -1113,33 +1196,25 @@ export default class QuarryServer implements Party.Server {
       const E = this.state.earnedThisRound[pid] ?? 0;
       const B = p.stones;
       const W = this.state.wagers[pid] ?? 0;
-      const protectedBal = B + E - W;
-      this.state.protectedStones[pid] = protectedBal;
-      this.state.pots[pid] = W;
+      const locked = applyWager({ banked: B, earned: E, wager: W });
+      this.state.protectedStones[pid] = locked.protected;
+      this.state.pots[pid] = locked.pot;
       this.state.personalRollCounts[pid] = 0;
-      // Players with pot 0 can still be "pulled out" immediately — skip dice
-      if (W > 0) {
-        this.state.diceActiveIds.push(pid);
-      } else {
-        // Bank nothing extra; stones become protected (B+E)
-        p.stones = protectedBal;
-        ledgerPush(this.state, {
-          playerId: pid,
-          kind: "earn",
-          amount: E,
-          balanceAfter: p.stones,
-          note: "Kept all — no dice",
-          topicRound: this.state.topicRound,
-        });
-      }
+      p.stones = locked.bankedAfter;
+      this.state.diceActiveIds.push(pid);
+      ledgerPush(this.state, {
+        playerId: pid,
+        kind: "wager_lock",
+        amount: -W,
+        balanceAfter: p.stones,
+        note: `${W} beans in the pot`,
+        topicRound: this.state.topicRound,
+      });
     }
 
+    this.state.wagerDeadlineAt = null;
     bump(this.state);
-    if (this.state.diceActiveIds.length === 0) {
-      await this.beginRoundResults();
-    } else {
-      await this.beginDice();
-    }
+    await this.beginDice();
   }
 
   async beginDice() {
@@ -1295,17 +1370,6 @@ export default class QuarryServer implements Party.Server {
     if (this.state.phase !== "DICE") return;
     this.revealCommittedDice();
 
-    // Soft budget: finish current lap then settle if laps >= min and budget exceeded
-    const started = this.state.diceRoundStartedAt ?? Date.now();
-    const overBudget =
-      Date.now() - started >= RULES.diceSoftBudgetMs &&
-      this.state.diceLapsCompleted >= RULES.diceMinLapsBeforeSettlement;
-
-    if (overBudget) {
-      await this.settleRemainingDice();
-      return;
-    }
-
     if (this.state.diceActiveIds.length === 0) {
       await this.beginRoundResults();
       return;
@@ -1350,8 +1414,9 @@ export default class QuarryServer implements Party.Server {
 
     if (classified.kind === "waiting_player") {
       // Bank without touching shared countdown, animation, or seat.
-      this.bankPlayer(id, "Pull Out (waiting)");
-      bump(this.state);
+      this.bankPlayer(id, "Bank (waiting)");
+      // Preserve phaseRevision: the pending cooldown/roll alarm owns it.
+      // onMessage still persists and broadcasts this player's new balance.
       if (this.state.diceActiveIds.length === 0) {
         // Current roller also gone somehow — end round (no in-flight commit possible
         // for waiting-only empty set if current was still active).
@@ -1363,7 +1428,7 @@ export default class QuarryServer implements Party.Server {
     }
 
     // Current roller banking — advance seat + restart turn for next active player.
-    this.bankPlayer(id, "Pull Out");
+    this.bankPlayer(id, "Bank");
     bump(this.state);
     await this.clearAlarm();
 
@@ -1384,32 +1449,6 @@ export default class QuarryServer implements Party.Server {
     } catch {
       /* ignore */
     }
-  }
-
-  async settleRemainingDice() {
-    if (this.state.lastDice && !this.state.lastDice.revealed) {
-      this.revealCommittedDice();
-    }
-    for (const pid of [...this.state.diceActiveIds]) {
-      const pot = this.state.pots[pid] ?? 0;
-      const prot = this.state.protectedStones[pid] ?? 0;
-      const p = this.state.players.find((x) => x.id === pid);
-      if (p) {
-        p.stones = prot + pot;
-        ledgerPush(this.state, {
-          playerId: pid,
-          kind: "bank",
-          amount: pot,
-          balanceAfter: p.stones,
-          note: "Timed settlement",
-          topicRound: this.state.topicRound,
-        });
-      }
-      this.state.pots[pid] = 0;
-    }
-    this.state.diceActiveIds = [];
-    this.state.notice = "Dice soft budget — remaining pots banked";
-    await this.beginRoundResults();
   }
 
   async beginRoundResults() {
@@ -1527,7 +1566,7 @@ export default class QuarryServer implements Party.Server {
         p.stones = this.state.checkpoint.stones[p.id]!;
       }
     }
-    this.state.notice = "Topic voided — stones restored";
+    this.state.notice = "Round discarded. Beans restored.";
     this.state.partyPrompt = null;
     void this.beginTopicSelection();
   }

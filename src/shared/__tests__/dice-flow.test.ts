@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { applyDiceRoll } from "../engine/dice";
-import { RULES } from "../rules";
 
 /**
  * Pull Out vs Roll atomicity is enforced server-side by diceSubphase.
@@ -23,11 +22,6 @@ describe("pull out banking", () => {
 });
 
 describe("settlement laps", () => {
-  it("requires min laps before soft-budget settlement", () => {
-    expect(RULES.diceMinLapsBeforeSettlement).toBe(3);
-    expect(RULES.diceSoftBudgetMs).toBe(3 * 60 * 1000);
-  });
-
   it("rotating seats completes a lap when index wraps", () => {
     const n = 4;
     let seat = 3;
@@ -39,3 +33,4 @@ describe("settlement laps", () => {
     expect(laps).toBe(1);
   });
 });
+

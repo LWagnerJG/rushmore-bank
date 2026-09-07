@@ -1,162 +1,24 @@
 import Link from "next/link";
-import { RULES } from "@/shared/rules";
-
-const COMMIT_SHA = process.env.VERCEL_GIT_COMMIT_SHA;
-const COMMIT_MESSAGE = process.env.VERCEL_GIT_COMMIT_MESSAGE;
+import { BrandMark } from "@/components/BrandMark";
 
 export default function BuildNotesPage() {
-  const shortSha = COMMIT_SHA ? COMMIT_SHA.slice(0, 7) : null;
-
-  return (
-    <main className="mx-auto max-w-md space-y-6 px-4 py-8">
-      <Link href="/" className="text-sm font-bold text-[var(--coral)]">
-        ← Home
-      </Link>
-      <h1 className="font-[family-name:var(--font-display)] text-3xl font-extrabold">
-        Build notes
-      </h1>
-      <p className="text-sm text-[var(--muted)]">
-        Public handoff — no secrets, credentials, or private session data.
-      </p>
-
-      <section className="panel space-y-2 text-sm">
-        <h2 className="font-extrabold">Deployed versions</h2>
-        {COMMIT_SHA ? (
-          <ul className="list-disc space-y-1 pl-5">
-            <li>
-              Frontend (Vercel) SHA: <code className="break-all">{COMMIT_SHA}</code>{" "}
-              ({shortSha})
-            </li>
-            {COMMIT_MESSAGE ? (
-              <li>
-                Message: <span className="italic">{COMMIT_MESSAGE}</span>
-              </li>
-            ) : null}
-            <li>
-              PartyKit backend host:{" "}
-              <code>rushmore-bank.lwagnerjg.partykit.dev</code> (redeployed with
-              this change set when party/ or shared engine changes land on main)
-            </li>
-          </ul>
-        ) : (
-          <p className="text-[var(--muted)]">
-            Commit SHA appears on Vercel production via{" "}
-            <code>VERCEL_GIT_COMMIT_SHA</code>.
-          </p>
-        )}
-      </section>
-
-      <section className="panel space-y-2 text-sm">
-        <h2 className="font-extrabold">Production URL</h2>
-        <p>
-          <a
-            href={RULES.productionUrl}
-            className="font-bold text-[var(--coral)] underline"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            {RULES.productionUrl}
-          </a>
-        </p>
-        <p>
-          Site is public (no Vercel Authentication). Room privacy = join codes +
-          per-tab guest tokens.
-        </p>
-      </section>
-
-      <section className="panel space-y-2 text-sm">
-        <h2 className="font-extrabold">What changed</h2>
-        <ul className="list-disc space-y-1 pl-5">
-          <li>
-            <strong>Gemini-first AI judge</strong> —{" "}
-            <code>/api/judge</code> prefers <code>GEMINI_API_KEY</code> (or{" "}
-            <code>GOOGLE_GENERATIVE_AI_API_KEY</code>) with Gemini 3.5 Flash;
-            falls back to <code>OPENAI_API_KEY</code> if Gemini unset; uniform
-            neutral award if neither key is present.
-          </li>
-          <li>
-            <strong>Pull Out for waiting players</strong> — every active player
-            can bank during cooldown / another roll; current roller blocked only
-            after their own committed roll. Waiting banks do not clear alarms or
-            advance the seat.
-          </li>
-          <li>
-            <strong>Ballot privacy</strong> — explicit public-state projection;
-            voter→choice maps stay server-side; clients see progress + own vote
-            only; aggregates reveal with scores.
-          </li>
-          <li>
-            <strong>Server-authoritative AI judging</strong> — PartyKit runs the
-            judge job; client-submitted scores rejected; anonymous roster IDs;
-            uniform neutral fallback;{" "}
-            <code>/api/judge</code> protected for paid calls.
-          </li>
-          <li>
-            <strong>Synced suspenseful dice</strong> — roll IDs, shared
-            start/settle timestamps, time-based tumble, faces/pots hidden until
-            settle; reconnect resumes or shows settled result.
-          </li>
-          <li>
-            Topic <em>choices</em> vs <em>rounds played</em> clarified: 3 rounds
-            (3–5 players) / 2 rounds (6–10); UI shows “Round X of Y”; auto final
-            results.
-          </li>
-          <li>Dice UX: protected vs pot-at-risk, prominent Pull Out label.</li>
-        </ul>
-      </section>
-
-      <section className="panel space-y-2 text-sm">
-        <h2 className="font-extrabold">Tests run</h2>
-        <ul className="list-disc space-y-1 pl-5">
-          <li>
-            <code>npm test</code> — vitest cases (banking out of turn,
-            privacy snapshots, judge validation, Gemini/OpenAI route mocks,
-            3/6/10 flow sims, all 36 face pairs, 469 banked-total example).
-          </li>
-          <li>
-            <code>npx tsc --noEmit</code>, <code>npm run lint</code>,{" "}
-            <code>npm run build</code> — pass.
-          </li>
-          <li>
-            Browser automation (agent): post-deploy smoke of home + room join +
-            dice UI where available — <strong>not</strong> a physical iPhone
-            Safari play-test.
-          </li>
-        </ul>
-      </section>
-
-      <section className="panel space-y-2 text-sm">
-        <h2 className="font-extrabold">Known limits</h2>
-        <ul className="list-disc space-y-1 pl-5">
-          <li>
-            <strong>PartyKit:</strong> manually redeployed successfully via{" "}
-            <code>npm run deploy:party</code>. GitHub Action “Deploy PartyKit”
-            may still fail if <code>PARTYKIT_TOKEN</code> /{" "}
-            <code>PARTYKIT_LOGIN</code> CI secrets are unset — that is separate
-            from the live PartyKit host already being current.
-          </li>
-          <li>
-            AI judging prefers <code>GEMINI_API_KEY</code> (or{" "}
-            <code>GOOGLE_GENERATIVE_AI_API_KEY</code>) on Vercel;{" "}
-            <code>OPENAI_API_KEY</code> is optional fallback. Preferably also set{" "}
-            <code>JUDGE_SECRET</code> on Vercel + PartyKit. Without a Gemini or
-            OpenAI key, rooms use labeled neutral awards (not presented as real
-            AI).
-          </li>
-          <li>
-            Soft 25–30 min session target is guidance; measured length depends on
-            how fast the group drafts and banks.
-          </li>
-          <li>
-            Standalone home-screen: favicon / apple-touch / manifest present;
-            recovery is re-open URL or room code (guest token in sessionStorage).
-          </li>
-          <li>
-            Browser automation verified on desktop Chrome (mobile viewport) and
-            local PartyKit — not a physical iPhone Safari play-test.
-          </li>
-        </ul>
-      </section>
-    </main>
-  );
+  return <main className="mx-auto max-w-lg space-y-5 px-5 py-8">
+    <Link href="/" className="text-sm font-bold underline">Back to Beans</Link>
+    <BrandMark />
+    <h1 className="text-2xl font-extrabold">Build notes</h1>
+    <section className="panel space-y-2 text-sm">
+      <p>Frontend commit: <code className="break-all">{process.env.VERCEL_GIT_COMMIT_SHA || "Local build"}</code></p>
+      <p>Environment: {process.env.NEXT_PUBLIC_APP_ENV || process.env.VERCEL_ENV || "development"}</p>
+      <p>Expected game server release: beans-roundrobin-v1. Frontend deployment alone does not verify the separate PartyKit release.</p>
+    </section>
+    <ul className="list-disc space-y-3 pl-5 text-sm">
+      <li>2–10 players. Live lobby roster, room code, invite link and QR.</li>
+      <li>Available picks, a private queue, and a four-row snake draft board. Any valid custom answer can be entered.</li>
+      <li>Wager slider from zero through the full current bean balance.</li>
+      <li>One roll, then pass. Everyone returns each topic, including zero wagers, with two safe rolls. Bank or bust to leave the dice round.</li>
+      <li>Shared animated pip dice, with reduced motion and optional host sound.</li>
+      <li>Fudge’s Gemini judge and model configuration are preserved. AI suggestion failures never block drafting.</li>
+    </ul>
+    <p className="text-sm">Release checks cover server flows, scoring, privacy, banking, timers and browser play against local servers. Real AI calls and physical iPhones require a separate deployed check.</p>
+  </main>;
 }

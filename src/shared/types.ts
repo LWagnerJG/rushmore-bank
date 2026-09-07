@@ -1,6 +1,7 @@
 /**
- * Quarry shared protocol — client + PartyKit server.
- * Currency = Stones. Display name = Quarry.
+ * Shared protocol — client + PartyKit server.
+ * Display name and currency = Beans. Internal stones fields stay compatible
+ * with persisted rooms and browser storage.
  */
 
 import { RULES } from "./rules";
@@ -169,17 +170,29 @@ export interface RoomState {
   draftOrder: number[];
   picks: DraftPick[];
   takenNormalized: string[];
+  draftOptions: string[];
+  draftOptionsStatus: "idle" | "pending" | "ready" | "unavailable";
   pickDeadlineAt: number | null;
   pickPaused: boolean;
   pickPauseRemainingMs: number | null;
   correctionTargetPickId: string | null;
   correctionReason: "duplicate" | "invalid" | null;
+  /** Private: resume the interrupted draft after replacing one earlier pick. */
+  correctionResume: {
+    phase: "DRAFT" | "REVIEW";
+    cursor: number;
+    pickIndex: number;
+    remainingMs: number | null;
+    paused: boolean;
+  } | null;
   /** PRIVATE — voter → targetPlayerId */
   humanVotes: Record<string, string>;
   scores: RosterScore[];
   scoresLocked: boolean;
   judgeStatus: JudgeStatus;
   judgeJobId: string | null;
+  /** Private generation identity; never sent to players. */
+  draftOptionsJobId: string | null;
   judgeNotice: string | null;
   earnedThisRound: Record<string, number>;
   wagers: Record<string, number>;
@@ -234,6 +247,8 @@ export interface PublicRoomState {
   draftOrder: number[];
   picks: DraftPick[];
   takenNormalized: string[];
+  draftOptions: string[];
+  draftOptionsStatus: "idle" | "pending" | "ready" | "unavailable";
   pickDeadlineAt: number | null;
   pickPaused: boolean;
   pickPauseRemainingMs: number | null;
@@ -386,11 +401,15 @@ export function emptyRoomState(code: string): RoomState {
     draftOrder: [],
     picks: [],
     takenNormalized: [],
+    draftOptions: [],
+    draftOptionsStatus: "idle",
+    draftOptionsJobId: null,
     pickDeadlineAt: null,
     pickPaused: false,
     pickPauseRemainingMs: null,
     correctionTargetPickId: null,
     correctionReason: null,
+    correctionResume: null,
     humanVotes: {},
     scores: [],
     scoresLocked: false,
@@ -423,3 +442,4 @@ export function emptyRoomState(code: string): RoomState {
 }
 
 export { RULES };
+

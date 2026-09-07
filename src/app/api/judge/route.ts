@@ -5,7 +5,7 @@ import { heuristicJudgeUniform } from "@/shared/engine/judge";
 export const runtime = "nodejs";
 
 /** Cheap/fast Gemini model for structured JSON scoring. */
-const GEMINI_MODEL = "gemini-3.5-flash";
+const DEFAULT_GEMINI_MODEL = "gemini-3.5-flash";
 
 interface JudgeBody {
   topic: string;
@@ -56,19 +56,17 @@ function authorize(req: NextRequest): "ok" | "fallback_only" | "deny" {
   const hasKey = hasPaidJudgeKey();
   const header = req.headers.get("authorization") || "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : "";
-  const fromParty = req.headers.get("x-quarry-judge") === "partykit";
 
   if (secret) {
     return token === secret ? "ok" : "deny";
   }
   // No JUDGE_SECRET: never burn paid AI credits from anonymous callers.
-  if (hasKey && !fromParty) return "deny";
-  if (hasKey && fromParty) return "ok"; // local/dev PartyKit without secret
+  if (hasKey) return "deny"; // A caller-supplied header is not authentication.
   return "fallback_only";
 }
 
 function judgeSystemPrompt(): string {
-  return `You are Quarry's AI judge (prompt ${RULES.aiPromptVersion}).
+  return `You are Beans' AI judge (prompt ${RULES.aiPromptVersion}).
 Score each Mount Rushmore roster for the given topic.
 Return ONLY JSON: {"judgments":[{"anonId":"R1","topicFit":0-10,"pickStrength":0-20,"rosterQuality":0-10,"explanation":"≤45 words"}]}
 Rubric: topic_fit 0-10, pick_strength 0-20, roster_quality 0-10. Be fair, concise, playful.
@@ -146,10 +144,12 @@ async function callGemini(
   system: string,
   user: string,
 ): Promise<{ ok: true; content: string } | { ok: false; limitation: string }> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(key)}`;
+  const model = process.env.GEMINI_MODEL?.trim() || DEFAULT_GEMINI_MODEL;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    signal: AbortSignal.timeout(RULES.judgeTimeoutMs),
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: system }] },
       contents: [{ role: "user", parts: [{ text: user }] }],
@@ -191,6 +191,7 @@ async function callOpenAI(
       Authorization: `Bearer ${key}`,
       "Content-Type": "application/json",
     },
+    signal: AbortSignal.timeout(RULES.judgeTimeoutMs),
     body: JSON.stringify({
       model: "gpt-4o-mini",
       temperature: 0.4,
@@ -285,3 +286,4 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+

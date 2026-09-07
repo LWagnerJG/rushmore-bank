@@ -1,0 +1,6 @@
+{
+  "name": "roundacats-test",
+  "main": "party/server.ts",
+  "compatibilityDate": "2024-09-01",
+  "vars": { "JUDGE_URL": "https://roundacats-test.vercel.app" }
+}

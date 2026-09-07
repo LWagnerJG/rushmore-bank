@@ -61,7 +61,7 @@ export function projectPublicState(
   }
 
   const humanVotesCast = Object.keys(state.humanVotes).length;
-  const humanVotesNeeded = state.seatOrder.filter((pid) => {
+  const humanVotesNeeded = state.seatOrder.length === 2 ? 0 : state.seatOrder.filter((pid) => {
     const p = state.players.find((x) => x.id === pid);
     return p && p.role === "player" && p.connected;
   }).length;
@@ -92,6 +92,8 @@ export function projectPublicState(
     draftOrder: [...state.draftOrder],
     picks: state.picks.map((p) => ({ ...p })),
     takenNormalized: [...state.takenNormalized],
+    draftOptions: [...state.draftOptions],
+    draftOptionsStatus: state.draftOptionsStatus,
     pickDeadlineAt: state.pickDeadlineAt,
     pickPaused: state.pickPaused,
     pickPauseRemainingMs: state.pickPauseRemainingMs,
@@ -141,6 +143,8 @@ export function publicStateLeaksBallots(
     Object.prototype.hasOwnProperty.call(pub, "topicVotes") ||
     Object.prototype.hasOwnProperty.call(pub, "humanVotes") ||
     Object.prototype.hasOwnProperty.call(pub, "processedActionIds") ||
-    Object.prototype.hasOwnProperty.call(pub, "judgeJobId")
+    Object.prototype.hasOwnProperty.call(pub, "judgeJobId") ||
+    Object.prototype.hasOwnProperty.call(pub, "draftOptionsJobId")
   );
 }
+

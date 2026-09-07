@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
+import { IdeasPanel } from "@/components/IdeasPanel";
 
 function Countdown({ until }: { until: number | null }) {
   const [left, setLeft] = useState(0);
@@ -19,6 +20,7 @@ function Countdown({ until }: { until: number | null }) {
 export function PrepPanel({
   state,
   you,
+  youId,
   send,
 }: {
   state: PublicRoomState;
@@ -36,9 +38,7 @@ export function PrepPanel({
         {topic?.text}
       </h2>
       <p className="panel text-sm">{topic?.scopeBoundary}</p>
-      <p className="text-sm text-[var(--muted)]">
-        Jot ideas privately. Snake draft starts soon.
-      </p>
+      {you.role === "player" && <IdeasPanel key={topic?.id} room={state.code} playerId={youId} topicId={topic?.id ?? "none"} />}
       {you.isHost && (
         <button
           type="button"
@@ -51,3 +51,4 @@ export function PrepPanel({
     </div>
   );
 }
+

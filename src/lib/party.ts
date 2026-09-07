@@ -1,9 +1,9 @@
-/** Deployed PartyKit host — used when NEXT_PUBLIC_PARTYKIT_HOST is unset. */
-export const DEFAULT_PARTYKIT_HOST = "rushmore-bank.lwagnerjg.partykit.dev";
+import { resolvePartyHost } from "@/shared/connection";
+export { DEFAULT_PARTYKIT_HOST } from "@/shared/connection";
 
 /** PartyKit host for browser clients. */
 export function getPartyHost(): string {
-  return process.env.NEXT_PUBLIC_PARTYKIT_HOST || DEFAULT_PARTYKIT_HOST;
+  return resolvePartyHost(process.env.NEXT_PUBLIC_PARTYKIT_HOST, process.env.NEXT_PUBLIC_APP_ENV);
 }
 
 function newGuestId(): string {

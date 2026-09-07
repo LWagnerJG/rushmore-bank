@@ -1,29 +1,29 @@
 /**
- * Quarry — single source of truth for tunable game defaults.
+ * Beans — single source of truth for tunable game defaults.
  * Documented in docs/RULES.md. Do not silently diverge from confirmed product rules.
  */
 
 export const RULES = {
   /** Display */
-  displayName: "Quarry",
-  tagline: "Draft four. Roll for more.",
-  currencyName: "Stones",
+  displayName: "Beans",
+  tagline: "Draft four. Bank beans.",
+  currencyName: "beans",
   productionUrl: "https://roundacats.vercel.app",
 
   /** Players */
-  minPlayers: 3,
+  minPlayers: 2,
   maxPlayers: 10,
   startBalance: 0,
   picksPerPlayer: 4,
 
   /** Topics */
-  /** Shortlist size (choices offered): 3 when 3–5 players, 2 when 6–10 */
+  /** Shortlist size (choices offered): 3 when 2–5 players, 2 when 6–10 */
   topicShortlistSmall: 3,
   topicShortlistLarge: 2,
   topicShortlistSmallMaxPlayers: 5,
   /**
    * Topic rounds *played* (not choices offered):
-   * 3 rounds with 3–5 players; 2 rounds with 6–10.
+   * 3 rounds with 2–5 players; 2 rounds with 6–10.
    */
   topicRoundsSmall: 3,
   topicRoundsLarge: 2,
@@ -54,15 +54,11 @@ export const RULES = {
   aiPromptVersion: "quarry-judge-v1",
 
   /** Wagers */
-  /** Earlier banked stones wagerable per topic: min(cap, balance) */
-  earlierWagerCap: 25,
   wagerTimeoutSeconds: 20,
 
   /** Dice */
   diceDecisionCountdownSeconds: 5,
   diceIdleBankSeconds: 10,
-  diceSoftBudgetMs: 3 * 60 * 1000,
-  diceMinLapsBeforeSettlement: 3,
   /** Shared tumble duration before authoritative reveal */
   diceAnimMs: 2200,
   safePersonalRolls: 2,

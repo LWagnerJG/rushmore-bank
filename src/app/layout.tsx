@@ -14,15 +14,15 @@ const sora = Sora({
 });
 
 const siteUrl = "https://roundacats.vercel.app";
-const title = "Quarry";
+const title = "Beans";
 const description =
-  "Draft four. Roll for more. — Party game with Stones, snake draft, and synchronized dice.";
+  "Draft your best four, win beans, then roll for more. A party game for 2–10 friends.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title,
   description,
-  applicationName: "Quarry",
+  applicationName: "Beans",
   manifest: "/site.webmanifest",
   icons: {
     icon: [
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    title: "Quarry",
+    title: "Beans",
     statusBarStyle: "default",
   },
   openGraph: {
@@ -43,13 +43,13 @@ export const metadata: Metadata = {
     url: siteUrl,
     title,
     description,
-    siteName: "Quarry",
+    siteName: "Beans",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Quarry — dog mascot with rainbow sunglasses",
+        alt: "Beans — a cheeky coral bean. Draft four. Bank beans.",
       },
     ],
   },
@@ -64,7 +64,6 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
   themeColor: "#F5F0E7",
 };
 

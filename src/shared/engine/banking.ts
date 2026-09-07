@@ -35,7 +35,7 @@ export function classifyPullOut(opts: {
   if (!opts.diceActiveIds.includes(opts.playerId)) {
     return { ok: false, reason: "Not active" };
   }
-  if (opts.pot <= 0) return { ok: false, reason: "Nothing to bank" };
+  // Zero wagers still play. Banking zero also lets an idle player leave cleanly.
 
   const isCurrent = opts.currentRollerId === opts.playerId;
 
@@ -55,3 +55,4 @@ export function classifyPullOut(opts: {
   // Waiting players may bank during another player's cooldown, ready, or animation.
   return { ok: true, kind: "waiting_player" };
 }
+

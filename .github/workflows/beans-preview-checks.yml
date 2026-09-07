@@ -1,0 +1,84 @@
+name: Beans release checks
+on:
+  pull_request:
+    branches: [main, cursor/beans-test-preview-3333]
+  push:
+    branches: [codex/beans-preview, codex/beans-release]
+permissions:
+  contents: read
+  checks: write
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NEXT_PUBLIC_PARTYKIT_HOST: localhost:1999
+      NEXT_PUBLIC_APP_ENV: development
+      NEXT_TELEMETRY_DISABLED: 1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run lint
+      - run: node --experimental-vm-modules scripts/verify-beans.mjs
+      - run: npm run build
+      - name: Install browser test tools
+        run: npm install --no-save --package-lock=false playwright@1.62.1
+      - name: Install browsers
+        run: npx playwright install --with-deps chromium webkit
+      - name: Play complete games in Chromium and WebKit
+        run: node scripts/browser-smoke.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: beans-browser-${{ github.run_id }}
+          path: test-results/
+      - name: Publish browser test report
+        if: always() && github.event_name == 'push'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const file = 'test-results/report.json';
+            if (!fs.existsSync(file)) return;
+            const report = JSON.parse(fs.readFileSync(file, 'utf8'));
+            const paths = fs.readdirSync('test-results').filter(p => p.endsWith('.jpg')).sort((a,b) => (b.includes('dice-tray') - a.includes('dice-tray')) || (b.includes('webkit') - a.includes('webkit')));
+            const images = [];
+            let size = 0;
+            for (const name of paths) {
+              const base64 = fs.readFileSync('test-results/' + name).toString('base64');
+              if (size + base64.length > 58000) continue;
+              images.push({ name, mimeType: 'image/jpeg', base64 });
+              size += base64.length;
+            }
+            await github.rest.checks.create({
+              owner: context.repo.owner, repo: context.repo.repo, head_sha: context.sha,
+              name: 'Beans browser report', status: 'completed',
+              conclusion: report.errors.length ? 'failure' : 'success',
+              output: { title: report.errors.length ? 'Browser checks failed' : 'Chromium and WebKit games passed', summary: JSON.stringify(report, null, 2).slice(0, 60000), text: JSON.stringify({ images }) }
+            });
+  deployment-access:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/beans-release'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PartyKit token
+        env:
+          PARTYKIT_TOKEN: ${{ secrets.PARTYKIT_TOKEN }}
+        run: |
+          if [ -z "$PARTYKIT_TOKEN" ]; then
+            echo "::error::PARTYKIT_TOKEN is missing from repository Actions secrets."
+            exit 1
+          fi
+      - name: Check PartyKit login
+        if: always()
+        env:
+          PARTYKIT_LOGIN: ${{ secrets.PARTYKIT_LOGIN }}
+        run: |
+          if [ -z "$PARTYKIT_LOGIN" ]; then
+            echo "::error::PARTYKIT_LOGIN is missing from repository Actions secrets."
+            exit 1
+          fi

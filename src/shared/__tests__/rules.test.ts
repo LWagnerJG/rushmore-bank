@@ -13,8 +13,8 @@ describe("topics", () => {
 });
 
 describe("snake draft", () => {
-  it("covers 4 picks for every N from 3..10", () => {
-    for (let n = 3; n <= 10; n++) {
+  it("covers 4 picks for every N from 2..10", () => {
+    for (let n = 2; n <= 10; n++) {
       const order = snakeDraftOrder(n, 4, 0);
       expect(order).toHaveLength(totalDraftPicks(n));
       const counts = Array.from({ length: n }, () => 0);
@@ -47,10 +47,10 @@ describe("scoring", () => {
 });
 
 describe("wager math", () => {
-  it("caps earlier winnings at 25", () => {
-    expect(maxWager(40, 100)).toBe(40 + 25);
+  it("allows wagering the current balance including earlier winnings", () => {
+    expect(maxWager(40, 100)).toBe(140);
     expect(maxWager(10, 10)).toBe(20);
-    expect(maxWager(0, 50)).toBe(25);
+    expect(maxWager(0, 50)).toBe(50);
   });
 
   it("presets and protected balance", () => {
@@ -58,7 +58,7 @@ describe("wager math", () => {
     expect(wagerFromPreset("half_new", 40, 30)).toBe(20);
     expect(wagerFromPreset("all_new", 40, 30)).toBe(40);
     const locked = applyWager({ banked: 30, earned: 40, wager: 50 });
-    // max = 40+25=65, W=50, protected=30+40-50=20
+    // max = 70, W=50, protected=20
     expect(locked.pot).toBe(50);
     expect(locked.protected).toBe(20);
   });
@@ -110,3 +110,4 @@ describe("pull out / settlement helpers", () => {
     expect(banked).toBe(160);
   });
 });
+

@@ -25,20 +25,20 @@ export function ResultsPanel({
       </h2>
       <p className="text-sm text-[var(--muted)]">
         {final
-          ? `All ${state.configuredTopicRounds} rounds done — most banked Stones wins.`
+          ? `All ${state.configuredTopicRounds} rounds done — most banked beans wins.`
           : `Round ${state.topicRound} of ${state.configuredTopicRounds}`}
       </p>
 
       <ol className="space-y-2">
-        {ranked.map((p, i) => (
+        {ranked.map((p) => (
           <li
             key={p.id}
             className="panel flex items-center justify-between font-extrabold"
           >
             <span>
-              {i + 1}. {p.name}
+              {ranked.findIndex((other) => other.stones === p.stones) + 1}. {p.name}
             </span>
-            <span className="text-[var(--coral)]">
+            <span className="text-[var(--text)]">
               {p.stones} {RULES.currencyName}
             </span>
           </li>
@@ -92,7 +92,7 @@ export function ResultsPanel({
           <button
             type="button"
             className="btn-secondary w-full"
-            onClick={() => send({ type: "end_game" })}
+            onClick={() => { if (window.confirm("End the game now and show final standings?")) send({ type: "end_game" }); }}
           >
             End game
           </button>
