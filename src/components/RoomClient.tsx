@@ -54,9 +54,23 @@ export function RoomClient({
     join,
     send,
     defaultName,
-  } = useGameRoom(code);
+  } = useGameRoom(code, {
+    preferredName: presetName,
+    preferSpectate,
+  });
   const [name, setName] = useState(presetName || defaultName);
   const judgedRev = useRef<number>(-1);
+  const autoJoinAttempted = useRef(false);
+
+  // One-shot: when connected with a URL/preset nickname, join explicitly so we
+  // do not rely on shared localStorage for the display name.
+  useEffect(() => {
+    if (autoJoinAttempted.current) return;
+    const clean = presetName.trim();
+    if (!connected || joined || !clean) return;
+    autoJoinAttempted.current = true;
+    join(clean, preferSpectate ? "spectator" : "player");
+  }, [connected, joined, presetName, preferSpectate, join]);
 
   // Trigger AI judge once when voting starts (host)
   useEffect(() => {
@@ -151,6 +165,25 @@ export function RoomClient({
   }, [state, you, youId, send]);
 
   if (!joined || !you) {
+    // Keep manual Join form when there is no preset nickname.
+    if (presetName.trim()) {
+      return (
+        <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-4 px-4 py-8">
+          <BrandMark />
+          <h1 className="font-[family-name:var(--font-display)] text-2xl font-extrabold">
+            Room {code}
+          </h1>
+          <p className="text-sm text-[var(--muted)]">
+            {connected ? `Joining as ${presetName.trim()}…` : "Connecting…"}
+          </p>
+          {error && <p className="text-sm text-[var(--coral)]">{error}</p>}
+          <Link href="/" className="text-sm font-semibold text-[var(--coral)]">
+            ← Home
+          </Link>
+        </main>
+      );
+    }
+
     return (
       <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-4 px-4 py-8">
         <BrandMark />

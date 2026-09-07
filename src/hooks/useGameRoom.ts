@@ -15,8 +15,13 @@ import {
   rememberDisplayName,
 } from "@/lib/party";
 
-export function useGameRoom(roomCode: string) {
+export function useGameRoom(
+  roomCode: string,
+  options?: { preferredName?: string; preferSpectate?: boolean },
+) {
   const code = roomCode.toUpperCase();
+  const preferredName = options?.preferredName?.trim() ?? "";
+  const preferSpectate = options?.preferSpectate ?? false;
   const [state, setState] = useState<PublicRoomState | null>(null);
   const [youId, setYouId] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
@@ -26,6 +31,17 @@ export function useGameRoom(roomCode: string) {
   const pendingJoin = useRef<{ name: string; role: "player" | "spectator" } | null>(
     null,
   );
+
+  // Prefer URL/preset nickname for onOpen join — never auto-queue from shared
+  // localStorage alone (that made tab B join as Luke when ?name=Brynna).
+  useEffect(() => {
+    if (preferredName) {
+      pendingJoin.current = {
+        name: preferredName,
+        role: preferSpectate ? "spectator" : "player",
+      };
+    }
+  }, [preferredName, preferSpectate]);
 
   const socket = usePartySocket({
     host: getPartyHost(),
@@ -95,13 +111,6 @@ export function useGameRoom(roomCode: string) {
     },
     [send, socket],
   );
-
-  useEffect(() => {
-    const name = recallDisplayName();
-    if (name && !joined) {
-      pendingJoin.current = { name, role: "player" };
-    }
-  }, [joined]);
 
   // Host heartbeat for failover
   useEffect(() => {

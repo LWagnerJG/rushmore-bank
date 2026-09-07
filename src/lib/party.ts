@@ -57,15 +57,25 @@ export function adoptPlayerIdForRejoin(roomCode: string, id: string) {
   window.localStorage.setItem(lastPidKey(roomCode), id);
 }
 
+const NAME_SESSION_KEY = "quarry:name:session";
+const NAME_LOCAL_KEY = "quarry:name";
+
+/**
+ * Remember display name for this tab (sessionStorage) and as a soft home-page
+ * default (localStorage). Session wins on recall so a second tab with ?name=
+ * does not inherit another tab's nickname from shared localStorage.
+ */
 export function rememberDisplayName(name: string) {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem("quarry:name", name);
+  window.sessionStorage.setItem(NAME_SESSION_KEY, name);
+  window.localStorage.setItem(NAME_LOCAL_KEY, name);
 }
 
 export function recallDisplayName(): string {
   if (typeof window === "undefined") return "";
   return (
-    window.localStorage.getItem("quarry:name") ??
+    window.sessionStorage.getItem(NAME_SESSION_KEY) ??
+    window.localStorage.getItem(NAME_LOCAL_KEY) ??
     window.localStorage.getItem("rushmore-bank:name") ??
     ""
   );
