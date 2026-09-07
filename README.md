@@ -1,6 +1,6 @@
-# Quarry
+# Beans
 
-**Draft four. Roll for more.** — mobile-first party game. Currency: **Stones**.
+**Draft four. Roll for more.** — mobile-first party game. Currency: **beans**.
 
 Play at [https://roundacats.vercel.app](https://roundacats.vercel.app).
 
@@ -42,9 +42,9 @@ npm run dev
 1. Create Game / Join with a nickname. Share code, link, or QR.
 2. Spin topics → vote one. Snake draft 4 answers (**Lock In**). Private **My Ideas** while waiting.
 3. Host can remove duplicate/invalid → replacement turn.
-4. Vote for another’s roster; AI judges all. Everyone earns Stones.
+4. Vote for another’s roster; AI judges all. Everyone earns beans.
 5. Wager into a personal pot. Rotating personal dice: first 2 rolls safe; then 7 busts that player only; doubles double pot. **Pull Out** banks.
-6. Most banked Stones wins.
+6. Most banked beans wins.
 
 Full rules: [`docs/RULES.md`](docs/RULES.md). Build notes: [`/build-notes`](https://roundacats.vercel.app/build-notes).
 
@@ -54,7 +54,7 @@ Full rules: [`docs/RULES.md`](docs/RULES.md). Build notes: [`/build-notes`](http
 2. Vercel project **`roundacats`** (domain `roundacats.vercel.app`) auto-deploys from GitHub `LWagnerJG/rushmore-bank`.
 3. Set `NEXT_PUBLIC_PARTYKIT_HOST` if not using the baked default; set `OPENAI_API_KEY` for AI.
 
-Dog mascot remains favicon / apple-touch / OG / PWA icons. In-app brand mark uses four stone tiles + **Quarry**.
+A coral bean character is used for the favicon, Apple touch icon, share image, and in-app wordmark.
 
 ## License
 

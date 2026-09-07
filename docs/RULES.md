@@ -1,6 +1,6 @@
-# Quarry — confirmed rules
+# Beans — confirmed rules
 
-Display name: **Quarry**. Tagline: *Draft four. Roll for more.* Currency: **Stones**.  
+Display name: **Beans**. Tagline: *Draft four. Roll for more.* Currency: **beans**.  
 Production: https://roundacats.vercel.app
 
 Tunable defaults live in `src/shared/rules.ts` (`RULES`). Do not quietly change confirmed behavior.
@@ -51,7 +51,7 @@ earned = 20 + ai_award(0–40) + 5 × human_votes
 - AI: one bounded request for all rosters; `topic_fit` 0–10, `pick_strength` 0–20, `roster_quality` 0–10; sum = `ai_award`; explanation ≤45 words.
 - Prompt version: `quarry-judge-v1` (locked in `RULES.aiPromptVersion`).
 - Fallback if AI fails: `20 + 20 + 5×votes`, labeled “Judge unavailable…”.
-- Everyone earns Stones (even 0 votes). Start balance **0**.
+- Everyone earns beans (even 0 votes). Start balance **0**.
 
 ## Wagers
 
@@ -80,7 +80,7 @@ pot = W
 ### Worked path (tests)
 
 Protected **95**. Pot path: `105 → 175` (safe seven) → `187` (safe 6+6) → `374` (dangerous doubles).  
-Banking that pot yields **95 + 374 = 469** total Stones — **469 is the banked total, not the next dice pot**.  
+Banking that pot yields **95 + 374 = 469** total beans — **469 is the banked total, not the next dice pot**.  
 A following non-seven face-sum on the pot (without banking) adds normally (e.g. 5+6 → 385).
 
 ## Party Mode

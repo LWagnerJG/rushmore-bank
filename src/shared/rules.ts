@@ -1,13 +1,13 @@
 /**
- * Quarry — single source of truth for tunable game defaults.
+ * Beans — single source of truth for tunable game defaults.
  * Documented in docs/RULES.md. Do not silently diverge from confirmed product rules.
  */
 
 export const RULES = {
   /** Display */
-  displayName: "Quarry",
-  tagline: "Draft four. Roll for more.",
-  currencyName: "Stones",
+  displayName: "Beans",
+  tagline: "Draft four. Bank beans.",
+  currencyName: "beans",
   productionUrl: "https://roundacats.vercel.app",
 
   /** Players */

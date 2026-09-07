@@ -1351,7 +1351,8 @@ export default class QuarryServer implements Party.Server {
     if (classified.kind === "waiting_player") {
       // Bank without touching shared countdown, animation, or seat.
       this.bankPlayer(id, "Pull Out (waiting)");
-      bump(this.state);
+      // Preserve phaseRevision: the pending cooldown/roll alarm owns it.
+      // onMessage still persists and broadcasts this player's new balance.
       if (this.state.diceActiveIds.length === 0) {
         // Current roller also gone somehow — end round (no in-flight commit possible
         // for waiting-only empty set if current was still active).
@@ -1527,7 +1528,7 @@ export default class QuarryServer implements Party.Server {
         p.stones = this.state.checkpoint.stones[p.id]!;
       }
     }
-    this.state.notice = "Topic voided — stones restored";
+    this.state.notice = "Round discarded. Beans restored.";
     this.state.partyPrompt = null;
     void this.beginTopicSelection();
   }

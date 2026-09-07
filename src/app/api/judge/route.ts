@@ -35,14 +35,12 @@ function authorize(req: NextRequest): "ok" | "fallback_only" | "deny" {
   const hasKey = !!process.env.OPENAI_API_KEY;
   const header = req.headers.get("authorization") || "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : "";
-  const fromParty = req.headers.get("x-quarry-judge") === "partykit";
 
   if (secret) {
     return token === secret ? "ok" : "deny";
   }
-  // No JUDGE_SECRET: never burn OpenAI credits from anonymous callers.
-  if (hasKey && !fromParty) return "deny";
-  if (hasKey && fromParty) return "ok"; // local/dev PartyKit without secret
+  // A caller-controlled header is not authentication. Paid calls require a secret.
+  if (hasKey) return "deny";
   return "fallback_only";
 }
 
@@ -81,7 +79,7 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  const system = `You are Quarry's AI judge (prompt ${RULES.aiPromptVersion}).
+  const system = `You are Beans' AI judge (prompt ${RULES.aiPromptVersion}).
 Score each Mount Rushmore roster for the given topic.
 Return ONLY JSON: {"judgments":[{"anonId":"R1","topicFit":0-10,"pickStrength":0-20,"rosterQuality":0-10,"explanation":"≤45 words"}]}
 Rubric: topic_fit 0-10, pick_strength 0-20, roster_quality 0-10. Be fair, concise, playful.
@@ -98,6 +96,7 @@ Judge anonymously — you only see anonId + picks. No names, votes, balances, or
   try {
     const res = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
+      signal: AbortSignal.timeout(RULES.judgeTimeoutMs),
       headers: {
         Authorization: `Bearer ${key}`,
         "Content-Type": "application/json",
