@@ -30,10 +30,7 @@ export default function HomePage() {
       <header className="space-y-4 text-center">
         <BrandMark large />
         <h1 className="text-xl font-extrabold">{RULES.tagline}</h1>
-        <p className="mx-auto max-w-xs text-[var(--muted)]">
-          Pick your best four. Let the room judge. Roll for more, or bank what you have.
-        </p>
-        <p className="text-sm font-bold">3–10 friends · one phone each</p>
+        <p className="text-sm font-bold">2–10 friends · one phone each</p>
       </header>
 
       <section className="panel space-y-5" aria-label="Play Beans">
@@ -44,7 +41,7 @@ export default function HomePage() {
         <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); enter(); }}>
           <div className="space-y-2">
             <label htmlFor="player-name" className="block text-sm font-extrabold">Your name</label>
-            <input id="player-name" name="nickname" className="field w-full" autoComplete="nickname" placeholder="The name your friends know" value={name} maxLength={18} onChange={(e) => setName(e.target.value)} aria-describedby={error ? "entry-error" : undefined} />
+            <input id="player-name" name="nickname" className="field w-full" autoComplete="nickname" placeholder="Nickname" value={name} maxLength={18} onChange={(e) => setName(e.target.value)} aria-describedby={error ? "entry-error" : undefined} />
           </div>
           {mode === "join" && <div className="space-y-2">
             <label htmlFor="room-code" className="block text-sm font-extrabold">Room code</label>
@@ -53,12 +50,10 @@ export default function HomePage() {
           {error && <p id="entry-error" className="text-sm font-bold text-[var(--coral)]" role="alert">{error}</p>}
           <button type="submit" className="btn-danger w-full text-lg" disabled={busy}>{busy ? "Opening your room…" : mode === "create" ? "Make a room" : "Join the room"}</button>
         </form>
-        <p className="text-center text-xs text-[var(--muted)]">No accounts. Just questionable opinions.</p>
       </section>
 
       <nav className="flex justify-center gap-6 text-sm font-bold">
         <Link href="/how-to-play" className="underline underline-offset-4">How to play</Link>
-        <Link href="/how-to-play#homescreen" className="underline underline-offset-4">Add to home screen</Link>
       </nav>
     </main>
   );

@@ -52,12 +52,12 @@ for (let roll = 1; roll <= 3; roll++) for (let a = 1; a <= 6; a++) for (let b = 
   assert.equal(applyDiceRoll(100, { d1: a, d2: b }, roll).potAfter, expected);
   cases++;
 }
-for (let n = 3; n <= 10; n++) {
+for (let n = 2; n <= 10; n++) {
   const order = snakeDraftOrder(n, 4, 0);
   assert.equal(order.length, n * 4);
   for (let seat = 0; seat < n; seat++) assert.equal(order.filter(x => x === seat).length, 4);
 }
-console.log("PASS: " + cases + " dice cases and snake counts for 3–10 players");
+console.log("PASS: " + cases + " dice cases and snake counts for 2–10 players");
 
 function seed(n) {
   const storage = { async get() {}, async put() {}, async delete() {}, async setAlarm() {}, async deleteAlarm() {} };
@@ -74,7 +74,7 @@ function seed(n) {
   });
   return server;
 }
-for (const n of [3, 6, 10]) {
+for (const n of [2, 3, 6, 10]) {
   for (const stage of ["COOLDOWN", "READY", "COMMITTED"]) {
     const s = seed(n);
     s.state.diceSubphase = stage === "COMMITTED" ? "READY" : stage;
@@ -101,7 +101,7 @@ for (const n of [3, 6, 10]) {
   assert.equal(spectator.myHumanVote, null);
   await assert.rejects(s.handle({ type: "submit_ai_judgments", judgments: [] }, { id: "p0" }));
 }
-console.log("PASS: actual waiting-bank/timer/duplicate/privacy/client-judge handlers for 3, 6, 10 players");
+console.log("PASS: actual waiting-bank/timer/duplicate/privacy/client-judge handlers for 2, 3, 6, 10 players");
 
 for (const env of ["test", "preview"]) {
   assert.equal(resolvePartyHost(undefined, env), "");
@@ -125,4 +125,138 @@ const fallback = await POST(request());
 assert.equal(fallback.status, 200);
 assert.equal((await fallback.json()).fallback, true);
 console.log("PASS: spoofed judge header rejected, incorrect secret rejected, neutral fallback remains available");
+
+
+// Keep Fudge's provider choice and anonymous scoring intact end to end.
+function fresh(n) {
+  const storage = { async get() {}, async put() {}, async delete() {}, async setAlarm() {}, async deleteAlarm() {} };
+  const server = new Server({ id: "LOCAL", storage, getConnections() { return []; }, env: { JUDGE_URL: "https://judge.test", JUDGE_SECRET: "test-only-secret" } });
+  for (let i = 0; i < n; i++) server.handleJoin("p" + i, "Friend " + i, "player");
+  return server;
+}
+async function settleJob(server) {
+  for (let i = 0; i < 50 && server.state.phase === "VOTING_AND_JUDGING"; i++) await new Promise(setImmediate);
+}
+let providerCalls = [];
+context.fetch = async (url, options) => {
+  if (url === "https://judge.test/api/judge") return POST(new Request(url, options));
+  const u = new URL(url);
+  providerCalls.push(u.hostname);
+  if (u.hostname === "generativelanguage.googleapis.com") assert.equal(u.pathname, "/v1beta/models/" + (context.process.env.GEMINI_MODEL || "gemini-3.5-flash") + ":generateContent");
+  const payload = JSON.parse(options.body);
+  const user = u.hostname === "generativelanguage.googleapis.com"
+    ? JSON.parse(payload.contents[0].parts[0].text)
+    : JSON.parse(payload.messages[1].content);
+  for (const roster of user.rosters) {
+    assert.deepEqual(Object.keys(roster).sort(), ["anonId", "picks"]);
+    assert.equal(roster.picks.length, 4);
+  }
+  const result = { judgments: user.rosters.map((r, i) => ({ anonId: r.anonId, topicFit: 8, pickStrength: 16 - i, rosterQuality: 7, explanation: "Strong picks with variety." })) };
+  if (u.hostname === "generativelanguage.googleapis.com") return Response.json({ candidates: [{ content: { parts: [{ text: JSON.stringify(result) }] } }] });
+  if (u.hostname === "api.openai.com") return Response.json({ choices: [{ message: { content: JSON.stringify(result) } }] });
+  throw new Error("Unexpected external request in test");
+};
+
+for (const mode of ["gemini", "alias", "openai", "neutral"]) {
+  context.process.env = { JUDGE_SECRET: "test-only-secret" };
+  if (mode === "gemini") Object.assign(context.process.env, { GEMINI_API_KEY: "test", OPENAI_API_KEY: "test" });
+  if (mode === "alias") Object.assign(context.process.env, { GOOGLE_GENERATIVE_AI_API_KEY: "test", GEMINI_MODEL: "gemini-3.1-flash-lite" });
+  if (mode === "openai") context.process.env.OPENAI_API_KEY = "test";
+  providerCalls = [];
+  const s = fresh(2);
+  await s.handleStart("p0");
+  assert.equal(s.state.configuredTopicRounds, 3);
+  for (let round = 0; round < 3; round++) {
+    assert.equal(s.state.phase, "TOPIC_SELECTION");
+    const topicId = s.state.topicOptions[0].id;
+    await s.handleVoteTopic("p0", topicId);
+    await s.handleVoteTopic("p1", topicId);
+    assert.equal(s.state.phase, "PREP");
+    await s.handleAdvance("p0");
+    while (s.state.phase === "DRAFT") await s.handleLockIn(s.currentDraftPlayerId(), "Pick " + s.state.draftCursor);
+    assert.equal(s.state.picks.length, 8);
+    for (const id of s.state.seatOrder) assert.equal(s.state.picks.filter(p => p.playerId === id).length, 4);
+    assert.equal(s.state.phase, "REVIEW");
+    await s.handleSkipReview("p0");
+    await settleJob(s);
+    assert.equal(s.state.phase, "SCORE_REVEAL", "two players must not wait for fake votes");
+    assert.equal(s.publicStateFor("p0").humanVotesNeeded, 0);
+    assert.equal(Object.keys(s.state.humanVotes).length, 0);
+    for (const score of s.state.scores) {
+      assert.equal(score.votes, 0);
+      assert.equal(score.earned, mode === "neutral" ? 40 : 20 + score.aiAward);
+    }
+    const before = Object.fromEntries(s.state.players.map(p => [p.id, p.stones]));
+    const earned = { ...s.state.earnedThisRound };
+    await s.handleAdvance("p0");
+    await s.handleWager("p0", Math.floor(earned.p0 / 2));
+    await s.handleWager("p1", Math.floor(earned.p1 / 2));
+    assert.equal(s.state.phase, "DICE");
+    await s.onAlarm(); // Server cooldown alarm; no wall-clock wait in unit harness.
+    const roller = s.currentDicePlayerId();
+    await s.handleRoll(roller);
+    assert.equal(s.publicStateFor("p1").lastDice.d1, undefined);
+    await s.onAlarm();
+    assert.equal(s.state.lastDice.revealed, true);
+    const gain = s.state.lastDice.potAfter - s.state.lastDice.potBefore;
+    for (const id of [...s.state.diceActiveIds]) await s.handlePullOut(id);
+    for (const p of s.state.players) assert.equal(p.stones, before[p.id] + earned[p.id] + (p.id === roller ? gain : 0));
+    assert.equal(s.state.phase, round === 2 ? "GAME_RESULTS" : "ROUND_RESULTS");
+    if (round < 2) await s.handleAdvance("p0");
+  }
+  assert.equal(s.state.gameOver, true);
+  assert.equal(providerCalls.length, mode === "neutral" ? 0 : 3);
+  if (mode !== "neutral") assert.equal(providerCalls.every(host => host === (mode === "openai" ? "api.openai.com" : "generativelanguage.googleapis.com")), true);
+}
+console.log("PASS: complete 2-player games through 3 rounds with Gemini, Google alias, OpenAI, and neutral fallback (mock APIs)");
+
+// A two-player ballot cannot add five artificial beans, even with forged input.
+const pair = fresh(2);
+await pair.handleStart("p0");
+pair.state.phase = "VOTING_AND_JUDGING";
+await assert.rejects(pair.handleVote("p0", "p1"), /Two-player/);
+assert.equal(Object.keys(pair.state.humanVotes).length, 0);
+
+// Locked roster size, not transient connection count, selects group voting.
+const group = fresh(3);
+await group.handleStart("p0");
+group.state.players[2].connected = false;
+group.state.phase = "VOTING_AND_JUDGING";
+await group.handleVote("p0", "p1");
+assert.equal(group.state.humanVotes.p0, "p1");
+assert.equal(group.publicStateFor("p0").humanVotesNeeded, 2);
+console.log("PASS: two-player vote rejection and retained group ballots when a third player disconnects");
+
+for (const n of [2, 3, 10]) for (const stage of ["DRAFT", "REVIEW", "VOTING_AND_JUDGING"]) for (const timeout of [false, true]) {
+  const s = fresh(n);
+  await s.handleStart("p0");
+  await s.beginDraft();
+  const pickCount = stage === "DRAFT" ? 2 : n * 4;
+  for (let i = 0; i < pickCount; i++) await s.handleLockIn(s.currentDraftPlayerId(), "Original " + i);
+  s.state.phase = stage;
+  if (stage === "VOTING_AND_JUDGING") { s.state.judgeJobId = "stale-job"; s.state.humanVotes = { p0: "p1" }; }
+  const resumeCursor = s.state.draftCursor;
+  const original = { ...s.state.picks[0] };
+  await s.handleCorrect("p0", original.turnIndex, "invalid");
+  assert.equal(s.state.phase, "CORRECTION");
+  assert.equal(s.currentDraftPlayerId(), original.playerId);
+  assert.equal(s.state.judgeJobId, null);
+  if (timeout) await s.onPickTimeout();
+  else await s.handleLockIn(original.playerId, "Replacement");
+  assert.equal(s.state.draftCursor, resumeCursor);
+  assert.equal(s.state.phase, stage === "DRAFT" ? "DRAFT" : "REVIEW");
+  assert.equal(s.state.picks.length, pickCount);
+  assert.equal(s.state.picks.find(p => p.turnIndex === original.turnIndex).pickIndex, original.pickIndex);
+  while (s.state.phase === "DRAFT") await s.handleLockIn(s.currentDraftPlayerId(), "Remaining " + s.state.draftCursor);
+  assert.equal(new Set(s.state.picks.map(p => p.turnIndex)).size, n * 4);
+  for (const id of s.state.seatOrder) {
+    assert.equal(s.state.picks.filter(p => p.playerId === id).length, 4);
+    assert.equal(new Set(s.state.picks.filter(p => p.playerId === id).map(p => p.pickIndex)).size, 4);
+  }
+  s.state.scoresLocked = true;
+  const snapshot = JSON.stringify(s.state.picks);
+  await assert.rejects(s.handleCorrect("p0", 0, "duplicate"));
+  assert.equal(JSON.stringify(s.state.picks), snapshot);
+}
+console.log("PASS: corrections and expired replacement turns resume correctly for 2, 3, 10 players; locked corrections do not mutate picks");
 console.log("No live rooms, real credentials, or paid AI calls used.");

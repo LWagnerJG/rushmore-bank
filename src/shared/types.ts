@@ -174,6 +174,14 @@ export interface RoomState {
   pickPauseRemainingMs: number | null;
   correctionTargetPickId: string | null;
   correctionReason: "duplicate" | "invalid" | null;
+  /** Private: resume the interrupted draft after replacing one earlier pick. */
+  correctionResume: {
+    phase: "DRAFT" | "REVIEW";
+    cursor: number;
+    pickIndex: number;
+    remainingMs: number | null;
+    paused: boolean;
+  } | null;
   /** PRIVATE — voter → targetPlayerId */
   humanVotes: Record<string, string>;
   scores: RosterScore[];
@@ -391,6 +399,7 @@ export function emptyRoomState(code: string): RoomState {
     pickPauseRemainingMs: null,
     correctionTargetPickId: null,
     correctionReason: null,
+    correctionResume: null,
     humanVotes: {},
     scores: [],
     scoresLocked: false,
@@ -423,3 +432,4 @@ export function emptyRoomState(code: string): RoomState {
 }
 
 export { RULES };
+

@@ -1,6 +1,6 @@
 # Beans
 
-**Draft four. Roll for more.** — mobile-first party game. Currency: **beans**.
+**Draft four. Bank beans.** — mobile-first party game. 2–10 players. Currency: **beans**.
 
 Play at [https://roundacats.vercel.app](https://roundacats.vercel.app).
 
@@ -8,7 +8,7 @@ Play at [https://roundacats.vercel.app](https://roundacats.vercel.app).
 
 - Next.js (App Router) + TypeScript + Tailwind CSS 4
 - PartyKit for durable realtime rooms + server alarms (deadlines survive host tab sleep)
-- Optional `OPENAI_API_KEY` for AI roster judging (`/api/judge`); heuristic fallback if unset
+- Optional AI roster judging via Gemini (`GEMINI_API_KEY`) or OpenAI (`OPENAI_API_KEY`) at `/api/judge`; uniform neutral fallback if unavailable
 - three.js synchronized 3D dice
 
 ## Local development
@@ -25,7 +25,11 @@ npm run dev
 | Variable | Required | Description |
 |---|---|---|
 | `NEXT_PUBLIC_PARTYKIT_HOST` | No | Override PartyKit host (no protocol). Default production: `rushmore-bank.lwagnerjg.partykit.dev` |
-| `OPENAI_API_KEY` | No | AI judge; fallback scoring if missing |
+| `GEMINI_API_KEY` / `GOOGLE_GENERATIVE_AI_API_KEY` | No | Preferred AI judge |
+| `GEMINI_MODEL` | No | Supported Gemini model ID; defaults to `gemini-3.5-flash` |
+| `OPENAI_API_KEY` | No | Optional AI judge fallback if Gemini unset |
+| `JUDGE_SECRET` | For paid AI | Matching secret on the frontend server and PartyKit; required for paid `/api/judge` calls |
+| `NEXT_PUBLIC_APP_ENV` | For a separate test project | Set to `test`; a test backend is required |
 
 ### Scripts
 
@@ -42,9 +46,9 @@ npm run dev
 1. Create Game / Join with a nickname. Share code, link, or QR.
 2. Spin topics → vote one. Snake draft 4 answers (**Lock In**). Private **My Ideas** while waiting.
 3. Host can remove duplicate/invalid → replacement turn.
-4. Vote for another’s roster; AI judges all. Everyone earns beans.
-5. Wager into a personal pot. Rotating personal dice: first 2 rolls safe; then 7 busts that player only; doubles double pot. **Pull Out** banks.
-6. Most banked beans wins.
+4. AI judges everyone. With 3+ players, private votes add beans; with 2, AI-only scoring skips the ballot. Everyone earns beans.
+5. Wager into a personal pot. Rotating personal dice: first 2 rolls safe; then 7 busts that player only; doubles double pot. **Bank** banks.
+6. Most banked Beans wins.
 
 Full rules: [`docs/RULES.md`](docs/RULES.md). Build notes: [`/build-notes`](https://roundacats.vercel.app/build-notes).
 
@@ -52,10 +56,13 @@ Full rules: [`docs/RULES.md`](docs/RULES.md). Build notes: [`/build-notes`](http
 
 1. `npm run deploy:party` — note PartyKit host.
 2. Vercel project **`roundacats`** (domain `roundacats.vercel.app`) auto-deploys from GitHub `LWagnerJG/rushmore-bank`.
-3. Set `NEXT_PUBLIC_PARTYKIT_HOST` if not using the baked default; set `OPENAI_API_KEY` for AI.
+3. Set `NEXT_PUBLIC_PARTYKIT_HOST` if not using the baked default; set `GEMINI_API_KEY` (preferred) or `OPENAI_API_KEY` for AI.
 
-A coral bean character is used for the favicon, Apple touch icon, share image, and in-app wordmark.
+Beans uses a coral bean character on the favicon, home-screen icons, share image, and in-app brand mark.
+
+For isolated testing and promotion, see [`docs/BEANS_TEST_RELEASE.md`](docs/BEANS_TEST_RELEASE.md). Do not point the test frontend at production PartyKit.
 
 ## License
 
 Private — all rights reserved unless otherwise noted.
+

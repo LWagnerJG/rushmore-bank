@@ -51,9 +51,17 @@ Room `SMK3` measured ~19s for one compressed topic (host skip prep/review; pull-
 
 ## AI
 
-- With key: OpenAI `gpt-4o-mini` structured judgments via `/api/judge`
-- Without key (this environment): fallback award 20 + label — stated plainly
+- Preferred: Gemini 2.0 Flash via `GEMINI_API_KEY` (or `GOOGLE_GENERATIVE_AI_API_KEY`) structured JSON at `/api/judge`
+- Optional fallback: OpenAI `gpt-4o-mini` when Gemini unset but `OPENAI_API_KEY` present
+- Without either key: fallback award 20 + label — stated plainly
 
 ## Per-tab guest IDs
 
 Active guest player ids are stored in `sessionStorage` (`quarry:pid:session:${roomCode}`), so two tabs in the same browser join as distinct players instead of reconnecting as one. `localStorage` (`quarry:pid:last:${roomCode}`) only remembers the last id for an explicit Rejoin path — new tabs do not auto-reuse it.
+
+
+## Beans branch verification (2026-09-07)
+
+The original reports above belong to the upstream changes. For the Beans branch, run `node --experimental-vm-modules scripts/verify-beans.mjs` on Node 24. Local actual-handler regressions passed for two-player complete games, provider routing with mocked HTTP, group vote retention, waiting banking/alarms, correction resumption and timeouts, privacy, judge authentication, and preview isolation.
+
+Babel parsed/transformed the TypeScript/TSX sources. Local npm installation returned an environment 403; no local Next build, lint, Vitest or real-browser play-test is claimed. Check the current PR commit's CI for dependency-backed results and follow [the test release checklist](BEANS_TEST_RELEASE.md) before marking multiplayer ready.

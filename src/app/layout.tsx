@@ -16,7 +16,7 @@ const sora = Sora({
 const siteUrl = "https://roundacats.vercel.app";
 const title = "Beans";
 const description =
-  "Draft your best four, win beans, then roll for more. A party game for 3–10 friends.";
+  "Draft your best four, win beans, then roll for more. A party game for 2–10 friends.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),

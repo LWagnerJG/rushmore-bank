@@ -27,7 +27,7 @@ function PlayerChip({ player, you }: { player: Player; you: boolean }) {
     <div
       className={`shrink-0 rounded-xl px-2.5 py-1.5 text-xs font-bold ${
         you
-          ? "bg-[var(--coral)] text-white"
+          ? "bg-[var(--mint)] text-[var(--text)]"
           : "bg-white/70 text-[var(--text)]"
       } ${player.connected ? "" : "opacity-50"}`}
     >

@@ -173,7 +173,7 @@ function ConnectedRoomClient({
         <div className="flex items-center justify-between gap-2">
           <BrandMark />
           <div className="text-right text-xs font-bold uppercase tracking-wide text-[var(--muted)]">
-            <div>{phase ? phaseLabel(phase) : "…"}</div>
+            <div>{phase === "VOTING_AND_JUDGING" && state?.seatOrder.length === 2 ? "Judging" : phase ? phaseLabel(phase) : "…"}</div>
             <div className="text-[var(--text)]">
               {you.stones} {RULES.currencyName}
             </div>
