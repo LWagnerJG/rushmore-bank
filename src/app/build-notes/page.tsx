@@ -16,7 +16,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Personal BANK + wager/dice/ideas polish → {RULES.productionUrl}
+        BEAN BUSTER + personal BANK polish → {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -52,6 +52,11 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
+            <strong>BEAN BUSTER</strong> — on seven-bust, roller + spectators
+            get a clear shared moment (header + result readout), not a buried
+            status line. Party sip prompt uses the same wording.
+          </li>
+          <li>
             <strong>BANK rule</strong> — personal continuous turn: keep rolling
             until Bank or bust, then next seat. Waiting players watch (no early
             Bank / sit-out).
@@ -86,9 +91,9 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">Follow-ups</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>Redeploy PartyKit required</strong> — personal BANK turn
-            model + no topic timer live in <code>party/server.ts</code>. Run{" "}
-            <code>npm run deploy:party</code>.
+            PartyKit unchanged for BEAN BUSTER (UI-only). Prior personal BANK
+            turn model still needs <code>npm run deploy:party</code> if not
+            already deployed.
           </li>
         </ul>
       </section>

@@ -581,7 +581,23 @@ html.dice-your-turn::after {
   letter-spacing: -0.02em;
   color: var(--text);
 }
-.dice-result-bust .dice-result-total {
+.dice-result-bust {
+  padding: 0.65rem 0.75rem 0.85rem;
+  border-radius: 1rem;
+  background: linear-gradient(
+    180deg,
+    rgba(231, 111, 78, 0.18) 0%,
+    rgba(231, 111, 78, 0.06) 100%
+  );
+  animation: dice-bust-flash 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.dice-result-bust-title {
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(1.85rem, 8vw, 2.65rem);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
   color: var(--coral);
 }
 .dice-result-note {
@@ -602,6 +618,23 @@ html.dice-your-turn::after {
   100% {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+@keyframes dice-bust-flash {
+  0% {
+    opacity: 0;
+    transform: scale(0.88);
+    filter: brightness(1.25);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1.06);
+    filter: brightness(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: brightness(1);
   }
 }
 
@@ -696,6 +729,7 @@ html.dice-your-turn::after {
   .bean-dice-tray-armed,
   .bean-dice-tray-punch,
   html.dice-your-turn::after,
+  .dice-result-bust,
   .dice-result-readout-on {
     animation: none !important;
   }

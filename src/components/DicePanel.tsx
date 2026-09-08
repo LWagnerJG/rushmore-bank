@@ -123,18 +123,19 @@ export function DicePanel({
   const canResolveParty =
     partyPrompt?.targetPlayerIds.includes(youId) || you.isHost;
 
-  // Dramatic result beat when faces first reveal.
+  // Dramatic result beat when faces first reveal (longer on bust).
   useEffect(() => {
     if (!last?.revealed || !last.rollId) return;
     if (revealSeen.current === last.rollId) return;
     revealSeen.current = last.rollId;
+    const hold = last.busted ? 2400 : 1600;
     const on = window.setTimeout(() => setHeroReveal(true), 0);
-    const off = window.setTimeout(() => setHeroReveal(false), 1600);
+    const off = window.setTimeout(() => setHeroReveal(false), hold);
     return () => {
       window.clearTimeout(on);
       window.clearTimeout(off);
     };
-  }, [last?.revealed, last?.rollId]);
+  }, [last?.revealed, last?.rollId, last?.busted]);
 
   const seats = state.seatOrder.map((pid) => {
     const player = state.players.find((p) => p.id === pid);
@@ -235,10 +236,16 @@ export function DicePanel({
 
       <header className="space-y-1 text-center">
         <h2 className="font-[family-name:var(--font-display)] text-2xl font-extrabold">
-          {myTurn ? "Your roll" : `${roller?.name ?? "Player"} is up`}
+          {heroReveal && last?.busted
+            ? "BEAN BUSTER"
+            : myTurn
+              ? "Your roll"
+              : `${roller?.name ?? "Player"} is up`}
         </h2>
         <p className="min-h-6 text-sm text-[var(--muted)]" aria-live="polite">
-          {statusLine}
+          {heroReveal && last?.busted
+            ? `${lastName} · pot wiped`
+            : statusLine}
         </p>
       </header>
 
@@ -255,20 +262,26 @@ export function DicePanel({
       <div
         className={`dice-result-readout ${revealed ? "dice-result-readout-on" : ""} ${last?.busted ? "dice-result-bust" : ""}`}
         role="status"
-        aria-live="polite"
+        aria-live="assertive"
       >
         {revealed && total != null ? (
-          <>
-            <p className="dice-result-faces">
-              {lastName} · {last!.d1} + {last!.d2}
-            </p>
-            <p className="dice-result-total tabular-nums">
-              {last!.busted ? "BUST" : total}
-            </p>
-            <p className="dice-result-note">
-              {last!.busted ? "Pot gone" : last!.note}
-            </p>
-          </>
+          last!.busted ? (
+            <>
+              <p className="dice-result-faces">
+                {lastName} · {last!.d1} + {last!.d2}
+              </p>
+              <p className="dice-result-bust-title">BEAN BUSTER</p>
+              <p className="dice-result-note">Pot gone</p>
+            </>
+          ) : (
+            <>
+              <p className="dice-result-faces">
+                {lastName} · {last!.d1} + {last!.d2}
+              </p>
+              <p className="dice-result-total tabular-nums">{total}</p>
+              <p className="dice-result-note">{last!.note}</p>
+            </>
+          )
         ) : (
           <p className="text-sm text-[var(--muted)]">
             {canRoll ? "Tap the dice" : "\u00a0"}
@@ -329,10 +342,22 @@ export function DicePanel({
       {partyPrompt && !partyPrompt.resolved && (
         <section className="panel space-y-2">
           <p className="font-bold">
-            {partyPrompt.targetPlayerIds
-              .map((id) => state.players.find((p) => p.id === id)?.name)
-              .join(", ")}{" "}
-            · optional sip
+            {partyPrompt.kind === "bust_sip" ? (
+              <>
+                BEAN BUSTER ·{" "}
+                {partyPrompt.targetPlayerIds
+                  .map((id) => state.players.find((p) => p.id === id)?.name)
+                  .join(", ")}{" "}
+                · optional sip
+              </>
+            ) : (
+              <>
+                {partyPrompt.targetPlayerIds
+                  .map((id) => state.players.find((p) => p.id === id)?.name)
+                  .join(", ")}{" "}
+                · optional sip
+              </>
+            )}
           </p>
           {canResolveParty && (
             <div className="flex gap-2">
