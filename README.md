@@ -42,7 +42,7 @@ npm run dev
 ## How to play (short)
 
 1. Create / Join with a nickname. Share code, link, or QR.
-2. Snake draft 4 answers (**Lock In**). Private **My Ideas** while waiting.
+2. Snake draft 4 answers (**Lock pick**). Type your own; optional private **My Ideas** while waiting. Board stays on screen.
 3. Vote for another’s roster; AI judges all. Everyone earns beans.
 4. Slider: how many beans to risk. Then each player gets a personal **bank** turn (2 safe rolls, then risk). **Bank** locks the pot.
 5. Most banked beans wins.

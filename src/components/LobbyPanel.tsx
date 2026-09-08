@@ -56,22 +56,10 @@ export function LobbyPanel({
   return (
     <div className="space-y-4">
       <section className="panel space-y-3 text-center">
-        <div className="flex justify-center">
-          <span
-            className={
-              "status-pill " + (enough ? "status-pill-ready" : "")
-            }
-          >
-            {enough ? "Ready" : "Gathering"}
-          </span>
-        </div>
-        <p className="text-xs font-bold uppercase tracking-widest text-[var(--muted)]">
-          Room code
-        </p>
         <p className="font-[family-name:var(--font-display)] text-5xl font-extrabold tracking-[0.22em]">
           {state.code}
         </p>
-        <p className="text-sm font-semibold">{statusText}</p>
+        <p className="text-sm font-semibold text-[var(--muted)]">{statusText}</p>
         <div className="mx-auto w-fit rounded-2xl bg-white p-3 shadow-sm">
           <QRCodeSVG
             value={url}
@@ -136,15 +124,7 @@ export function LobbyPanel({
         )}
       </section>
 
-      {!you.isHost && (
-        <section className="panel text-center">
-          <p className="font-extrabold">
-            {partyOn ? "Party Mode on — waiting for host" : "Waiting for host"}
-          </p>
-        </section>
-      )}
-
-      {you.isHost && (
+      {you.isHost ? (
         <section className="space-y-3">
           <PartyModeSwitch
             on={partyOn}
@@ -155,7 +135,6 @@ export function LobbyPanel({
               })
             }
           />
-
           <button
             type="button"
             className={
@@ -171,7 +150,7 @@ export function LobbyPanel({
               : `Need ${RULES.minPlayers}+ players`}
           </button>
         </section>
-      )}
+      ) : null}
     </div>
   );
 }

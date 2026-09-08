@@ -54,10 +54,9 @@ export function DicePanel({ state, you, youId, send }: {
 
   return <div className="space-y-4">
     <header className="space-y-1 text-center">
-      <p className="text-xs font-bold uppercase tracking-wide text-[var(--muted)]">BANK · Round {state.topicRound + 1} of {state.configuredTopicRounds}</p>
       <h2 className="text-2xl font-extrabold">{myTurn ? "Your roll" : `${roller?.name ?? "Player"}’s roll`}</h2>
       <p className="min-h-6 text-sm" aria-live="polite">
-        {rolling ? "Dice are in the air…" : state.diceSubphase === "COOLDOWN" ? <>Roll opens in <Countdown until={state.diceDecisionDeadlineAt} /></> : myTurn ? <>Roll or bank · <Countdown until={state.diceIdleDeadlineAt} /></> : nextName ? `Up next: ${nextName}` : "Last player in"}
+        {rolling ? "Rolling…" : state.diceSubphase === "COOLDOWN" ? <>Opens in <Countdown until={state.diceDecisionDeadlineAt} /></> : myTurn ? <><Countdown until={state.diceIdleDeadlineAt} /></> : nextName ? `Next: ${nextName}` : "Last in"}
       </p>
     </header>
 
@@ -68,33 +67,32 @@ export function DicePanel({ state, you, youId, send }: {
 
     {you.role === "player" && <section className="panel space-y-3">
       <div className="flex items-end justify-between gap-3">
-        <div><p className="text-sm">Your pot</p><p className="text-3xl font-extrabold tabular-nums">{pot} <span className="text-base">beans</span></p></div>
+        <div><p className="text-sm">Your pot</p><p className="text-3xl font-extrabold tabular-nums">{pot}</p></div>
         <p className="text-right text-sm"><strong>{active ? state.protectedStones[youId] ?? you.stones : you.stones}</strong> safe</p>
       </div>
       {active ? <>
-        <p className="text-sm text-[var(--muted)]">{personal < RULES.safePersonalRolls ? `${RULES.safePersonalRolls - personal} safe rolls left. A 7 adds 70.` : "7 busts. Doubles double your pot."}</p>
+        <p className="text-sm text-[var(--muted)]">{personal < RULES.safePersonalRolls ? `${RULES.safePersonalRolls - personal} safe left · 7 = +70` : "7 busts · doubles ×2"}</p>
         <div className="flex gap-2">
-          {myTurn && <button className="btn-primary flex-1 text-lg" disabled={!canRoll || busy} onClick={() => { if (canRoll) act({ type: "roll" }); }}>Roll dice</button>}
-          <button className="btn-secondary flex-1" disabled={!canBank || busy} onClick={() => { if (canBank) act({ type: "pull_out" }); }}>{pot === 0 ? "Bank & sit out" : `Bank ${pot}`}</button>
+          {myTurn && <button className="btn-primary flex-1 text-lg" disabled={!canRoll || busy} onClick={() => { if (canRoll) act({ type: "roll" }); }}>Roll</button>}
+          <button className="btn-secondary flex-1" disabled={!canBank || busy} onClick={() => { if (canBank) act({ type: "pull_out" }); }}>{pot === 0 ? "Bank out" : `Bank ${pot}`}</button>
         </div>
-      </> : <p className="text-sm">You’re out for this round. Back in next topic.</p>}
+      </> : <p className="text-sm text-[var(--muted)]">Out this round.</p>}
     </section>}
 
-    <section aria-label="Dice turn order" className="panel space-y-2 text-sm">
-      {state.seatOrder.map((pid) => {
-        const player = state.players.find((p) => p.id === pid);
-        const inRound = state.diceActiveIds.includes(pid);
-        const bust = state.ledger.some((e) => e.topicRound === state.topicRound && e.playerId === pid && e.kind === "bust");
-        const status = !inRound ? bust ? "Busted" : "Banked" : pid === rollerId ? "Rolling" : pid === nextId ? "Next" : "In";
-        return <div key={pid} className={`flex items-center justify-between gap-3 rounded-lg px-2 py-2 ${pid === rollerId && inRound ? "bg-[var(--mint)] font-bold" : ""}`}>
-          <span>{player?.name}{pid === youId ? " (you)" : ""}</span>
-          <span className="text-right tabular-nums">{inRound ? `${state.pots[pid] ?? 0} · ${status}` : `${player?.stones ?? 0} · ${status}`}</span>
-        </div>;
-      })}
-    </section>
-    <details className="text-sm text-[var(--muted)]">
-      <summary className="min-h-11 cursor-pointer font-bold">Dice rules</summary>
-      <p>One roll, then pass. Only your own roll changes your pot. Your first two rolls are safe: add the total, or 70 for a seven. After that, seven loses your pot and doubles double it. Bank between rolls to keep your pot. Everyone starts fresh next topic.</p>
+    <details className="panel text-sm">
+      <summary className="min-h-11 cursor-pointer font-bold">Table</summary>
+      <div className="mt-2 space-y-1" aria-label="Dice turn order">
+        {state.seatOrder.map((pid) => {
+          const player = state.players.find((p) => p.id === pid);
+          const inRound = state.diceActiveIds.includes(pid);
+          const bust = state.ledger.some((e) => e.topicRound === state.topicRound && e.playerId === pid && e.kind === "bust");
+          const status = !inRound ? bust ? "Busted" : "Banked" : pid === rollerId ? "Rolling" : pid === nextId ? "Next" : "In";
+          return <div key={pid} className={`flex items-center justify-between gap-3 rounded-lg px-2 py-2 ${pid === rollerId && inRound ? "bg-[var(--mint)] font-bold" : ""}`}>
+            <span>{player?.name}{pid === youId ? " (you)" : ""}</span>
+            <span className="text-right tabular-nums">{inRound ? `${state.pots[pid] ?? 0} · ${status}` : `${player?.stones ?? 0} · ${status}`}</span>
+          </div>;
+        })}
+      </div>
     </details>
     {partyPrompt && !partyPrompt.resolved && <section className="panel space-y-2">
       <p className="font-bold">{partyPrompt.targetPlayerIds.map((id) => state.players.find((p) => p.id === id)?.name).join(", ")} · optional sip</p>

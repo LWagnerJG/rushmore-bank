@@ -171,10 +171,10 @@ export interface RoomState {
   draftOrder: number[];
   picks: DraftPick[];
   takenNormalized: string[];
-  /** Shared suggestion pool for the current topic (not ranked) */
+  /** Shared suggestion pool — unused (players type their own); kept for persisted rooms */
   draftOptions: string[];
   draftOptionsStatus: "idle" | "pending" | "ready" | "unavailable";
-  /** PRIVATE — in-flight suggestion fetch id */
+  /** PRIVATE — legacy suggestion fetch id */
   draftOptionsJobId: string | null;
   pickDeadlineAt: number | null;
   pickPaused: boolean;
