@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { RULES } from "@/shared/rules";
+import { TOPIC_COUNT } from "@/shared/topics";
 
 const COMMIT_SHA = process.env.VERCEL_GIT_COMMIT_SHA;
 const COMMIT_MESSAGE = process.env.VERCEL_GIT_COMMIT_MESSAGE;
@@ -16,7 +17,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Dice turn strip + failproof player rail + topic custom mix →{" "}
+        Huge topic bank ({TOPIC_COUNT}) + anti-repeat shortlists →{" "}
         {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
@@ -38,7 +39,9 @@ export default function BuildNotesPage() {
             <li>
               Target: production <code>roundacats.vercel.app</code> via merge to{" "}
               <code>main</code>. PartyKit host{" "}
-              <code>rushmore-bank.lwagnerjg.partykit.dev</code>.
+              <code>rushmore-bank.lwagnerjg.partykit.dev</code> — redeploy
+              required (topic shortlist anti-repeat lives in{" "}
+              <code>party/</code>).
             </li>
           </ul>
         ) : (
@@ -53,25 +56,26 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>BANK dice — no “TABLE”</strong>: removed the center circle
-            hub. Layout choice: compact horizontal turn strip (UP / NEXT / In /
-            Banked / Bust + pots). Hierarchy: strip → who’s up → timer → dice →
-            pot/Bank. Scramble, hard-cut settle, 15s timer, tap-to-roll, BEAN
-            BUSTER, personal BANK, green perimeter preserved.
+            <strong>Topic bank: {TOPIC_COUNT}</strong> unique Mount Rushmore–style
+            prompts in <code>src/shared/topics.ts</code> (sports / food /
+            everyday / entertainment). Researched + curated for phone party
+            play — punchy, draftable, brand-safe.
           </li>
           <li>
-            <strong>Failproof player rail</strong>: single-row horizontal scroll
-            (never a clipped second wrap). Denser chips at 6+ players + edge
-            fade affordance. Works for 2 and 10.
+            <strong>Anti-repeat</strong>: room tracks <code>seenTopicIds</code>{" "}
+            across shortlists and rerolls (plus locked <code>usedTopicIds</code>
+            ). Reroll pulls fresh options from the remaining pool; when soft
+            history exhausts the bank, it reshuffles while still excluding
+            locked topics. No topic timer.
           </li>
           <li>
-            <strong>Topic pick</strong>: “Write your own…” is a 5th choice in
-            the same list as the four topics (host locks custom). Reroll still
-            refreshes the generated four. Cleaner Topic · n/N hierarchy.
+            Topic pick UI unchanged in shape: 4 choices + Write your own +
+            reroll. Scope labels capitalized; clearer subtitle.
           </li>
           <li>
-            UI-only — no <code>party/</code> or RULES changes; PartyKit
-            redeploy not required for this polish.
+            Preserved: dice scramble+settle, turn strip (no TABLE), failproof
+            player rail, inline custom topic, Bank the Beans, personal BANK,
+            admin, Beans branding.
           </li>
         </ul>
       </section>

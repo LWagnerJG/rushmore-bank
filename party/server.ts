@@ -83,6 +83,12 @@ function migrateState(raw: RoomState): RoomState {
     judgeJobId: raw.judgeJobId ?? null,
     judgeNotice: raw.judgeNotice ?? null,
     topicVotes: raw.topicVotes ?? {},
+    usedTopicIds: raw.usedTopicIds ?? [],
+    seenTopicIds: Array.isArray(
+      (raw as RoomState & { seenTopicIds?: string[] }).seenTopicIds,
+    )
+      ? (raw as RoomState).seenTopicIds
+      : [],
     humanVotes: raw.humanVotes ?? {},
     processedActionIds: raw.processedActionIds ?? [],
     draftOptions: raw.draftOptions ?? [],
@@ -545,6 +551,7 @@ export default class QuarryServer implements Party.Server {
     this.state.topicRound = 0;
     this.state.configuredTopicRounds = topicRoundsForPlayerCount(shuffled.length);
     this.state.usedTopicIds = [];
+    this.state.seenTopicIds = [];
     this.state.checkpoint = {
       stones: Object.fromEntries(
         seatedPlayers(this.state).map((p) => [p.id, p.stones]),
@@ -581,13 +588,30 @@ export default class QuarryServer implements Party.Server {
 
   spinShortlist() {
     const count = topicShortlistCount();
-    let pool = pickRandomTopics(count * 3, this.state.usedTopicIds);
+    if (!Array.isArray(this.state.seenTopicIds)) {
+      this.state.seenTopicIds = [];
+    }
+    // Soft-exclude locked + already-shown topics so rerolls feel fresh.
+    const softExclude = [
+      ...new Set([...this.state.usedTopicIds, ...this.state.seenTopicIds]),
+    ];
+    let pool = pickRandomTopics(count * 3, softExclude);
+    if (pool.length < count) {
+      // Soft history exhausted — keep locked topics out, reshuffle the rest.
+      this.state.seenTopicIds = [...this.state.usedTopicIds];
+      pool = pickRandomTopics(count * 3, this.state.usedTopicIds);
+    }
     const mix = this.state.settings.scopeMix.filter((s) => s !== "custom");
     if (mix.length > 0) {
       const filtered = pool.filter((t) => mix.includes(t.scope));
       if (filtered.length >= count) pool = filtered;
     }
     const picked = pool.slice(0, count);
+    for (const t of picked) {
+      if (!this.state.seenTopicIds.includes(t.id)) {
+        this.state.seenTopicIds.push(t.id);
+      }
+    }
     this.state.topicOptions = picked.map((t) => ({
       id: t.id,
       text: t.text,

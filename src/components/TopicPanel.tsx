@@ -52,7 +52,9 @@ export function TopicPanel({
         <h2 className="topic-title">
           Topic · {state.topicRound + 1}/{state.configuredTopicRounds}
         </h2>
-        <p className="topic-sub">Pick one — or write your own</p>
+        <p className="topic-sub">
+          Four from the bank — vote, write your own, or reroll
+        </p>
       </header>
 
       <div
@@ -113,10 +115,10 @@ export function TopicPanel({
                     aria-label="Topic scope"
                     onChange={(e) => setScope(e.target.value as TopicScope)}
                   >
-                    <option value="sports">sports</option>
-                    <option value="food">food</option>
-                    <option value="everyday">everyday</option>
-                    <option value="entertainment">entertainment</option>
+                    <option value="sports">Sports</option>
+                    <option value="food">Food</option>
+                    <option value="everyday">Everyday</option>
+                    <option value="entertainment">Entertainment</option>
                   </select>
                   <button
                     type="button"

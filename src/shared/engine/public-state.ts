@@ -110,6 +110,9 @@ export function projectPublicState(
     myTopicVote: state.topicVotes[recipientId] ?? null,
     selectedTopic: state.selectedTopic ? { ...state.selectedTopic } : null,
     topicRerollsUsed: state.topicRerollsUsed,
+    seenTopicCount: Array.isArray(state.seenTopicIds)
+      ? state.seenTopicIds.length
+      : 0,
     seatOrder: [...state.seatOrder],
     starterOffset: state.starterOffset,
     draftCursor: state.draftCursor,

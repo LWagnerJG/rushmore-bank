@@ -7,8 +7,8 @@ import { RULES } from "../rules";
 import { TOPIC_COUNT } from "../topics";
 
 describe("topics", () => {
-  it("has at least 120 curated topics", () => {
-    expect(TOPIC_COUNT).toBeGreaterThanOrEqual(120);
+  it("has a huge curated topic bank", () => {
+    expect(TOPIC_COUNT).toBeGreaterThanOrEqual(800);
   });
 
   it("always offers exactly 4 topic choices", () => {

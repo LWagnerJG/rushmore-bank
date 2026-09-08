@@ -24,7 +24,10 @@ export default function HowToPlayPage() {
       <section className="panel space-y-2">
         <h2 className="font-extrabold">Each topic</h2>
         <ol className="list-decimal space-y-1 pl-5 text-sm">
-          <li>Vote one of four topics (reroll anytime — no timer).</li>
+          <li>
+            Vote one of four topics from a huge bank (reroll anytime for fresh
+            options — no timer). Host can write a custom topic.
+          </li>
           <li>
             Snake draft four answers (60s pick clock) — type your own, board
             always on. Save ideas while waiting; Lock in on your turn (tap a

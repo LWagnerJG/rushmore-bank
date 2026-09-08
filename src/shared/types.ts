@@ -160,6 +160,11 @@ export interface RoomState {
   /** Rounds to play this game (set at start from player count) */
   configuredTopicRounds: number;
   usedTopicIds: string[];
+  /**
+   * Topic ids shown this game (shortlists + rerolls). Soft-excluded so
+   * rerolls pull fresh options until the bank is depleted, then cycles.
+   */
+  seenTopicIds: string[];
   topicOptions: TopicOption[];
   /** PRIVATE — voter → topicId; never in public projection */
   topicVotes: Record<string, string>;
@@ -244,6 +249,8 @@ export interface PublicRoomState {
   myTopicVote: string | null;
   selectedTopic: TopicOption | null;
   topicRerollsUsed: number;
+  /** How many unique bank topics have been shown this game (incl. rerolls). */
+  seenTopicCount: number;
   seatOrder: string[];
   starterOffset: number;
   draftCursor: number;
@@ -409,6 +416,7 @@ export function emptyRoomState(code: string): RoomState {
     topicRound: 0,
     configuredTopicRounds: RULES.topicRoundsSmall,
     usedTopicIds: [],
+    seenTopicIds: [],
     topicOptions: [],
     topicVotes: {},
     selectedTopic: null,
