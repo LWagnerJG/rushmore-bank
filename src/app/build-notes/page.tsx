@@ -16,7 +16,8 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        BANK dice layout polish (turn strip, no TABLE) → {RULES.productionUrl}
+        Dice turn strip + failproof player rail + topic custom mix →{" "}
+        {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -52,43 +53,25 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>No “TABLE” label</strong>: removed the center circle hub
-            entirely. The word Table never appears on the BANK dice screen.
+            <strong>BANK dice — no “TABLE”</strong>: removed the center circle
+            hub. Layout choice: compact horizontal turn strip (UP / NEXT / In /
+            Banked / Bust + pots). Hierarchy: strip → who’s up → timer → dice →
+            pot/Bank. Scramble, hard-cut settle, 15s timer, tap-to-roll, BEAN
+            BUSTER, personal BANK, green perimeter preserved.
           </li>
           <li>
-            <strong>Layout choice — compact horizontal turn strip</strong>:
-            replaced the awkward vertical circle seats with a scrollable chip
-            strip (UP / NEXT / In / Banked / Bust + pots). Seat order reads
-            left→right; the UP chip auto-centers. Phone-first and less clunky
-            than forcing a round table.
+            <strong>Failproof player rail</strong>: single-row horizontal scroll
+            (never a clipped second wrap). Denser chips at 6+ players + edge
+            fade affordance. Works for 2 and 10.
           </li>
           <li>
-            <strong>Tighter hierarchy</strong>: turn strip → who’s up → big
-            timer → dice hero → pot + Bank. One dice stage, less stacked fluff,
-            smaller result readout, tighter gaps.
+            <strong>Topic pick</strong>: “Write your own…” is a 5th choice in
+            the same list as the four topics (host locks custom). Reroll still
+            refreshes the generated four. Cleaner Topic · n/N hierarchy.
           </li>
           <li>
-            Preserved: scramble anticipation + hard-cut settle (no jump), 15s
-            roll/Bank timer, tap-to-roll, BEAN BUSTER, personal BANK, green
-            perimeter when you’re up, haptics/SFX.
-          </li>
-          <li>
-            UI-only — no <code>party/</code> or RULES changes; PartyKit redeploy
-            not required for this polish.
-          </li>
-        </ul>
-      </section>
-
-      <section className="panel space-y-2 text-sm">
-        <h2 className="font-extrabold">Still true from prior BANK dice work</h2>
-        <ul className="list-disc space-y-1 pl-5">
-          <li>
-            Scramble faces are cosmetic; first settled frame paints server{" "}
-            <code>d1</code>/<code>d2</code> with no coast/jump.
-          </li>
-          <li>
-            <code>RULES.diceIdleBankSeconds = 15</code>; opening decision
-            countdown stays 5s.
+            UI-only — no <code>party/</code> or RULES changes; PartyKit
+            redeploy not required for this polish.
           </li>
         </ul>
       </section>

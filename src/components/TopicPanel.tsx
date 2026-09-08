@@ -17,6 +17,7 @@ export function TopicPanel({
   const [refreshing, setRefreshing] = useState(false);
   const [custom, setCustom] = useState("");
   const [scope, setScope] = useState<TopicScope>("everyday");
+  const [customOpen, setCustomOpen] = useState(false);
   const myVote = state.myTopicVote;
   const canReroll = you.role === "player";
   const seenKey = useRef<string | null>(null);
@@ -34,14 +35,28 @@ export function TopicPanel({
     return () => clearTimeout(t);
   }, [optionKey]);
 
+  function lockCustom() {
+    const text = custom.trim();
+    if (!text) return;
+    send({
+      type: "custom_topic",
+      text,
+      scope,
+      scopeBoundary: "Host custom — agree boundaries as a group.",
+    });
+  }
+
   return (
-    <div className="space-y-4">
-      <h2 className="font-[family-name:var(--font-display)] text-xl font-extrabold">
-        Topic · {state.topicRound + 1}/{state.configuredTopicRounds}
-      </h2>
+    <div className="topic-layout">
+      <header className="topic-head">
+        <h2 className="topic-title">
+          Topic · {state.topicRound + 1}/{state.configuredTopicRounds}
+        </h2>
+        <p className="topic-sub">Pick one — or write your own</p>
+      </header>
 
       <div
-        className={`space-y-2 ${refreshing ? "topic-refresh" : ""}`}
+        className={`topic-choices ${refreshing ? "topic-refresh" : ""}`}
         aria-live="polite"
       >
         {state.topicOptions.map((t) => {
@@ -51,26 +66,83 @@ export function TopicPanel({
             <button
               key={t.id}
               type="button"
-              className={`panel w-full min-h-[64px] text-left transition ${
-                selected ? "ring-2 ring-[var(--coral)]" : ""
-              }`}
+              className={`topic-choice ${selected ? "topic-choice-selected" : ""}`}
               onClick={() => send({ type: "vote_topic", topicId: t.id })}
               disabled={you.role !== "player"}
             >
-              <div className="flex items-center justify-between gap-3">
-                <p className="font-extrabold text-base leading-snug">{t.text}</p>
-                <span className="shrink-0 rounded-full bg-[var(--mint)] px-2.5 py-1 text-xs font-bold tabular-nums">
-                  {votes}
-                </span>
-              </div>
+              <span className="topic-choice-text">{t.text}</span>
+              <span className="topic-choice-votes tabular-nums">{votes}</span>
               {selected && t.scopeBoundary ? (
-                <p className="mt-1.5 text-xs text-[var(--muted)]">
-                  {t.scopeBoundary}
-                </p>
+                <span className="topic-choice-scope">{t.scopeBoundary}</span>
               ) : null}
             </button>
           );
         })}
+
+        {/* 5th choice — custom topic mixed into the same list */}
+        {you.isHost ? (
+          <div
+            className={`topic-choice topic-choice-custom ${customOpen ? "topic-choice-custom-open" : ""}`}
+          >
+            {!customOpen ? (
+              <button
+                type="button"
+                className="topic-choice-custom-toggle"
+                onClick={() => setCustomOpen(true)}
+              >
+                <span className="topic-choice-text">Write your own…</span>
+                <span className="topic-choice-hint">Custom</span>
+              </button>
+            ) : (
+              <div className="topic-custom-form">
+                <p className="topic-custom-label">Write your own</p>
+                <input
+                  className="field w-full !py-2.5"
+                  value={custom}
+                  placeholder="Your topic"
+                  autoFocus
+                  onChange={(e) => setCustom(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") lockCustom();
+                  }}
+                />
+                <div className="topic-custom-row">
+                  <select
+                    className="field flex-1 !py-2 text-sm"
+                    value={scope}
+                    aria-label="Topic scope"
+                    onChange={(e) => setScope(e.target.value as TopicScope)}
+                  >
+                    <option value="sports">sports</option>
+                    <option value="food">food</option>
+                    <option value="everyday">everyday</option>
+                    <option value="entertainment">entertainment</option>
+                  </select>
+                  <button
+                    type="button"
+                    className="btn-primary !min-h-11 shrink-0 px-4 text-sm"
+                    disabled={!custom.trim()}
+                    onClick={lockCustom}
+                  >
+                    Lock in
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  className="topic-custom-cancel"
+                  onClick={() => setCustomOpen(false)}
+                >
+                  Back to picks
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="topic-choice topic-choice-custom topic-choice-custom-locked">
+            <span className="topic-choice-text">Write your own…</span>
+            <span className="topic-choice-hint">Host</span>
+          </div>
+        )}
       </div>
 
       {canReroll && (
@@ -81,44 +153,6 @@ export function TopicPanel({
         >
           Reroll topics
         </button>
-      )}
-
-      {you.isHost && (
-        <details className="panel space-y-2">
-          <summary className="min-h-11 cursor-pointer font-bold">
-            Custom topic
-          </summary>
-          <input
-            className="field w-full"
-            value={custom}
-            placeholder="Your topic"
-            onChange={(e) => setCustom(e.target.value)}
-          />
-          <select
-            className="field w-full"
-            value={scope}
-            onChange={(e) => setScope(e.target.value as TopicScope)}
-          >
-            <option value="sports">sports</option>
-            <option value="food">food</option>
-            <option value="everyday">everyday</option>
-            <option value="entertainment">entertainment</option>
-          </select>
-          <button
-            type="button"
-            className="btn-primary w-full"
-            onClick={() =>
-              send({
-                type: "custom_topic",
-                text: custom,
-                scope,
-                scopeBoundary: "Host custom — agree boundaries as a group.",
-              })
-            }
-          >
-            Lock custom
-          </button>
-        </details>
       )}
     </div>
   );

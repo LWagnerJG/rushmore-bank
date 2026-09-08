@@ -17,19 +17,29 @@ export function PlayerRail({
     state.phase === "SCORE_REVEAL" ||
     state.phase === "WAGER_SELECTION" ||
     state.phase === "VOTING_AND_JUDGING";
+  const many = players.length >= 6;
 
   return (
-    <div className="player-rail mt-2 flex flex-wrap gap-2">
-      {players.map((p) => (
-        <PlayerChip
-          key={p.id}
-          player={p}
-          you={p.id === youId}
-          earned={
-            showEarned ? (state.earnedThisRound[p.id] ?? undefined) : undefined
-          }
-        />
-      ))}
+    <div
+      className={`player-rail mt-2 ${many ? "player-rail-many" : ""}`}
+      data-count={players.length}
+      aria-label={`${players.length} players`}
+    >
+      <div className="player-rail-track">
+        {players.map((p) => (
+          <PlayerChip
+            key={p.id}
+            player={p}
+            you={p.id === youId}
+            compact={many}
+            earned={
+              showEarned
+                ? (state.earnedThisRound[p.id] ?? undefined)
+                : undefined
+            }
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -38,31 +48,34 @@ function PlayerChip({
   player,
   you,
   earned,
+  compact,
 }: {
   player: Player;
   you: boolean;
   earned?: number;
+  compact?: boolean;
 }) {
   return (
     <div
-      className={`player-chip min-w-[5rem] rounded-xl px-3 py-2 ${
-        you
-          ? "bg-[var(--coral)] text-white"
-          : "bg-white/80 text-[var(--text)]"
-      } ${player.connected ? "" : "opacity-50"}`}
+      className={[
+        "player-chip",
+        compact ? "player-chip-compact" : "",
+        you ? "player-chip-you" : "player-chip-other",
+        player.connected ? "" : "opacity-50",
+      ]
+        .filter(Boolean)
+        .join(" ")}
     >
-      <div className="flex items-center gap-1 text-[0.7rem] font-bold leading-tight">
+      <div className="player-chip-name">
         {player.isHost && <span title="Host">★</span>}
-        <span className="max-w-[6.5rem] truncate">{player.name}</span>
+        <span className="player-chip-name-text">{player.name}</span>
       </div>
-      <div className="mt-1 flex items-baseline gap-1.5">
-        <span className="font-[family-name:var(--font-display)] text-lg font-extrabold tabular-nums leading-none">
-          {player.stones}
-        </span>
+      <div className="player-chip-score">
+        <span className="player-chip-stones tabular-nums">{player.stones}</span>
         {earned != null && earned > 0 ? (
           <span
-            className={`text-xs font-extrabold tabular-nums ${
-              you ? "text-white/90" : "text-[var(--coral)]"
+            className={`player-chip-earned tabular-nums ${
+              you ? "player-chip-earned-you" : ""
             }`}
           >
             +{earned}
