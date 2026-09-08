@@ -45,6 +45,12 @@ import {
   upsertDraftPick,
   validateAndMapJudgments,
 } from "../src/shared/engine";
+import {
+  botDelayMs,
+  botShouldBank,
+  botWagerAmount,
+  chooseBotPick,
+} from "../src/shared/bot-picks";
 function roomEnv(room: Party.Room): Record<string, string | undefined> {
   return (
     (room as unknown as { env?: Record<string, string | undefined> }).env ?? {}
@@ -161,9 +167,24 @@ function ledgerPush(
   }
 }
 
+function isBotId(id: string): boolean {
+  return id.startsWith("bot-");
+}
+
+function hashStr(s: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
 export default class QuarryServer implements Party.Server {
   state: RoomState;
   private alarmPayload: AlarmPayload | null = null;
+  /** In-memory delayed bot taps (room stays warm while host playtests). */
+  private botTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   constructor(readonly room: Party.Room) {
     this.state = emptyRoomState(room.id.toUpperCase());
@@ -234,21 +255,37 @@ export default class QuarryServer implements Party.Server {
 
   ensureHost() {
     const humans = this.state.players.filter(
+      (p) => p.role === "player" && p.connected && !isBotId(p.id),
+    );
+    const anyConnected = this.state.players.filter(
       (p) => p.role === "player" && p.connected,
     );
-    if (humans.length === 0) return;
+    const pool = humans.length > 0 ? humans : anyConnected;
+    if (pool.length === 0) return;
     if (
       !this.state.players.some(
         (p) => p.isHost && p.connected && p.role === "player",
       )
     ) {
-      const next = humans[0]!;
+      const next = pool[0]!;
       this.state.players = this.state.players.map((p) => ({
         ...p,
         isHost: p.id === next.id,
       }));
       this.state.hostLastSeenAt = Date.now();
       this.state.notice = `${next.name} is now host`;
+    } else if (humans.length > 0) {
+      // Prefer a human host over a bot when both are connected.
+      const host = this.state.players.find((p) => p.isHost);
+      if (host && isBotId(host.id)) {
+        const next = humans[0]!;
+        this.state.players = this.state.players.map((p) => ({
+          ...p,
+          isHost: p.id === next.id,
+        }));
+        this.state.hostLastSeenAt = Date.now();
+        this.state.notice = `${next.name} is now host`;
+      }
     }
   }
 
@@ -332,6 +369,7 @@ export default class QuarryServer implements Party.Server {
     }
     await this.persist();
     this.broadcastState();
+    this.nudgeBots();
   }
 
   async onMessage(message: string, sender: Party.Connection) {
@@ -348,9 +386,10 @@ export default class QuarryServer implements Party.Server {
         this.broadcastState();
         return;
       }
-      await this.handle(msg, sender);
+      await this.handle(msg, sender.id, sender);
       await this.persist();
       this.broadcastState();
+      this.nudgeBots();
     } catch (e) {
       // Prefer short game-rule messages; never leak stacks / infra to clients.
       const text = e instanceof Error ? e.message : "Something went wrong — try again";
@@ -366,17 +405,27 @@ export default class QuarryServer implements Party.Server {
     }
   }
 
-  async handle(msg: ClientMessage, sender: Party.Connection) {
-    const id = sender.id;
+  /**
+   * Dispatch a ClientMessage as a player id (human connection or bot).
+   * Bots use the same handlers humans do — no silent state writes.
+   */
+  async handle(
+    msg: ClientMessage,
+    playerId: string,
+    sender?: Party.Connection,
+  ) {
+    const id = playerId;
 
     switch (msg.type) {
       case "join":
         this.handleJoin(id, msg.name, msg.role ?? "player");
-        this.send(sender, {
-          type: "joined",
-          youId: id,
-          state: this.publicStateFor(id),
-        });
+        if (sender) {
+          this.send(sender, {
+            type: "joined",
+            youId: id,
+            state: this.publicStateFor(id),
+          });
+        }
         return;
       case "host_heartbeat": {
         const p = this.state.players.find((x) => x.id === id);
@@ -1152,6 +1201,7 @@ export default class QuarryServer implements Party.Server {
       await this.finalizeScores();
       await this.persist();
       this.broadcastState();
+      this.nudgeBots();
     }
   }
 
@@ -1204,10 +1254,7 @@ export default class QuarryServer implements Party.Server {
     this.state.phase = "SCORE_REVEAL";
     this.state.phaseDeadlineAt = null;
     this.state.bankBeansReady = {};
-    // Bots auto-ready so admin tables aren't stuck waiting on fakes.
-    for (const p of seatedPlayers(this.state)) {
-      if (p.id.startsWith("bot-")) this.state.bankBeansReady[p.id] = true;
-    }
+    // Bots tap Bank the Beans via nudgeBots (same path as humans).
     await this.clearAlarm();
     bump(this.state);
   }
@@ -1216,9 +1263,6 @@ export default class QuarryServer implements Party.Server {
     if (!this.requirePlayer(id)) throw new Error("Players only");
     if (this.state.phase !== "SCORE_REVEAL") throw new Error("Wrong phase");
     this.state.bankBeansReady[id] = true;
-    for (const p of seatedPlayers(this.state)) {
-      if (p.id.startsWith("bot-")) this.state.bankBeansReady[p.id] = true;
-    }
     bump(this.state);
     await this.maybeBeginWagersFromReady();
   }
@@ -1730,12 +1774,259 @@ export default class QuarryServer implements Party.Server {
       ? `Admin · added ${added} fake player${added === 1 ? "" : "s"}`
       : "Admin · room full";
     bump(this.state);
+    // Kick bot brain so they start acting in the current phase.
+    this.nudgeBots();
+  }
+
+  clearBotTimer(key: string) {
+    const t = this.botTimers.get(key);
+    if (t) {
+      clearTimeout(t);
+      this.botTimers.delete(key);
+    }
+  }
+
+  clearAllBotTimers() {
+    for (const t of this.botTimers.values()) clearTimeout(t);
+    this.botTimers.clear();
+  }
+
+  /** Schedule a one-shot delayed bot action; replaces prior timer for the same key. */
+  queueBot(key: string, delayMs: number, run: () => Promise<void>) {
+    this.clearBotTimer(key);
+    const timer = setTimeout(() => {
+      this.botTimers.delete(key);
+      void (async () => {
+        try {
+          await run();
+          await this.persist();
+          this.broadcastState();
+        } catch {
+          /* Bot mistimed a tap — ignore like a ignored human misclick. */
+        } finally {
+          this.nudgeBots();
+        }
+      })();
+    }, Math.max(0, delayMs));
+    this.botTimers.set(key, timer);
+  }
+
+  botPlayers(): Player[] {
+    const bots = this.state.players.filter(
+      (p) => p.role === "player" && isBotId(p.id) && p.connected,
+    );
+    if (this.state.rosterLocked) {
+      return bots.filter((p) => p.seat !== null);
+    }
+    return bots;
+  }
+
+  /**
+   * Look at room phase and queue human-like delayed taps for bots that still
+   * need to act. Actions go through handle() — same paths as clients.
+   */
+  nudgeBots() {
+    const bots = this.botPlayers();
+    if (bots.length === 0) return;
+
+    switch (this.state.phase) {
+      case "TOPIC_SELECTION": {
+        const options = this.state.topicOptions;
+        if (options.length === 0) return;
+        bots.forEach((bot, i) => {
+          if (this.state.topicVotes[bot.id]) {
+            this.clearBotTimer(`topic:${bot.id}`);
+            return;
+          }
+          const key = `topic:${bot.id}`;
+          if (this.botTimers.has(key)) return;
+          const pick = options[(hashStr(bot.id) + i) % options.length]!;
+          this.queueBot(key, botDelayMs("topic", hashStr(bot.id) + i), async () => {
+            if (this.state.phase !== "TOPIC_SELECTION") return;
+            if (this.state.topicVotes[bot.id]) return;
+            if (!this.state.topicOptions.some((t) => t.id === pick.id)) return;
+            await this.handle(
+              {
+                type: "vote_topic",
+                topicId: pick.id,
+                actionId: `bot-topic-${bot.id}-${this.state.phaseRevision}`,
+              },
+              bot.id,
+            );
+          });
+        });
+        return;
+      }
+      case "DRAFT":
+      case "CORRECTION": {
+        if (this.state.pickPaused) return;
+        const turnId = this.currentDraftPlayerId();
+        if (!turnId || !isBotId(turnId)) return;
+        const key = `draft:${turnId}:${this.state.draftCursor}:${this.state.phase}`;
+        if (this.botTimers.has(key)) return;
+        // Drop stale draft timers for other turns.
+        for (const k of [...this.botTimers.keys()]) {
+          if (k.startsWith("draft:") && k !== key) this.clearBotTimer(k);
+        }
+        const topic = this.state.selectedTopic;
+        this.queueBot(key, botDelayMs("draft", hashStr(turnId) + this.state.draftCursor), async () => {
+          if (this.state.phase !== "DRAFT" && this.state.phase !== "CORRECTION") return;
+          if (this.state.pickPaused) return;
+          if (this.currentDraftPlayerId() !== turnId) return;
+          const text = chooseBotPick({
+            topicId: topic?.id ?? "none",
+            topicText: topic?.text ?? "",
+            botId: turnId,
+            turnIndex: this.state.draftCursor,
+            takenNormalized: this.state.takenNormalized,
+          });
+          await this.handle(
+            {
+              type: "lock_in",
+              text,
+              actionId: `bot-lock-${turnId}-${this.state.draftCursor}-${this.state.phaseRevision}`,
+            },
+            turnId,
+          );
+        });
+        return;
+      }
+      case "VOTING_AND_JUDGING": {
+        if (this.state.seatOrder.length === 2) return;
+        bots.forEach((bot, i) => {
+          if (this.state.humanVotes[bot.id]) {
+            this.clearBotTimer(`vote:${bot.id}`);
+            return;
+          }
+          const key = `vote:${bot.id}`;
+          if (this.botTimers.has(key)) return;
+          const targets = this.state.seatOrder.filter((id) => id !== bot.id);
+          if (targets.length === 0) return;
+          const target =
+            targets[(hashStr(bot.id) + this.state.topicRound) % targets.length]!;
+          this.queueBot(key, botDelayMs("vote", hashStr(bot.id) + i), async () => {
+            if (this.state.phase !== "VOTING_AND_JUDGING") return;
+            if (this.state.humanVotes[bot.id]) return;
+            await this.handle(
+              {
+                type: "submit_vote",
+                targetPlayerId: target,
+                actionId: `bot-vote-${bot.id}-${this.state.phaseRevision}`,
+              },
+              bot.id,
+            );
+          });
+        });
+        return;
+      }
+      case "SCORE_REVEAL": {
+        bots.forEach((bot, i) => {
+          if (this.state.bankBeansReady[bot.id]) {
+            this.clearBotTimer(`bank:${bot.id}`);
+            return;
+          }
+          const key = `bank:${bot.id}`;
+          if (this.botTimers.has(key)) return;
+          this.queueBot(key, botDelayMs("bank", hashStr(bot.id) + i), async () => {
+            if (this.state.phase !== "SCORE_REVEAL") return;
+            if (this.state.bankBeansReady[bot.id]) return;
+            await this.handle(
+              {
+                type: "bank_the_beans",
+                actionId: `bot-bank-${bot.id}-${this.state.phaseRevision}`,
+              },
+              bot.id,
+            );
+          });
+        });
+        return;
+      }
+      case "WAGER_SELECTION": {
+        bots.forEach((bot, i) => {
+          if (this.state.wagers[bot.id] !== undefined) {
+            this.clearBotTimer(`wager:${bot.id}`);
+            return;
+          }
+          const key = `wager:${bot.id}`;
+          if (this.botTimers.has(key)) return;
+          const p = this.state.players.find((x) => x.id === bot.id);
+          const amount = botWagerAmount({
+            earned: this.state.earnedThisRound[bot.id] ?? 0,
+            banked: p?.stones ?? 0,
+            botId: bot.id,
+          });
+          this.queueBot(key, botDelayMs("wager", hashStr(bot.id) + i), async () => {
+            if (this.state.phase !== "WAGER_SELECTION") return;
+            if (this.state.wagers[bot.id] !== undefined) return;
+            await this.handle(
+              {
+                type: "submit_wager",
+                amount,
+                actionId: `bot-wager-${bot.id}-${this.state.phaseRevision}`,
+              },
+              bot.id,
+            );
+          });
+        });
+        return;
+      }
+      case "DICE": {
+        if (this.state.diceSubphase !== "READY") {
+          // Clear dice tap timers while tumbling / cooldown.
+          for (const k of [...this.botTimers.keys()]) {
+            if (k.startsWith("dice:")) this.clearBotTimer(k);
+          }
+          return;
+        }
+        const turnId = this.currentDicePlayerId();
+        if (!turnId || !isBotId(turnId)) return;
+        if (!this.state.diceActiveIds.includes(turnId)) return;
+        const rolls = this.state.personalRollCounts[turnId] ?? 0;
+        const pot = this.state.pots[turnId] ?? 0;
+        const key = `dice:${turnId}:${rolls}:${this.state.phaseRevision}`;
+        if (this.botTimers.has(key)) return;
+        for (const k of [...this.botTimers.keys()]) {
+          if (k.startsWith("dice:") && k !== key) this.clearBotTimer(k);
+        }
+        const bank = botShouldBank({
+          pot,
+          personalRolls: rolls,
+          botId: turnId,
+        });
+        this.queueBot(key, botDelayMs("dice", hashStr(turnId) + rolls), async () => {
+          if (this.state.phase !== "DICE") return;
+          if (this.state.diceSubphase !== "READY") return;
+          if (this.currentDicePlayerId() !== turnId) return;
+          if (bank && rolls > 0) {
+            await this.handle(
+              {
+                type: "pull_out",
+                actionId: `bot-pull-${turnId}-${rolls}-${this.state.phaseRevision}`,
+              },
+              turnId,
+            );
+          } else {
+            await this.handle(
+              {
+                type: "roll",
+                actionId: `bot-roll-${turnId}-${rolls}-${this.state.phaseRevision}`,
+              },
+              turnId,
+            );
+          }
+        });
+        return;
+      }
+      default:
+        return;
+    }
   }
 
   async handleAdminJumpPhase(pin: string, phase: Phase) {
     assertAdminPin(pin);
     await this.adminEnsureRoster();
     await this.clearAlarm();
+    this.clearAllBotTimers();
     this.state.notice = `Admin · jumped to ${phase}`;
     this.state.partyPrompt = null;
     this.state.pickPaused = false;
@@ -1751,14 +2042,14 @@ export default class QuarryServer implements Party.Server {
         }));
         this.state.phaseDeadlineAt = null;
         bump(this.state);
-        return;
+        break;
       case "TOPIC_SELECTION":
         await this.beginTopicSelection();
-        return;
+        break;
       case "DRAFT":
         await this.adminEnsureTopic();
         await this.beginDraft();
-        return;
+        break;
       case "CORRECTION":
         await this.adminEnsureTopic();
         await this.adminFillPicks();
@@ -1767,7 +2058,7 @@ export default class QuarryServer implements Party.Server {
         this.state.draftCursor = 0;
         bump(this.state);
         await this.startPickClock();
-        return;
+        break;
       case "REVIEW":
         await this.adminEnsureTopic();
         await this.adminFillPicks();
@@ -1779,7 +2070,7 @@ export default class QuarryServer implements Party.Server {
           kind: "phase",
           revision: this.state.phaseRevision,
         });
-        return;
+        break;
       case "VOTING_AND_JUDGING":
         await this.adminEnsureTopic();
         await this.adminFillPicks();
@@ -1797,7 +2088,7 @@ export default class QuarryServer implements Party.Server {
           kind: "phase",
           revision: this.state.phaseRevision,
         });
-        return;
+        break;
       case "SCORE_REVEAL":
         await this.adminEnsureTopic();
         await this.adminFillPicks();
@@ -1808,17 +2099,14 @@ export default class QuarryServer implements Party.Server {
         this.state.judgeNotice = null;
         this.state.phaseDeadlineAt = null;
         this.state.bankBeansReady = {};
-        for (const p of seatedPlayers(this.state)) {
-          if (p.id.startsWith("bot-")) this.state.bankBeansReady[p.id] = true;
-        }
         bump(this.state);
-        return;
+        break;
       case "WAGER_SELECTION":
         await this.adminEnsureTopic();
         await this.adminFillPicks();
         this.adminFillScores();
         await this.beginWagers();
-        return;
+        break;
       case "DICE":
         await this.adminEnsureTopic();
         await this.adminFillPicks();
@@ -1827,7 +2115,7 @@ export default class QuarryServer implements Party.Server {
         await this.beginDice();
         // Skip cooldown for faster testing
         await this.unlockRoll();
-        return;
+        break;
       case "ROUND_RESULTS":
         await this.adminEnsureTopic();
         await this.adminFillPicks();
@@ -1836,7 +2124,7 @@ export default class QuarryServer implements Party.Server {
         this.state.diceSubphase = "SETTLED";
         this.state.phaseDeadlineAt = null;
         bump(this.state);
-        return;
+        break;
       case "GAME_RESULTS":
         await this.adminEnsureTopic();
         await this.adminFillPicks();
@@ -1845,10 +2133,11 @@ export default class QuarryServer implements Party.Server {
         this.state.gameOver = true;
         this.state.phaseDeadlineAt = null;
         bump(this.state);
-        return;
+        break;
       default:
         throw new Error("Unknown phase");
     }
+    this.nudgeBots();
   }
 
   async adminEnsureRoster() {
@@ -1894,16 +2183,7 @@ export default class QuarryServer implements Party.Server {
   }
 
   async adminFillPicks() {
-    const fillers = [
-      "Coffee",
-      "Rain",
-      "Dogs",
-      "Pizza",
-      "Sunrise",
-      "Vinyl",
-      "Maps",
-      "Socks",
-    ];
+    const topic = this.state.selectedTopic;
     let turn = 0;
     for (let pass = 0; pass < RULES.picksPerPlayer; pass++) {
       for (const pid of this.state.seatOrder) {
@@ -1912,7 +2192,13 @@ export default class QuarryServer implements Party.Server {
           turn += 1;
           continue;
         }
-        const text = `${fillers[(turn + pass) % fillers.length]} ${pass + 1}`;
+        const text = chooseBotPick({
+          topicId: topic?.id ?? "none",
+          topicText: topic?.text ?? "",
+          botId: pid,
+          turnIndex: turn,
+          takenNormalized: this.state.takenNormalized,
+        });
         const norm = normalizePick(text);
         if (!this.state.takenNormalized.includes(norm)) {
           this.state.takenNormalized.push(norm);

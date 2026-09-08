@@ -34,10 +34,10 @@ export const RULES = {
   targetMinutesMax: 30,
 
   /** Draft (no prep phase — topic lock goes straight to draft) */
-  /** Enough to type one answer on a phone — not lounge time. Host can +15s. */
-  pickClockSeconds: 35,
-  /** Short grace after pick clock hits 0 before miss */
-  pickGraceSeconds: 3,
+  /** Comfortable phone typing window. Host can +15s. */
+  pickClockSeconds: 60,
+  /** Grace after pick clock hits 0 before miss */
+  pickGraceSeconds: 5,
   hostExtendSeconds: 15,
   /** Skim board only */
   reviewSeconds: 20,

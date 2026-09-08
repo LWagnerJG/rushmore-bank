@@ -445,8 +445,8 @@ describe("session length: choices vs rounds", () => {
   });
 
   it("draft / phase clocks match party phone pace", () => {
-    expect(RULES.pickClockSeconds).toBe(35);
-    expect(RULES.pickGraceSeconds).toBe(3);
+    expect(RULES.pickClockSeconds).toBe(60);
+    expect(RULES.pickGraceSeconds).toBe(5);
     expect(RULES.hostExtendSeconds).toBe(15);
     expect(RULES.reviewSeconds).toBe(20);
     expect(RULES.humanVoteSeconds).toBe(40);

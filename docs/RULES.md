@@ -36,10 +36,10 @@ LOBBY → TOPIC_SELECTION → DRAFT (+ CORRECTION) → REVIEW
 - Topic lock goes **straight into draft** (no prep countdown).
 - Fair random seat order; starter rotates later topics.
 - 4 snake passes for N=2..10. One **Lock In** per turn (server-validated). Free-text answers only (no shared suggestion catalog).
-- Pick clock **35s** + short grace (3s); host pause / extend (+15s).
+- Pick clock **60s** + short grace (5s); host pause / extend (+15s).
 - Missed after grace → placeholder miss pick.
 - **Stash**: private draft queue + type field in one embedded surface; Stash it while waiting; Lock in on your turn; tap a stashed pick to lock instantly when up. Never in AI/spectator payloads.
-- Host may mark Duplicate or Group Invalid → replacement turn (35s), resume cursor.
+- Host may mark Duplicate or Group Invalid → replacement turn (60s), resume cursor.
 - Review/pitch **20s** optional (skim only).
 - Fantasy-style shared draft board always visible during draft (UI): whose turn / you’re next / snake order.
 

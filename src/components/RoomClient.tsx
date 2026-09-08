@@ -296,7 +296,16 @@ export function RoomClient({
       )}
 
       <div className="animate-rise flex-1">{body}</div>
-      <AdminPanel send={send} currentPhase={phase} />
+      <AdminPanel
+        send={send}
+        currentPhase={phase}
+        playerCount={
+          state?.players.filter((p) => p.role === "player").length ?? 0
+        }
+        botCountInRoom={
+          state?.players.filter((p) => p.id.startsWith("bot-")).length ?? 0
+        }
+      />
     </main>
   );
 }

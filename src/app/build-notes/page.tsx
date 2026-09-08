@@ -17,7 +17,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Party-pace clocks → {RULES.productionUrl}
+        Draft 60s + human-like bots → {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -54,12 +54,17 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>Party-pace clocks</strong>: draft pick{" "}
-            {RULES.pickClockSeconds}s + {RULES.pickGraceSeconds}s grace (host
-            +{RULES.hostExtendSeconds}s); review {RULES.reviewSeconds}s; vote{" "}
-            {RULES.humanVoteSeconds}s; wager {RULES.wagerTimeoutSeconds}s; dice
-            open {RULES.diceDecisionCountdownSeconds}s → idle bank{" "}
+            <strong>Draft clock</strong>: pick {RULES.pickClockSeconds}s +{" "}
+            {RULES.pickGraceSeconds}s grace (host +{RULES.hostExtendSeconds}s);
+            review {RULES.reviewSeconds}s; vote {RULES.humanVoteSeconds}s; wager{" "}
+            {RULES.wagerTimeoutSeconds}s; dice open{" "}
+            {RULES.diceDecisionCountdownSeconds}s → idle bank{" "}
             {RULES.diceIdleBankSeconds}s; topic still no timer.
+          </li>
+          <li>
+            <strong>Admin bots</strong>: stable add-N input (no 1↔8 flicker);
+            bots vote topics, lock real draft answers, vote, bank beans, wager,
+            and roll/Bank through the same server action paths as humans.
           </li>
           <li>
             Docs + how-to-play + tests aligned with{" "}
@@ -68,7 +73,7 @@ export default function BuildNotesPage() {
           <li>
             Preserved: topic bank ~{TOPIC_COUNT} + anti-repeat, dice
             scramble+settle, turn strip, Bank the Beans, personal BANK, Stash,
-            admin, Beans branding.
+            Beans branding.
           </li>
         </ul>
       </section>

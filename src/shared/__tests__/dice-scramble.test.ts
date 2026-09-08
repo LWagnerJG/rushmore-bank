@@ -77,10 +77,10 @@ describe("scramble then settle invariant", () => {
     });
   });
 
-  it("idle bank decision window is ~15s; draft pick is party-pace 35s", () => {
+  it("idle bank decision window is ~15s; draft pick is 60s + 5s grace", () => {
     expect(RULES.diceIdleBankSeconds).toBe(15);
-    expect(RULES.pickClockSeconds).toBe(35);
-    expect(RULES.pickGraceSeconds).toBe(3);
+    expect(RULES.pickClockSeconds).toBe(60);
+    expect(RULES.pickGraceSeconds).toBe(5);
     expect(RULES.diceDecisionCountdownSeconds).toBe(3);
   });
 });
