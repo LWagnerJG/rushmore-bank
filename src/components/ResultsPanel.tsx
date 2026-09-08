@@ -45,7 +45,7 @@ export function ResultsPanel({
         <div className="panel party-sip space-y-3">
           <p className="font-[family-name:var(--font-display)] text-lg font-extrabold">
             {state.partyPrompt.kind === "bust_sip"
-              ? "Bust sip (optional)"
+              ? "BEAN BUSTER · optional sip"
               : "Winner sip (optional)"}
           </p>
           <div className="flex gap-2">

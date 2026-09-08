@@ -15,7 +15,7 @@ describe("bank action", () => {
   });
 
   it("bust leaves only protected", () => {
-    const o = applyDiceRoll(90, { d1: 3, d2: 4 }, 3);
+    const o = applyDiceRoll(90, { d1: 3, d2: 4 }, 1);
     expect(o.busted).toBe(true);
     expect(o.potAfter).toBe(0);
     const protectedBal = 25;
@@ -68,13 +68,11 @@ describe("personal continuous turn", () => {
     active.delete("a"); // banked
     seat = (seat + 1) % seatOrder.length;
 
-    // b busts on first dangerous roll after two safes
+    // b busts on first roll (seven)
     while (active.has("b")) {
       const pid = seatOrder[seat]!;
       rolls[pid]! += 1;
-      const faces =
-        rolls[pid]! <= 2 ? { d1: 1, d2: 2 } : { d1: 3, d2: 4 };
-      const o = applyDiceRoll(pots[pid]!, faces, rolls[pid]!);
+      const o = applyDiceRoll(pots[pid]!, { d1: 3, d2: 4 }, rolls[pid]!);
       pots[pid] = o.potAfter;
       if (o.busted) {
         active.delete(pid);
@@ -82,7 +80,7 @@ describe("personal continuous turn", () => {
       }
     }
 
-    expect(rolls.b).toBe(3);
+    expect(rolls.b).toBe(1);
     expect(pots.b).toBe(0);
     expect(seat).toBe(2);
     expect(active.has("c")).toBe(true);

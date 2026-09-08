@@ -1310,7 +1310,7 @@ export default class QuarryServer implements Party.Server {
         kind: "bust",
         amount: -dice.potBefore,
         balanceAfter: this.state.protectedStones[id] ?? 0,
-        note: "Busted",
+        note: "BEAN BUSTER",
         topicRound: this.state.topicRound,
       });
       const p = this.state.players.find((x) => x.id === id);

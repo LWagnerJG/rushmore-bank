@@ -17,7 +17,7 @@ export function DraftBoard({ state, youId, isHost, send }: {
 
   return (
     <div
-      className="draft-board-scroll overflow-x-auto rounded-2xl border border-[var(--mint)] bg-white/40"
+      className="draft-board-scroll overflow-x-auto rounded-2xl bg-white/50"
       tabIndex={0}
       role="region"
       aria-label="Draft board"
@@ -38,12 +38,16 @@ export function DraftBoard({ state, youId, isHost, send }: {
                 <th
                   scope="col"
                   key={seat}
-                  className={`border-b border-r border-[var(--mint)] px-2 py-2.5 text-sm ${
-                    pid === youId ? "bg-[var(--mint)]" : "bg-white/70"
-                  } ${onClock ? "ring-inset ring-2 ring-[var(--yellow)]" : ""}`}
+                  className={`border-b border-r border-[rgba(35,72,62,0.08)] px-2 py-2 text-sm last:border-r-0 ${
+                    pid === youId ? "bg-[var(--mint)]" : "bg-transparent"
+                  } ${onClock ? "shadow-[inset_0_-3px_0_0_var(--yellow)]" : ""}`}
                 >
                   <span className="block truncate font-extrabold">{player?.name}</span>
-                  {pid === youId && <span className="block text-[0.65rem] font-semibold uppercase tracking-wide">You</span>}
+                  {pid === youId && (
+                    <span className="block text-[0.65rem] font-semibold uppercase tracking-wide text-[var(--muted)]">
+                      You
+                    </span>
+                  )}
                 </th>
               );
             })}
@@ -62,23 +66,27 @@ export function DraftBoard({ state, youId, isHost, send }: {
                     ref={current ? activeCell : undefined}
                     data-turn={turn}
                     aria-current={current ? "step" : undefined}
-                    className={`h-20 border-b border-r border-[var(--mint)] p-2 align-top ${
-                      current ? "bg-[var(--yellow)]" : pick ? "bg-white/85" : "bg-white/20"
+                    className={`h-[4.5rem] border-b border-r border-[rgba(35,72,62,0.08)] p-2 align-top last:border-r-0 ${
+                      current
+                        ? "bg-[var(--yellow)]"
+                        : pick
+                          ? "bg-white/70"
+                          : "bg-transparent"
                     }`}
                   >
                     <p className={`break-words text-sm leading-snug ${pick || current ? "font-bold" : "text-[var(--muted)]"}`}>
-                      {pick?.text ?? (current ? "…" : "—")}
+                      {pick?.text ?? (current ? "…" : "")}
                     </p>
                     {isHost && pick && state.phase === "DRAFT" && (
                       <details className="mt-1">
-                        <summary className="cursor-pointer py-1 text-[0.65rem] font-bold uppercase tracking-wide text-[var(--muted)]">
+                        <summary className="cursor-pointer py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-[var(--muted)]">
                           Edit
                         </summary>
                         {(["duplicate", "invalid"] as const).map((reason) => (
                           <button
                             key={reason}
                             type="button"
-                            className="block min-h-10 w-full text-left text-xs font-bold capitalize"
+                            className="block min-h-9 w-full text-left text-xs font-bold capitalize"
                             onClick={() => {
                               if (window.confirm(`Replace “${pick.text}” as ${reason}?`)) {
                                 send({ type: "host_correct", turnIndex: turn, reason });

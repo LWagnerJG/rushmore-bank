@@ -34,8 +34,8 @@ export default function HowToPlayPage() {
           </li>
           <li>
             Risk beans on the slider (zero still plays). Then personal bank —
-            keep rolling until you Bank or bust; next player after that. Two
-            safe rolls each.
+            keep rolling until you Bank or bust; **any 7** (including first
+            roll) is BEAN BUSTER. Next player after that.
           </li>
         </ol>
       </section>

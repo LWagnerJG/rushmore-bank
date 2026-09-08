@@ -201,16 +201,18 @@ export function RoomClient({
             : "border-[rgba(35,72,62,0.08)] bg-[rgba(245,240,231,0.96)]")
         }
       >
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-start justify-between gap-3">
           <BrandMark />
           {drafting && state ? (
-            <div className="flex items-center gap-1.5">
+            <div className="flex shrink-0 items-center gap-1 pt-0.5">
               {you.isHost && (
                 <>
                   <button
                     type="button"
-                    className="rounded-lg border border-[rgba(35,72,62,0.14)] bg-white/70 px-2 py-1.5 text-[0.65rem] font-extrabold uppercase tracking-wide text-[var(--muted)]"
-                    aria-label={state.pickPaused ? "Resume pick clock" : "Pause pick clock"}
+                    className="rounded-md px-1.5 py-1 text-[0.65rem] font-extrabold uppercase tracking-wide text-[var(--muted)]"
+                    aria-label={
+                      state.pickPaused ? "Resume pick clock" : "Pause pick clock"
+                    }
                     title={state.pickPaused ? "Resume" : "Pause"}
                     onClick={() =>
                       send({
@@ -222,7 +224,7 @@ export function RoomClient({
                   </button>
                   <button
                     type="button"
-                    className="rounded-lg border border-[rgba(35,72,62,0.14)] bg-white/70 px-2 py-1.5 text-[0.65rem] font-extrabold tabular-nums text-[var(--muted)]"
+                    className="rounded-md px-1.5 py-1 text-[0.65rem] font-extrabold tabular-nums text-[var(--muted)]"
                     aria-label={`Add ${RULES.hostExtendSeconds} seconds`}
                     title={`+${RULES.hostExtendSeconds}s`}
                     onClick={() => send({ type: "host_extend" })}
@@ -252,6 +254,11 @@ export function RoomClient({
             </div>
           )}
         </div>
+        {drafting && state?.selectedTopic && (
+          <h1 className="mt-1.5 font-[family-name:var(--font-display)] text-[1.35rem] font-extrabold leading-snug tracking-tight text-[var(--text)]">
+            {state.selectedTopic.text}
+          </h1>
+        )}
         {drafting && (
           <div className="mt-1 flex items-center justify-between gap-2 text-[0.7rem] font-bold uppercase tracking-wide text-[var(--muted)]">
             <span>{phase ? phaseLabel(phase) : "Draft"}</span>

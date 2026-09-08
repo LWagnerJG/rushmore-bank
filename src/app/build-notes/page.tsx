@@ -16,7 +16,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Personal BANK + wager/dice/ideas polish → {RULES.productionUrl}
+        BEAN BUSTER + any-7 + draft sticky topic → {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -52,6 +52,18 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
+            <strong>BEAN BUSTER</strong> — any roll totaling 7 busts (including
+            first roll of a turn). No safe-first / +70 freebie. Roller +
+            spectators get a clear shared moment; pot wiped; turn ends; next
+            seat. Party sip uses the same wording.
+          </li>
+          <li>
+            <strong>Draft sticky topic</strong> — selected topic title lives in
+            the sticky top banner (stays visible while scrolling). Timer + host
+            Pause/+15s stay discrete top-right. Body focuses on turn → board →
+            ideas.
+          </li>
+          <li>
             <strong>BANK rule</strong> — personal continuous turn: keep rolling
             until Bank or bust, then next seat. Waiting players watch (no early
             Bank / sit-out).
@@ -86,8 +98,8 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">Follow-ups</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>Redeploy PartyKit required</strong> — personal BANK turn
-            model + no topic timer live in <code>party/server.ts</code>. Run{" "}
+            <strong>Redeploy PartyKit required</strong> — any-7 bust lives in
+            shared engine used by <code>party/server.ts</code>. Run{" "}
             <code>npm run deploy:party</code>.
           </li>
         </ul>

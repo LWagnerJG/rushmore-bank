@@ -44,7 +44,7 @@ function seedDiceRoom(n: number): RoomState {
   for (const id of state.seatOrder) {
     state.pots[id] = 50;
     state.protectedStones[id] = 20;
-    state.personalRollCounts[id] = 2; // next roll is dangerous
+    state.personalRollCounts[id] = 0;
   }
   return state;
 }
@@ -142,7 +142,7 @@ describe.each([2, 3, 6, 10])("full-ish flow N=%i", (n) => {
     expect(state.players[0]!.stones).toBe(70);
     expect(state.diceTurnSeat).toBe(1 % n);
 
-    // Next player (or only remaining) dangerous seven bust
+    // Next player (or only remaining) seven bust on their first roll
     // Skip ahead if needed so a still-active player is up
     let guard = 0;
     while (

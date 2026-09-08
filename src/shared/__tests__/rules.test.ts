@@ -68,40 +68,32 @@ describe("wager math", () => {
 });
 
 describe("dice table", () => {
-  it("follows 105→175→187→374 path; 469 is banked total not next pot", () => {
-    let pot = 105;
-    // Safe seven
-    let o = applyDiceRoll(pot, { d1: 3, d2: 4 }, 1);
-    expect(o.potAfter).toBe(175);
-    expect(o.kind).toBe("safe_seven");
-    pot = o.potAfter;
-
-    // Safe doubles 6+6 → +12
-    o = applyDiceRoll(pot, { d1: 6, d2: 6 }, 2);
-    expect(o.potAfter).toBe(187);
-    pot = o.potAfter;
-
-    // Dangerous doubles → double pot
-    o = applyDiceRoll(pot, { d1: 2, d2: 2 }, 3);
-    expect(o.potAfter).toBe(374);
-    pot = o.potAfter;
-
-    // Banked total with protected 95 → 469 (NOT a dice pot step)
-    expect(95 + pot).toBe(469);
-
-    // Continuing the pot without banking: 5+6 → 385
-    o = applyDiceRoll(pot, { d1: 5, d2: 6 }, 4);
-    expect(o.potAfter).toBe(385);
-
-    o = applyDiceRoll(374, { d1: 1, d2: 6 }, 5);
+  it("first-roll seven is always a bust (BEAN BUSTER)", () => {
+    const o = applyDiceRoll(50, { d1: 2, d2: 5 }, 1);
     expect(o.busted).toBe(true);
+    expect(o.kind).toBe("bust");
     expect(o.potAfter).toBe(0);
+    expect(o.note).toMatch(/BEAN BUSTER/);
   });
 
-  it("safe rolls never bust on seven", () => {
-    const o = applyDiceRoll(50, { d1: 2, d2: 5 }, 2);
+  it("doubles always double pot; non-seven adds sum; later seven busts", () => {
+    let pot = 105;
+    let o = applyDiceRoll(pot, { d1: 6, d2: 6 }, 1);
     expect(o.busted).toBe(false);
-    expect(o.potAfter).toBe(50 + RULES.sevenSafeBonus);
+    expect(o.kind).toBe("double_pot");
+    expect(o.potAfter).toBe(210);
+    pot = o.potAfter;
+
+    o = applyDiceRoll(pot, { d1: 1, d2: 2 }, 2);
+    expect(o.potAfter).toBe(213);
+    pot = o.potAfter;
+
+    // Banked total with protected 95 (NOT a dice pot step)
+    expect(95 + pot).toBe(308);
+
+    o = applyDiceRoll(pot, { d1: 1, d2: 6 }, 3);
+    expect(o.busted).toBe(true);
+    expect(o.potAfter).toBe(0);
   });
 });
 
