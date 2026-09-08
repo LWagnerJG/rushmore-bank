@@ -217,7 +217,12 @@ export function botPickCandidates(
     catalog?.scopeBoundary
       ?.split(/[.,;]/)
       .map((s) => s.trim())
-      .filter((s) => s.length >= 3 && s.length <= 40)
+      .filter(
+        (s) =>
+          s.length >= 4 &&
+          s.length <= 40 &&
+          !/^(or|and|but|with|including|e\.g)\b/i.test(s),
+      )
       .slice(0, 6) ?? [];
 
   const seen = new Set<string>();

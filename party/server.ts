@@ -147,6 +147,7 @@ const BOT_NAMES = [
   "Noah",
   "Eli",
 ];
+let botSeq = 0;
 
 function assertAdminPin(pin: string) {
   if (pin !== ADMIN_PIN) throw new Error("Nope");
@@ -1739,7 +1740,8 @@ export default class QuarryServer implements Party.Server {
       }
       const idx = existingBots + added;
       const name = `Bot ${BOT_NAMES[idx % BOT_NAMES.length]}${idx >= BOT_NAMES.length ? idx : ""}`;
-      const id = `bot-${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 6)}`;
+      botSeq += 1;
+      const id = `bot-${botSeq}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
       const isFirst = players.length === 0;
       this.state.players.push({
         id,
