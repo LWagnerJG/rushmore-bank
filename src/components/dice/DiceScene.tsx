@@ -1,9 +1,13 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { RefObject } from "react";
 import type { PublicDiceBroadcast } from "@/shared/types";
-import { animProgress, tumblePose } from "@/shared/engine/dice-sync";
+import { tumblePose } from "@/shared/engine/dice-sync";
+import {
+  resolveDicePresentPhase,
+  tumbleDisplayProgress,
+} from "@/shared/engine/dice-present";
 import {
   DIE_PIPS,
   projectDie,
@@ -112,8 +116,8 @@ function paintRest(
 }
 
 /**
- * Dice tray — tumble while rolling; on settle SNAP to authoritative faces
- * (no post-settle face morph/flip). Subtle SFX without a mute toggle.
+ * Dice tray — cosmetic tumble until reveal, then ONE authoritative settle.
+ * Never paints a rest face from local/seed guesses (that caused the jump).
  */
 export function DiceScene({
   broadcast,
@@ -137,28 +141,30 @@ export function DiceScene({
   const settleRollId = useRef<string | null>(null);
   const [punch, setPunch] = useState(false);
 
-  const rolling = !!broadcast && !broadcast.revealed;
-  const revealed = !!broadcast?.revealed;
-  const rollId = broadcast?.rollId;
-  const seed = broadcast?.animSeed ?? 0;
-  const started = broadcast?.animStartedAt ?? 0;
-  const settled = broadcast?.animSettleAt ?? 0;
-  // Faces only when revealed — never invent a “settled” face during tumble.
-  const d1 = broadcast?.d1;
-  const d2 = broadcast?.d2;
-  const total =
-    revealed && d1 != null && d2 != null ? d1 + d2 : null;
+  const phase = useMemo(
+    () => resolveDicePresentPhase(broadcast),
+    [broadcast],
+  );
+  const rolling = phase.kind === "tumbling";
+  const revealed = phase.kind === "settled";
+  const rollId = phase.kind === "idle" ? null : phase.rollId;
+  const seed = phase.kind === "tumbling" ? phase.seed : 0;
+  const started = phase.kind === "tumbling" ? phase.startedAt : 0;
+  const settledAt = phase.kind === "tumbling" ? phase.settleAt : 0;
+  const d1 =
+    phase.kind === "settled" || phase.kind === "idle" ? phase.d1 : undefined;
+  const d2 =
+    phase.kind === "settled" || phase.kind === "idle" ? phase.d2 : undefined;
+  const total = revealed && d1 != null && d2 != null ? d1 + d2 : null;
 
+  // Authoritative settle only — snap once per rollId, no morph from tumble.
   useLayoutEffect(() => {
     if (!revealed || !rollId || d1 == null || d2 == null) return;
     if (settleRollId.current === rollId) {
-      // Already snapped this roll — keep authoritative rest pose (no re-anim).
       paintRest(dieA.current, dieB.current, d1, d2);
       return;
     }
     settleRollId.current = rollId;
-
-    // Snap immediately to authoritative faces — no lerp from tumble (that caused the flip).
     paintRest(dieA.current, dieB.current, d1, d2);
 
     if (reducedMotion) return;
@@ -167,10 +173,9 @@ export function DiceScene({
       setPunch(true);
       haptic(busted ? "bust" : "settle");
       for (const el of [dieA.current, dieB.current]) {
-        if (!el) continue;
-        el.classList.remove("bean-die-settle");
-        void el.getBoundingClientRect();
-        el.classList.add("bean-die-settle");
+        el?.classList.remove("bean-die-settle");
+        void el?.getBoundingClientRect();
+        el?.classList.add("bean-die-settle");
       }
     }, 0);
     const clearPunch = window.setTimeout(() => setPunch(false), 780);
@@ -178,49 +183,41 @@ export function DiceScene({
       window.clearTimeout(kick);
       window.clearTimeout(clearPunch);
     };
-  }, [revealed, rollId, reducedMotion, busted, d1, d2]);
-
+  }, [revealed, rollId, d1, d2, reducedMotion, busted]);
+  // Idle / tumble paint. Settled paint owned by settle effect above.
   useLayoutEffect(() => {
     if (!dieA.current || !dieB.current) return;
 
-    if (!broadcast) {
-      settleRollId.current = null;
-      paintRest(dieA.current, dieB.current, 1, 1);
+    if (phase.kind === "idle") {
+      paintRest(dieA.current, dieB.current, d1 ?? 1, d2 ?? 1);
+      return;
+    }
+
+    if (phase.kind === "settled") {
+      if (reducedMotion && d1 != null && d2 != null) {
+        paintRest(dieA.current, dieB.current, d1, d2);
+      }
       return;
     }
 
     if (reducedMotion) {
-      if (revealed && d1 != null && d2 != null) {
-        paintRest(dieA.current, dieB.current, d1, d2);
-      } else {
-        paintRest(dieA.current, dieB.current, 1, 1);
-      }
+      // No fake rest faces while waiting — keep neutral until auth settle.
+      paintRest(dieA.current, dieB.current, 1, 1);
       return;
     }
 
-    // Settled — authoritative paint owned by settle effect above. Never tumble after.
-    if (revealed || settleRollId.current === rollId) {
-      if (d1 != null && d2 != null) {
-        paintRest(dieA.current, dieB.current, d1, d2);
-      }
-      return;
-    }
-
-    // Tumbling: face-agnostic spin (fixed base face); never “settle” mid-air.
     let frame = 0;
     if (rollStarted.current !== rollId) {
-      rollStarted.current = rollId ?? null;
+      rollStarted.current = rollId;
       void ensureDiceAudio().then((ctx) => {
         audio.current = ctx;
         playRollStart(ctx);
       });
     }
     const tick = () => {
-      // If settle won the race, stop tumbling immediately.
-      if (settleRollId.current === rollId) return;
-      const progress = Math.min(0.92, animProgress(Date.now(), started, settled));
+      const progress = tumbleDisplayProgress(Date.now(), started, settledAt);
       const now = Date.now();
-      if (now - lastTick.current > 160 && progress < 0.85) {
+      if (now - lastTick.current > 160 && progress < TUMBLE_TICK_STOP) {
         lastTick.current = now;
         playRollTick(audio.current);
       }
@@ -228,36 +225,24 @@ export function DiceScene({
         const pose = tumblePose(progress, seed, index);
         paint(
           index ? dieB.current : dieA.current,
-          projectDie({ face: 1, index, tumble: pose }),
+          projectDie({ face: 1, index, tumble: pose, settle: 0 }),
         );
       }
       frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [
-    broadcast,
-    rolling,
-    revealed,
-    reducedMotion,
-    rollId,
-    seed,
-    started,
-    settled,
-    d1,
-    d2,
-  ]);
+  }, [phase.kind, rollId, seed, started, settledAt, reducedMotion, d1, d2]);
 
   useEffect(() => {
-    if (!broadcast?.revealed || sounded.current === broadcast.rollId) return;
-    if (broadcast.d1 == null || broadcast.d2 == null) return;
-    sounded.current = broadcast.rollId;
+    if (!revealed || !rollId || sounded.current === rollId) return;
+    if (d1 == null || d2 == null) return;
+    sounded.current = rollId;
     void ensureDiceAudio().then((ctx) => {
       audio.current = ctx;
       playSettle(ctx, { busted: !!busted });
     });
-  }, [broadcast, busted]);
-
+  }, [revealed, rollId, d1, d2, busted]);
   async function handleRoll() {
     if (!canRoll) return;
     haptic("tap_roll");
@@ -310,3 +295,6 @@ export function DiceScene({
     </div>
   );
 }
+
+/** Stop tick SFX before display-cap coast; keep motion until reveal. */
+const TUMBLE_TICK_STOP = 0.55;
