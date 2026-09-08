@@ -16,7 +16,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Dice settle fail-proof → {RULES.productionUrl}
+        2D dice — no settle jump → {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -52,24 +52,31 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>Dice settle fail-proof</strong> — tumble is cosmetic only and
-            never coasts into a readable rest pose. Final faces paint once from
-            authoritative server <code>d1</code>/<code>d2</code> (no local/seed
-            “fake settle” then jump). Regression coverage in{" "}
-            <code>dice-settle.test.ts</code>.
+            <strong>Root cause</strong>: the 3D orthographic tumble always showed
+            some readable face toward the camera. Even with “cosmetic only”
+            spin + capped progress, that face was readable near the end, then
+            reveal snapped to server <code>d1</code>/<code>d2</code> — a visible
+            jump. The prior seed-coast diagnosis was incomplete; face-mapping /
+            rest matrices were not the bug.
           </li>
           <li>
-            Root cause: near-end tumble decay froze a seed-driven wrong face,
-            then reveal snapped to the real outcome.
+            <strong>Fix</strong>: replaced <code>DiceScene</code> with flat 2D
+            pip dice. Tumble = blank/blurred shells (no readable face). First
+            settled frame paints authoritative server faces only — no 3D
+            projection, no seed rest pose, no morph.
+          </li>
+          <li>
+            Invariant: from the first frame that looks settled, faces === server{" "}
+            <code>d1</code>/<code>d2</code>. Covered by{" "}
+            <code>dice-settle.test.ts</code> + visual lab{" "}
+            <code>/dev/dice-lab</code>.
           </li>
           <li>
             Preserved: personal BANK, tap-to-roll, BEAN BUSTER on any 7, synced
-            multiplayer, haptics/SFX, full-phone mint glow when you’re up.
+            multiplayer, haptics/SFX, mint glow when you’re up.
           </li>
           <li>
-            <strong>No PartyKit redeploy</strong> — client presentation only (
-            <code>DiceScene</code> + shared present helpers). Prior vote/wager/
-            BANK polish and void-topic gate unchanged.
+            <strong>No PartyKit redeploy</strong> — client presentation only.
           </li>
         </ul>
       </section>
@@ -78,9 +85,8 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">Follow-ups</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            If PartyKit secrets are missing, Actions{" "}
-            <code>deploy:party</code> may still fail — not required for this
-            dice UX fix.
+            Optional: remove unused 3D <code>dice-geometry</code> projection
+            helpers once nothing else imports them.
           </li>
         </ul>
       </section>

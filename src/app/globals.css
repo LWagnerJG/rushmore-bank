@@ -614,11 +614,90 @@ html.party-on .status-pill-ready {
 }
 .bean-dice-pair {
   display: flex;
-  gap: 4px;
+  gap: 1.25rem;
   height: 100%;
   align-items: center;
   justify-content: center;
 }
+
+/* Flat 2D pip dice — readable faces only when settled */
+.bean-pip-die {
+  width: 108px;
+  height: 108px;
+  transform-origin: 50% 55%;
+  will-change: transform, filter;
+}
+.bean-pip-die-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  filter: drop-shadow(0 10px 14px rgba(16, 45, 37, 0.35));
+}
+.bean-pip-die-body {
+  fill: #fff6e4;
+  stroke: #ded1b8;
+  stroke-width: 2.5;
+}
+.bean-pip-die-1 .bean-pip-die-body {
+  fill: #f4c95b;
+  stroke: #d3aa49;
+}
+.bean-pip-die-pip {
+  fill: #23483e;
+}
+.bean-pip-die-blank .bean-pip-die-body {
+  fill: #f7edd8;
+}
+.bean-pip-die-tumbling {
+  animation: pip-die-tumble 420ms linear infinite;
+  filter: blur(2.5px) brightness(1.05);
+}
+.bean-pip-die-tumbling .bean-pip-die-scramble {
+  animation: pip-die-scramble 180ms steps(2, end) infinite;
+}
+.bean-pip-die-settle {
+  animation: pip-die-settle 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes pip-die-tumble {
+  0% {
+    transform: translate(-6px, -10px) rotate(-14deg) scale(1.04);
+  }
+  25% {
+    transform: translate(7px, -4px) rotate(10deg) scale(0.98);
+  }
+  50% {
+    transform: translate(-4px, 8px) rotate(-8deg) scale(1.03);
+  }
+  75% {
+    transform: translate(8px, 2px) rotate(12deg) scale(0.97);
+  }
+  100% {
+    transform: translate(-6px, -10px) rotate(-14deg) scale(1.04);
+  }
+}
+@keyframes pip-die-scramble {
+  0% {
+    transform: translate(0, 0);
+    opacity: 0.25;
+  }
+  100% {
+    transform: translate(4px, -3px);
+    opacity: 0.45;
+  }
+}
+@keyframes pip-die-settle {
+  0% {
+    transform: translateY(-18px) scale(1.12);
+  }
+  45% {
+    transform: translateY(3px) scale(0.96);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Legacy 3D selectors kept harmless for any stray markup */
 .bean-die {
   width: 144px;
   height: 176px;
@@ -868,11 +947,17 @@ html.dice-your-turn::after {
 
 @media (prefers-reduced-motion: reduce) {
   .bean-die-settle,
+  .bean-pip-die-settle,
+  .bean-pip-die-tumbling,
+  .bean-pip-die-tumbling .bean-pip-die-scramble,
   .bean-dice-tray-armed,
   .bean-dice-tray-punch,
   html.dice-your-turn::after,
   .dice-result-bust,
   .dice-result-readout-on {
     animation: none !important;
+  }
+  .bean-pip-die-tumbling {
+    filter: none;
   }
 }

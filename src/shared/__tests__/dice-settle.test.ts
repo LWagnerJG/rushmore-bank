@@ -1,16 +1,12 @@
 /**
- * Fail-proof dice settle: tumble never rests on a guessed face;
+ * Fail-proof dice settle: tumble never paints a face;
  * settled faces only from authoritative d1/d2.
  */
 import { describe, expect, it } from "vitest";
-import { projectDie } from "../engine/dice-geometry";
-import { tumblePose } from "../engine/dice-sync";
 import {
-  TUMBLE_DISPLAY_CAP,
   authoritativeFaces,
+  displayFaces,
   resolveDicePresentPhase,
-  tumbleDisplayProgress,
-  tumbleStillSpinning,
 } from "../engine/dice-present";
 import type { PublicDiceBroadcast } from "../types";
 
@@ -30,20 +26,11 @@ function tumblingBroadcast(
   };
 }
 
-describe("dice face geometry", () => {
-  it("rest pose front face matches requested face for both dice", () => {
-    for (let face = 1; face <= 6; face++) {
-      for (const index of [0, 1] as const) {
-        expect(projectDie({ face, index }).front).toBe(face);
-      }
-    }
-  });
-});
-
 describe("authoritative settle contract", () => {
-  it("hides faces until revealed", () => {
+  it("hides faces until revealed — even if d1/d2 leaked on wire", () => {
     expect(authoritativeFaces(tumblingBroadcast())).toBeNull();
     expect(authoritativeFaces(tumblingBroadcast({ d1: 3, d2: 4 }))).toBeNull();
+    expect(displayFaces(tumblingBroadcast({ d1: 3, d2: 4 }))).toBeNull();
     expect(
       resolveDicePresentPhase(tumblingBroadcast({ d1: 3, d2: 4 })).kind,
     ).toBe("tumbling");
@@ -60,6 +47,7 @@ describe("authoritative settle contract", () => {
       outcomeKind: "add_sum",
     });
     expect(authoritativeFaces(settled)).toEqual({ d1: 2, d2: 5 });
+    expect(displayFaces(settled)).toEqual({ d1: 2, d2: 5 });
     expect(resolveDicePresentPhase(settled)).toMatchObject({
       kind: "settled",
       d1: 2,
@@ -80,55 +68,31 @@ describe("authoritative settle contract", () => {
     ).toBeNull();
   });
 
-  it("settled rest projection matches authoritative faces (no jump target)", () => {
+  it("idle defaults are explicit; tumble never returns display faces", () => {
+    expect(displayFaces(null)).toEqual({ d1: 1, d2: 1 });
+    expect(displayFaces(tumblingBroadcast())).toBeNull();
+  });
+
+  it("first settled pair is always the server pair (no alternate settle)", () => {
     for (let d1 = 1; d1 <= 6; d1++) {
       for (let d2 = 1; d2 <= 6; d2++) {
-        expect(projectDie({ face: d1, index: 0 }).front).toBe(d1);
-        expect(projectDie({ face: d2, index: 1 }).front).toBe(d2);
-      }
-    }
-  });
-});
-
-describe("tumble never fake-settles", () => {
-  it("display progress never enters the near-rest zone before reveal", () => {
-    expect(tumbleDisplayProgress(1000, 1000, 3400)).toBe(0);
-    expect(tumbleDisplayProgress(2200, 1000, 3400)).toBeLessThanOrEqual(
-      TUMBLE_DISPLAY_CAP,
-    );
-    // Past settleAt / clock skew — still capped (keep spinning until reveal).
-    expect(tumbleDisplayProgress(99999, 1000, 3400)).toBe(TUMBLE_DISPLAY_CAP);
-    expect(TUMBLE_DISPLAY_CAP).toBeLessThan(0.85);
-  });
-
-  it("pose at display cap still has spin energy (not a readable rest)", () => {
-    for (const seed of [1, 42, 999, 1234567890, 0xabcdef]) {
-      for (const index of [0, 1] as const) {
-        const pose = tumblePose(TUMBLE_DISPLAY_CAP, seed, index);
-        expect(tumbleStillSpinning(pose)).toBe(true);
-        // Pure tumble (settle=0) — front is whatever spin shows; must not be
-        // treated as final. Assert we are not at rest matrix (settle omitted / 0).
-        const mid = projectDie({
-          face: 1,
-          index,
-          tumble: pose,
-          settle: 0,
-        });
-        const rest = projectDie({ face: 1, index });
-        // Tumble outline/transform should differ from authoritative rest of 1
-        // for almost all seeds; if equal for a seed, spin energy still required.
-        if (mid.outline === rest.outline) {
-          expect(tumbleStillSpinning(pose)).toBe(true);
+        const phase = resolveDicePresentPhase(
+          tumblingBroadcast({
+            revealed: true,
+            d1,
+            d2,
+            potAfter: 0,
+            note: "",
+            outcomeKind: "add_sum",
+          }),
+        );
+        expect(phase).toMatchObject({ kind: "settled", d1, d2 });
+        // Invariant: no other settled candidate exists in the phase model.
+        if (phase.kind === "settled") {
+          expect(phase.d1).toBe(d1);
+          expect(phase.d2).toBe(d2);
         }
       }
     }
-  });
-
-  it("display path never uses near-end progress that used to fake-settle", () => {
-    // Past wall-clock settle: still capped — no coast-to-rest before reveal.
-    expect(tumbleDisplayProgress(10_000, 0, 2400)).toBe(TUMBLE_DISPLAY_CAP);
-    expect(tumbleDisplayProgress(10_000, 0, 2400)).toBeLessThan(0.85);
-    const displayPose = tumblePose(TUMBLE_DISPLAY_CAP, 42, 0);
-    expect(tumbleStillSpinning(displayPose)).toBe(true);
   });
 });

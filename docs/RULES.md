@@ -77,7 +77,7 @@ pot = W
 - **Bank** is the only exit action (current roller only). Zero pot may Bank (keep protected).
 - First turn of a seat: countdown 5s → unlock Roll. Same player continuing after a non-bust roll unlocks Roll immediately. Idle 10s → auto Bank.
 - Atomic Roll vs Bank.
-- Synchronized SVG dice; tumble then snap to authoritative faces (no post-settle flip). Short settle hold before next READY / seat. Dramatic settle punch + SFX/haptics. No mute toggle on dice UI.
+- Synchronized flat 2D pip dice; tumble shows blank/blurred shells, then one settle to authoritative faces (no readable wrong face, no post-settle flip). Short settle hold before next READY / seat. Dramatic settle punch + SFX/haptics. No mute toggle on dice UI.
 - Reduced-motion fallback. Full-phone mint perimeter glow when you are up.
 
 ### Worked path (tests)

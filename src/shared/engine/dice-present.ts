@@ -1,13 +1,13 @@
 /**
  * Fail-proof dice presentation phases.
  *
- * Contract:
- * - Tumble is cosmetic only and must never look "settled".
- * - Settled faces come only from authoritative server d1/d2.
- * - Clients must never invent a rest face during roll.
+ * Contract (hard invariant):
+ * - While tumbling, clients must not paint any readable settled face.
+ * - Settled faces come only from authoritative server d1/d2 after reveal.
+ * - The first frame that looks "settled" must equal those server faces.
+ * - No seed-driven rest pose, no 3D coast-to-face, no local guesses.
  */
 import type { PublicDiceBroadcast } from "../types";
-import { animProgress } from "./dice-sync";
 
 export type DicePresentPhase =
   | { kind: "idle"; d1: number; d2: number }
@@ -45,6 +45,17 @@ export function authoritativeFaces(
   return { d1: broadcast.d1, d2: broadcast.d2 };
 }
 
+/**
+ * What the UI may paint as settled faces for this broadcast.
+ * null ⇒ tumble/blank shells only (never invent a face).
+ */
+export function displayFaces(
+  broadcast: PublicDiceBroadcast | null | undefined,
+): { d1: number; d2: number } | null {
+  if (!broadcast) return { d1: 1, d2: 1 };
+  return authoritativeFaces(broadcast);
+}
+
 export function resolveDicePresentPhase(
   broadcast: PublicDiceBroadcast | null | undefined,
 ): DicePresentPhase {
@@ -70,28 +81,16 @@ export function resolveDicePresentPhase(
   };
 }
 
-/**
- * Display progress for cosmetic tumble.
- * Hard-capped below the "nearly stopped" zone so wall-clock skew or a late
- * reveal can never leave the dice resting on a random/seed face.
- */
+/** @deprecated Kept for older tests; 2D tray no longer uses progress caps. */
 export const TUMBLE_DISPLAY_CAP = 0.62;
 
+/** @deprecated 2D tray does not drive faces from tumble progress. */
 export function tumbleDisplayProgress(
   now: number,
   startedAt: number,
   settleAt: number,
 ): number {
-  return Math.min(TUMBLE_DISPLAY_CAP, animProgress(now, startedAt, settleAt));
-}
-
-/** True when a pose still has enough spin that faces are not readable as final. */
-export function tumbleStillSpinning(pose: {
-  rx: number;
-  ry: number;
-  rz: number;
-}): boolean {
-  // Residual angular magnitude relative to a near-static coast.
-  const mag = Math.abs(pose.rx) + Math.abs(pose.ry) + Math.abs(pose.rz);
-  return mag > 0.35;
+  if (settleAt <= startedAt) return TUMBLE_DISPLAY_CAP;
+  const t = Math.min(1, Math.max(0, (now - startedAt) / (settleAt - startedAt)));
+  return Math.min(TUMBLE_DISPLAY_CAP, t);
 }

@@ -1,8 +1,8 @@
 /**
  * Deterministic time-based dice animation helpers (shared seed + timestamps).
  *
- * Tumble is cosmetic only. It must keep spinning until the client cuts over
- * to authoritative faces — never coast into a readable (wrong) rest pose.
+ * Presentation no longer drives faces from tumblePose — kept for sync
+ * timestamps / seed hashing and any residual tests.
  */
 import { RULES } from "../rules";
 
@@ -31,8 +31,7 @@ export function diceAnimWindow(now = Date.now()): {
 }
 
 /**
- * Absolute euler offsets during tumble — frame-rate independent.
- * Energy floor keeps faces unreadable; reveal snaps to authoritative rest.
+ * Absolute euler offsets — legacy 3D tumble helper (unused by 2D tray).
  */
 export function tumblePose(
   progress01: number,
@@ -40,7 +39,6 @@ export function tumblePose(
   dieIndex: 0 | 1,
 ): { rx: number; ry: number; rz: number; y: number; x: number } {
   const t = Math.min(1, Math.max(0, progress01));
-  // Soft coast for bounce/launch, but never drop spin to a rest-looking pose.
   const ease = t * t * (3 - 2 * t);
   const decay = Math.pow(1 - t, 1.85);
   const energy = 0.58 + 0.42 * decay;
