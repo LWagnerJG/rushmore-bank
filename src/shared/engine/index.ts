@@ -44,6 +44,13 @@ export {
   animProgress,
 } from "./dice-sync";
 export {
+  authoritativeFaces,
+  resolveDicePresentPhase,
+  tumbleDisplayProgress,
+  TUMBLE_DISPLAY_CAP,
+  type DicePresentPhase,
+} from "./dice-present";
+export {
   playerPickCount,
   rosterFull,
   upsertDraftPick,
