@@ -16,7 +16,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        BEAN BUSTER + any-7 + draft sticky topic → {RULES.productionUrl}
+        BEAN BUSTER + draft 60s pick clock → {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -64,6 +64,11 @@ export default function BuildNotesPage() {
             ideas.
           </li>
           <li>
+            <strong>Draft pick clock</strong> — {RULES.pickClockSeconds}s per
+            pick (+{RULES.pickGraceSeconds}s grace). Host Pause/+
+            {RULES.hostExtendSeconds}s unchanged.
+          </li>
+          <li>
             <strong>BANK rule</strong> — personal continuous turn: keep rolling
             until Bank or bust, then next seat. Waiting players watch (no early
             Bank / sit-out).
@@ -85,7 +90,7 @@ export default function BuildNotesPage() {
           </li>
           <li>
             <strong>Topics</strong> — no topic-selection countdown; pick calmly
-            until all vote. Draft pick clock unchanged.
+            until all vote.
           </li>
           <li>
             Preserved: Beans branding, admin mode, dice feel, PartyKit host{" "}
@@ -98,8 +103,9 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">Follow-ups</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>Redeploy PartyKit required</strong> — any-7 bust lives in
-            shared engine used by <code>party/server.ts</code>. Run{" "}
+            <strong>Redeploy PartyKit required</strong> — any-7 bust +{" "}
+            {RULES.pickClockSeconds}s pick clock live via{" "}
+            <code>RULES</code> in <code>party/server.ts</code>. Run{" "}
             <code>npm run deploy:party</code>.
           </li>
         </ul>
