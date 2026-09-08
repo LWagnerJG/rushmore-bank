@@ -486,11 +486,13 @@ html.party-on .panel {
  */
 .dice-turn-strip {
   display: flex;
+  flex-wrap: nowrap;
   gap: 0.45rem;
   margin: 0;
   padding: 0.1rem 0.15rem 0.15rem;
   list-style: none;
   overflow-x: auto;
+  overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   scroll-snap-type: x proximity;
   scrollbar-width: none;
@@ -659,26 +661,30 @@ html.party-on .panel {
 
 /*
  * Failproof player rail for 2–10 players:
- * single row, never clips a second wrap row.
+ * single row ONLY — never wraps, never clips a second row.
  * Many players → denser chips + horizontal scroll + edge fade.
  */
 .player-rail {
   position: relative;
   margin-top: 0.5rem;
-  max-height: none;
+  max-height: none !important;
   overflow: visible;
 }
 
 .player-rail-track {
   display: flex;
-  flex-wrap: nowrap;
+  flex-direction: row;
+  flex-wrap: nowrap !important;
+  align-items: stretch;
   gap: 0.4rem;
+  width: 100%;
+  max-height: none;
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   scroll-snap-type: x proximity;
   scrollbar-width: none;
-  padding-bottom: 0.1rem;
+  padding-bottom: 0.15rem;
 }
 
 .player-rail-track::-webkit-scrollbar {
@@ -1392,64 +1398,6 @@ html.dice-your-turn::after {
   border-radius: 1.15rem;
   background: rgba(255, 255, 255, 0.42);
   padding: 0.85rem 0.75rem 0.95rem;
-}
-
-/* Compact turn strip — legacy; circle layout replaces this in BANK */
-.dice-turn-strip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem 0.55rem;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.dice-turn-chip {
-  display: flex;
-  flex-direction: column;
-  gap: 0.05rem;
-  min-width: 0;
-  padding: 0.15rem 0.1rem;
-  font-size: 0.85rem;
-  line-height: 1.2;
-}
-
-.dice-turn-chip-name {
-  font-weight: 700;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 7.5rem;
-}
-
-.dice-turn-chip-meta {
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.dice-turn-chip-up .dice-turn-chip-name {
-  font-weight: 800;
-  color: var(--text);
-}
-
-.dice-turn-chip-up .dice-turn-chip-meta {
-  color: var(--text);
-}
-
-.dice-turn-chip-up {
-  border-bottom: 2.5px solid var(--mint);
-  padding-bottom: 0.2rem;
-}
-
-.dice-turn-chip-next .dice-turn-chip-meta {
-  color: var(--coral);
-}
-
-.dice-turn-chip-out {
-  opacity: 0.55;
 }
 
 .bean-die {

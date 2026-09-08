@@ -273,7 +273,7 @@ export function DicePanel({
     "Rolling…"
   ) : settling ? (
     heroReveal && last?.busted ? (
-      "BEAN BUSTER"
+      "Pot wiped"
     ) : (
       "Settling…"
     )
@@ -283,8 +283,10 @@ export function DicePanel({
     "Bank anytime — Roll unlocks soon"
   ) : myTurn ? (
     "Your turn"
+  ) : cooldown ? (
+    "Turn opens soon"
   ) : (
-    `${roller?.name ?? "Player"} is up`
+    "Watching"
   );
 
   const revealed = !!last?.revealed;
