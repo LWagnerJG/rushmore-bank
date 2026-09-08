@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
 import { DiceScene } from "@/components/dice/DiceScene";
 import { classifyPullOut } from "@/shared/engine/banking";
@@ -77,48 +77,49 @@ type SeatInfo = {
   you: boolean;
 };
 
-/** Players arranged in a circle — turn order reads clockwise. */
-function PlayerCircle({ seats }: { seats: SeatInfo[] }) {
-  const n = seats.length;
+/**
+ * Compact phone turn strip — seat order left→right.
+ * Clearer than a circle on small screens; no “TABLE” hub.
+ */
+function TurnStrip({ seats }: { seats: SeatInfo[] }) {
+  const upRef = useRef<HTMLLIElement | null>(null);
+
+  useEffect(() => {
+    upRef.current?.scrollIntoView({
+      behavior: "smooth",
+      inline: "center",
+      block: "nearest",
+    });
+  }, [seats]);
+
   return (
-    <ol className="dice-circle" aria-label="Turn order around the table">
-      {seats.map((seat, i) => {
-        const angle = n === 0 ? 0 : (i / n) * 360 - 90;
-        return (
-          <li
-            key={seat.pid}
-            className={[
-              "dice-circle-seat",
-              `dice-circle-seat-${seat.kind}`,
-              seat.you ? "dice-circle-seat-you" : "",
-            ]
-              .filter(Boolean)
-              .join(" ")}
-            style={
-              {
-                "--seat-angle": `${angle}deg`,
-              } as CSSProperties
-            }
-          >
-            <div className="dice-circle-seat-card">
-              <span className="dice-circle-seat-name">
-                {seat.name}
-                {seat.you ? " · you" : ""}
-              </span>
-              <span className="dice-circle-seat-meta">
-                {BADGE[seat.kind]}
-                {" · "}
-                {seat.kind === "banked" || seat.kind === "busted"
-                  ? `${seat.safe} safe`
-                  : `pot ${seat.pot}`}
-              </span>
-            </div>
-          </li>
-        );
-      })}
-      <li className="dice-circle-hub" aria-hidden="true">
-        <span>Table</span>
-      </li>
+    <ol className="dice-turn-strip" aria-label="Turn order">
+      {seats.map((seat) => (
+        <li
+          key={seat.pid}
+          ref={seat.kind === "up" ? upRef : undefined}
+          className={[
+            "dice-turn-chip",
+            `dice-turn-chip-${seat.kind}`,
+            seat.you ? "dice-turn-chip-you" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+        >
+          <span className="dice-turn-chip-name">
+            {seat.name}
+            {seat.you ? " · you" : ""}
+          </span>
+          <span className="dice-turn-chip-meta">
+            <span className="dice-turn-chip-badge">{BADGE[seat.kind]}</span>
+            <span className="dice-turn-chip-pot tabular-nums">
+              {seat.kind === "banked" || seat.kind === "busted"
+                ? `${seat.safe} safe`
+                : `pot ${seat.pot}`}
+            </span>
+          </span>
+        </li>
+      ))}
     </ol>
   );
 }
@@ -290,39 +291,41 @@ export function DicePanel({
   const total =
     revealed && last?.d1 != null && last?.d2 != null ? last.d1 + last.d2 : null;
   const drama = heroReveal || rolling || settling;
+  const showResult = revealed && total != null;
 
   return (
     <div className={`dice-layout ${heroReveal ? "dice-hero-mode" : ""}`}>
-      {/* Zone: players in a circle */}
+      {/* Who’s up / next / banked — compact turn strip */}
       <section
-        className={`dice-zone dice-zone-circle ${drama ? "dice-table-dim" : ""}`}
-        aria-label="Players around the table"
+        className={`dice-zone dice-zone-strip ${drama ? "dice-table-dim" : ""}`}
+        aria-label="Turn order"
       >
-        <PlayerCircle seats={seats} />
+        <TurnStrip seats={seats} />
       </section>
 
-      {/* Zone: prominent decision timer */}
-      {timerUntil != null && !rolling && !settling && (
-        <section className="dice-zone dice-zone-timer" aria-label="Turn timer">
-          <DecisionTimer until={timerUntil} label={timerLabel} />
-        </section>
-      )}
+      {/* Who’s up + timer + dice hero — one stage */}
+      <section className="dice-zone dice-zone-stage" aria-label="Dice stage">
+        <header className="dice-stage-head text-center">
+          <h2 className="dice-up-title">
+            {heroReveal && last?.busted
+              ? "BEAN BUSTER"
+              : myTurn
+                ? "Your roll"
+                : `${roller?.name ?? "Player"} is up`}
+          </h2>
+          <p className="dice-up-status" aria-live="polite">
+            {heroReveal && last?.busted
+              ? `${lastName} · pot wiped`
+              : statusLine}
+          </p>
+        </header>
 
-      {/* Zone: who’s up + dice hero */}
-      <header className="dice-zone dice-zone-up text-center">
-        <h2 className="dice-up-title">
-          {heroReveal && last?.busted
-            ? "BEAN BUSTER"
-            : myTurn
-              ? "Your roll"
-              : `${roller?.name ?? "Player"} is up`}
-        </h2>
-        <p className="dice-up-status" aria-live="polite">
-          {heroReveal && last?.busted ? `${lastName} · pot wiped` : statusLine}
-        </p>
-      </header>
+        {timerUntil != null && !rolling && !settling && (
+          <div className="dice-stage-timer" aria-label="Turn timer">
+            <DecisionTimer until={timerUntil} label={timerLabel} />
+          </div>
+        )}
 
-      <section className="dice-zone dice-zone-tray" aria-label="Dice tray">
         <DiceScene
           broadcast={last}
           reducedMotion={reducedMotion}
@@ -334,11 +337,11 @@ export function DicePanel({
         />
 
         <div
-          className={`dice-result-readout ${revealed ? "dice-result-readout-on" : ""} ${last?.busted ? "dice-result-bust" : ""}`}
+          className={`dice-result-readout ${showResult ? "dice-result-readout-on" : ""} ${last?.busted && showResult ? "dice-result-bust" : ""}`}
           role="status"
           aria-live="assertive"
         >
-          {revealed && total != null ? (
+          {showResult ? (
             last!.busted ? (
               <>
                 <p className="dice-result-faces">
@@ -353,18 +356,16 @@ export function DicePanel({
                   {lastName} · {last!.d1} + {last!.d2}
                 </p>
                 <p className="dice-result-total tabular-nums">{total}</p>
-                <p className="dice-result-note">{last!.note}</p>
+                {last!.note ? (
+                  <p className="dice-result-note">{last!.note}</p>
+                ) : null}
               </>
             )
-          ) : (
-            <p className="text-sm text-[var(--muted)]">
-              {canRoll ? "Tap the dice" : "\u00a0"}
-            </p>
-          )}
+          ) : null}
         </div>
       </section>
 
-      {/* Zone: pot + Bank */}
+      {/* Pot + Bank */}
       {you.role === "player" && (
         <section
           className={`dice-zone dice-zone-actions ${drama && !myTurn ? "dice-action-dim" : ""}`}
@@ -388,7 +389,7 @@ export function DicePanel({
           </div>
 
           {!active ? (
-            <p className="dice-watch-note">You’re out — watch the table.</p>
+            <p className="dice-watch-note">You’re out — watch the round.</p>
           ) : myTurn ? (
             <button
               className="btn-secondary w-full"

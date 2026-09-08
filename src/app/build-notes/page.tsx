@@ -16,7 +16,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        BANK dice scramble + circle + 15s timer → {RULES.productionUrl}
+        BANK dice layout polish (turn strip, no TABLE) → {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -52,47 +52,45 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>Scramble anticipation</strong>: while tumbling, 2D pip dice
-            rapidly flip faces (seed-synced). First settled frame hard-cuts to
-            server <code>d1</code>/<code>d2</code> — no blank shells, no coast
-            to a fake face, no settle jump. Covered by{" "}
-            <code>verify:dice</code>, <code>dice-scramble.test.ts</code>,{" "}
-            <code>/dev/dice-lab</code>.
+            <strong>No “TABLE” label</strong>: removed the center circle hub
+            entirely. The word Table never appears on the BANK dice screen.
           </li>
           <li>
-            <strong>15s roll/Bank window</strong>:{" "}
-            <code>RULES.diceIdleBankSeconds = 15</code> (was 10). Opening
-            decision countdown stays 5s. Draft pick clock stays 60s. Big timer
-            UI on BANK.
+            <strong>Layout choice — compact horizontal turn strip</strong>:
+            replaced the awkward vertical circle seats with a scrollable chip
+            strip (UP / NEXT / In / Banked / Bust + pots). Seat order reads
+            left→right; the UP chip auto-centers. Phone-first and less clunky
+            than forcing a round table.
           </li>
           <li>
-            <strong>Players in a circle</strong>: turn order reads around the
-            table (up / next / banked / bust). Header player rail hidden during
-            DICE to cut chrome.
+            <strong>Tighter hierarchy</strong>: turn strip → who’s up → big
+            timer → dice hero → pot + Bank. One dice stage, less stacked fluff,
+            smaller result readout, tighter gaps.
           </li>
           <li>
-            Layout compartments: circle → timer → dice hero → pot + Bank.
-            On-brand cream/mint/coral pip dice.
+            Preserved: scramble anticipation + hard-cut settle (no jump), 15s
+            roll/Bank timer, tap-to-roll, BEAN BUSTER, personal BANK, green
+            perimeter when you’re up, haptics/SFX.
           </li>
           <li>
-            Preserved: personal BANK, tap-to-roll, BEAN BUSTER on any 7, synced
-            multiplayer, haptics/SFX, mint glow when you’re up, no mute toggle.
-          </li>
-          <li>
-            <strong>PartyKit redeploy required</strong> — idle bank timer is
-            server-enforced via <code>RULES</code>.
+            UI-only — no <code>party/</code> or RULES changes; PartyKit redeploy
+            not required for this polish.
           </li>
         </ul>
       </section>
 
       <section className="panel space-y-2 text-sm">
-        <h2 className="font-extrabold">How scramble avoids the jump</h2>
-        <p>
-          Scramble faces are cosmetic only and never written to tray{" "}
-          <code>data-dice-d1/d2</code>. When the broadcast reveals, the UI stops
-          the scramble interval and paints auth faces in the same frame — no
-          lerp from the last scramble value.
-        </p>
+        <h2 className="font-extrabold">Still true from prior BANK dice work</h2>
+        <ul className="list-disc space-y-1 pl-5">
+          <li>
+            Scramble faces are cosmetic; first settled frame paints server{" "}
+            <code>d1</code>/<code>d2</code> with no coast/jump.
+          </li>
+          <li>
+            <code>RULES.diceIdleBankSeconds = 15</code>; opening decision
+            countdown stays 5s.
+          </li>
+        </ul>
       </section>
     </main>
   );
