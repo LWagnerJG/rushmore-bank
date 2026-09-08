@@ -15,6 +15,27 @@ import {
   rememberDisplayName,
 } from "@/lib/party";
 
+/** Map infra / transport failures to player-safe copy. Never mention PartyKit. */
+function friendlyPlayerError(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const text = raw.trim();
+  if (!text) return null;
+  if (
+    /partykit|websocket|web socket|\bws\b|ECONN|ENOTFOUND|fetch failed|networkerror|socket|stack trace|TypeError|at\s+\S+\s+\(/i.test(
+      text,
+    )
+  ) {
+    return "Connection lost — retrying";
+  }
+  if (/parse|server message|bad message/i.test(text)) {
+    return "Something went wrong — try again";
+  }
+  if (/server error/i.test(text)) {
+    return "Something went wrong — try again";
+  }
+  return text;
+}
+
 export function useGameRoom(
   roomCode: string,
   options?: { preferredName?: string; preferSpectate?: boolean },
@@ -24,13 +45,18 @@ export function useGameRoom(
   const preferSpectate = options?.preferSpectate ?? false;
   const [state, setState] = useState<PublicRoomState | null>(null);
   const [youId, setYouId] = useState<string>("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setErrorRaw] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
   const [joined, setJoined] = useState(false);
   const playerId = useMemo(() => getStablePlayerId(code), [code]);
-  const pendingJoin = useRef<{ name: string; role: "player" | "spectator" } | null>(
-    null,
-  );
+  const pendingJoin = useRef<{
+    name: string;
+    role: "player" | "spectator";
+  } | null>(null);
+
+  const setError = useCallback((msg: string | null) => {
+    setErrorRaw(friendlyPlayerError(msg));
+  }, []);
 
   // Prefer URL/preset nickname for onOpen join — never auto-queue from shared
   // localStorage alone (that made tab B join as Luke when ?name=Brynna).
@@ -49,7 +75,7 @@ export function useGameRoom(
     id: playerId,
     onOpen() {
       setConnected(true);
-      setError(null);
+      setErrorRaw(null);
       if (pendingJoin.current) {
         socket.send(
           JSON.stringify({
@@ -63,9 +89,10 @@ export function useGameRoom(
     },
     onClose() {
       setConnected(false);
+      // Partysocket auto-reconnects — show soft status via `connected`, not a hard error.
     },
     onError() {
-      setError("Connection error — is PartyKit running?");
+      setErrorRaw("Connection lost — retrying");
     },
     onMessage(event) {
       try {
@@ -79,14 +106,14 @@ export function useGameRoom(
           setError(msg.message);
         }
       } catch {
-        setError("Could not parse server message");
+        setErrorRaw("Something went wrong — try again");
       }
     },
   });
 
   const send = useCallback(
     (msg: ClientMessage) => {
-      setError(null);
+      setErrorRaw(null);
       const withId = {
         ...msg,
         actionId: msg.actionId ?? newActionId(),
@@ -100,7 +127,7 @@ export function useGameRoom(
     (name: string, role: "player" | "spectator" = "player") => {
       const clean = name.trim();
       if (!clean) {
-        setError("Enter a nickname");
+        setErrorRaw("Enter a nickname");
         return;
       }
       rememberDisplayName(clean);

@@ -17,6 +17,31 @@ import { DicePanel } from "@/components/DicePanel";
 import { ResultsPanel } from "@/components/ResultsPanel";
 import { PlayerRail } from "@/components/PlayerRail";
 
+function DraftBannerClock({
+  until,
+  paused,
+}: {
+  until: number | null;
+  paused: boolean;
+}) {
+  const [left, setLeft] = useState(0);
+  useEffect(() => {
+    const tick = () =>
+      setLeft(until ? Math.max(0, Math.ceil((until - Date.now()) / 1000)) : 0);
+    tick();
+    const t = setInterval(tick, 250);
+    return () => clearInterval(t);
+  }, [until]);
+  return (
+    <span
+      className="min-w-[2.75rem] text-right font-[family-name:var(--font-display)] text-2xl font-extrabold tabular-nums leading-none text-[var(--text)]"
+      aria-live="polite"
+    >
+      {paused ? "‖" : `${left}s`}
+    </span>
+  );
+}
+
 export function RoomClient({
   code,
   presetName,
@@ -44,8 +69,6 @@ export function RoomClient({
   const [name, setName] = useState(presetName || defaultName);
   const autoJoinAttempted = useRef(false);
 
-  // One-shot: when connected with a URL/preset nickname, join explicitly so we
-  // do not rely on shared localStorage for the display name.
   useEffect(() => {
     if (autoJoinAttempted.current) return;
     const clean = presetName.trim();
@@ -54,10 +77,9 @@ export function RoomClient({
     join(clean, preferSpectate ? "spectator" : "player");
   }, [connected, joined, presetName, preferSpectate, join]);
 
-  // AI judging is server-authoritative — no host browser fetch/submit.
-
   const phase: Phase | null = state?.phase ?? null;
   const partyOn = state?.settings.partyMode === true;
+  const drafting = phase === "DRAFT" || phase === "CORRECTION";
 
   useEffect(() => {
     const root = document.documentElement;
@@ -97,7 +119,6 @@ export function RoomClient({
   }, [state, you, youId, send]);
 
   if (!joined || !you) {
-    // Keep manual Join form when there is no preset nickname.
     if (presetName.trim()) {
       return (
         <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-4 px-4 pb-8 pt-[max(2rem,env(safe-area-inset-top))]">
@@ -109,6 +130,11 @@ export function RoomClient({
             {connected ? `Joining as ${presetName.trim()}…` : "Connecting…"}
           </p>
           {error && <p className="text-sm text-[var(--coral)]">{error}</p>}
+          {!connected && (
+            <p className="text-sm font-semibold text-[var(--muted)]">
+              Connection lost — retrying
+            </p>
+          )}
           <Link href="/" className="text-sm font-semibold text-[var(--coral)]">
             ← Home
           </Link>
@@ -133,7 +159,8 @@ export function RoomClient({
           autoFocus
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") join(name, preferSpectate ? "spectator" : "player");
+            if (e.key === "Enter")
+              join(name, preferSpectate ? "spectator" : "player");
           }}
         />
         <button
@@ -151,6 +178,11 @@ export function RoomClient({
           Watch only
         </button>
         {error && <p className="text-sm text-[var(--coral)]">{error}</p>}
+        {!connected && (
+          <p className="text-sm font-semibold text-[var(--muted)]">
+            Connection lost — retrying
+          </p>
+        )}
         <Link href="/" className="text-sm font-semibold text-[var(--coral)]">
           ← Home
         </Link>
@@ -170,20 +202,63 @@ export function RoomClient({
       >
         <div className="flex items-center justify-between gap-2">
           <BrandMark />
-          <div className="text-right text-xs font-bold uppercase tracking-wide text-[var(--muted)]">
-            <div className="flex items-center justify-end gap-1.5">
-              {partyOn && (
-                <span className="rounded-full bg-[rgba(255,107,74,0.25)] px-2 py-0.5 text-[0.65rem] font-extrabold normal-case tracking-normal text-[var(--text)]">
-                  Party
-                </span>
+          {drafting && state ? (
+            <div className="flex items-center gap-1.5">
+              {you.isHost && (
+                <>
+                  <button
+                    type="button"
+                    className="rounded-lg border border-[rgba(35,72,62,0.14)] bg-white/70 px-2 py-1.5 text-[0.65rem] font-extrabold uppercase tracking-wide text-[var(--muted)]"
+                    aria-label={state.pickPaused ? "Resume pick clock" : "Pause pick clock"}
+                    title={state.pickPaused ? "Resume" : "Pause"}
+                    onClick={() =>
+                      send({
+                        type: state.pickPaused ? "host_resume" : "host_pause",
+                      })
+                    }
+                  >
+                    {state.pickPaused ? "Resume" : "Pause"}
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-lg border border-[rgba(35,72,62,0.14)] bg-white/70 px-2 py-1.5 text-[0.65rem] font-extrabold tabular-nums text-[var(--muted)]"
+                    aria-label={`Add ${RULES.hostExtendSeconds} seconds`}
+                    title={`+${RULES.hostExtendSeconds}s`}
+                    onClick={() => send({ type: "host_extend" })}
+                  >
+                    +{RULES.hostExtendSeconds}s
+                  </button>
+                </>
               )}
-              <span>{phase ? phaseLabel(phase) : "…"}</span>
+              <DraftBannerClock
+                until={state.pickDeadlineAt}
+                paused={state.pickPaused}
+              />
             </div>
-            <div className="text-[var(--text)]">
-              {you.stones} {RULES.currencyName}
+          ) : (
+            <div className="text-right text-xs font-bold uppercase tracking-wide text-[var(--muted)]">
+              <div className="flex items-center justify-end gap-1.5">
+                {partyOn && (
+                  <span className="rounded-full bg-[rgba(255,107,74,0.25)] px-2 py-0.5 text-[0.65rem] font-extrabold normal-case tracking-normal text-[var(--text)]">
+                    Party
+                  </span>
+                )}
+                <span>{phase ? phaseLabel(phase) : "…"}</span>
+              </div>
+              <div className="text-[var(--text)]">
+                {you.stones} {RULES.currencyName}
+              </div>
             </div>
-          </div>
+          )}
         </div>
+        {drafting && (
+          <div className="mt-1 flex items-center justify-between gap-2 text-[0.7rem] font-bold uppercase tracking-wide text-[var(--muted)]">
+            <span>{phase ? phaseLabel(phase) : "Draft"}</span>
+            <span className="normal-case tracking-normal text-[var(--text)]">
+              {you.stones} {RULES.currencyName}
+            </span>
+          </div>
+        )}
         {state && <PlayerRail state={state} youId={youId} />}
         {state?.notice && (
           <p className="mt-1 text-xs font-semibold text-[var(--coral)]">
@@ -193,14 +268,18 @@ export function RoomClient({
       </header>
 
       {!connected && (
-        <p className="mb-2 text-sm font-semibold text-[var(--coral)]">
-          Reconnecting…
+        <p className="mb-2 text-sm font-semibold text-[var(--muted)]">
+          Connection lost — retrying
         </p>
       )}
       {error && (
         <p className="mb-2 text-sm text-[var(--coral)]" role="alert">
           {error}{" "}
-          <button type="button" className="underline" onClick={() => setError(null)}>
+          <button
+            type="button"
+            className="underline"
+            onClick={() => setError(null)}
+          >
             dismiss
           </button>
         </p>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
 import type { TopicScope } from "@/shared/topics";
 
@@ -8,7 +8,8 @@ function Countdown({ until }: { until: number | null }) {
   const [left, setLeft] = useState(0);
   useEffect(() => {
     if (!until) return;
-    const tick = () => setLeft(Math.max(0, Math.ceil((until - Date.now()) / 1000)));
+    const tick = () =>
+      setLeft(Math.max(0, Math.ceil((until - Date.now()) / 1000)));
     tick();
     const t = setInterval(tick, 250);
     return () => clearInterval(t);
@@ -27,19 +28,24 @@ export function TopicPanel({
   send: (m: ClientMessage) => void;
 }) {
   const optionKey = state.topicOptions.map((t) => t.id).join(",");
-  const [spinning, setSpinning] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [custom, setCustom] = useState("");
   const [scope, setScope] = useState<TopicScope>("everyday");
   const myVote = state.myTopicVote;
   const canReroll = you.role === "player";
+  const seenKey = useRef<string | null>(null);
 
+  // Animate only on reroll (options change after first paint) — never on land.
   useEffect(() => {
-    const t = setTimeout(() => setSpinning(true), 0);
-    const t2 = setTimeout(() => setSpinning(false), 700);
-    return () => {
-      clearTimeout(t);
-      clearTimeout(t2);
-    };
+    if (seenKey.current === null) {
+      seenKey.current = optionKey;
+      return;
+    }
+    if (seenKey.current === optionKey) return;
+    seenKey.current = optionKey;
+    setRefreshing(true);
+    const t = setTimeout(() => setRefreshing(false), 420);
+    return () => clearTimeout(t);
   }, [optionKey]);
 
   return (
@@ -53,7 +59,10 @@ export function TopicPanel({
         </span>
       </div>
 
-      <div className={`space-y-2 ${spinning ? "topic-spinner" : ""}`}>
+      <div
+        className={`space-y-2 ${refreshing ? "topic-refresh" : ""}`}
+        aria-live="polite"
+      >
         {state.topicOptions.map((t) => {
           const votes = state.topicVoteCounts[t.id] ?? 0;
           const selected = myVote === t.id;
@@ -74,7 +83,9 @@ export function TopicPanel({
                 </span>
               </div>
               {selected && t.scopeBoundary ? (
-                <p className="mt-1.5 text-xs text-[var(--muted)]">{t.scopeBoundary}</p>
+                <p className="mt-1.5 text-xs text-[var(--muted)]">
+                  {t.scopeBoundary}
+                </p>
               ) : null}
             </button>
           );
@@ -93,7 +104,9 @@ export function TopicPanel({
 
       {you.isHost && (
         <details className="panel space-y-2">
-          <summary className="min-h-11 cursor-pointer font-bold">Custom topic</summary>
+          <summary className="min-h-11 cursor-pointer font-bold">
+            Custom topic
+          </summary>
           <input
             className="field w-full"
             value={custom}

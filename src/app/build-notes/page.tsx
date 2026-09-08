@@ -16,7 +16,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        iPhone polish — status bar, Gemini 503, dice table →{" "}
+        iPhone + draft polish — status bar, Gemini, dice table, draft chrome →{" "}
         {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
@@ -54,24 +54,32 @@ export default function BuildNotesPage() {
         <ul className="list-disc space-y-1 pl-5">
           <li>
             <strong>iOS status bar</strong> — cream <code>theme-color</code>,{" "}
-            <code>viewport-fit=cover</code>,{" "}
-            <code>apple-mobile-web-app-status-bar-style: black-translucent</code>,
-            html/body cream into safe areas (no white clock stripe).
+            <code>viewport-fit=cover</code>, black-translucent status bar,
+            html/body cream into safe areas.
           </li>
           <li>
-            <strong>Gemini 503</strong> — retry 429/503/5xx with short backoff;
-            fallback flash models; player copy is only{" "}
-            <em>Judge unavailable · neutral award.</em> (no HTTP codes). Quieter
-            scores notice.
+            <strong>Gemini 503</strong> — retry/backoff + flash fallbacks;
+            player copy only <em>Judge unavailable · neutral award.</em>
           </li>
           <li>
             <strong>Dice round table</strong> — always-visible seats (up / next /
-            in / banked / bust); smoother settle animation; Roll is the primary
-            action for the current roller.
+            in / banked / bust); smoother settle; Roll primary.
           </li>
           <li>
-            Preserved: type-your-own draft + always-on board, 4 topics + reroll,
-            no PREP, Beans, Party Mode, Gemini judging, PartyKit host{" "}
+            <strong>Draft chrome</strong> — pick timer sticky top-right; host-only
+            Pause / +15s discrete beside timer; ideas tap-to-lock on your turn.
+          </li>
+          <li>
+            <strong>Topics</strong> — no slide-up jump on land; soft fade only on
+            reroll.
+          </li>
+          <li>
+            <strong>Connection copy</strong> — “Connection lost — retrying”; never
+            PartyKit / websocket / stack traces to players.
+          </li>
+          <li>
+            Preserved: type-your-own + always-on board, 4 topics + reroll, no PREP,
+            Beans, Party Mode, Gemini judging, host{" "}
             <code>rushmore-bank.lwagnerjg.partykit.dev</code>.
           </li>
         </ul>
@@ -100,12 +108,12 @@ export default function BuildNotesPage() {
         <ul className="list-disc space-y-1 pl-5">
           <li>
             <strong>Redeploy PartyKit required</strong> after merge —{" "}
-            <code>party/server.ts</code> sanitizes judge notices (no raw HTTP).
-            Run <code>npm run deploy:party</code>.
+            <code>party/server.ts</code> (judge notice sanitize + safer client
+            errors). Run <code>npm run deploy:party</code>.
           </li>
           <li>
-            AI judging still needs <code>GEMINI_API_KEY</code> (preferred) +
-            matching <code>JUDGE_SECRET</code>.
+            AI judging needs <code>GEMINI_API_KEY</code> + matching{" "}
+            <code>JUDGE_SECRET</code>.
           </li>
         </ul>
       </section>

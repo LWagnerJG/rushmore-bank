@@ -321,8 +321,17 @@ export default class QuarryServer implements Party.Server {
       await this.persist();
       this.broadcastState();
     } catch (e) {
-      const text = e instanceof Error ? e.message : "Server error";
-      this.send(sender, { type: "error", message: text });
+      // Prefer short game-rule messages; never leak stacks / infra to clients.
+      const text = e instanceof Error ? e.message : "Something went wrong — try again";
+      const safe =
+        !text ||
+        text.length > 120 ||
+        /partykit|stack|TypeError|at\s+\S+|ECONN|JUDGE_SECRET|API_KEY/i.test(
+          text,
+        )
+          ? "Something went wrong — try again"
+          : text;
+      this.send(sender, { type: "error", message: safe });
     }
   }
 
