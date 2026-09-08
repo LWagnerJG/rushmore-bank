@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
 import { RULES } from "@/shared/rules";
+import { RushmoreCard } from "@/components/RushmoreCard";
 
 function Countdown({ until }: { until: number | null }) {
   const [left, setLeft] = useState(0);
@@ -35,31 +36,29 @@ export function VotePanel({
   if (state.seatOrder.length === 2) {
     return (
       <div className="space-y-4">
-        <h2
-          className="font-[family-name:var(--font-display)] text-xl font-extrabold"
-          role="status"
-        >
-          The judge is deciding…
-        </h2>
-        <p className="text-sm text-[var(--muted)]">
-          Two players — AI scores both drafts (no vote needed).
-        </p>
-        {state.seatOrder.map((pid) => (
-          <article key={pid} className="panel">
-            <p className="font-extrabold">
-              {state.players.find((p) => p.id === pid)?.name}
-            </p>
-            <ol className="mt-2 list-decimal pl-5 text-sm">
-              {state.picks
-                .filter((pick) => pick.playerId === pid)
-                .sort((a, b) => a.pickIndex - b.pickIndex)
-                .slice(0, RULES.picksPerPlayer)
-                .map((pick) => (
-                  <li key={pick.turnIndex}>{pick.text}</li>
-                ))}
-            </ol>
-          </article>
-        ))}
+        <header className="space-y-1">
+          <h2
+            className="font-[family-name:var(--font-display)] text-xl font-extrabold"
+            role="status"
+          >
+            The judge is deciding…
+          </h2>
+          <p className="text-sm text-[var(--muted)]">
+            Two players — AI scores both drafts (no vote needed).
+          </p>
+        </header>
+        {state.seatOrder.map((pid) => {
+          const p = state.players.find((x) => x.id === pid);
+          const picks = state.picks.filter((pick) => pick.playerId === pid);
+          return (
+            <RushmoreCard
+              key={pid}
+              name={p?.name ?? "Player"}
+              picks={picks}
+              why={state.rushmoreWhy[pid]}
+            />
+          );
+        })}
       </div>
     );
   }
@@ -74,6 +73,9 @@ export function VotePanel({
           <Countdown until={state.phaseDeadlineAt} />
         </span>
       </div>
+      <p className="text-sm text-[var(--muted)]">
+        Tap a Mount Rushmore — best list for the topic.
+      </p>
       {state.judgeStatus === "pending" && (
         <p className="text-sm text-[var(--muted)]">Judge scoring…</p>
       )}
@@ -86,36 +88,24 @@ export function VotePanel({
         .filter((pid) => pid !== youId)
         .map((pid) => {
           const p = state.players.find((x) => x.id === pid);
-          const picks = state.picks
-            .filter((pk) => pk.playerId === pid)
-            .sort((a, b) => a.pickIndex - b.pickIndex)
-            .slice(0, RULES.picksPerPlayer);
+          const picks = state.picks.filter((pk) => pk.playerId === pid);
           const selected = myVote === pid;
           return (
-            <button
+            <RushmoreCard
               key={pid}
-              type="button"
-              className={`panel w-full min-h-[72px] text-left transition ${
-                selected ? "ring-2 ring-[var(--coral)]" : ""
-              }`}
+              name={p?.name ?? "Player"}
+              picks={picks}
+              why={state.rushmoreWhy[pid]}
+              selected={selected}
+              interactive
               disabled={you.role !== "player" || busy}
-              onClick={() => {
+              onSelect={() => {
                 if (busy || you.role !== "player") return;
                 setBusy(true);
                 send({ type: "submit_vote", targetPlayerId: pid });
                 setTimeout(() => setBusy(false), 400);
               }}
-            >
-              <p className="font-extrabold">
-                {p?.name}
-                {selected ? " ✓" : ""}
-              </p>
-              <ol className="mt-1 list-decimal pl-5 text-sm">
-                {picks.map((pk) => (
-                  <li key={pk.turnIndex}>{pk.text}</li>
-                ))}
-              </ol>
-            </button>
+            />
           );
         })}
     </div>

@@ -2,6 +2,7 @@
 
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
 import { RULES } from "@/shared/rules";
+import { RushmoreCard } from "@/components/RushmoreCard";
 
 export function ScorePanel({
   state,
@@ -20,6 +21,9 @@ export function ScorePanel({
       : state.judgeNotice
         ? RULES.aiFallbackLabel
         : null;
+  const ready = state.myBankBeansReady;
+  const cast = state.bankBeansReadyCast;
+  const needed = state.bankBeansReadyNeeded;
 
   return (
     <div className="space-y-4">
@@ -35,47 +39,54 @@ export function ScorePanel({
       </div>
       {sorted.map((s) => {
         const p = state.players.find((x) => x.id === s.playerId);
+        const picks = state.picks.filter((pk) => pk.playerId === s.playerId);
+        const why =
+          s.explanation && s.explanation !== RULES.aiFallbackLabel
+            ? s.explanation
+            : state.rushmoreWhy[s.playerId];
         return (
-          <div key={s.playerId} className="panel space-y-1">
-            <div className="flex justify-between font-extrabold">
-              <span>{p?.name}</span>
-              <span className="text-[var(--coral)]">
-                +{s.earned} {RULES.currencyName}
+          <RushmoreCard
+            key={s.playerId}
+            name={p?.name ?? "Player"}
+            picks={picks}
+            why={why}
+            badge={
+              <span className="font-[family-name:var(--font-display)] text-xl font-extrabold tabular-nums text-[var(--coral)]">
+                +{s.earned}
               </span>
-            </div>
-            <p className="text-xs text-[var(--muted)]">
-              {s.votes} vote{s.votes === 1 ? "" : "s"} · AI {s.aiAward}
-              {s.aiFallback ? " · neutral" : ""}
-            </p>
-            {s.explanation && s.explanation !== RULES.aiFallbackLabel ? (
-              <details>
-                <summary className="cursor-pointer text-xs font-bold text-[var(--muted)]">
-                  Why
-                </summary>
-                <p className="mt-1 text-sm">{s.explanation}</p>
-              </details>
-            ) : null}
-          </div>
+            }
+            footer={
+              <p className="mt-2 text-xs font-semibold text-[var(--muted)]">
+                {s.votes} vote{s.votes === 1 ? "" : "s"} · AI {s.aiAward}
+                {s.aiFallback ? " · neutral" : ""}
+              </p>
+            }
+          />
         );
       })}
-      {you.isHost ? (
+
+      {you.role === "player" ? (
         <div className="space-y-2">
           <button
             type="button"
             className="btn-primary w-full text-lg"
-            onClick={() => send({ type: "advance" })}
+            disabled={ready}
+            onClick={() => send({ type: "bank_the_beans" })}
           >
-            Continue to wager
+            {ready ? "Ready" : "Bank the Beans"}
           </button>
-          <button
-            type="button"
-            className="btn-secondary w-full"
-            onClick={() => send({ type: "void_topic" })}
+          <p
+            className="text-center text-sm font-bold tabular-nums text-[var(--muted)]"
+            aria-live="polite"
           >
-            Void topic
-          </button>
+            {cast}/{needed} ready
+          </p>
         </div>
-      ) : null}
+      ) : (
+        <p className="text-center text-sm font-bold tabular-nums text-[var(--muted)]">
+          {cast}/{needed} ready
+        </p>
+      )}
     </div>
   );
 }

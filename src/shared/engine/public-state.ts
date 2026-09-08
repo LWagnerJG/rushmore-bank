@@ -7,6 +7,7 @@ import type {
   PublicRoomState,
   RoomState,
 } from "../types";
+import { RULES } from "../rules";
 
 function stripDiceForPublic(
   dice: DiceBroadcast | null,
@@ -75,6 +76,24 @@ export function projectPublicState(
     ? state.scores.map((s) => ({ ...s }))
     : [];
 
+  const rushmoreWhy: Record<string, string> = {};
+  for (const s of state.scores) {
+    if (
+      s.explanation &&
+      s.explanation !== RULES.aiFallbackLabel
+    ) {
+      rushmoreWhy[s.playerId] = s.explanation;
+    }
+  }
+
+  const bankNeeded = state.seatOrder.filter((pid) => {
+    const p = state.players.find((x) => x.id === pid);
+    return p && p.role === "player";
+  }).length;
+  const bankCast = Object.keys(state.bankBeansReady ?? {}).filter((pid) =>
+    state.seatOrder.includes(pid),
+  ).length;
+
   return {
     code: state.code,
     phase: state.phase,
@@ -112,6 +131,10 @@ export function projectPublicState(
     scoresLocked: state.scoresLocked,
     judgeStatus: state.judgeStatus,
     judgeNotice: state.judgeNotice,
+    rushmoreWhy,
+    bankBeansReadyCast: bankCast,
+    bankBeansReadyNeeded: bankNeeded,
+    myBankBeansReady: !!state.bankBeansReady?.[recipientId],
     earnedThisRound: { ...state.earnedThisRound },
     wagers: { ...state.wagers },
     wagerDeadlineAt: state.wagerDeadlineAt,

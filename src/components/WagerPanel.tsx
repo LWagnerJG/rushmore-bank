@@ -30,6 +30,10 @@ export function WagerPanel({
       ? defaultAmt
       : Math.min(max, Math.max(0, Math.floor(amount)));
   const protectedBal = banked + earned - clamped;
+  const readyCast = Object.keys(state.wagers).filter((pid) =>
+    state.seatOrder.includes(pid),
+  ).length;
+  const readyNeeded = state.seatOrder.length;
 
   useEffect(() => {
     const tick = () =>
@@ -51,41 +55,36 @@ export function WagerPanel({
 
   if (you.role !== "player") {
     return (
-      <p className="panel">Everyone is choosing how many beans to risk.</p>
+      <section className="panel space-y-2 text-center">
+        <p>Everyone is choosing how many beans to risk.</p>
+        <p className="text-sm font-bold tabular-nums text-[var(--muted)]">
+          {readyCast}/{readyNeeded} ready
+        </p>
+      </section>
     );
   }
 
   if (locked !== undefined) {
     return (
-      <section className="panel space-y-2 text-center" aria-live="polite">
-        <h2 className="text-xl font-extrabold">
+      <section className="panel space-y-3 text-center" aria-live="polite">
+        <h2 className="font-[family-name:var(--font-display)] text-xl font-extrabold">
           {locked === 0 ? "Beans locked safe." : "You’re in."}
         </h2>
-        <p>
+        <p className="text-sm">
           {locked === 0
             ? "Sit this bank out."
             : `${locked} beans ready for your bank turn.`}
         </p>
-        <p className="text-sm text-[var(--muted)]">Waiting for the others…</p>
+        <p className="text-sm font-bold tabular-nums text-[var(--muted)]">
+          {readyCast}/{readyNeeded} ready
+        </p>
       </section>
     );
   }
 
-  const presets = [
-    { label: "Keep", value: 0 },
-    {
-      label: "Half",
-      value: wagerFromPreset("half_new", earned, banked),
-    },
-    {
-      label: "All",
-      value: wagerFromPreset("all_new", earned, banked),
-    },
-  ] as const;
-
   return (
-    <div className="space-y-5">
-      <header className="space-y-1">
+    <div className="space-y-6">
+      <header className="space-y-1 text-center">
         <div className="flex items-center justify-between gap-2">
           <h2 className="font-[family-name:var(--font-display)] text-2xl font-extrabold">
             Risk how many?
@@ -102,14 +101,24 @@ export function WagerPanel({
         </p>
       </header>
 
-      <section className="space-y-3 text-center" aria-live="polite">
-        <p className="font-[family-name:var(--font-display)] text-5xl font-extrabold tabular-nums leading-none">
-          {clamped}
-        </p>
-        <p className="text-sm font-bold text-[var(--muted)]">
-          {clamped === 0
-            ? "keeping everything safe"
-            : `${protectedBal} stay safe`}
+      <section className="wager-hero space-y-4 text-center" aria-live="polite">
+        <div className="space-y-1">
+          <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[var(--muted)]">
+            At risk
+          </p>
+          <p className="font-[family-name:var(--font-display)] text-6xl font-extrabold tabular-nums leading-none tracking-tight">
+            {clamped}
+          </p>
+        </div>
+        <p className="text-base font-bold text-[var(--text)]">
+          {clamped === 0 ? (
+            <span className="text-[var(--muted)]">everything stays safe</span>
+          ) : (
+            <>
+              <span className="tabular-nums text-[var(--mint)]">{protectedBal}</span>
+              {" stay safe"}
+            </>
+          )}
         </p>
 
         <label htmlFor={sliderId} className="sr-only">
@@ -117,7 +126,7 @@ export function WagerPanel({
         </label>
         <input
           id={sliderId}
-          className="wager-slider mt-1 w-full"
+          className="wager-slider mt-2 w-full"
           type="range"
           min={0}
           max={max}
@@ -129,24 +138,9 @@ export function WagerPanel({
           aria-valuenow={clamped}
           aria-valuetext={`${clamped} beans at risk, ${protectedBal} protected`}
         />
-
-        <div className="flex justify-center gap-2">
-          {presets.map((preset) => (
-            <button
-              key={preset.label}
-              type="button"
-              className={
-                "min-h-11 rounded-full px-4 text-sm font-bold " +
-                (clamped === preset.value
-                  ? "bg-[var(--text)] text-[#f5f0e7]"
-                  : "bg-white/70 text-[var(--text)]")
-              }
-              aria-pressed={clamped === preset.value}
-              onClick={() => setAmount(preset.value)}
-            >
-              {preset.label}
-            </button>
-          ))}
+        <div className="flex justify-between px-0.5 text-[0.7rem] font-bold tabular-nums text-[var(--muted)]">
+          <span>0 safe</span>
+          <span>{max} max</span>
         </div>
       </section>
 
@@ -163,8 +157,8 @@ export function WagerPanel({
         {busy
           ? "Locking…"
           : clamped === 0
-            ? "Keep all beans safe"
-            : `Lock in ${clamped} at risk`}
+            ? "Lock in — stay safe"
+            : `Lock in ${clamped}`}
       </button>
     </div>
   );

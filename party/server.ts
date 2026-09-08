@@ -88,6 +88,7 @@ function migrateState(raw: RoomState): RoomState {
     draftOptions: raw.draftOptions ?? [],
     draftOptionsStatus: raw.draftOptionsStatus ?? "idle",
     draftOptionsJobId: raw.draftOptionsJobId ?? null,
+    bankBeansReady: raw.bankBeansReady ?? {},
     diceLapsCompleted:
       legacy.diceLapsCompleted ?? legacy.diceBanksCompleted ?? 0,
   };
@@ -100,6 +101,7 @@ type AlarmKind =
   | "dice_decision"
   | "dice_idle"
   | "dice_anim"
+  | "dice_settle_hold"
   | "host_check";
 
 interface AlarmPayload {
@@ -315,6 +317,9 @@ export default class QuarryServer implements Party.Server {
       case "dice_anim":
         await this.afterDiceAnim();
         break;
+      case "dice_settle_hold":
+        await this.afterDiceSettleHold();
+        break;
       case "host_check":
         await this.checkHostFailover();
         break;
@@ -435,6 +440,9 @@ export default class QuarryServer implements Party.Server {
         return;
       case "void_topic":
         this.handleVoidTopic(id);
+        return;
+      case "bank_the_beans":
+        await this.handleBankTheBeans(id);
         return;
       case "advance":
         await this.handleAdvance(id);
@@ -931,7 +939,7 @@ export default class QuarryServer implements Party.Server {
     );
 
     if (this.state.scoresLocked) {
-      throw new Error("Scores locked — use Void Topic");
+      throw new Error("Scores locked — finish the round");
     }
 
     if (
@@ -982,6 +990,7 @@ export default class QuarryServer implements Party.Server {
     this.state.humanVotes = {};
     this.state.scores = [];
     this.state.scoresLocked = false;
+    this.state.bankBeansReady = {};
     this.state.judgeStatus = "pending";
     this.state.judgeNotice = null;
     this.state.judgeJobId = `judge-${this.state.topicRound}-${this.state.phaseRevision + 1}`;
@@ -1170,14 +1179,40 @@ export default class QuarryServer implements Party.Server {
     this.state.scoresLocked = true;
     this.state.phase = "SCORE_REVEAL";
     this.state.phaseDeadlineAt = null;
+    this.state.bankBeansReady = {};
+    // Bots auto-ready so admin tables aren't stuck waiting on fakes.
+    for (const p of seatedPlayers(this.state)) {
+      if (p.id.startsWith("bot-")) this.state.bankBeansReady[p.id] = true;
+    }
     await this.clearAlarm();
     bump(this.state);
+  }
+
+  async handleBankTheBeans(id: string) {
+    if (!this.requirePlayer(id)) throw new Error("Players only");
+    if (this.state.phase !== "SCORE_REVEAL") throw new Error("Wrong phase");
+    this.state.bankBeansReady[id] = true;
+    for (const p of seatedPlayers(this.state)) {
+      if (p.id.startsWith("bot-")) this.state.bankBeansReady[p.id] = true;
+    }
+    bump(this.state);
+    await this.maybeBeginWagersFromReady();
+  }
+
+  async maybeBeginWagersFromReady() {
+    if (this.state.phase !== "SCORE_REVEAL") return;
+    const needed = seatedPlayers(this.state);
+    if (needed.length === 0) return;
+    if (needed.every((p) => this.state.bankBeansReady[p.id])) {
+      await this.beginWagers();
+    }
   }
 
   async handleAdvance(id: string) {
     if (!this.requireHost(id)) throw new Error("Host only");
     switch (this.state.phase) {
       case "SCORE_REVEAL":
+        // Host can force-advance (admin / stuck table) — still goes to wager, not topic.
         await this.beginWagers();
         return;
       case "ROUND_RESULTS":
@@ -1194,6 +1229,7 @@ export default class QuarryServer implements Party.Server {
   async beginWagers() {
     this.state.phase = "WAGER_SELECTION";
     this.state.wagers = {};
+    this.state.bankBeansReady = {};
     this.state.wagerDeadlineAt = Date.now() + RULES.wagerTimeoutSeconds * 1000;
     bump(this.state);
     await this.setAlarmAt(this.state.wagerDeadlineAt, {
@@ -1423,12 +1459,35 @@ export default class QuarryServer implements Party.Server {
     this.revealCommittedDice();
 
     if (this.state.diceActiveIds.length === 0) {
+      // Brief beat so BEAN BUSTER faces land before leaving the table.
+      bump(this.state);
+      await this.setAlarmAt(Date.now() + RULES.diceSettleHoldMs, {
+        kind: "dice_settle_hold",
+        revision: this.state.phaseRevision,
+        meta: "round_end",
+      });
+      return;
+    }
+
+    // Hold authoritative faces on screen — then READY or next seat.
+    bump(this.state);
+    await this.setAlarmAt(Date.now() + RULES.diceSettleHoldMs, {
+      kind: "dice_settle_hold",
+      revision: this.state.phaseRevision,
+      meta: busted ? "bust" : "continue",
+    });
+  }
+
+  async afterDiceSettleHold() {
+    if (this.state.phase !== "DICE") return;
+    if (this.state.diceSubphase !== "SETTLED") return;
+
+    if (this.state.diceActiveIds.length === 0) {
       await this.beginRoundResults();
       return;
     }
 
-    // Personal BANK: keep rolling until bank or bust; only then next seat.
-    bump(this.state);
+    const busted = this.state.lastDice?.busted === true;
     if (busted) {
       this.advanceDiceSeat();
       await this.startDiceTurn();
@@ -1723,6 +1782,10 @@ export default class QuarryServer implements Party.Server {
         this.state.judgeStatus = "ready";
         this.state.judgeNotice = null;
         this.state.phaseDeadlineAt = null;
+        this.state.bankBeansReady = {};
+        for (const p of seatedPlayers(this.state)) {
+          if (p.id.startsWith("bot-")) this.state.bankBeansReady[p.id] = true;
+        }
         bump(this.state);
         return;
       case "WAGER_SELECTION":
@@ -1890,18 +1953,18 @@ export default class QuarryServer implements Party.Server {
 
   handleVoidTopic(id: string) {
     if (!this.requireHost(id)) throw new Error("Host only");
-    if (!this.state.checkpoint) throw new Error("No checkpoint");
-    if (!this.state.scoresLocked && this.state.phase !== "DICE") {
-      throw new Error("Void only after scores locked");
+    // After voting/scoring, topic is a required step — no void/skip escape.
+    if (
+      this.state.scoresLocked ||
+      this.state.phase === "SCORE_REVEAL" ||
+      this.state.phase === "WAGER_SELECTION" ||
+      this.state.phase === "DICE" ||
+      this.state.phase === "ROUND_RESULTS" ||
+      this.state.phase === "VOTING_AND_JUDGING"
+    ) {
+      throw new Error("Topic is required — finish the round");
     }
-    for (const p of this.state.players) {
-      if (p.id in this.state.checkpoint.stones) {
-        p.stones = this.state.checkpoint.stones[p.id]!;
-      }
-    }
-    this.state.notice = "Round discarded. Beans restored.";
-    this.state.partyPrompt = null;
-    void this.beginTopicSelection();
+    throw new Error("Cannot void topic now");
   }
 
   async onPhaseTimeout() {

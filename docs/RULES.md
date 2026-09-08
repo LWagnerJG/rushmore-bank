@@ -62,7 +62,7 @@ protected = B + E − W
 pot = W
 ```
 
-- UX: one risk number + slider + Keep/Half/All + Lock-in CTA.
+- UX: one risk number + slider + risk/safe readout + Lock-in CTA (no Keep/Half/All presets).
 - No response in 20s → W=0. Zero-wager players still enter the dice circuit.
 - Integers only; append-only ledger.
 
@@ -77,7 +77,7 @@ pot = W
 - **Bank** is the only exit action (current roller only). Zero pot may Bank (keep protected).
 - First turn of a seat: countdown 5s → unlock Roll. Same player continuing after a non-bust roll unlocks Roll immediately. Idle 10s → auto Bank.
 - Atomic Roll vs Bank.
-- Synchronized SVG dice; tumble then snap to authoritative faces (no post-settle flip). Dramatic settle punch + SFX/haptics. No mute toggle on dice UI.
+- Synchronized SVG dice; tumble then snap to authoritative faces (no post-settle flip). Short settle hold before next READY / seat. Dramatic settle punch + SFX/haptics. No mute toggle on dice UI.
 - Reduced-motion fallback. Full-phone mint perimeter glow when you are up.
 
 ### Worked path (tests)

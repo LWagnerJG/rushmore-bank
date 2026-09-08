@@ -61,6 +61,8 @@ export const RULES = {
   diceIdleBankSeconds: 10,
   /** Shared tumble duration before authoritative reveal */
   diceAnimMs: 2400,
+  /** Hold SETTLED faces on screen before next READY / seat advance (kills settle-then-jump) */
+  diceSettleHoldMs: 1100,
   /** AI judging HTTP timeout */
   judgeTimeoutMs: 20000,
 

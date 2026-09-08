@@ -194,6 +194,8 @@ export interface RoomState {
   judgeStatus: JudgeStatus;
   judgeJobId: string | null;
   judgeNotice: string | null;
+  /** Players who tapped “Bank the Beans” on SCORE_REVEAL */
+  bankBeansReady: Record<string, true>;
   earnedThisRound: Record<string, number>;
   wagers: Record<string, number>;
   wagerDeadlineAt: number | null;
@@ -264,6 +266,15 @@ export interface PublicRoomState {
   scoresLocked: boolean;
   judgeStatus: JudgeStatus;
   judgeNotice: string | null;
+  /**
+   * AI roster rationales — available during vote once the judge returns,
+   * and on score reveal. Never includes award numbers during vote.
+   */
+  rushmoreWhy: Record<string, string>;
+  /** SCORE_REVEAL readiness for “Bank the Beans” */
+  bankBeansReadyCast: number;
+  bankBeansReadyNeeded: number;
+  myBankBeansReady: boolean;
   earnedThisRound: Record<string, number>;
   wagers: Record<string, number>;
   wagerDeadlineAt: number | null;
@@ -314,7 +325,10 @@ export type ClientMessage =
   | { type: "next_topic"; actionId?: string }
   | { type: "end_game"; actionId?: string }
   | { type: "play_again"; actionId?: string }
+  /** @deprecated Rejected after voting — topic is required; no skip/void escape. */
   | { type: "void_topic"; actionId?: string }
+  /** Player ready on SCORE_REVEAL — advances to wager when everyone has tapped. */
+  | { type: "bank_the_beans"; actionId?: string }
   | { type: "advance"; actionId?: string }
   | { type: "host_heartbeat"; actionId?: string }
   | { type: "skip_review"; actionId?: string }
@@ -422,6 +436,7 @@ export function emptyRoomState(code: string): RoomState {
     judgeStatus: "idle",
     judgeJobId: null,
     judgeNotice: null,
+    bankBeansReady: {},
     earnedThisRound: {},
     wagers: {},
     wagerDeadlineAt: null,

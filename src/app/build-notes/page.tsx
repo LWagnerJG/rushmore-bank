@@ -16,7 +16,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        BEAN BUSTER + draft redo fix + 60s → {RULES.productionUrl}
+        Vote / wager / BANK polish → {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -52,54 +52,40 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>BEAN BUSTER</strong> — any roll totaling 7 busts (including
-            first roll of a turn). No safe-first / +70 freebie. Roller +
-            spectators get a clear shared moment; pot wiped; turn ends; next
-            seat. Party sip uses the same wording.
+            <strong>Vote UI</strong> — premium Rushmore cards (cream/mint/coral),
+            clearer hierarchy, phone-first; restored panel chrome.
           </li>
           <li>
-            <strong>Draft sticky topic</strong> — selected topic title lives in
-            the sticky top banner (stays visible while scrolling). Timer + host
-            Pause/+15s stay discrete top-right. Body focuses on turn → board →
-            ideas.
+            <strong>Topic required</strong> — removed Void topic escape after
+            voting/scoring. Tables cannot skip topic for the next round via
+            void; topic selection stays in the loop.
           </li>
           <li>
-            <strong>Draft redo fix</strong> — host redo no longer resumes the
-            snake over already-filled turns (that appended a silent 5th pick).
-            Replacement upserts the same slot; max 4 picks/player enforced.
-            Redo UI: one selected slot, clear Replace slot N/4.
+            <strong>Why / rationale</strong> — AI “why” shows immediately under
+            each list on vote (once judge returns) and score — no expand/collapse.
           </li>
           <li>
-            <strong>Draft pick clock</strong> — {RULES.pickClockSeconds}s per
-            pick (+{RULES.pickGraceSeconds}s grace). Host Pause/+
-            {RULES.hostExtendSeconds}s unchanged.
+            <strong>Bank the Beans</strong> — score CTA renamed; every player
+            taps; readiness shows <code>N/M ready</code>; advances to wager when
+            all are ready (host can still force-advance).
           </li>
           <li>
-            <strong>BANK rule</strong> — personal continuous turn: keep rolling
-            until Bank or bust, then next seat. Waiting players watch (no early
-            Bank / sit-out).
+            <strong>Wager</strong> — slider + risk/safe readout + one Lock-in.
+            Keep/Half/All presets removed. Waiting shows ready count.
           </li>
           <li>
-            <strong>Wager</strong> — one earned line, one risk number, slider +
-            Keep/Half/All, single Lock-in CTA.
+            <strong>Bean totals</strong> — player chips wrap; stronger score
+            type; +earned visible on mid-game screens.
           </li>
           <li>
-            <strong>Dice UI</strong> — light turn strip; dice tray hero;
-            full-phone mint perimeter glow when you’re up; snap settle to
-            authoritative faces (no post-settle flip); dramatic punch; SFX
-            without mute toggle; Bank wording only.
+            <strong>BANK dice</strong> — clear zones (table / who’s up / tray /
+            pot+Bank); settle hold so faces match authoritative result with no
+            post-settle flip; BEAN BUSTER; full-phone mint glow when you’re up;
+            personal BANK; tap-to-roll; Bank wording only; no sound toggle.
           </li>
           <li>
-            <strong>Draft ideas</strong> — embedded ideas surface (no drawer);
-            one CTA: Save idea while waiting / Lock in when up; tap queued idea
-            to lock instantly on your turn.
-          </li>
-          <li>
-            <strong>Topics</strong> — no topic-selection countdown; pick calmly
-            until all vote.
-          </li>
-          <li>
-            Preserved: Beans branding, admin mode, dice feel, PartyKit host{" "}
+            Preserved: admin mode, {RULES.pickClockSeconds}s draft timer, sticky
+            topic title, ideas UX, no topic timer, PartyKit host{" "}
             <code>rushmore-bank.lwagnerjg.partykit.dev</code>.
           </li>
         </ul>
@@ -109,9 +95,10 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">Follow-ups</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>Redeploy PartyKit required</strong> — draft redo resume +
-            any-7 bust + {RULES.pickClockSeconds}s pick clock live in{" "}
-            <code>party/server.ts</code>. Run <code>npm run deploy:party</code>.
+            <strong>Redeploy PartyKit required</strong> —{" "}
+            <code>bank_the_beans</code> readiness, void-topic gate, dice settle
+            hold live in <code>party/server.ts</code>. Run{" "}
+            <code>npm run deploy:party</code>.
           </li>
         </ul>
       </section>

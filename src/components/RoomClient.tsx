@@ -248,7 +248,7 @@ export function RoomClient({
                 )}
                 <span>{phase ? phaseLabel(phase) : "…"}</span>
               </div>
-              <div className="text-[var(--text)]">
+              <div className="font-[family-name:var(--font-display)] text-sm font-extrabold tabular-nums normal-case tracking-normal text-[var(--text)]">
                 {you.stones} {RULES.currencyName}
               </div>
             </div>

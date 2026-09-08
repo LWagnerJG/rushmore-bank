@@ -152,7 +152,7 @@ export function DiceScene({
   useLayoutEffect(() => {
     if (!revealed || !rollId || d1 == null || d2 == null) return;
     if (settleRollId.current === rollId) {
-      // Already snapped this roll — keep authoritative rest pose.
+      // Already snapped this roll — keep authoritative rest pose (no re-anim).
       paintRest(dieA.current, dieB.current, d1, d2);
       return;
     }
@@ -167,9 +167,10 @@ export function DiceScene({
       setPunch(true);
       haptic(busted ? "bust" : "settle");
       for (const el of [dieA.current, dieB.current]) {
-        el?.classList.remove("bean-die-settle");
-        void el?.getBoundingClientRect();
-        el?.classList.add("bean-die-settle");
+        if (!el) continue;
+        el.classList.remove("bean-die-settle");
+        void el.getBoundingClientRect();
+        el.classList.add("bean-die-settle");
       }
     }, 0);
     const clearPunch = window.setTimeout(() => setPunch(false), 780);
@@ -183,6 +184,7 @@ export function DiceScene({
     if (!dieA.current || !dieB.current) return;
 
     if (!broadcast) {
+      settleRollId.current = null;
       paintRest(dieA.current, dieB.current, 1, 1);
       return;
     }
@@ -196,8 +198,13 @@ export function DiceScene({
       return;
     }
 
-    // Settled — authoritative paint owned by settle effect above.
-    if (revealed) return;
+    // Settled — authoritative paint owned by settle effect above. Never tumble after.
+    if (revealed || settleRollId.current === rollId) {
+      if (d1 != null && d2 != null) {
+        paintRest(dieA.current, dieB.current, d1, d2);
+      }
+      return;
+    }
 
     // Tumbling: face-agnostic spin (fixed base face); never “settle” mid-air.
     let frame = 0;
@@ -209,6 +216,8 @@ export function DiceScene({
       });
     }
     const tick = () => {
+      // If settle won the race, stop tumbling immediately.
+      if (settleRollId.current === rollId) return;
       const progress = Math.min(0.92, animProgress(Date.now(), started, settled));
       const now = Date.now();
       if (now - lastTick.current > 160 && progress < 0.85) {

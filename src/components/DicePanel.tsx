@@ -59,6 +59,7 @@ export function DicePanel({
   const pot = state.pots[youId] ?? 0;
   const active = state.diceActiveIds.includes(youId);
   const rolling = state.diceSubphase === "COMMITTED";
+  const settling = state.diceSubphase === "SETTLED";
   const canBank =
     you.role === "player" &&
     classifyPullOut({
@@ -74,7 +75,7 @@ export function DicePanel({
     active &&
     you.role === "player" &&
     state.diceSubphase === "READY";
-  const glowOn = myTurn && active && you.role === "player";
+  const glowOn = myTurn && active && you.role === "player" && !settling;
   const [busy, setBusy] = useState(false);
   const turnHaptic = useRef<string | null>(null);
   const revealSeen = useRef<string | null>(null);
@@ -86,7 +87,6 @@ export function DicePanel({
     return () => clearTimeout(timer);
   }, [busy]);
 
-  // Soft haptic when your turn becomes READY.
   useEffect(() => {
     if (!glowOn || state.diceSubphase !== "READY") return;
     const key = `${state.diceTurnSeat}-${state.diceSubphase}-${state.phaseRevision}`;
@@ -95,7 +95,6 @@ export function DicePanel({
     haptic("your_turn");
   }, [glowOn, state.diceSubphase, state.diceTurnSeat, state.phaseRevision]);
 
-  // Full-phone perimeter glow on <html> so it isn’t trapped by transform parents.
   useEffect(() => {
     const root = document.documentElement;
     if (glowOn) root.classList.add("dice-your-turn");
@@ -121,7 +120,6 @@ export function DicePanel({
   const canResolveParty =
     partyPrompt?.targetPlayerIds.includes(youId) || you.isHost;
 
-  // Dramatic result beat when faces first reveal (longer on bust).
   useEffect(() => {
     if (!last?.revealed || !last.rollId) return;
     if (revealSeen.current === last.rollId) return;
@@ -165,7 +163,7 @@ export function DicePanel({
 
   async function bank() {
     if (!canBank || busy) return;
-    haptic(pot === 0 ? "bank" : "bank");
+    haptic("bank");
     try {
       const ctx = await ensureDiceAudio();
       playBankChime(ctx);
@@ -177,6 +175,12 @@ export function DicePanel({
 
   const statusLine = rolling ? (
     "Rolling…"
+  ) : settling ? (
+    heroReveal && last?.busted ? (
+      "BEAN BUSTER"
+    ) : (
+      "Settling…"
+    )
   ) : state.diceSubphase === "COOLDOWN" ? (
     <>
       Opens in <Countdown until={state.diceDecisionDeadlineAt} />
@@ -196,43 +200,48 @@ export function DicePanel({
   const revealed = !!last?.revealed;
   const total =
     revealed && last?.d1 != null && last?.d2 != null ? last.d1 + last.d2 : null;
+  const drama = heroReveal || rolling || settling;
 
   return (
-    <div className={`space-y-4 ${heroReveal ? "dice-hero-mode" : ""}`}>
-      <ol
-        className={`dice-turn-strip ${heroReveal || rolling ? "dice-table-dim" : ""}`}
-        aria-label="Turn order"
+    <div className={`dice-layout space-y-3 ${heroReveal ? "dice-hero-mode" : ""}`}>
+      {/* Zone: table status */}
+      <section
+        className={`dice-zone dice-zone-table ${drama ? "dice-table-dim" : ""}`}
+        aria-label="Table status"
       >
-        {seats.map((seat) => (
-          <li
-            key={seat.pid}
-            className={[
-              "dice-turn-chip",
-              seat.kind === "up" ? "dice-turn-chip-up" : "",
-              seat.kind === "next" ? "dice-turn-chip-next" : "",
-              seat.kind === "banked" || seat.kind === "busted"
-                ? "dice-turn-chip-out"
-                : "",
-            ]
-              .filter(Boolean)
-              .join(" ")}
-          >
-            <span className="dice-turn-chip-name">
-              {seat.name}
-              {seat.you ? " · you" : ""}
-            </span>
-            <span className="dice-turn-chip-meta">
-              {BADGE[seat.kind]}
-              {" · "}
-              {seat.kind === "banked" || seat.kind === "busted"
-                ? `${seat.safe} safe`
-                : `pot ${seat.pot}`}
-            </span>
-          </li>
-        ))}
-      </ol>
+        <ol className="dice-turn-strip" aria-label="Turn order">
+          {seats.map((seat) => (
+            <li
+              key={seat.pid}
+              className={[
+                "dice-turn-chip",
+                seat.kind === "up" ? "dice-turn-chip-up" : "",
+                seat.kind === "next" ? "dice-turn-chip-next" : "",
+                seat.kind === "banked" || seat.kind === "busted"
+                  ? "dice-turn-chip-out"
+                  : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              <span className="dice-turn-chip-name">
+                {seat.name}
+                {seat.you ? " · you" : ""}
+              </span>
+              <span className="dice-turn-chip-meta">
+                {BADGE[seat.kind]}
+                {" · "}
+                {seat.kind === "banked" || seat.kind === "busted"
+                  ? `${seat.safe} safe`
+                  : `pot ${seat.pot}`}
+              </span>
+            </li>
+          ))}
+        </ol>
+      </section>
 
-      <header className="space-y-1 text-center">
+      {/* Zone: who’s up */}
+      <header className="dice-zone dice-zone-up space-y-1 text-center">
         <h2 className="font-[family-name:var(--font-display)] text-2xl font-extrabold">
           {heroReveal && last?.busted
             ? "BEAN BUSTER"
@@ -247,56 +256,61 @@ export function DicePanel({
         </p>
       </header>
 
-      <DiceScene
-        broadcast={last}
-        reducedMotion={reducedMotion}
-        canRoll={canRoll && !busy}
-        busted={!!last?.busted}
-        onRoll={() => {
-          if (canRoll) act({ type: "roll" });
-        }}
-      />
+      {/* Zone: dice tray */}
+      <section className="dice-zone dice-zone-tray" aria-label="Dice tray">
+        <DiceScene
+          broadcast={last}
+          reducedMotion={reducedMotion}
+          canRoll={canRoll && !busy}
+          busted={!!last?.busted}
+          onRoll={() => {
+            if (canRoll) act({ type: "roll" });
+          }}
+        />
 
-      <div
-        className={`dice-result-readout ${revealed ? "dice-result-readout-on" : ""} ${last?.busted ? "dice-result-bust" : ""}`}
-        role="status"
-        aria-live="assertive"
-      >
-        {revealed && total != null ? (
-          last!.busted ? (
-            <>
-              <p className="dice-result-faces">
-                {lastName} · {last!.d1} + {last!.d2}
-              </p>
-              <p className="dice-result-bust-title">BEAN BUSTER</p>
-              <p className="dice-result-note">Pot gone</p>
-            </>
+        <div
+          className={`dice-result-readout ${revealed ? "dice-result-readout-on" : ""} ${last?.busted ? "dice-result-bust" : ""}`}
+          role="status"
+          aria-live="assertive"
+        >
+          {revealed && total != null ? (
+            last!.busted ? (
+              <>
+                <p className="dice-result-faces">
+                  {lastName} · {last!.d1} + {last!.d2}
+                </p>
+                <p className="dice-result-bust-title">BEAN BUSTER</p>
+                <p className="dice-result-note">Pot gone</p>
+              </>
+            ) : (
+              <>
+                <p className="dice-result-faces">
+                  {lastName} · {last!.d1} + {last!.d2}
+                </p>
+                <p className="dice-result-total tabular-nums">{total}</p>
+                <p className="dice-result-note">{last!.note}</p>
+              </>
+            )
           ) : (
-            <>
-              <p className="dice-result-faces">
-                {lastName} · {last!.d1} + {last!.d2}
-              </p>
-              <p className="dice-result-total tabular-nums">{total}</p>
-              <p className="dice-result-note">{last!.note}</p>
-            </>
-          )
-        ) : (
-          <p className="text-sm text-[var(--muted)]">
-            {canRoll ? "Tap the dice" : "\u00a0"}
-          </p>
-        )}
-      </div>
+            <p className="text-sm text-[var(--muted)]">
+              {canRoll ? "Tap the dice" : "\u00a0"}
+            </p>
+          )}
+        </div>
+      </section>
 
+      {/* Zone: pot + Bank */}
       {you.role === "player" && (
         <section
-          className={`space-y-3 ${heroReveal || rolling ? "dice-action-dim" : ""}`}
+          className={`dice-zone dice-zone-actions space-y-3 ${drama && !myTurn ? "dice-action-dim" : ""}`}
+          aria-label="Pot and Bank"
         >
           <div className="flex items-end justify-between gap-3 px-0.5">
             <div>
               <p className="text-sm text-[var(--muted)]">
                 {myTurn ? "Your pot" : "Your beans"}
               </p>
-              <p className="text-4xl font-extrabold tabular-nums leading-none">
+              <p className="font-[family-name:var(--font-display)] text-4xl font-extrabold tabular-nums leading-none">
                 {active ? pot : you.stones}
               </p>
             </div>
@@ -317,7 +331,7 @@ export function DicePanel({
           ) : myTurn ? (
             <button
               className="btn-secondary w-full"
-              disabled={!canBank || busy}
+              disabled={!canBank || busy || settling}
               onClick={() => void bank()}
             >
               {pot === 0 ? "Bank" : `Bank ${pot}`}

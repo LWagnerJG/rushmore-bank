@@ -242,6 +242,67 @@ describe("ballot privacy projection", () => {
     expect(pub.lastDice?.note).toBeUndefined();
     expect(pub.lastDice?.potAfter).toBeUndefined();
   });
+
+  it("exposes rushmore why during vote without locking scores", () => {
+    const state = emptyRoomState("WHY1");
+    state.phase = "VOTING_AND_JUDGING";
+    state.seatOrder = ["a", "b"];
+    state.players = [
+      {
+        id: "a",
+        name: "Ava",
+        stones: 0,
+        connected: true,
+        isHost: true,
+        role: "player",
+        seat: 0,
+        joinedAt: 1,
+      },
+      {
+        id: "b",
+        name: "Sam",
+        stones: 0,
+        connected: true,
+        isHost: false,
+        role: "player",
+        seat: 1,
+        joinedAt: 2,
+      },
+    ];
+    state.scoresLocked = false;
+    state.scores = [
+      {
+        playerId: "a",
+        votes: 0,
+        aiAward: 22,
+        topicFit: 7,
+        pickStrength: 10,
+        rosterQuality: 5,
+        explanation: "Sharp animal picks with range.",
+        earned: 42,
+        aiFallback: false,
+      },
+      {
+        playerId: "b",
+        votes: 0,
+        aiAward: 18,
+        topicFit: 6,
+        pickStrength: 8,
+        rosterQuality: 4,
+        explanation: RULES.aiFallbackLabel,
+        earned: 38,
+        aiFallback: true,
+      },
+    ];
+    state.bankBeansReady = { a: true };
+    const pub = projectPublicState(state, "a");
+    expect(pub.scores).toEqual([]);
+    expect(pub.rushmoreWhy.a).toBe("Sharp animal picks with range.");
+    expect(pub.rushmoreWhy.b).toBeUndefined();
+    expect(pub.bankBeansReadyCast).toBe(1);
+    expect(pub.bankBeansReadyNeeded).toBe(2);
+    expect(pub.myBankBeansReady).toBe(true);
+  });
 });
 
 describe("server-authoritative judging helpers", () => {

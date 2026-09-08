@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
-import { RULES } from "@/shared/rules";
+import { RushmoreCard } from "@/components/RushmoreCard";
 
 function Countdown({ until }: { until: number | null }) {
   const [left, setLeft] = useState(0);
@@ -38,19 +38,13 @@ export function ReviewPanel({
       </div>
       {state.seatOrder.map((pid) => {
         const p = state.players.find((x) => x.id === pid);
-        const picks = state.picks
-          .filter((pk) => pk.playerId === pid)
-          .sort((a, b) => a.pickIndex - b.pickIndex)
-          .slice(0, RULES.picksPerPlayer);
+        const picks = state.picks.filter((pk) => pk.playerId === pid);
         return (
-          <div key={pid} className="panel">
-            <p className="font-extrabold">{p?.name}</p>
-            <ol className="mt-1 list-decimal pl-5 text-sm">
-              {picks.map((pk) => (
-                <li key={pk.turnIndex}>{pk.text}</li>
-              ))}
-            </ol>
-          </div>
+          <RushmoreCard
+            key={pid}
+            name={p?.name ?? "Player"}
+            picks={picks}
+          />
         );
       })}
       {you.isHost ? (
