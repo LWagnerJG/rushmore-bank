@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { DiceScene } from "@/components/dice/DiceScene";
 import type { PublicDiceBroadcast } from "@/shared/types";
@@ -25,7 +25,14 @@ export default function DiceLabPage() {
   const [pairIndex, setPairIndex] = useState(0);
   const [rollN, setRollN] = useState(0);
   const [phase, setPhase] = useState<"idle" | "tumbling" | "settled">("idle");
+  const settleTimer = useRef<number | null>(null);
   const [d1, d2] = PAIRS[pairIndex]!;
+
+  useEffect(() => {
+    return () => {
+      if (settleTimer.current != null) window.clearTimeout(settleTimer.current);
+    };
+  }, []);
 
   const broadcast: PublicDiceBroadcast | null = useMemo(() => {
     if (phase === "idle") return null;
@@ -36,8 +43,8 @@ export default function DiceLabPage() {
         rollId,
         rollerId: "lab",
         personalRollNumber: rollN,
-        animStartedAt: now,
-        animSettleAt: now + 2400,
+        animStartedAt: now - 50,
+        animSettleAt: now + 2350,
         animSeed: 99,
         revealed: false,
         potBefore: 10,
@@ -62,10 +69,11 @@ export default function DiceLabPage() {
   }, [phase, rollN, d1, d2]);
 
   function runRoll() {
+    if (settleTimer.current != null) window.clearTimeout(settleTimer.current);
     const next = rollN + 1;
     setRollN(next);
     setPhase("tumbling");
-    window.setTimeout(() => setPhase("settled"), 1800);
+    settleTimer.current = window.setTimeout(() => setPhase("settled"), 1800);
   }
 
   return (
@@ -93,14 +101,22 @@ export default function DiceLabPage() {
       />
 
       <div className="flex flex-wrap gap-2">
-        <button type="button" className="btn-primary" onClick={runRoll}>
+        <button
+          type="button"
+          className="btn-primary"
+          data-testid="lab-roll"
+          onClick={runRoll}
+        >
           Roll {d1}+{d2}
           {d1 + d2 === 7 ? " (7)" : ""}
         </button>
         <button
           type="button"
           className="btn-secondary"
+          data-testid="lab-next"
           onClick={() => {
+            if (settleTimer.current != null)
+              window.clearTimeout(settleTimer.current);
             setPairIndex((i) => (i + 1) % PAIRS.length);
             setPhase("idle");
           }}
@@ -110,7 +126,12 @@ export default function DiceLabPage() {
         <button
           type="button"
           className="btn-secondary"
-          onClick={() => setPhase("idle")}
+          data-testid="lab-reset"
+          onClick={() => {
+            if (settleTimer.current != null)
+              window.clearTimeout(settleTimer.current);
+            setPhase("idle");
+          }}
         >
           Reset
         </button>

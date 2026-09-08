@@ -70,13 +70,6 @@ function PipDie({
               />
             );
           })}
-        {tumbling && (
-          <g className="bean-pip-die-scramble" opacity="0.35">
-            <circle cx="28" cy="28" r="5" className="bean-pip-die-pip" />
-            <circle cx="52" cy="40" r="5" className="bean-pip-die-pip" />
-            <circle cx="34" cy="54" r="5" className="bean-pip-die-pip" />
-          </g>
-        )}
       </svg>
     </div>
   );
