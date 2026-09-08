@@ -1,6 +1,6 @@
 /**
- * Fail-proof dice settle: tumble never paints a face;
- * settled faces only from authoritative d1/d2.
+ * Fail-proof dice settle: tumble may scramble faces;
+ * settled faces only from authoritative d1/d2 (hard cut, no jump).
  */
 import { describe, expect, it } from "vitest";
 import {
@@ -27,7 +27,7 @@ function tumblingBroadcast(
 }
 
 describe("authoritative settle contract", () => {
-  it("hides faces until revealed — even if d1/d2 leaked on wire", () => {
+  it("hides auth faces until revealed — even if d1/d2 leaked on wire", () => {
     expect(authoritativeFaces(tumblingBroadcast())).toBeNull();
     expect(authoritativeFaces(tumblingBroadcast({ d1: 3, d2: 4 }))).toBeNull();
     expect(displayFaces(tumblingBroadcast({ d1: 3, d2: 4 }))).toBeNull();
@@ -68,7 +68,7 @@ describe("authoritative settle contract", () => {
     ).toBeNull();
   });
 
-  it("idle defaults are explicit; tumble never returns display faces", () => {
+  it("idle defaults are explicit; tumble never returns auth display faces", () => {
     expect(displayFaces(null)).toEqual({ d1: 1, d2: 1 });
     expect(displayFaces(tumblingBroadcast())).toBeNull();
   });

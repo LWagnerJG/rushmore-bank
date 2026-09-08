@@ -1,22 +1,48 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
 import { DiceScene } from "@/components/dice/DiceScene";
 import { classifyPullOut } from "@/shared/engine/banking";
 import { haptic } from "@/lib/haptics";
 import { ensureDiceAudio, playBankChime } from "@/lib/dice-sfx";
 
-function Countdown({ until }: { until: number | null }) {
+function useSecondsLeft(until: number | null) {
   const [left, setLeft] = useState(0);
   useEffect(() => {
     const tick = () =>
       setLeft(until ? Math.max(0, Math.ceil((until - Date.now()) / 1000)) : 0);
     tick();
-    const t = setInterval(tick, 250);
+    const t = setInterval(tick, 200);
     return () => clearInterval(t);
   }, [until]);
-  return <span className="tabular-nums">{left}s</span>;
+  return left;
+}
+
+/** Big, obvious roll/Bank decision clock. */
+function DecisionTimer({
+  until,
+  label,
+  urgent,
+}: {
+  until: number | null;
+  label: string;
+  urgent?: boolean;
+}) {
+  const left = useSecondsLeft(until);
+  if (!until) return null;
+  return (
+    <div
+      className={`dice-timer ${urgent || left <= 5 ? "dice-timer-urgent" : ""}`}
+      role="timer"
+      aria-live="polite"
+      aria-label={`${label}: ${left} seconds`}
+    >
+      <span className="dice-timer-label">{label}</span>
+      <span className="dice-timer-value tabular-nums">{left}</span>
+      <span className="dice-timer-unit">sec</span>
+    </div>
+  );
 }
 
 type SeatKind = "up" | "next" | "in" | "banked" | "busted";
@@ -41,6 +67,61 @@ const BADGE: Record<SeatKind, string> = {
   banked: "Banked",
   busted: "Bust",
 };
+
+type SeatInfo = {
+  pid: string;
+  name: string;
+  kind: SeatKind;
+  pot: number;
+  safe: number;
+  you: boolean;
+};
+
+/** Players arranged in a circle — turn order reads clockwise. */
+function PlayerCircle({ seats }: { seats: SeatInfo[] }) {
+  const n = seats.length;
+  return (
+    <ol className="dice-circle" aria-label="Turn order around the table">
+      {seats.map((seat, i) => {
+        const angle = n === 0 ? 0 : (i / n) * 360 - 90;
+        return (
+          <li
+            key={seat.pid}
+            className={[
+              "dice-circle-seat",
+              `dice-circle-seat-${seat.kind}`,
+              seat.you ? "dice-circle-seat-you" : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+            style={
+              {
+                "--seat-angle": `${angle}deg`,
+              } as CSSProperties
+            }
+          >
+            <div className="dice-circle-seat-card">
+              <span className="dice-circle-seat-name">
+                {seat.name}
+                {seat.you ? " · you" : ""}
+              </span>
+              <span className="dice-circle-seat-meta">
+                {BADGE[seat.kind]}
+                {" · "}
+                {seat.kind === "banked" || seat.kind === "busted"
+                  ? `${seat.safe} safe`
+                  : `pot ${seat.pot}`}
+              </span>
+            </div>
+          </li>
+        );
+      })}
+      <li className="dice-circle-hub" aria-hidden="true">
+        <span>Table</span>
+      </li>
+    </ol>
+  );
+}
 
 export function DicePanel({
   state,
@@ -133,7 +214,7 @@ export function DicePanel({
     };
   }, [last?.revealed, last?.rollId, last?.busted]);
 
-  const seats = state.seatOrder.map((pid) => {
+  const seats: SeatInfo[] = state.seatOrder.map((pid) => {
     const player = state.players.find((p) => p.id === pid);
     const inRound = state.diceActiveIds.includes(pid);
     const bust = state.ledger.some(
@@ -173,6 +254,20 @@ export function DicePanel({
     act({ type: "pull_out" });
   }
 
+  const cooldown = state.diceSubphase === "COOLDOWN";
+  const timerUntil = cooldown
+    ? state.diceDecisionDeadlineAt
+    : state.diceSubphase === "READY"
+      ? state.diceIdleDeadlineAt
+      : null;
+  const timerLabel = cooldown
+    ? myTurn
+      ? "Your turn opens"
+      : "Turn opens"
+    : myTurn
+      ? "Roll or Bank"
+      : "Decision";
+
   const statusLine = rolling ? (
     "Rolling…"
   ) : settling ? (
@@ -181,20 +276,14 @@ export function DicePanel({
     ) : (
       "Settling…"
     )
-  ) : state.diceSubphase === "COOLDOWN" ? (
-    <>
-      Opens in <Countdown until={state.diceDecisionDeadlineAt} />
-    </>
   ) : myTurn && canRoll ? (
-    <>
-      Tap the dice · <Countdown until={state.diceIdleDeadlineAt} />
-    </>
+    "Tap the dice — or Bank"
+  ) : myTurn && cooldown ? (
+    "Bank anytime — Roll unlocks soon"
   ) : myTurn ? (
-    <>
-      <Countdown until={state.diceIdleDeadlineAt} />
-    </>
+    "Your turn"
   ) : (
-    "Watch the table"
+    `${roller?.name ?? "Player"} is up`
   );
 
   const revealed = !!last?.revealed;
@@ -203,60 +292,36 @@ export function DicePanel({
   const drama = heroReveal || rolling || settling;
 
   return (
-    <div className={`dice-layout space-y-3 ${heroReveal ? "dice-hero-mode" : ""}`}>
-      {/* Zone: table status */}
+    <div className={`dice-layout ${heroReveal ? "dice-hero-mode" : ""}`}>
+      {/* Zone: players in a circle */}
       <section
-        className={`dice-zone dice-zone-table ${drama ? "dice-table-dim" : ""}`}
-        aria-label="Table status"
+        className={`dice-zone dice-zone-circle ${drama ? "dice-table-dim" : ""}`}
+        aria-label="Players around the table"
       >
-        <ol className="dice-turn-strip" aria-label="Turn order">
-          {seats.map((seat) => (
-            <li
-              key={seat.pid}
-              className={[
-                "dice-turn-chip",
-                seat.kind === "up" ? "dice-turn-chip-up" : "",
-                seat.kind === "next" ? "dice-turn-chip-next" : "",
-                seat.kind === "banked" || seat.kind === "busted"
-                  ? "dice-turn-chip-out"
-                  : "",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-            >
-              <span className="dice-turn-chip-name">
-                {seat.name}
-                {seat.you ? " · you" : ""}
-              </span>
-              <span className="dice-turn-chip-meta">
-                {BADGE[seat.kind]}
-                {" · "}
-                {seat.kind === "banked" || seat.kind === "busted"
-                  ? `${seat.safe} safe`
-                  : `pot ${seat.pot}`}
-              </span>
-            </li>
-          ))}
-        </ol>
+        <PlayerCircle seats={seats} />
       </section>
 
-      {/* Zone: who’s up */}
-      <header className="dice-zone dice-zone-up space-y-1 text-center">
-        <h2 className="font-[family-name:var(--font-display)] text-2xl font-extrabold">
+      {/* Zone: prominent decision timer */}
+      {timerUntil != null && !rolling && !settling && (
+        <section className="dice-zone dice-zone-timer" aria-label="Turn timer">
+          <DecisionTimer until={timerUntil} label={timerLabel} />
+        </section>
+      )}
+
+      {/* Zone: who’s up + dice hero */}
+      <header className="dice-zone dice-zone-up text-center">
+        <h2 className="dice-up-title">
           {heroReveal && last?.busted
             ? "BEAN BUSTER"
             : myTurn
               ? "Your roll"
               : `${roller?.name ?? "Player"} is up`}
         </h2>
-        <p className="min-h-6 text-sm text-[var(--muted)]" aria-live="polite">
-          {heroReveal && last?.busted
-            ? `${lastName} · pot wiped`
-            : statusLine}
+        <p className="dice-up-status" aria-live="polite">
+          {heroReveal && last?.busted ? `${lastName} · pot wiped` : statusLine}
         </p>
       </header>
 
-      {/* Zone: dice tray */}
       <section className="dice-zone dice-zone-tray" aria-label="Dice tray">
         <DiceScene
           broadcast={last}
@@ -302,32 +367,28 @@ export function DicePanel({
       {/* Zone: pot + Bank */}
       {you.role === "player" && (
         <section
-          className={`dice-zone dice-zone-actions space-y-3 ${drama && !myTurn ? "dice-action-dim" : ""}`}
+          className={`dice-zone dice-zone-actions ${drama && !myTurn ? "dice-action-dim" : ""}`}
           aria-label="Pot and Bank"
         >
-          <div className="flex items-end justify-between gap-3 px-0.5">
+          <div className="dice-pot-row">
             <div>
-              <p className="text-sm text-[var(--muted)]">
+              <p className="dice-pot-label">
                 {myTurn ? "Your pot" : "Your beans"}
               </p>
-              <p className="font-[family-name:var(--font-display)] text-4xl font-extrabold tabular-nums leading-none">
+              <p className="dice-pot-value tabular-nums">
                 {active ? pot : you.stones}
               </p>
             </div>
             {active && (
-              <p className="text-right text-sm text-[var(--muted)]">
-                <strong className="text-[var(--text)]">
-                  {state.protectedStones[youId] ?? you.stones}
-                </strong>{" "}
+              <p className="dice-pot-safe">
+                <strong>{state.protectedStones[youId] ?? you.stones}</strong>{" "}
                 safe
               </p>
             )}
           </div>
 
           {!active ? (
-            <p className="text-sm font-semibold text-[var(--muted)]">
-              You’re out this round — watch the table.
-            </p>
+            <p className="dice-watch-note">You’re out — watch the table.</p>
           ) : myTurn ? (
             <button
               className="btn-secondary w-full"
@@ -337,7 +398,7 @@ export function DicePanel({
               {pot === 0 ? "Bank" : `Bank ${pot}`}
             </button>
           ) : (
-            <p className="text-center text-sm font-semibold text-[var(--muted)]">
+            <p className="dice-watch-note">
               Watching · {roller?.name ?? "Player"} is up
             </p>
           )}

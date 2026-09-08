@@ -85,11 +85,12 @@ export default function DiceLabPage() {
         Dice settle lab
       </h1>
       <p className="text-sm text-[var(--muted)]">
-        Tumble must show blank/blurred shells. First settled frame must equal{" "}
+        Tumble must scramble pip faces (anticipation). First settled frame must
+        equal{" "}
         <strong>
           {d1}+{d2}
         </strong>
-        . No end jump.
+        . No end jump — hard cut from scramble to auth.
       </p>
 
       <DiceScene

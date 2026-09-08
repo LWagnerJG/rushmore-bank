@@ -16,7 +16,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        2D dice — no settle jump → {RULES.productionUrl}
+        BANK dice scramble + circle + 15s timer → {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -52,43 +52,47 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>Root cause</strong>: the 3D orthographic tumble always showed
-            some readable face toward the camera. Even with “cosmetic only”
-            spin + capped progress, that face was readable near the end, then
-            reveal snapped to server <code>d1</code>/<code>d2</code> — a visible
-            jump. The prior seed-coast diagnosis was incomplete; face-mapping /
-            rest matrices were not the bug.
-          </li>
-          <li>
-            <strong>Fix</strong>: replaced <code>DiceScene</code> with flat 2D
-            pip dice. Tumble = blank/blurred shells (no readable face). First
-            settled frame paints authoritative server faces only — no 3D
-            projection, no seed rest pose, no morph.
-          </li>
-          <li>
-            Invariant: from the first frame that looks settled, faces === server{" "}
-            <code>d1</code>/<code>d2</code>. Covered by{" "}
-            <code>dice-settle.test.ts</code> + visual lab{" "}
+            <strong>Scramble anticipation</strong>: while tumbling, 2D pip dice
+            rapidly flip faces (seed-synced). First settled frame hard-cuts to
+            server <code>d1</code>/<code>d2</code> — no blank shells, no coast
+            to a fake face, no settle jump. Covered by{" "}
+            <code>verify:dice</code>, <code>dice-scramble.test.ts</code>,{" "}
             <code>/dev/dice-lab</code>.
           </li>
           <li>
-            Preserved: personal BANK, tap-to-roll, BEAN BUSTER on any 7, synced
-            multiplayer, haptics/SFX, mint glow when you’re up.
+            <strong>15s roll/Bank window</strong>:{" "}
+            <code>RULES.diceIdleBankSeconds = 15</code> (was 10). Opening
+            decision countdown stays 5s. Draft pick clock stays 60s. Big timer
+            UI on BANK.
           </li>
           <li>
-            <strong>No PartyKit redeploy</strong> — client presentation only.
+            <strong>Players in a circle</strong>: turn order reads around the
+            table (up / next / banked / bust). Header player rail hidden during
+            DICE to cut chrome.
+          </li>
+          <li>
+            Layout compartments: circle → timer → dice hero → pot + Bank.
+            On-brand cream/mint/coral pip dice.
+          </li>
+          <li>
+            Preserved: personal BANK, tap-to-roll, BEAN BUSTER on any 7, synced
+            multiplayer, haptics/SFX, mint glow when you’re up, no mute toggle.
+          </li>
+          <li>
+            <strong>PartyKit redeploy required</strong> — idle bank timer is
+            server-enforced via <code>RULES</code>.
           </li>
         </ul>
       </section>
 
       <section className="panel space-y-2 text-sm">
-        <h2 className="font-extrabold">Follow-ups</h2>
-        <ul className="list-disc space-y-1 pl-5">
-          <li>
-            Optional: remove unused 3D <code>dice-geometry</code> projection
-            helpers once nothing else imports them.
-          </li>
-        </ul>
+        <h2 className="font-extrabold">How scramble avoids the jump</h2>
+        <p>
+          Scramble faces are cosmetic only and never written to tray{" "}
+          <code>data-dice-d1/d2</code>. When the broadcast reveals, the UI stops
+          the scramble interval and paints auth faces in the same frame — no
+          lerp from the last scramble value.
+        </p>
       </section>
     </main>
   );

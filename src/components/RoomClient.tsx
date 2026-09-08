@@ -267,7 +267,9 @@ export function RoomClient({
             </span>
           </div>
         )}
-        {state && <PlayerRail state={state} youId={youId} />}
+        {state && phase !== "DICE" && (
+          <PlayerRail state={state} youId={youId} />
+        )}
         {state?.notice && (
           <p className="mt-1 text-xs font-semibold text-[var(--coral)]">
             {state.notice}

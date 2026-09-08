@@ -2,10 +2,11 @@
  * Fail-proof dice presentation phases.
  *
  * Contract (hard invariant):
- * - While tumbling, clients must not paint any readable settled face.
+ * - While tumbling, clients may show scramble faces (anticipation only).
+ * - Scramble must never be treated as settled — tray auth d1/d2 stay empty.
  * - Settled faces come only from authoritative server d1/d2 after reveal.
  * - The first frame that looks "settled" must equal those server faces.
- * - No seed-driven rest pose, no 3D coast-to-face, no local guesses.
+ * - Hard cut scramble → auth (no coast, no morph, no late jump).
  */
 import type { PublicDiceBroadcast } from "../types";
 
@@ -46,8 +47,8 @@ export function authoritativeFaces(
 }
 
 /**
- * What the UI may paint as settled faces for this broadcast.
- * null ⇒ tumble/blank shells only (never invent a face).
+ * What the UI may paint as *settled* faces for this broadcast.
+ * null ⇒ tumble mode (scramble OK; never invent a settled face).
  */
 export function displayFaces(
   broadcast: PublicDiceBroadcast | null | undefined,
