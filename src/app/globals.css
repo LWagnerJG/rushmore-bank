@@ -639,6 +639,29 @@ html.dice-your-turn::after {
 }
 
 /* Draft ideas — embedded under the board, not a floating drawer */
+.draft-turn {
+  padding: 0.15rem 0.1rem;
+}
+.draft-turn-title {
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+.draft-turn-active .draft-turn-title {
+  color: var(--text);
+}
+.draft-turn-hint {
+  margin-top: 0.15rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.draft-turn-active .draft-turn-hint {
+  color: var(--text);
+}
+
 .ideas-surface {
   border-radius: 1.15rem;
   background: rgba(255, 255, 255, 0.42);

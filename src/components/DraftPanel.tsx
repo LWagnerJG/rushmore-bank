@@ -157,33 +157,24 @@ export function DraftPanel({
           ? "Tap an idea or type below"
           : "Type your answer"
         : upcoming < 0
-          ? "Your four are in"
+          ? "Your four are in — watch the board"
           : `You’re up in ${upcoming}`;
 
   return (
-    <div className="space-y-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
-      <header className="space-y-2">
-        <h2 className="font-[family-name:var(--font-display)] text-xl font-extrabold leading-tight">
-          {state.selectedTopic?.text}
-        </h2>
-        <div
-          className={`rounded-2xl px-4 py-3 ${
-            myTurn
-              ? "bg-[var(--yellow)] ring-2 ring-[var(--text)]"
-              : "bg-white/70"
-          }`}
-          role="status"
-          aria-live="polite"
-        >
-          <p className="truncate text-lg font-extrabold">
-            {myTurn ? "Your turn" : `${turnPlayer?.name ?? "Player"}’s turn`}
-          </p>
-          <p className="text-sm text-[var(--muted)]">
-            {turnHint}
-            {state.pickPaused ? " · paused" : ""}
-          </p>
-        </div>
-      </header>
+    <div className="draft-panel space-y-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <div
+        className={`draft-turn ${myTurn ? "draft-turn-active" : ""}`}
+        role="status"
+        aria-live="polite"
+      >
+        <p className="draft-turn-title">
+          {myTurn ? "Your turn" : `${turnPlayer?.name ?? "Player"}’s turn`}
+        </p>
+        <p className="draft-turn-hint">
+          {turnHint}
+          {state.pickPaused ? " · paused" : ""}
+        </p>
+      </div>
 
       <DraftBoard
         state={state}
@@ -194,6 +185,17 @@ export function DraftPanel({
 
       {you.role === "player" && (
         <section className="ideas-surface space-y-3" aria-label="Your ideas">
+          <div className="flex items-baseline justify-between gap-2">
+            <h2 className="text-[0.7rem] font-extrabold uppercase tracking-wide text-[var(--muted)]">
+              Your ideas
+            </h2>
+            {queue.length > 0 && (
+              <span className="text-[0.7rem] font-bold tabular-nums text-[var(--muted)]">
+                {queue.length}
+              </span>
+            )}
+          </div>
+
           {queue.length > 0 && (
             <ul className="flex flex-wrap gap-2">
               {queue.map((text) => {
@@ -203,17 +205,17 @@ export function DraftPanel({
                 const canLock =
                   myTurn && !taken && !state.pickPaused && !busy;
                 return (
-                  <li key={text} className="flex max-w-full items-center">
+                  <li key={text} className="flex max-w-full items-center gap-0.5">
                     <button
                       type="button"
-                      className={`max-w-[14rem] truncate rounded-full px-3 py-2 text-sm transition ${
+                      className={`max-w-[14rem] truncate rounded-xl px-3 py-2 text-sm transition ${
                         taken
-                          ? "bg-white/40 text-[var(--muted)] line-through"
+                          ? "bg-white/35 text-[var(--muted)] line-through"
                           : canLock
                             ? "bg-[var(--yellow)] font-extrabold text-[var(--text)] ring-2 ring-[var(--text)]"
                             : selection.trim() === text
                               ? "bg-[var(--mint)] font-bold text-[var(--text)]"
-                              : "bg-white/75 font-bold text-[var(--text)]"
+                              : "bg-white/80 font-semibold text-[var(--text)]"
                       }`}
                       disabled={taken}
                       aria-label={
@@ -229,7 +231,7 @@ export function DraftPanel({
                     </button>
                     <button
                       type="button"
-                      className="ml-0.5 flex h-9 w-9 items-center justify-center rounded-full text-lg text-[var(--muted)]"
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-base text-[var(--muted)]"
                       aria-label={`Remove ${text}`}
                       onClick={() =>
                         persist(queue.filter((item) => item !== text))
@@ -279,11 +281,7 @@ export function DraftPanel({
             disabled={!canPrimary}
             onClick={() => primaryAction()}
           >
-            {myTurn
-              ? busy
-                ? "Locking…"
-                : "Lock in"
-              : "Save idea"}
+            {myTurn ? (busy ? "Locking…" : "Lock in") : "Save idea"}
           </button>
         </section>
       )}

@@ -16,7 +16,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        BEAN BUSTER + any-7 bust → {RULES.productionUrl}
+        BEAN BUSTER + any-7 + draft sticky topic → {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -56,6 +56,12 @@ export default function BuildNotesPage() {
             first roll of a turn). No safe-first / +70 freebie. Roller +
             spectators get a clear shared moment; pot wiped; turn ends; next
             seat. Party sip uses the same wording.
+          </li>
+          <li>
+            <strong>Draft sticky topic</strong> — selected topic title lives in
+            the sticky top banner (stays visible while scrolling). Timer + host
+            Pause/+15s stay discrete top-right. Body focuses on turn → board →
+            ideas.
           </li>
           <li>
             <strong>BANK rule</strong> — personal continuous turn: keep rolling
