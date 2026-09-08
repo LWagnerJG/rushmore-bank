@@ -448,8 +448,9 @@ describe("session length: choices vs rounds", () => {
     expect(RULES.pickClockSeconds).toBe(60);
   });
 
-  it("dice is personal continuous turn; any seven busts", () => {
+  it("dice is personal continuous turn; any seven busts; 15s idle bank", () => {
     expect(RULES.diceAnimMs).toBe(2400);
+    expect(RULES.diceIdleBankSeconds).toBe(15);
     expect(RULES).not.toHaveProperty("safePersonalRolls");
   });
 

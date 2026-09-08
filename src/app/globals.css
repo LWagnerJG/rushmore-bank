@@ -330,25 +330,259 @@ html.party-on .panel {
   border: 1.5px solid rgba(35, 72, 62, 0.08);
 }
 
+.dice-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
 .dice-zone {
   min-width: 0;
 }
 
-.dice-zone-table {
-  padding-bottom: 0.15rem;
+.dice-zone-circle {
+  padding: 0.1rem 0 0.25rem;
+}
+
+.dice-zone-timer {
+  display: flex;
+  justify-content: center;
 }
 
 .dice-zone-tray {
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
+  gap: 0.55rem;
 }
 
 .dice-zone-actions {
   border-radius: 1.15rem;
   padding: 0.85rem 0.9rem 1rem;
-  background: rgba(255, 255, 255, 0.45);
+  background: linear-gradient(
+    165deg,
+    rgba(255, 255, 255, 0.55),
+    rgba(167, 215, 194, 0.18)
+  );
   border: 1.5px solid rgba(35, 72, 62, 0.08);
+}
+
+.dice-up-title {
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  font-size: 1.55rem;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+.dice-up-status {
+  min-height: 1.35rem;
+  margin-top: 0.15rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.dice-pot-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.dice-pot-label {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.dice-pot-value {
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  font-size: 2.35rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.dice-pot-safe {
+  font-size: 0.85rem;
+  color: var(--muted);
+  text-align: right;
+}
+
+.dice-watch-note {
+  text-align: center;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/* Prominent roll/Bank decision clock */
+.dice-timer {
+  display: grid;
+  grid-template-columns: auto auto auto;
+  align-items: end;
+  gap: 0.35rem 0.55rem;
+  padding: 0.55rem 1.1rem 0.65rem;
+  border-radius: 1.1rem;
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.72),
+    rgba(167, 215, 194, 0.35)
+  );
+  border: 1.5px solid rgba(35, 72, 62, 0.1);
+  box-shadow: 0 8px 22px rgba(35, 72, 62, 0.08);
+}
+
+.dice-timer-label {
+  grid-column: 1 / -1;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: center;
+}
+
+.dice-timer-value {
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(2.6rem, 14vw, 3.4rem);
+  font-weight: 800;
+  line-height: 0.9;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+
+.dice-timer-unit {
+  padding-bottom: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.dice-timer-urgent {
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.75),
+    rgba(231, 111, 78, 0.22)
+  );
+  border-color: rgba(231, 111, 78, 0.35);
+}
+
+.dice-timer-urgent .dice-timer-value {
+  color: var(--coral);
+}
+
+/* Players around the table — turn order clockwise */
+.dice-circle {
+  --circle-size: min(100%, 20rem);
+  --orbit: 5.6rem;
+  position: relative;
+  width: var(--circle-size);
+  aspect-ratio: 1;
+  margin: 0 auto;
+  list-style: none;
+  padding: 0;
+}
+
+.dice-circle-hub {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 3.2rem;
+  height: 3.2rem;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 40% 35%, #cfe9db, #a7d7c2 70%);
+  border: 1.5px solid rgba(35, 72, 62, 0.12);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text);
+  opacity: 0.85;
+}
+
+.dice-circle-seat {
+  --seat-angle: 0deg;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 5.6rem;
+  margin: 0;
+  transform: rotate(var(--seat-angle)) translate(var(--orbit))
+    rotate(calc(-1 * var(--seat-angle))) translate(-50%, -50%);
+  transform-origin: 0 0;
+}
+
+.dice-circle-seat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.35rem 0.4rem;
+  border-radius: 0.85rem;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1.5px solid rgba(35, 72, 62, 0.08);
+  text-align: center;
+  line-height: 1.15;
+}
+
+.dice-circle-seat-name {
+  font-size: 0.72rem;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dice-circle-seat-meta {
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.dice-circle-seat-up .dice-circle-seat-card {
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.9),
+    rgba(167, 215, 194, 0.55)
+  );
+  border-color: rgba(126, 185, 150, 0.65);
+  box-shadow: 0 0 0 2px rgba(167, 215, 194, 0.35);
+}
+
+.dice-circle-seat-up .dice-circle-seat-meta {
+  color: var(--text);
+}
+
+.dice-circle-seat-next .dice-circle-seat-meta {
+  color: var(--coral);
+}
+
+.dice-circle-seat-banked .dice-circle-seat-card,
+.dice-circle-seat-busted .dice-circle-seat-card {
+  opacity: 0.55;
+}
+
+.dice-circle-seat-busted .dice-circle-seat-meta {
+  color: var(--coral);
+}
+
+.dice-circle-seat-you .dice-circle-seat-name::after {
+  content: "";
+}
+
+@media (max-width: 380px) {
+  .dice-circle {
+    --orbit: 4.85rem;
+  }
+  .dice-circle-seat {
+    width: 4.85rem;
+  }
 }
 
 .player-chip {
@@ -530,11 +764,13 @@ html.party-on .status-pill-ready {
   position: relative;
   display: block;
   width: 100%;
-  height: 220px;
+  height: 236px;
   overflow: hidden;
-  border: 1.5px solid rgba(35, 72, 62, 0.35);
-  border-radius: 1.15rem;
-  background: radial-gradient(ellipse at 50% 40%, #3f6d5e, #23483e 80%);
+  border: 1.5px solid rgba(35, 72, 62, 0.28);
+  border-radius: 1.25rem;
+  background:
+    radial-gradient(ellipse at 50% 32%, rgba(167, 215, 194, 0.28), transparent 55%),
+    radial-gradient(ellipse at 50% 45%, #3f6d5e, #1c3a32 82%);
   box-shadow: inset 0 0 0 7px #ffffff08, inset 0 10px 28px #0002;
   cursor: default;
   transition:
@@ -582,6 +818,9 @@ html.party-on .status-pill-ready {
   color: rgba(255, 255, 255, 0.9);
   pointer-events: none;
 }
+.bean-dice-hint-rolling {
+  color: rgba(255, 246, 228, 0.92);
+}
 @keyframes dice-armed-pulse {
   0%,
   100% {
@@ -614,16 +853,16 @@ html.party-on .status-pill-ready {
 }
 .bean-dice-pair {
   display: flex;
-  gap: 1.25rem;
+  gap: 1.35rem;
   height: 100%;
   align-items: center;
   justify-content: center;
 }
 
-/* Flat 2D pip dice — readable faces only when settled */
+/* Flat 2D pip dice — calculator-clear; scramble while tumbling */
 .bean-pip-die {
-  width: 108px;
-  height: 108px;
+  width: 118px;
+  height: 118px;
   transform-origin: 50% 55%;
   will-change: transform, filter;
 }
@@ -631,69 +870,76 @@ html.party-on .status-pill-ready {
   width: 100%;
   height: 100%;
   display: block;
-  filter: drop-shadow(0 10px 14px rgba(16, 45, 37, 0.35));
+  filter: drop-shadow(0 12px 16px rgba(16, 45, 37, 0.4));
 }
 .bean-pip-die-body {
-  fill: #fff6e4;
-  stroke: #ded1b8;
-  stroke-width: 2.5;
+  fill: #fff8ec;
+  stroke: #d9c9a8;
+  stroke-width: 2.75;
 }
 .bean-pip-die-1 .bean-pip-die-body {
   fill: #f4c95b;
   stroke: #d3aa49;
 }
 .bean-pip-die-pip {
-  fill: #23483e;
+  fill: #1c3a32;
 }
 .bean-pip-die-blank .bean-pip-die-body {
   fill: #f7edd8;
 }
 .bean-pip-die-tumbling {
-  animation: pip-die-tumble 420ms linear infinite;
-  filter: blur(2.5px) brightness(1.05);
+  animation: pip-die-tumble 380ms linear infinite;
 }
-.bean-pip-die-tumbling .bean-pip-die-scramble {
-  animation: pip-die-scramble 180ms steps(2, end) infinite;
+.bean-pip-die-scrambling .bean-pip-die-svg {
+  filter: drop-shadow(0 10px 12px rgba(16, 45, 37, 0.32))
+    blur(0.55px) brightness(1.04);
+}
+.bean-pip-die-scrambling .bean-pip-die-pip {
+  animation: pip-die-scramble-pip 75ms steps(1, end) infinite;
+}
+.bean-pip-die-known .bean-pip-die-svg {
+  filter: drop-shadow(0 12px 16px rgba(16, 45, 37, 0.4));
 }
 .bean-pip-die-settle {
   animation: pip-die-settle 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 @keyframes pip-die-tumble {
   0% {
-    transform: translate(-6px, -10px) rotate(-14deg) scale(1.04);
+    transform: translate(-7px, -11px) rotate(-16deg) scale(1.05);
   }
   25% {
-    transform: translate(7px, -4px) rotate(10deg) scale(0.98);
+    transform: translate(8px, -3px) rotate(12deg) scale(0.97);
   }
   50% {
-    transform: translate(-4px, 8px) rotate(-8deg) scale(1.03);
+    transform: translate(-5px, 9px) rotate(-9deg) scale(1.04);
   }
   75% {
-    transform: translate(8px, 2px) rotate(12deg) scale(0.97);
+    transform: translate(9px, 2px) rotate(14deg) scale(0.96);
   }
   100% {
-    transform: translate(-6px, -10px) rotate(-14deg) scale(1.04);
+    transform: translate(-7px, -11px) rotate(-16deg) scale(1.05);
   }
 }
-@keyframes pip-die-scramble {
+@keyframes pip-die-scramble-pip {
   0% {
-    transform: translate(0, 0);
-    opacity: 0.25;
+    opacity: 0.72;
   }
   100% {
-    transform: translate(4px, -3px);
-    opacity: 0.45;
+    opacity: 1;
   }
 }
 @keyframes pip-die-settle {
   0% {
     transform: translateY(-18px) scale(1.12);
+    filter: brightness(1.08);
   }
   45% {
     transform: translateY(3px) scale(0.96);
+    filter: brightness(1);
   }
   100% {
     transform: translateY(0) scale(1);
+    filter: brightness(1);
   }
 }
 
@@ -866,7 +1112,7 @@ html.dice-your-turn::after {
   padding: 0.85rem 0.75rem 0.95rem;
 }
 
-/* Compact turn strip — who’s up / next / banked, no nested table chrome */
+/* Compact turn strip — legacy; circle layout replaces this in BANK */
 .dice-turn-strip {
   display: flex;
   flex-wrap: wrap;
@@ -949,7 +1195,7 @@ html.dice-your-turn::after {
   .bean-die-settle,
   .bean-pip-die-settle,
   .bean-pip-die-tumbling,
-  .bean-pip-die-tumbling .bean-pip-die-scramble,
+  .bean-pip-die-scrambling .bean-pip-die-pip,
   .bean-dice-tray-armed,
   .bean-dice-tray-punch,
   html.dice-your-turn::after,
@@ -957,7 +1203,8 @@ html.dice-your-turn::after {
   .dice-result-readout-on {
     animation: none !important;
   }
-  .bean-pip-die-tumbling {
-    filter: none;
+  .bean-pip-die-tumbling,
+  .bean-pip-die-scrambling .bean-pip-die-svg {
+    filter: drop-shadow(0 10px 12px rgba(16, 45, 37, 0.32));
   }
 }

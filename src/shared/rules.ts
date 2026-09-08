@@ -57,8 +57,10 @@ export const RULES = {
   wagerTimeoutSeconds: 20,
 
   /** Dice — personal turn: keep rolling until Bank or bust, then next seat */
+  /** Brief “you’re up” beat before Roll unlocks (Bank already available). */
   diceDecisionCountdownSeconds: 5,
-  diceIdleBankSeconds: 10,
+  /** Roll / Bank decision window once READY (also continues after non-bust). */
+  diceIdleBankSeconds: 15,
   /** Shared tumble duration before authoritative reveal */
   diceAnimMs: 2400,
   /** Hold SETTLED faces on screen before next READY / seat advance (kills settle-then-jump) */

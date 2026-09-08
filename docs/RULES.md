@@ -75,9 +75,10 @@ pot = W
 - On bust the UI announces **BEAN BUSTER**.
 - Doubles → **double pot** (no add faces); else → **+sum**.
 - **Bank** is the only exit action (current roller only). Zero pot may Bank (keep protected).
-- First turn of a seat: countdown 5s → unlock Roll. Same player continuing after a non-bust roll unlocks Roll immediately. Idle 10s → auto Bank.
+- First turn of a seat: countdown 5s → unlock Roll. Same player continuing after a non-bust roll unlocks Roll immediately. Idle **15s** → auto Bank.
 - Atomic Roll vs Bank.
-- Synchronized flat 2D pip dice; tumble shows blank/blurred shells, then one settle to authoritative faces (no readable wrong face, no post-settle flip). Short settle hold before next READY / seat. Dramatic settle punch + SFX/haptics. No mute toggle on dice UI.
+- Synchronized flat 2D pip dice with **scramble anticipation** while tumbling (rapidly changing faces). First settled frame paints authoritative faces only — hard cut, no coast/jump. Short settle hold before next READY / seat. Dramatic settle punch + SFX/haptics. No mute toggle on dice UI.
+- BANK table: players arranged in a **circle** (who’s up / next / banked); big decision timer; dice hero; pot + Bank. Reduced chrome.
 - Reduced-motion fallback. Full-phone mint perimeter glow when you are up.
 
 ### Worked path (tests)

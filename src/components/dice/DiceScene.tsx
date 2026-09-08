@@ -5,6 +5,10 @@ import type { PublicDiceBroadcast } from "@/shared/types";
 import { resolveDicePresentPhase } from "@/shared/engine/dice-present";
 import { DIE_PIPS } from "@/shared/engine/dice-geometry";
 import {
+  scrambleFaceAt,
+  SCRAMBLE_TICK_MS,
+} from "@/shared/engine/dice-scramble";
+import {
   ensureDiceAudio,
   playRollStart,
   playRollTick,
@@ -13,19 +17,24 @@ import {
 import { haptic } from "@/lib/haptics";
 
 /**
- * Flat 2D pip die — no 3D projection.
- * `face` is set ONLY when settled/idle. During tumble, face is null so no
- * readable number can appear before the authoritative reveal.
+ * Flat 2D pip die — calculator-clear layout, Beans cream/ink palette.
+ *
+ * `face` during tumble is a scramble value (anticipation only).
+ * `settled` is true ONLY for authoritative idle/settled faces.
  */
 function PipDie({
   face,
   index,
   tumbling,
+  scrambling,
+  settled,
   settlePunch,
 }: {
   face: number | null;
   index: 0 | 1;
   tumbling: boolean;
+  scrambling: boolean;
+  settled: boolean;
   settlePunch: boolean;
 }) {
   const pips = face != null ? DIE_PIPS[face] ?? [] : [];
@@ -34,7 +43,9 @@ function PipDie({
     `bean-pip-die-${index}`,
     tumbling ? "bean-pip-die-tumbling" : "",
     settlePunch ? "bean-pip-die-settle" : "",
-    face != null ? "bean-pip-die-known" : "bean-pip-die-blank",
+    settled ? "bean-pip-die-known" : "",
+    scrambling ? "bean-pip-die-scrambling" : "",
+    face == null ? "bean-pip-die-blank" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -45,15 +56,17 @@ function PipDie({
       data-die-index={index}
       data-face={face ?? ""}
       data-tumbling={tumbling ? "1" : "0"}
+      data-settled={settled ? "1" : "0"}
+      data-scrambling={scrambling ? "1" : "0"}
       aria-hidden="true"
     >
       <svg viewBox="0 0 80 80" className="bean-pip-die-svg">
         <rect
-          x="4"
-          y="4"
-          width="72"
-          height="72"
-          rx="14"
+          x="3"
+          y="3"
+          width="74"
+          height="74"
+          rx="12"
           className="bean-pip-die-body"
         />
         {face != null &&
@@ -62,11 +75,11 @@ function PipDie({
             const row = Math.floor(pip / 3);
             return (
               <circle
-                key={pip}
+                key={`${face}-${pip}`}
                 className="bean-pip-die-pip"
                 cx={22 + col * 18}
                 cy={22 + row * 18}
-                r="6.5"
+                r="7"
               />
             );
           })}
@@ -76,12 +89,12 @@ function PipDie({
 }
 
 /**
- * Fail-proof dice tray.
+ * Beautiful 2D dice tray with scramble anticipation.
  *
- * Presentation contract:
- * - Tumble shows blank/blurred shells only — never a readable settled face.
+ * Presentation contract (hard invariant):
+ * - During tumble: rapidly changing scramble faces (never tray d1/d2).
  * - The first frame that looks settled paints server d1/d2 exactly once.
- * - No 3D cube orientation, no seed-driven rest pose, no morph into faces.
+ * - No coast from scramble → fake rest → jump. Hard cut on settle.
  */
 export function DiceScene({
   broadcast,
@@ -102,6 +115,7 @@ export function DiceScene({
   const lastTick = useRef(0);
   const settleRollId = useRef<string | null>(null);
   const [punch, setPunch] = useState(false);
+  const [scrambleTick, setScrambleTick] = useState(0);
 
   const phase = useMemo(
     () => resolveDicePresentPhase(broadcast),
@@ -110,17 +124,49 @@ export function DiceScene({
   const rolling = phase.kind === "tumbling";
   const revealed = phase.kind === "settled";
   const rollId = phase.kind === "idle" ? null : phase.rollId;
+  const scrambleSeed = phase.kind === "tumbling" ? phase.seed : 0;
 
   // Authoritative faces only when idle/settled — never invent during tumble.
-  const d1 =
+  const authD1 =
     phase.kind === "settled" || phase.kind === "idle" ? phase.d1 : null;
-  const d2 =
+  const authD2 =
     phase.kind === "settled" || phase.kind === "idle" ? phase.d2 : null;
-  const total = revealed && d1 != null && d2 != null ? d1 + d2 : null;
+  const total =
+    revealed && authD1 != null && authD2 != null ? authD1 + authD2 : null;
+
+  // Scramble ticks only while tumbling — stops dead on settle (no coast).
+  useEffect(() => {
+    if (!rolling || reducedMotion) {
+      setScrambleTick(0);
+      return;
+    }
+    setScrambleTick(0);
+    const started = performance.now();
+    const id = window.setInterval(() => {
+      setScrambleTick(
+        Math.max(1, Math.floor((performance.now() - started) / SCRAMBLE_TICK_MS)),
+      );
+    }, SCRAMBLE_TICK_MS);
+    return () => window.clearInterval(id);
+  }, [rolling, rollId, reducedMotion]);
+
+  const scrambleD1 =
+    rolling && !reducedMotion
+      ? scrambleFaceAt(scrambleSeed, 0, scrambleTick)
+      : null;
+  const scrambleD2 =
+    rolling && !reducedMotion
+      ? scrambleFaceAt(scrambleSeed, 1, scrambleTick)
+      : null;
+
+  // Paint: scramble during tumble; auth faces the instant we settle.
+  // Reduced-motion tumble stays blank (no fake settled face).
+  const paintD1 = rolling ? scrambleD1 : authD1;
+  const paintD2 = rolling ? scrambleD2 : authD2;
 
   // Settle punch / haptics once per rollId.
   useEffect(() => {
-    if (!revealed || !rollId || d1 == null || d2 == null) return;
+    if (!revealed || !rollId || authD1 == null || authD2 == null) return;
     if (settleRollId.current === rollId) return;
     settleRollId.current = rollId;
     if (reducedMotion) return;
@@ -134,9 +180,9 @@ export function DiceScene({
       window.clearTimeout(kick);
       window.clearTimeout(clearPunch);
     };
-  }, [revealed, rollId, d1, d2, reducedMotion, busted]);
+  }, [revealed, rollId, authD1, authD2, reducedMotion, busted]);
 
-  // Tumble SFX only — no face painting.
+  // Tumble SFX.
   useEffect(() => {
     if (phase.kind !== "tumbling" || !rollId || reducedMotion) return;
 
@@ -151,7 +197,7 @@ export function DiceScene({
     let frame = 0;
     const tick = () => {
       const now = Date.now();
-      if (now - lastTick.current > 160) {
+      if (now - lastTick.current > 150) {
         lastTick.current = now;
         playRollTick(audio.current);
       }
@@ -163,13 +209,13 @@ export function DiceScene({
 
   useEffect(() => {
     if (!revealed || !rollId || sounded.current === rollId) return;
-    if (d1 == null || d2 == null) return;
+    if (authD1 == null || authD2 == null) return;
     sounded.current = rollId;
     void ensureDiceAudio().then((ctx) => {
       audio.current = ctx;
       playSettle(ctx, { busted: !!busted });
     });
-  }, [revealed, rollId, d1, d2, busted]);
+  }, [revealed, rollId, authD1, authD2, busted]);
 
   async function handleRoll() {
     if (!canRoll) return;
@@ -185,7 +231,7 @@ export function DiceScene({
     : canRoll
       ? "Tap dice to roll"
       : revealed && total != null
-        ? `Dice show ${d1} and ${d2}, total ${total}`
+        ? `Dice show ${authD1} and ${authD2}, total ${total}`
         : "Two dice ready";
 
   const trayClass = [
@@ -209,26 +255,31 @@ export function DiceScene({
         aria-label={label}
         aria-disabled={!canRoll}
         data-dice-phase={phase.kind}
-        data-dice-d1={d1 ?? ""}
-        data-dice-d2={d2 ?? ""}
+        data-dice-d1={authD1 ?? ""}
+        data-dice-d2={authD2 ?? ""}
+        data-dice-scrambling={rolling ? "1" : "0"}
       >
         <div className="bean-dice-pair" role="img" aria-hidden="true">
           <PipDie
-            face={rolling ? null : d1}
+            face={paintD1}
             index={0}
             tumbling={rolling && !reducedMotion}
+            scrambling={rolling}
+            settled={!rolling && paintD1 != null}
             settlePunch={punch && revealed}
           />
           <PipDie
-            face={rolling ? null : d2}
+            face={paintD2}
             index={1}
             tumbling={rolling && !reducedMotion}
+            scrambling={rolling}
+            settled={!rolling && paintD2 != null}
             settlePunch={punch && revealed}
           />
         </div>
         {canRoll && <span className="bean-dice-hint">Tap to roll</span>}
         {rolling && (
-          <span className="absolute bottom-3 left-0 right-0 text-center text-xs font-bold text-white/85">
+          <span className="bean-dice-hint bean-dice-hint-rolling">
             Rolling…
           </span>
         )}
