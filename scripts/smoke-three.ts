@@ -117,7 +117,7 @@ async function main() {
     console.log(`pick ${i + 1}: ${actor.name} -> ${pick}`);
   }
 
-  // REVIEW (30s) or host skip
+  // REVIEW (20s) or host skip
   try {
     await luke.waitPhase("REVIEW", 8000);
     console.log("REVIEW — host skip");

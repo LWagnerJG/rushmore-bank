@@ -36,11 +36,11 @@ LOBBY → TOPIC_SELECTION → DRAFT (+ CORRECTION) → REVIEW
 - Topic lock goes **straight into draft** (no prep countdown).
 - Fair random seat order; starter rotates later topics.
 - 4 snake passes for N=2..10. One **Lock In** per turn (server-validated). Free-text answers only (no shared suggestion catalog).
-- Pick clock **60s** + short grace (5s); host pause / extend (+15s).
+- Pick clock **35s** + short grace (3s); host pause / extend (+15s).
 - Missed after grace → placeholder miss pick.
 - **Stash**: private draft queue + type field in one embedded surface; Stash it while waiting; Lock in on your turn; tap a stashed pick to lock instantly when up. Never in AI/spectator payloads.
-- Host may mark Duplicate or Group Invalid → replacement turn (60s), resume cursor.
-- Review/pitch 30s optional.
+- Host may mark Duplicate or Group Invalid → replacement turn (35s), resume cursor.
+- Review/pitch **20s** optional (skim only).
 - Fantasy-style shared draft board always visible during draft (UI): whose turn / you’re next / snake order.
 
 ## Scoring
@@ -49,7 +49,7 @@ LOBBY → TOPIC_SELECTION → DRAFT (+ CORRECTION) → REVIEW
 earned = 20 + ai_award(0–40) + 5 × human_votes
 ```
 
-- One private human vote for another’s full roster (no self-vote). Show counts, not voters.
+- One private human vote for another’s full roster (no self-vote). Show counts, not voters. Vote window **40s**.
 - AI: Gemini-first (`gemini-3.5-flash` with retry/backoff + flash model fallback); OpenAI fallback; uniform neutral if no key. Player-facing notice never includes HTTP codes.
 - Prompt version: `quarry-judge-v1` (locked in `RULES.aiPromptVersion`).
 - Everyone earns beans (even 0 votes). Start balance **0**.
@@ -75,7 +75,7 @@ pot = W
 - On bust the UI announces **BEAN BUSTER**.
 - Doubles → **double pot** (no add faces); else → **+sum**.
 - **Bank** is the only exit action (current roller only). Zero pot may Bank (keep protected).
-- First turn of a seat: countdown 5s → unlock Roll. Same player continuing after a non-bust roll unlocks Roll immediately. Idle **15s** → auto Bank.
+- First turn of a seat: countdown **3s** → unlock Roll. Same player continuing after a non-bust roll unlocks Roll immediately. Idle **15s** → auto Bank.
 - Atomic Roll vs Bank.
 - Synchronized flat 2D pip dice with **scramble anticipation** while tumbling (rapidly changing faces). First settled frame paints authoritative faces only — hard cut, no coast/jump. Short settle hold before next READY / seat. Dramatic settle punch + SFX/haptics. No mute toggle on dice UI.
 - BANK table: players arranged in a **circle** (who’s up / next / banked); big decision timer; dice hero; pot + Bank. Reduced chrome.

@@ -444,8 +444,14 @@ describe("session length: choices vs rounds", () => {
     expect(topicShortlistCount(8)).not.toBe(topicRoundsForPlayerCount(8));
   });
 
-  it("does not silently shorten draft timer", () => {
-    expect(RULES.pickClockSeconds).toBe(60);
+  it("draft / phase clocks match party phone pace", () => {
+    expect(RULES.pickClockSeconds).toBe(35);
+    expect(RULES.pickGraceSeconds).toBe(3);
+    expect(RULES.hostExtendSeconds).toBe(15);
+    expect(RULES.reviewSeconds).toBe(20);
+    expect(RULES.humanVoteSeconds).toBe(40);
+    expect(RULES.wagerTimeoutSeconds).toBe(20);
+    expect(RULES.diceDecisionCountdownSeconds).toBe(3);
   });
 
   it("dice is personal continuous turn; any seven busts; 15s idle bank", () => {

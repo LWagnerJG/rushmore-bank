@@ -29,12 +29,14 @@ export default function HowToPlayPage() {
             options — no timer). Host can write a custom topic.
           </li>
           <li>
-            Snake draft four answers (60s pick clock) — type your own, board
-            always on. Park picks in your <strong>Stash</strong> while waiting;
-            Lock in on your turn (tap a stashed pick to lock).
+            Snake draft four answers (35s pick clock; host can +15s) — type
+            your own, board always on. Park picks in your{" "}
+            <strong>Stash</strong> while waiting; Lock in on your turn (tap a
+            stashed pick to lock).
           </li>
           <li>
-            Vote another’s roster (2 players: AI only). Earn beans.
+            Skim review (~20s), then vote another’s roster (~40s) (2 players: AI
+            only). Earn beans.
           </li>
           <li>
             Risk beans on the slider (zero still plays). Then personal bank —

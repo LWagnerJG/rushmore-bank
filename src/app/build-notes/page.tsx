@@ -17,7 +17,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        UX / playability polish → {RULES.productionUrl}
+        Party-pace clocks → {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -37,8 +37,9 @@ export default function BuildNotesPage() {
             ) : null}
             <li>
               Target: production <code>roundacats.vercel.app</code> via merge to{" "}
-              <code>main</code>. PartyKit unchanged this ship (no{" "}
-              <code>party/</code> edits).
+              <code>main</code>. <strong>PartyKit redeploy required</strong> —
+              server alarms read <code>RULES</code> from{" "}
+              <code>party/server.ts</code>.
             </li>
           </ul>
         ) : (
@@ -53,34 +54,21 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>Background / safe-area</strong>: fixed full-bleed cream
-            gradient on <code>body::before</code>,{" "}
-            <code>overscroll-behavior</code>, <code>100dvh</code> +{" "}
-            <code>-webkit-fill-available</code>. Home locks height (no phantom
-            rubber-band); room scrolls only when content overflows. Fixes the
-            iPhone bottom white banner.
+            <strong>Party-pace clocks</strong>: draft pick{" "}
+            {RULES.pickClockSeconds}s + {RULES.pickGraceSeconds}s grace (host
+            +{RULES.hostExtendSeconds}s); review {RULES.reviewSeconds}s; vote{" "}
+            {RULES.humanVoteSeconds}s; wager {RULES.wagerTimeoutSeconds}s; dice
+            open {RULES.diceDecisionCountdownSeconds}s → idle bank{" "}
+            {RULES.diceIdleBankSeconds}s; topic still no timer.
           </li>
           <li>
-            <strong>Player rail = leaderboard</strong>: local player always
-            top-left (“You”), then beans descending (seat tiebreak). Fit mode
-            shares width for ≤5 (and 6–7 on wider phones); 8–10 stay denser
-            single-row scroll — never clips.
-          </li>
-          <li>
-            <strong>Ideas → Stash</strong>: clearer on-brand name for the
-            waiting queue. Stash while waiting / Lock in (tap-to-use) when
-            you’re up. Local storage key unchanged.
-          </li>
-          <li>
-            <strong>Draft board density</strong>: cozy / snug / dense by player
-            count (narrower columns, smaller type, sticky headers) so 6–10 stay
-            usable on phone.
+            Docs + how-to-play + tests aligned with{" "}
+            <code>src/shared/rules.ts</code>.
           </li>
           <li>
             Preserved: topic bank ~{TOPIC_COUNT} + anti-repeat, dice
-            scramble+settle, turn strip (no TABLE), Bank the Beans, personal
-            BANK, admin, Beans branding, 60s draft / 15s dice, inline Write
-            your own.
+            scramble+settle, turn strip, Bank the Beans, personal BANK, Stash,
+            admin, Beans branding.
           </li>
         </ul>
       </section>

@@ -47,7 +47,7 @@ Room `SMK3` measured ~19s for one compressed topic (host skip review; pull-out p
 - Personal BANK (keep rolling until Bank/bust; everyone enters including W=0)
 - Target session: 25–30 minutes (design), not hard-enforced
 - Host failover window: 20s
-- Dice decision countdown 5s; idle bank **15s** (draft pick stays 60s)
+- Party pace clocks: draft pick **35s** + **3s** grace; review **20s**; vote **40s**; wager **20s**; dice open countdown **3s**; idle bank **15s**; topic **no** timer
 
 ## AI
 

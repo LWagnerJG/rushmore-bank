@@ -34,14 +34,17 @@ export const RULES = {
   targetMinutesMax: 30,
 
   /** Draft (no prep phase — topic lock goes straight to draft) */
-  pickClockSeconds: 60,
+  /** Enough to type one answer on a phone — not lounge time. Host can +15s. */
+  pickClockSeconds: 35,
   /** Short grace after pick clock hits 0 before miss */
-  pickGraceSeconds: 5,
+  pickGraceSeconds: 3,
   hostExtendSeconds: 15,
-  reviewSeconds: 30,
+  /** Skim board only */
+  reviewSeconds: 20,
 
   /** Voting / AI */
-  humanVoteSeconds: 45,
+  /** Read Rushmores + whys */
+  humanVoteSeconds: 40,
   scoreBase: 20,
   aiAwardMin: 0,
   aiAwardMax: 40,
@@ -58,7 +61,7 @@ export const RULES = {
 
   /** Dice — personal turn: keep rolling until Bank or bust, then next seat */
   /** Brief “you’re up” beat before Roll unlocks (Bank already available). */
-  diceDecisionCountdownSeconds: 5,
+  diceDecisionCountdownSeconds: 3,
   /** Roll / Bank decision window once READY (also continues after non-bust). */
   diceIdleBankSeconds: 15,
   /** Shared tumble duration before authoritative reveal */
