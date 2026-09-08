@@ -7,7 +7,7 @@ import {
   type Player,
   type PublicRoomState,
 } from "@/shared/types";
-import { loadIdeas, saveIdeas } from "@/lib/party";
+import { loadStash, saveStash } from "@/lib/party";
 import { DraftBoard } from "@/components/DraftBoard";
 
 export function DraftPanel({
@@ -38,7 +38,7 @@ export function DraftPanel({
 
   useEffect(() => {
     const timer = setTimeout(
-      () => setQueue(loadIdeas(state.code, youId, topicId)),
+      () => setQueue(loadStash(state.code, youId, topicId)),
       0,
     );
     return () => clearTimeout(timer);
@@ -65,7 +65,7 @@ export function DraftPanel({
           (item) => normalizePick(item) !== normalizePick(submitted.text),
         );
         try {
-          saveIdeas(state.code, youId, topicId, next);
+          saveStash(state.code, youId, topicId, next);
         } catch {
           /* ignore */
         }
@@ -84,7 +84,7 @@ export function DraftPanel({
   function persist(next: string[]) {
     setQueue(next);
     try {
-      saveIdeas(state.code, youId, topicId, next);
+      saveStash(state.code, youId, topicId, next);
       setSaveFailed(false);
     } catch {
       setSaveFailed(true);
@@ -119,7 +119,7 @@ export function DraftPanel({
     send({ type: "lock_in", text: clean });
   }
 
-  function applyIdea(text: string) {
+  function applyStash(text: string) {
     if (state.takenNormalized.includes(normalizePick(text))) return;
     if (myTurn && !state.pickPaused && !busy) {
       lock(text);
@@ -154,11 +154,11 @@ export function DraftPanel({
       ? `Replace slot ${(state.correctionPickIndex ?? 0) + 1}/4 (${state.correctionReason ?? "redo"})`
       : myTurn
         ? queue.length
-          ? "Tap an idea or type below"
+          ? "Tap a stash pick or type below"
           : "Type your answer"
         : upcoming < 0
           ? "Your four are in — watch the board"
-          : `You’re up in ${upcoming}`;
+          : `You’re up in ${upcoming} · stash picks while you wait`;
 
   return (
     <div className="draft-panel space-y-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
@@ -184,14 +184,15 @@ export function DraftPanel({
       />
 
       {you.role === "player" && (
-        <section className="ideas-surface space-y-3" aria-label="Your ideas">
+        <section className="stash-surface space-y-3" aria-label="Your stash">
           <div className="flex items-baseline justify-between gap-2">
             <h2 className="text-[0.7rem] font-extrabold uppercase tracking-wide text-[var(--muted)]">
-              Your ideas
+              Your stash
             </h2>
             {queue.length > 0 && (
               <span className="text-[0.7rem] font-bold tabular-nums text-[var(--muted)]">
                 {queue.length}
+                {myTurn ? " · tap to lock" : ""}
               </span>
             )}
           </div>
@@ -204,19 +205,21 @@ export function DraftPanel({
                 );
                 const canLock =
                   myTurn && !taken && !state.pickPaused && !busy;
+                const selected = selection.trim() === text;
                 return (
                   <li key={text} className="flex max-w-full items-center gap-0.5">
                     <button
                       type="button"
-                      className={`max-w-[14rem] truncate rounded-xl px-3 py-2 text-sm transition ${
+                      className={[
+                        "stash-chip",
                         taken
-                          ? "bg-white/35 text-[var(--muted)] line-through"
+                          ? "stash-chip-taken"
                           : canLock
-                            ? "bg-[var(--yellow)] font-extrabold text-[var(--text)] ring-2 ring-[var(--text)]"
-                            : selection.trim() === text
-                              ? "bg-[var(--mint)] font-bold text-[var(--text)]"
-                              : "bg-white/80 font-semibold text-[var(--text)]"
-                      }`}
+                            ? "stash-chip-ready"
+                            : selected
+                              ? "stash-chip-selected"
+                              : "stash-chip-idle",
+                      ].join(" ")}
                       disabled={taken}
                       aria-label={
                         canLock
@@ -225,7 +228,7 @@ export function DraftPanel({
                             ? `${text} already taken`
                             : `Use ${text}`
                       }
-                      onClick={() => applyIdea(text)}
+                      onClick={() => applyStash(text)}
                     >
                       {text}
                     </button>
@@ -251,7 +254,9 @@ export function DraftPanel({
           <input
             id="selected-pick"
             className="field w-full text-base"
-            placeholder={myTurn ? "Type your answer" : "Save an idea for later"}
+            placeholder={
+              myTurn ? "Type your answer" : "Park a pick in your stash"
+            }
             value={selection}
             maxLength={48}
             autoComplete="off"
@@ -267,7 +272,7 @@ export function DraftPanel({
           )}
           {saveFailed && (
             <p className="text-xs text-[var(--muted)]" role="status">
-              Ideas won’t survive a reload.
+              Stash won’t survive a reload.
             </p>
           )}
 
@@ -281,7 +286,7 @@ export function DraftPanel({
             disabled={!canPrimary}
             onClick={() => primaryAction()}
           >
-            {myTurn ? (busy ? "Locking…" : "Lock in") : "Save idea"}
+            {myTurn ? (busy ? "Locking…" : "Lock in") : "Stash it"}
           </button>
         </section>
       )}

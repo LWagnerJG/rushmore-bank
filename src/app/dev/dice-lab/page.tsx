@@ -77,7 +77,7 @@ export default function DiceLabPage() {
   }
 
   return (
-    <main className="mx-auto max-w-md space-y-4 px-4 pb-10 pt-8">
+    <main className="app-shell app-shell-scroll mx-auto max-w-md space-y-4 px-4 pb-10 pt-8">
       <Link href="/" className="text-sm font-bold text-[var(--coral)]">
         ← Home
       </Link>

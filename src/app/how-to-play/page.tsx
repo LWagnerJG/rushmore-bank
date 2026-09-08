@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function HowToPlayPage() {
   return (
-    <main className="mx-auto max-w-md space-y-6 px-4 pb-8 pt-[max(2rem,env(safe-area-inset-top))]">
+    <main className="app-shell app-shell-scroll mx-auto max-w-md space-y-6 px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))]">
       <Link href="/" className="text-sm font-bold text-[var(--coral)]">
         ← Home
       </Link>
@@ -30,16 +30,16 @@ export default function HowToPlayPage() {
           </li>
           <li>
             Snake draft four answers (60s pick clock) — type your own, board
-            always on. Save ideas while waiting; Lock in on your turn (tap a
-            saved idea to lock).
+            always on. Park picks in your <strong>Stash</strong> while waiting;
+            Lock in on your turn (tap a stashed pick to lock).
           </li>
           <li>
             Vote another’s roster (2 players: AI only). Earn beans.
           </li>
           <li>
             Risk beans on the slider (zero still plays). Then personal bank —
-            keep rolling until you Bank or bust; **any 7** (including first
-            roll) is BEAN BUSTER. Next player after that.
+            keep rolling until you Bank or bust; <strong>any 7</strong>{" "}
+            (including first roll) is BEAN BUSTER. Next player after that.
           </li>
         </ol>
       </section>

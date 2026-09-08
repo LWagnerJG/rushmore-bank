@@ -2,7 +2,7 @@
 
 1. **Create / Join** — nickname + room code, link, or QR. Host starts when ready.
 2. **Topic** — vote one of four options (reroll anytime — no timer), or host custom.
-3. **Draft** — snake draft four answers right away (60s pick clock; host can pause / +15s). Type your own; save private ideas while waiting. Board stays on screen. **Lock in** on your turn (tap a saved idea to lock instantly).
+3. **Draft** — snake draft four answers right away (60s pick clock; host can pause / +15s). Type your own; park picks in your **Stash** while waiting. Board stays on screen. **Lock in** on your turn (tap a stashed pick to lock instantly).
 4. **Review / Vote** — skim rosters; vote for someone else’s (2 players: AI only).
 5. **Scores** — beans = 20 + AI award + 5× votes (votes skipped at 2 players). Everyone taps **Bank the Beans** (`N/M ready`).
 6. **Wager** — slider for how many beans to risk (you can risk all banked). Zero still plays.

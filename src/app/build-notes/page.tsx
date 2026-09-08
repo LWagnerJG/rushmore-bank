@@ -9,7 +9,7 @@ export default function BuildNotesPage() {
   const shortSha = COMMIT_SHA ? COMMIT_SHA.slice(0, 7) : null;
 
   return (
-    <main className="mx-auto max-w-md space-y-6 px-4 pb-8 pt-[max(2rem,env(safe-area-inset-top))]">
+    <main className="app-shell app-shell-scroll mx-auto max-w-md space-y-6 px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))]">
       <Link href="/" className="text-sm font-bold text-[var(--coral)]">
         ← Home
       </Link>
@@ -17,8 +17,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Huge topic bank ({TOPIC_COUNT}) + anti-repeat shortlists →{" "}
-        {RULES.productionUrl}
+        UX / playability polish → {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -38,10 +37,8 @@ export default function BuildNotesPage() {
             ) : null}
             <li>
               Target: production <code>roundacats.vercel.app</code> via merge to{" "}
-              <code>main</code>. PartyKit host{" "}
-              <code>rushmore-bank.lwagnerjg.partykit.dev</code> — redeploy
-              required (topic shortlist anti-repeat lives in{" "}
-              <code>party/</code>).
+              <code>main</code>. PartyKit unchanged this ship (no{" "}
+              <code>party/</code> edits).
             </li>
           </ul>
         ) : (
@@ -56,26 +53,34 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>Topic bank: {TOPIC_COUNT}</strong> unique Mount Rushmore–style
-            prompts in <code>src/shared/topics.ts</code> (sports / food /
-            everyday / entertainment). Researched + curated for phone party
-            play — punchy, draftable, brand-safe.
+            <strong>Background / safe-area</strong>: fixed full-bleed cream
+            gradient on <code>body::before</code>,{" "}
+            <code>overscroll-behavior</code>, <code>100dvh</code> +{" "}
+            <code>-webkit-fill-available</code>. Home locks height (no phantom
+            rubber-band); room scrolls only when content overflows. Fixes the
+            iPhone bottom white banner.
           </li>
           <li>
-            <strong>Anti-repeat</strong>: room tracks <code>seenTopicIds</code>{" "}
-            across shortlists and rerolls (plus locked <code>usedTopicIds</code>
-            ). Reroll pulls fresh options from the remaining pool; when soft
-            history exhausts the bank, it reshuffles while still excluding
-            locked topics. No topic timer.
+            <strong>Player rail = leaderboard</strong>: local player always
+            top-left (“You”), then beans descending (seat tiebreak). Fit mode
+            shares width for ≤5 (and 6–7 on wider phones); 8–10 stay denser
+            single-row scroll — never clips.
           </li>
           <li>
-            Topic pick UI unchanged in shape: 4 choices + Write your own +
-            reroll. Scope labels capitalized; clearer subtitle.
+            <strong>Ideas → Stash</strong>: clearer on-brand name for the
+            waiting queue. Stash while waiting / Lock in (tap-to-use) when
+            you’re up. Local storage key unchanged.
           </li>
           <li>
-            Preserved: dice scramble+settle, turn strip (no TABLE), failproof
-            player rail, inline custom topic, Bank the Beans, personal BANK,
-            admin, Beans branding.
+            <strong>Draft board density</strong>: cozy / snug / dense by player
+            count (narrower columns, smaller type, sticky headers) so 6–10 stay
+            usable on phone.
+          </li>
+          <li>
+            Preserved: topic bank ~{TOPIC_COUNT} + anti-repeat, dice
+            scramble+settle, turn strip (no TABLE), Bank the Beans, personal
+            BANK, admin, Beans branding, 60s draft / 15s dice, inline Write
+            your own.
           </li>
         </ul>
       </section>

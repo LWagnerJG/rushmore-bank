@@ -81,8 +81,11 @@ export function recallDisplayName(): string {
   );
 }
 
-/** Private My Ideas — never sent to server / AI / spectator payloads. */
-export function ideasStorageKey(
+/**
+ * Private draft Stash (formerly Ideas) — never sent to server / AI /
+ * spectator payloads. Storage key kept as `quarry:ideas:` for continuity.
+ */
+export function stashStorageKey(
   room: string,
   playerId: string,
   topicId: string,
@@ -90,7 +93,10 @@ export function ideasStorageKey(
   return `quarry:ideas:${room}:${playerId}:${topicId}`;
 }
 
-export function loadIdeas(
+/** @deprecated use stashStorageKey */
+export const ideasStorageKey = stashStorageKey;
+
+export function loadStash(
   room: string,
   playerId: string,
   topicId: string,
@@ -98,7 +104,7 @@ export function loadIdeas(
   if (typeof window === "undefined") return [];
   try {
     const raw = window.localStorage.getItem(
-      ideasStorageKey(room, playerId, topicId),
+      stashStorageKey(room, playerId, topicId),
     );
     if (!raw) return [];
     const parsed = JSON.parse(raw) as unknown;
@@ -110,18 +116,24 @@ export function loadIdeas(
   }
 }
 
-export function saveIdeas(
+/** @deprecated use loadStash */
+export const loadIdeas = loadStash;
+
+export function saveStash(
   room: string,
   playerId: string,
   topicId: string,
-  ideas: string[],
+  items: string[],
 ) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(
-    ideasStorageKey(room, playerId, topicId),
-    JSON.stringify(ideas.slice(0, 40)),
+    stashStorageKey(room, playerId, topicId),
+    JSON.stringify(items.slice(0, 40)),
   );
 }
+
+/** @deprecated use saveStash */
+export const saveIdeas = saveStash;
 
 export function newActionId(): string {
   return `a-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;

@@ -49,7 +49,7 @@ function stripDiceForPublic(
  * Project authoritative RoomState to a recipient-safe PublicRoomState.
  * - Ballots: progress + own vote only (never voter→choice maps)
  * - Dice: hide faces / outcome text until settle (pots applied server-side only after settle)
- * - My Ideas never live on RoomState
+ * - Private Stash (draft queue) never lives on RoomState
  * - draftOptionsJobId stays server-only
  */
 export function projectPublicState(

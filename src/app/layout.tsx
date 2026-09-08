@@ -83,7 +83,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${nunito.variable} ${sora.variable} h-full`}>
-      <body className="min-h-full font-[family-name:var(--font-body)] antialiased">
+      <body className="h-full font-[family-name:var(--font-body)] antialiased">
         {children}
       </body>
     </html>

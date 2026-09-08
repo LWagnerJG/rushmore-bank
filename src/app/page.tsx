@@ -77,8 +77,8 @@ export default function HomePage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col px-4 pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))]">
-      <div className="animate-rise flex flex-1 flex-col justify-center gap-5">
+    <main className="app-shell app-shell-lock mx-auto flex max-w-md flex-col px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))]">
+      <div className="animate-rise flex min-h-0 flex-1 flex-col justify-center gap-5">
         <header className="space-y-1.5 text-center">
           <div className="flex justify-center">
             <BrandMark large onLogoTap={onLogoTap} />

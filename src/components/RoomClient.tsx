@@ -122,7 +122,7 @@ export function RoomClient({
   if (!joined || !you) {
     if (presetName.trim()) {
       return (
-        <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-4 px-4 pb-8 pt-[max(2rem,env(safe-area-inset-top))]">
+        <main className="app-shell app-shell-lock mx-auto flex max-w-md flex-col gap-4 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))]">
           <BrandMark />
           <h1 className="font-[family-name:var(--font-display)] text-2xl font-extrabold">
             Room {code}
@@ -144,7 +144,7 @@ export function RoomClient({
     }
 
     return (
-      <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-4 px-4 pb-8 pt-[max(2rem,env(safe-area-inset-top))]">
+      <main className="app-shell app-shell-lock mx-auto flex max-w-md flex-col gap-4 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))]">
         <BrandMark />
         <h1 className="font-[family-name:var(--font-display)] text-2xl font-extrabold">
           Room {code}
@@ -192,7 +192,7 @@ export function RoomClient({
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-0">
+    <main className="app-shell app-shell-scroll mx-auto flex max-w-md flex-col px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-0">
       <header
         className={
           "sticky top-0 z-20 -mx-4 mb-3 border-b px-4 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur " +

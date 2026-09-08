@@ -4,6 +4,18 @@ import { useEffect, useRef, useState } from "react";
 import type { ClientMessage, PublicRoomState } from "@/shared/types";
 import { RULES } from "@/shared/rules";
 
+function densityFor(count: number): "cozy" | "snug" | "dense" {
+  if (count >= 8) return "dense";
+  if (count >= 6) return "snug";
+  return "cozy";
+}
+
+function colWidthPx(count: number, density: "cozy" | "snug" | "dense"): number {
+  if (density === "dense") return Math.max(64, Math.min(88, 520 / count));
+  if (density === "snug") return Math.max(78, Math.min(102, 560 / count));
+  return Math.max(100, Math.min(118, 640 / count));
+}
+
 export function DraftBoard({
   state,
   youId,
@@ -17,6 +29,8 @@ export function DraftBoard({
 }) {
   const activeCell = useRef<HTMLTableCellElement>(null);
   const seats = state.draftOrder.slice(0, state.seatOrder.length);
+  const density = densityFor(seats.length);
+  const colW = colWidthPx(seats.length, density);
   const correcting = state.phase === "CORRECTION";
   const redoTurn = correcting
     ? Number(state.correctionTargetPickId)
@@ -32,7 +46,7 @@ export function DraftBoard({
         0,
         cell.offsetLeft - scroller.clientWidth / 2 + cell.clientWidth / 2,
       );
-  }, [state.draftCursor, redoTurn]);
+  }, [state.draftCursor, redoTurn, density]);
 
   function requestRedo(turn: number, reason: "duplicate" | "invalid") {
     const pick = state.picks.find((p) => p.turnIndex === turn);
@@ -88,14 +102,16 @@ export function DraftBoard({
       )}
 
       <div
-        className="draft-board-scroll overflow-x-auto rounded-2xl bg-white/50"
+        className={`draft-board-scroll${
+          density !== "cozy" ? " draft-board-scroll-tall" : ""
+        }`}
         tabIndex={0}
         role="region"
         aria-label="Draft board"
       >
         <table
-          className="w-full table-fixed border-collapse text-left text-sm"
-          style={{ minWidth: Math.max(280, seats.length * 118) }}
+          className={`draft-board-table draft-board-density-${density}`}
+          style={{ minWidth: Math.max(280, seats.length * colW) }}
         >
           <caption className="sr-only">
             Exactly four picks per player. Snake order.
@@ -113,15 +129,18 @@ export function DraftBoard({
                   <th
                     scope="col"
                     key={seat}
-                    className={`border-b border-r border-[rgba(35,72,62,0.08)] px-2 py-2 text-sm last:border-r-0 ${
-                      pid === youId ? "bg-[var(--mint)]" : "bg-transparent"
-                    } ${onClock ? "shadow-[inset_0_-3px_0_0_var(--yellow)]" : ""}`}
+                    className={[
+                      pid === youId ? "is-you" : "",
+                      onClock ? "draft-board-on-clock" : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
                   >
                     <span className="block truncate font-extrabold">
                       {player?.name}
                     </span>
                     {pid === youId && (
-                      <span className="block text-[0.65rem] font-semibold uppercase tracking-wide text-[var(--muted)]">
+                      <span className="draft-board-you-label block font-semibold uppercase tracking-wide text-[var(--muted)]">
                         You
                       </span>
                     )}
@@ -151,18 +170,21 @@ export function DraftBoard({
                       ref={current || isRedoTarget ? activeCell : undefined}
                       data-turn={turn}
                       aria-current={current || isRedoTarget ? "step" : undefined}
-                      className={`h-[4.5rem] border-b border-r border-[rgba(35,72,62,0.08)] p-2 align-top last:border-r-0 ${
+                      className={[
                         isRedoTarget || current
                           ? "bg-[var(--yellow)]"
                           : hostFocused
                             ? "bg-[rgba(244,201,91,0.45)]"
                             : pick
                               ? "bg-white/70"
-                              : "bg-transparent"
-                      } ${dimForRedo ? "opacity-40" : ""}`}
+                              : "bg-transparent",
+                        dimForRedo ? "opacity-40" : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
                     >
                       <p
-                        className={`break-words text-sm leading-snug ${
+                        className={`draft-board-cell-text ${
                           pick || current || isRedoTarget
                             ? "font-bold"
                             : "text-[var(--muted)]"
@@ -177,7 +199,7 @@ export function DraftBoard({
                         !correcting && (
                           <button
                             type="button"
-                            className={`mt-1 text-[0.65rem] font-extrabold uppercase tracking-wide ${
+                            className={`draft-board-redo mt-1 font-extrabold uppercase tracking-wide ${
                               hostFocused
                                 ? "text-[var(--text)]"
                                 : "text-[var(--muted)]"
@@ -193,7 +215,7 @@ export function DraftBoard({
                           </button>
                         )}
                       {isRedoTarget && (
-                        <p className="mt-1 text-[0.65rem] font-extrabold uppercase tracking-wide">
+                        <p className="draft-board-redo mt-1 font-extrabold uppercase tracking-wide">
                           Replacing
                         </p>
                       )}
