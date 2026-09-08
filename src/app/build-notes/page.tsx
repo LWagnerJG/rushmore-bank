@@ -16,7 +16,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Full iPhone polish + home tighten + secret admin → {RULES.productionUrl}
+        Wager + dice simplify · full-phone your-turn glow → {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -60,8 +60,14 @@ export default function BuildNotesPage() {
             “Judge unavailable · neutral award.” only.
           </li>
           <li>
-            <strong>C · Dice</strong> — round table; tap-to-roll; your-turn mint
-            glow; dramatic reveal; SFX + haptics.
+            <strong>C · Dice</strong> — light turn strip (no TABLE frame);
+            tap-to-roll hero; full-phone mint perimeter glow on your turn;
+            dramatic reveal; SFX + haptics.
+          </li>
+          <li>
+            <strong>I · Wager</strong> — one earned line, one risk number,
+            slider + Keep/Half/All, single Lock-in CTA (no SAFE/RISK cards or
+            duplicated slider labels).
           </li>
           <li>
             <strong>D · Draft</strong> — sticky timer; host-only Pause/+15s; ideas
