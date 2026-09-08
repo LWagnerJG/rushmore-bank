@@ -81,6 +81,15 @@ export function ScorePanel({
           >
             {cast}/{needed} ready
           </p>
+          {you.isHost ? (
+            <button
+              type="button"
+              className="w-full text-center text-xs font-bold text-[var(--muted)] underline-offset-2 hover:underline"
+              onClick={() => send({ type: "advance" })}
+            >
+              Force wager (host)
+            </button>
+          ) : null}
         </div>
       ) : (
         <p className="text-center text-sm font-bold tabular-nums text-[var(--muted)]">

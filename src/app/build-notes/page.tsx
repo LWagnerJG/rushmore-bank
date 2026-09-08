@@ -97,8 +97,11 @@ export default function BuildNotesPage() {
           <li>
             <strong>Redeploy PartyKit required</strong> —{" "}
             <code>bank_the_beans</code> readiness, void-topic gate, dice settle
-            hold live in <code>party/server.ts</code>. Run{" "}
-            <code>npm run deploy:party</code>.
+            hold live in <code>party/server.ts</code>. Actions deploy is
+            currently failing (missing <code>PARTYKIT_TOKEN</code> /{" "}
+            <code>PARTYKIT_LOGIN</code>). Run{" "}
+            <code>npm run deploy:party</code> locally, or restore those secrets.
+            Until then, host can use <strong>Force wager</strong> on scores.
           </li>
         </ul>
       </section>
