@@ -96,8 +96,8 @@ html.party-on body::before {
 .app-shell {
   box-sizing: border-box;
   height: 100%;
-  height: 100dvh;
   height: -webkit-fill-available;
+  height: 100dvh;
 }
 
 .app-shell-lock {
