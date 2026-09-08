@@ -42,8 +42,8 @@ html.party-on {
 html {
   background-color: var(--bg);
   height: 100%;
-  height: 100dvh;
   height: -webkit-fill-available;
+  height: 100dvh;
   overflow: hidden;
   overscroll-behavior: none;
 }
@@ -53,8 +53,8 @@ body {
   color: var(--text);
   background-color: var(--bg);
   height: 100%;
-  height: 100dvh;
   height: -webkit-fill-available;
+  height: 100dvh;
   overflow: hidden;
   overscroll-behavior-y: none;
   /* gradient lives on ::before so it never peels away from the viewport */
