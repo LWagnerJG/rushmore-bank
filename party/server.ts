@@ -39,7 +39,10 @@ import {
   newRollId,
   projectPublicState,
   roll2d6,
+  rosterFull,
   snakeDraftOrder,
+  takenFromPicks,
+  upsertDraftPick,
   validateAndMapJudgments,
 } from "../src/shared/engine";
 function roomEnv(room: Party.Room): Record<string, string | undefined> {
@@ -721,42 +724,30 @@ export default class QuarryServer implements Party.Server {
       throw new Error("Already taken");
     }
 
-    const playerPicks = this.state.picks.filter((p) => p.playerId === id);
-    const pickIndex = playerPicks.length;
-    if (pickIndex >= RULES.picksPerPlayer && this.state.phase === "DRAFT") {
-      throw new Error("Roster full");
-    }
-
     if (this.state.phase === "CORRECTION") {
-      // Replace removed pick slot
-      const turnIndex = this.state.draftCursor;
-      this.state.picks.push({
-        playerId: id,
-        text: clean,
-        pickIndex: Math.min(pickIndex, RULES.picksPerPlayer - 1),
-        turnIndex,
-      });
-      this.state.takenNormalized.push(norm);
-      this.state.phase = "DRAFT";
-      this.state.correctionReason = null;
-      this.state.correctionTargetPickId = null;
-      this.state.draftCursor += 1;
-      bump(this.state);
-      if (this.state.draftCursor >= this.state.draftOrder.length) {
-        await this.beginReview();
-      } else {
-        await this.startPickClock();
-      }
+      await this.applyCorrectionLockIn(id, clean);
       return;
     }
 
-    this.state.picks.push({
+    // Normal draft — never overwrite an already-filled turn; never exceed 4.
+    if (this.state.picks.some((p) => p.turnIndex === this.state.draftCursor)) {
+      throw new Error("Slot already filled");
+    }
+    if (rosterFull(this.state.picks, id)) {
+      throw new Error("Roster full");
+    }
+
+    const pickIndex = this.state.picks.filter((p) => p.playerId === id).length;
+    this.state.picks = upsertDraftPick(this.state.picks, {
       playerId: id,
       text: clean,
       pickIndex,
       turnIndex: this.state.draftCursor,
     });
-    this.state.takenNormalized.push(norm);
+    this.state.takenNormalized = takenFromPicks(
+      this.state.picks,
+      normalizePick,
+    );
     this.state.draftCursor += 1;
     bump(this.state);
 
@@ -767,22 +758,100 @@ export default class QuarryServer implements Party.Server {
     }
   }
 
+  /** Replace the corrected slot, then resume prior draft cursor or REVIEW. */
+  async applyCorrectionLockIn(id: string, clean: string) {
+    const turnIndex = Number(this.state.correctionTargetPickId);
+    if (!Number.isInteger(turnIndex) || turnIndex < 0) {
+      throw new Error("No redo target");
+    }
+    const pickIndex =
+      this.state.correctionPickIndex ??
+      Math.min(
+        this.state.picks.filter((p) => p.playerId === id).length,
+        RULES.picksPerPlayer - 1,
+      );
+
+    this.state.picks = upsertDraftPick(this.state.picks, {
+      playerId: id,
+      text: clean,
+      pickIndex,
+      turnIndex,
+    });
+    this.state.takenNormalized = takenFromPicks(
+      this.state.picks,
+      normalizePick,
+    );
+
+    const resumeCursor =
+      this.state.correctionResumeCursor ?? this.state.draftOrder.length;
+    const returnPhase = this.state.correctionReturnPhase ?? "REVIEW";
+
+    this.state.correctionReason = null;
+    this.state.correctionTargetPickId = null;
+    this.state.correctionPickIndex = null;
+    this.state.correctionResumeCursor = null;
+    this.state.correctionReturnPhase = null;
+
+    if (
+      returnPhase === "DRAFT" &&
+      resumeCursor < this.state.draftOrder.length
+    ) {
+      this.state.phase = "DRAFT";
+      this.state.draftCursor = resumeCursor;
+      bump(this.state);
+      await this.startPickClock();
+      return;
+    }
+
+    this.state.draftCursor = this.state.draftOrder.length;
+    bump(this.state);
+    await this.beginReview();
+  }
+
   async onPickTimeout() {
     if (this.state.phase !== "DRAFT" && this.state.phase !== "CORRECTION") return;
     if (this.state.pickPaused) return;
-    // Missed pick — placeholder with unique miss tag
     const pid = this.currentDraftPlayerId();
     if (!pid) return;
+
+    if (this.state.phase === "CORRECTION") {
+      const miss = `Missed pick (${(this.state.correctionPickIndex ?? 0) + 1})`;
+      await this.applyCorrectionLockIn(pid, miss);
+      this.state.notice = `Clock expired — missed redo for ${
+        this.state.players.find((p) => p.id === pid)?.name ?? "player"
+      }`;
+      await this.persist();
+      return;
+    }
+
+    // Never append past 4 or overwrite a filled turn.
+    if (
+      this.state.picks.some((p) => p.turnIndex === this.state.draftCursor) ||
+      rosterFull(this.state.picks, pid)
+    ) {
+      this.state.draftCursor += 1;
+      bump(this.state);
+      if (this.state.draftCursor >= this.state.draftOrder.length) {
+        await this.beginReview();
+      } else {
+        await this.startPickClock();
+        await this.persist();
+      }
+      return;
+    }
+
     const miss = `Missed pick (${this.state.draftCursor + 1})`;
-    const norm = normalizePick(`${miss}-${pid}-${this.state.draftCursor}`);
-    const playerPicks = this.state.picks.filter((p) => p.playerId === pid);
-    this.state.picks.push({
+    const pickIndex = this.state.picks.filter((p) => p.playerId === pid).length;
+    this.state.picks = upsertDraftPick(this.state.picks, {
       playerId: pid,
       text: miss,
-      pickIndex: playerPicks.length,
+      pickIndex,
       turnIndex: this.state.draftCursor,
     });
-    this.state.takenNormalized.push(norm);
+    this.state.takenNormalized = takenFromPicks(
+      this.state.picks,
+      normalizePick,
+    );
     this.state.notice = `Clock expired — missed pick for ${
       this.state.players.find((p) => p.id === pid)?.name ?? "player"
     }`;
@@ -845,13 +914,20 @@ export default class QuarryServer implements Party.Server {
     reason: "duplicate" | "invalid",
   ) {
     if (!this.requireHost(id)) throw new Error("Host only");
+    if (this.state.phase === "CORRECTION") {
+      throw new Error("Finish the current redo first");
+    }
     const pick = this.state.picks.find((p) => p.turnIndex === turnIndex);
     if (!pick) throw new Error("Pick not found");
 
-    // Remove pick
+    const priorPhase = this.state.phase;
+    const priorCursor = this.state.draftCursor;
+
+    // Remove only this turn's pick (keep the player's other slots intact).
     this.state.picks = this.state.picks.filter((p) => p.turnIndex !== turnIndex);
-    this.state.takenNormalized = this.state.picks.map((p) =>
-      normalizePick(p.text),
+    this.state.takenNormalized = takenFromPicks(
+      this.state.picks,
+      normalizePick,
     );
 
     if (this.state.scoresLocked) {
@@ -859,22 +935,27 @@ export default class QuarryServer implements Party.Server {
     }
 
     if (
-      this.state.phase === "VOTING_AND_JUDGING" ||
-      this.state.phase === "REVIEW" ||
+      priorPhase === "VOTING_AND_JUDGING" ||
+      priorPhase === "REVIEW" ||
       Object.keys(this.state.humanVotes).length > 0
     ) {
-      // Invalidate ballots + re-vote after replacement
       this.state.humanVotes = {};
       this.state.scores = [];
       this.state.scoresLocked = false;
     }
 
+    const draftStillOpen =
+      priorPhase === "DRAFT" && priorCursor < this.state.draftOrder.length;
+
     this.state.phase = "CORRECTION";
     this.state.correctionReason = reason;
     this.state.correctionTargetPickId = String(turnIndex);
-    // Replacement turn: set cursor to that turn's seat, temporarily
+    this.state.correctionPickIndex = pick.pickIndex;
+    this.state.correctionResumeCursor = draftStillOpen
+      ? priorCursor
+      : this.state.draftOrder.length;
+    this.state.correctionReturnPhase = draftStillOpen ? "DRAFT" : "REVIEW";
     this.state.draftCursor = turnIndex;
-    // Ensure draftOrder still has this index
     bump(this.state);
     this.state.pickPaused = false;
     await this.startPickClock();

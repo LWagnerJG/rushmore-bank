@@ -43,4 +43,11 @@ export {
   tumblePose,
   animProgress,
 } from "./dice-sync";
+export {
+  playerPickCount,
+  rosterFull,
+  upsertDraftPick,
+  takenFromPicks,
+  clampRostersToCap,
+} from "./draft-picks";
 export { DIE_PIPS, projectDie, type DieProjection } from "./dice-geometry";

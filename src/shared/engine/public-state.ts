@@ -104,6 +104,7 @@ export function projectPublicState(
     pickPauseRemainingMs: state.pickPauseRemainingMs,
     correctionTargetPickId: state.correctionTargetPickId,
     correctionReason: state.correctionReason,
+    correctionPickIndex: state.correctionPickIndex,
     humanVotesCast,
     humanVotesNeeded,
     myHumanVote: state.humanVotes[recipientId] ?? null,

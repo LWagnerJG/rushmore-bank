@@ -384,7 +384,7 @@ describe("session length: choices vs rounds", () => {
   });
 
   it("does not silently shorten draft timer", () => {
-    expect(RULES.pickClockSeconds).toBe(30);
+    expect(RULES.pickClockSeconds).toBe(60);
   });
 
   it("dice is personal continuous turn; any seven busts", () => {

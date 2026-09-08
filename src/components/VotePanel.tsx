@@ -53,6 +53,7 @@ export function VotePanel({
               {state.picks
                 .filter((pick) => pick.playerId === pid)
                 .sort((a, b) => a.pickIndex - b.pickIndex)
+                .slice(0, RULES.picksPerPlayer)
                 .map((pick) => (
                   <li key={pick.turnIndex}>{pick.text}</li>
                 ))}
@@ -87,7 +88,8 @@ export function VotePanel({
           const p = state.players.find((x) => x.id === pid);
           const picks = state.picks
             .filter((pk) => pk.playerId === pid)
-            .sort((a, b) => a.pickIndex - b.pickIndex);
+            .sort((a, b) => a.pickIndex - b.pickIndex)
+            .slice(0, RULES.picksPerPlayer);
           const selected = myVote === pid;
           return (
             <button
