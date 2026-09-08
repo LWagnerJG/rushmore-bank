@@ -16,7 +16,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        BEAN BUSTER + draft 60s pick clock → {RULES.productionUrl}
+        BEAN BUSTER + draft redo fix + 60s → {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -64,6 +64,12 @@ export default function BuildNotesPage() {
             ideas.
           </li>
           <li>
+            <strong>Draft redo fix</strong> — host redo no longer resumes the
+            snake over already-filled turns (that appended a silent 5th pick).
+            Replacement upserts the same slot; max 4 picks/player enforced.
+            Redo UI: one selected slot, clear Replace slot N/4.
+          </li>
+          <li>
             <strong>Draft pick clock</strong> — {RULES.pickClockSeconds}s per
             pick (+{RULES.pickGraceSeconds}s grace). Host Pause/+
             {RULES.hostExtendSeconds}s unchanged.
@@ -103,10 +109,9 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">Follow-ups</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>Redeploy PartyKit required</strong> — any-7 bust +{" "}
-            {RULES.pickClockSeconds}s pick clock live via{" "}
-            <code>RULES</code> in <code>party/server.ts</code>. Run{" "}
-            <code>npm run deploy:party</code>.
+            <strong>Redeploy PartyKit required</strong> — draft redo resume +
+            any-7 bust + {RULES.pickClockSeconds}s pick clock live in{" "}
+            <code>party/server.ts</code>. Run <code>npm run deploy:party</code>.
           </li>
         </ul>
       </section>

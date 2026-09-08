@@ -181,6 +181,12 @@ export interface RoomState {
   pickPauseRemainingMs: number | null;
   correctionTargetPickId: string | null;
   correctionReason: "duplicate" | "invalid" | null;
+  /** Slot 0–3 being redone (Mount Rushmore index). */
+  correctionPickIndex: number | null;
+  /** Where to resume draftCursor after redo completes (server). */
+  correctionResumeCursor: number | null;
+  /** After redo: back to DRAFT mid-snake, or REVIEW if draft was done. */
+  correctionReturnPhase: "DRAFT" | "REVIEW" | null;
   /** PRIVATE — voter → targetPlayerId */
   humanVotes: Record<string, string>;
   scores: RosterScore[];
@@ -249,6 +255,8 @@ export interface PublicRoomState {
   pickPauseRemainingMs: number | null;
   correctionTargetPickId: string | null;
   correctionReason: "duplicate" | "invalid" | null;
+  /** Slot 0–3 being redone (Mount Rushmore index), when in CORRECTION. */
+  correctionPickIndex: number | null;
   humanVotesCast: number;
   humanVotesNeeded: number;
   myHumanVote: string | null;
@@ -405,6 +413,9 @@ export function emptyRoomState(code: string): RoomState {
     pickPauseRemainingMs: null,
     correctionTargetPickId: null,
     correctionReason: null,
+    correctionPickIndex: null,
+    correctionResumeCursor: null,
+    correctionReturnPhase: null,
     humanVotes: {},
     scores: [],
     scoresLocked: false,

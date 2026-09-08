@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
+import { RULES } from "@/shared/rules";
 
 function Countdown({ until }: { until: number | null }) {
   const [left, setLeft] = useState(0);
@@ -39,7 +40,8 @@ export function ReviewPanel({
         const p = state.players.find((x) => x.id === pid);
         const picks = state.picks
           .filter((pk) => pk.playerId === pid)
-          .sort((a, b) => a.pickIndex - b.pickIndex);
+          .sort((a, b) => a.pickIndex - b.pickIndex)
+          .slice(0, RULES.picksPerPlayer);
         return (
           <div key={pid} className="panel">
             <p className="font-extrabold">{p?.name}</p>

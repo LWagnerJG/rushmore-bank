@@ -151,7 +151,7 @@ export function DraftPanel({
 
   const turnHint =
     state.phase === "CORRECTION"
-      ? `Replace the ${state.correctionReason} pick`
+      ? `Replace slot ${(state.correctionPickIndex ?? 0) + 1}/4 (${state.correctionReason ?? "redo"})`
       : myTurn
         ? queue.length
           ? "Tap an idea or type below"
