@@ -891,11 +891,11 @@ html.party-on .status-pill-ready {
   animation: pip-die-tumble 380ms linear infinite;
 }
 .bean-pip-die-scrambling .bean-pip-die-svg {
-  filter: drop-shadow(0 10px 12px rgba(16, 45, 37, 0.32))
-    blur(0.55px) brightness(1.04);
+  /* Keep pips legible during scramble — motion alone signals tumble */
+  filter: drop-shadow(0 10px 12px rgba(16, 45, 37, 0.32));
 }
 .bean-pip-die-scrambling .bean-pip-die-pip {
-  animation: pip-die-scramble-pip 75ms steps(1, end) infinite;
+  animation: pip-die-scramble-pip 90ms steps(1, end) infinite;
 }
 .bean-pip-die-known .bean-pip-die-svg {
   filter: drop-shadow(0 12px 16px rgba(16, 45, 37, 0.4));
@@ -905,24 +905,24 @@ html.party-on .status-pill-ready {
 }
 @keyframes pip-die-tumble {
   0% {
-    transform: translate(-7px, -11px) rotate(-16deg) scale(1.05);
+    transform: translate(-5px, -8px) rotate(-12deg) scale(1.03);
   }
   25% {
-    transform: translate(8px, -3px) rotate(12deg) scale(0.97);
+    transform: translate(5px, -2px) rotate(8deg) scale(0.99);
   }
   50% {
-    transform: translate(-5px, 9px) rotate(-9deg) scale(1.04);
+    transform: translate(-3px, 6px) rotate(-6deg) scale(1.02);
   }
   75% {
-    transform: translate(9px, 2px) rotate(14deg) scale(0.96);
+    transform: translate(5px, 2px) rotate(9deg) scale(0.98);
   }
   100% {
-    transform: translate(-7px, -11px) rotate(-16deg) scale(1.05);
+    transform: translate(-5px, -8px) rotate(-12deg) scale(1.03);
   }
 }
 @keyframes pip-die-scramble-pip {
   0% {
-    opacity: 0.72;
+    opacity: 0.85;
   }
   100% {
     opacity: 1;

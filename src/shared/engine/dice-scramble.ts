@@ -23,8 +23,8 @@ export function scrambleFaceAt(
   return 1 + Math.floor(rng() * 6);
 }
 
-/** Tick cadence for visible face flips (~12–14 Hz). */
-export const SCRAMBLE_TICK_MS = 75;
+/** Tick cadence for visible face flips (~10–11 Hz — readable anticipation). */
+export const SCRAMBLE_TICK_MS = 95;
 
 /**
  * How many scramble ticks fit in a tumble window.
