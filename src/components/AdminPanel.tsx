@@ -31,7 +31,7 @@ export function AdminPanel({
   currentPhase: Phase | null;
 }) {
   const [open, setOpen] = useState(false);
-  const [unlocked, setUnlocked] = useState(() => {
+  const [unlocked] = useState(() => {
     if (typeof window === "undefined") return false;
     try {
       return window.sessionStorage.getItem(ADMIN_KEY) === "1";
