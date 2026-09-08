@@ -103,7 +103,37 @@ const THEME_POOLS: Array<{ match: RegExp; picks: string[] }> = [
     ],
   },
   {
-    match: /music|song|album|band|artist|rapper/i,
+    match: /1980s|80s songs|songs of the 1980/i,
+    picks: [
+      "Thriller",
+      "Billie Jean",
+      "Like a Prayer",
+      "Take On Me",
+      "Don't Stop Believin'",
+      "Every Breath You Take",
+      "Sweet Child o' Mine",
+      "Livin' on a Prayer",
+      "Purple Rain",
+      "Africa",
+    ],
+  },
+  {
+    match: /1990s|90s songs|songs of the 1990/i,
+    picks: [
+      "Smells Like Teen Spirit",
+      "Wonderwall",
+      "Creep",
+      "No Scrubs",
+      "Waterfalls",
+      "Losing My Religion",
+      "Jeremy",
+      "Ironic",
+      "Baby One More Time",
+      "Jump Around",
+    ],
+  },
+  {
+    match: /song|music|album|band|artist|rapper/i,
     picks: [
       "Beyoncé",
       "The Beatles",
@@ -114,6 +144,7 @@ const THEME_POOLS: Array<{ match: RegExp; picks: string[] }> = [
       "Nirvana",
       "Madonna",
       "Radiohead",
+      "Michael Jackson",
     ],
   },
   {
