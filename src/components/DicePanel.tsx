@@ -35,12 +35,12 @@ function seatKind(
   return "in";
 }
 
-const BADGE: Record<SeatKind, { label: string; className: string }> = {
-  up: { label: "Up", className: "dice-seat-badge-up" },
-  next: { label: "Next", className: "dice-seat-badge-next" },
-  in: { label: "In", className: "" },
-  banked: { label: "Banked", className: "dice-seat-badge-banked" },
-  busted: { label: "Bust", className: "dice-seat-badge-bust" },
+const BADGE: Record<SeatKind, string> = {
+  up: "Up",
+  next: "Next",
+  in: "In",
+  banked: "Banked",
+  busted: "Bust",
 };
 
 export function DicePanel({
@@ -96,6 +96,14 @@ export function DicePanel({
     turnHaptic.current = key;
     haptic("your_turn");
   }, [glowOn, state.diceSubphase, state.diceTurnSeat, state.phaseRevision]);
+
+  // Full-phone perimeter glow on <html> so it isn’t trapped by transform parents.
+  useEffect(() => {
+    const root = document.documentElement;
+    if (glowOn) root.classList.add("dice-your-turn");
+    else root.classList.remove("dice-your-turn");
+    return () => root.classList.remove("dice-your-turn");
+  }, [glowOn]);
 
   const reducedMotion = useMemo(
     () =>
@@ -192,51 +200,38 @@ export function DicePanel({
 
   return (
     <div className={`space-y-4 ${heroReveal ? "dice-hero-mode" : ""}`}>
-      {glowOn && (
-        <div className="dice-turn-glow" aria-hidden="true" />
-      )}
-
-      <section
-        className={`dice-round-table ${heroReveal || rolling ? "dice-table-dim" : ""}`}
-        aria-label="Round table"
+      <ol
+        className={`dice-turn-strip ${heroReveal || rolling ? "dice-table-dim" : ""}`}
+        aria-label="Turn order"
       >
-        <p className="px-1 pb-0.5 text-[0.7rem] font-extrabold uppercase tracking-wide text-[var(--muted)]">
-          Table
-        </p>
-        {seats.map((seat) => {
-          const badge = BADGE[seat.kind];
-          return (
-            <div
-              key={seat.pid}
-              className={[
-                "dice-seat",
-                seat.kind === "up" ? "dice-seat-up" : "",
-                seat.kind === "next" ? "dice-seat-next" : "",
-                seat.kind === "banked" || seat.kind === "busted"
-                  ? "dice-seat-out"
-                  : "",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-            >
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-bold">
-                  {seat.name}
-                  {seat.you ? " · you" : ""}
-                </p>
-                <p className="text-xs tabular-nums text-[var(--muted)]">
-                  {seat.kind === "banked" || seat.kind === "busted"
-                    ? `${seat.safe} safe`
-                    : `pot ${seat.pot}`}
-                </p>
-              </div>
-              <span className={`dice-seat-badge ${badge.className}`}>
-                {badge.label}
-              </span>
-            </div>
-          );
-        })}
-      </section>
+        {seats.map((seat) => (
+          <li
+            key={seat.pid}
+            className={[
+              "dice-turn-chip",
+              seat.kind === "up" ? "dice-turn-chip-up" : "",
+              seat.kind === "next" ? "dice-turn-chip-next" : "",
+              seat.kind === "banked" || seat.kind === "busted"
+                ? "dice-turn-chip-out"
+                : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+          >
+            <span className="dice-turn-chip-name">
+              {seat.name}
+              {seat.you ? " · you" : ""}
+            </span>
+            <span className="dice-turn-chip-meta">
+              {BADGE[seat.kind]}
+              {" · "}
+              {seat.kind === "banked" || seat.kind === "busted"
+                ? `${seat.safe} safe`
+                : `pot ${seat.pot}`}
+            </span>
+          </li>
+        ))}
+      </ol>
 
       <header className="space-y-1 text-center">
         <h2 className="font-[family-name:var(--font-display)] text-2xl font-extrabold">
@@ -275,7 +270,7 @@ export function DicePanel({
             </p>
           </>
         ) : (
-          <p className="min-h-[4.5rem] text-sm text-[var(--muted)]">
+          <p className="text-sm text-[var(--muted)]">
             {canRoll ? "Tap the dice" : "\u00a0"}
           </p>
         )}
@@ -283,9 +278,9 @@ export function DicePanel({
 
       {you.role === "player" && (
         <section
-          className={`dice-action-focus space-y-3 ${heroReveal || rolling ? "dice-action-dim" : ""}`}
+          className={`space-y-3 ${heroReveal || rolling ? "dice-action-dim" : ""}`}
         >
-          <div className="flex items-end justify-between gap-3">
+          <div className="flex items-end justify-between gap-3 px-0.5">
             <div>
               <p className="text-sm text-[var(--muted)]">
                 {myTurn ? "Your pot" : "Your beans"}
@@ -315,20 +310,18 @@ export function DicePanel({
             <p className="text-sm font-semibold text-[var(--muted)]">
               You’re out this round — watch the table.
             </p>
-          ) : (
+          ) : myTurn ? (
             <button
-              className={
-                myTurn ? "btn-secondary w-full" : "btn-secondary w-full"
-              }
+              className="btn-secondary w-full"
               disabled={!canBank || busy}
               onClick={() => void bank()}
             >
-              {pot === 0
-                ? "Bank out"
-                : myTurn
-                  ? `Bank ${pot}`
-                  : `Bank ${pot} · sit out`}
+              {pot === 0 ? "Bank" : `Bank ${pot}`}
             </button>
+          ) : (
+            <p className="text-center text-sm font-semibold text-[var(--muted)]">
+              Watching · {roller?.name ?? "Player"} is up
+            </p>
           )}
         </section>
       )}

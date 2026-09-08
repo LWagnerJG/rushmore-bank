@@ -30,31 +30,31 @@ import {
   topicShortlistCount,
 } from "../rules";
 
-describe("pull out classification (waiting vs current)", () => {
+describe("bank classification (current roller only)", () => {
   const base = {
     phase: "DICE",
     diceActiveIds: ["a", "b", "c"],
     pot: 40,
   };
 
-  it("allows waiting player during another COOLDOWN", () => {
+  it("blocks waiting player during another COOLDOWN", () => {
     const r = classifyPullOut({
       ...base,
       diceSubphase: "COOLDOWN",
       playerId: "b",
       currentRollerId: "a",
     });
-    expect(r).toEqual({ ok: true, kind: "waiting_player" });
+    expect(r.ok).toBe(false);
   });
 
-  it("allows waiting player while another rolls (COMMITTED)", () => {
+  it("blocks waiting player while another rolls (COMMITTED)", () => {
     const r = classifyPullOut({
       ...base,
       diceSubphase: "COMMITTED",
       playerId: "c",
       currentRollerId: "a",
     });
-    expect(r).toEqual({ ok: true, kind: "waiting_player" });
+    expect(r.ok).toBe(false);
   });
 
   it("allows current roller during READY and COOLDOWN", () => {
@@ -87,7 +87,7 @@ describe("pull out classification (waiting vs current)", () => {
     if (!r.ok) expect(r.reason).toMatch(/committed/i);
   });
 
-  it("rejects inactive; allows zero pot sit-out", () => {
+  it("rejects inactive; waiting zero-pot cannot bank early", () => {
     expect(
       classifyPullOut({
         ...base,
@@ -102,6 +102,15 @@ describe("pull out classification (waiting vs current)", () => {
         ...base,
         diceSubphase: "READY",
         playerId: "b",
+        currentRollerId: "a",
+        pot: 0,
+      }).ok,
+    ).toBe(false);
+    expect(
+      classifyPullOut({
+        ...base,
+        diceSubphase: "READY",
+        playerId: "a",
         currentRollerId: "a",
         pot: 0,
       }).ok,
@@ -366,8 +375,12 @@ describe("session length: choices vs rounds", () => {
     expect(RULES.pickClockSeconds).toBe(30);
   });
 
-  it("dice is round-robin with two safe rolls", () => {
+  it("dice is personal continuous turn with two safe rolls", () => {
     expect(RULES.safePersonalRolls).toBe(2);
     expect(RULES.diceAnimMs).toBe(2400);
+  });
+
+  it("topic selection has no countdown", () => {
+    expect(RULES.topicVoteSeconds).toBe(0);
   });
 });

@@ -16,7 +16,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Full iPhone polish + home tighten + secret admin → {RULES.productionUrl}
+        Personal BANK + wager/dice/ideas polish → {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -52,39 +52,31 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>A · Status bar</strong> — cream theme-color, viewport-fit=cover,
-            black-translucent, safe-area padding.
+            <strong>BANK rule</strong> — personal continuous turn: keep rolling
+            until Bank or bust, then next seat. Waiting players watch (no early
+            Bank / sit-out).
           </li>
           <li>
-            <strong>B · Gemini</strong> — retry/backoff + flash fallbacks; friendly
-            “Judge unavailable · neutral award.” only.
+            <strong>Wager</strong> — one earned line, one risk number, slider +
+            Keep/Half/All, single Lock-in CTA.
           </li>
           <li>
-            <strong>C · Dice</strong> — round table; tap-to-roll; your-turn mint
-            glow; dramatic reveal; SFX + haptics.
+            <strong>Dice UI</strong> — light turn strip; dice tray hero;
+            full-phone mint perimeter glow when you’re up; snap settle to
+            authoritative faces (no post-settle flip); dramatic punch; SFX
+            without mute toggle; Bank wording only.
           </li>
           <li>
-            <strong>D · Draft</strong> — sticky timer; host-only Pause/+15s; ideas
-            tap-to-lock.
+            <strong>Draft ideas</strong> — embedded ideas surface (no drawer);
+            one CTA: Save idea while waiting / Lock in when up; tap queued idea
+            to lock instantly on your turn.
           </li>
           <li>
-            <strong>E · Topics</strong> — no slide-up jump on land.
+            <strong>Topics</strong> — no topic-selection countdown; pick calmly
+            until all vote. Draft pick clock unchanged.
           </li>
           <li>
-            <strong>F · Errors</strong> — “Connection lost — retrying”; never
-            PartyKit/infra to players.
-          </li>
-          <li>
-            <strong>G · Home</strong> — tighter create/join card, less chrome.
-          </li>
-          <li>
-            <strong>H · Secret admin</strong> — logo ×5 → PIN unlock (session);
-            discrete room panel to jump phases + spawn fake players. Not
-            advertised on home.
-          </li>
-          <li>
-            Preserved: Beans, 4 topics + reroll, no PREP, round-robin BANK,
-            Gemini judging, PartyKit host{" "}
+            Preserved: Beans branding, admin mode, dice feel, PartyKit host{" "}
             <code>rushmore-bank.lwagnerjg.partykit.dev</code>.
           </li>
         </ul>
@@ -94,8 +86,8 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">Follow-ups</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>Redeploy PartyKit required</strong> — admin spawn/jump + judge
-            notice sanitize live in <code>party/server.ts</code>. Run{" "}
+            <strong>Redeploy PartyKit required</strong> — personal BANK turn
+            model + no topic timer live in <code>party/server.ts</code>. Run{" "}
             <code>npm run deploy:party</code>.
           </li>
         </ul>

@@ -26,7 +26,7 @@ LOBBY → TOPIC_SELECTION → DRAFT (+ CORRECTION) → REVIEW
 - Random shortlist: always **4** choices. Anyone can **reroll** the set as needed.
 - Scopes: sports / food / everyday / entertainment + host custom.
 - ≥120 curated topics with scope tags (`src/shared/topics.ts`).
-- Vote 20s or all-in; ties → server random among tied.
+- **No topic timer** — players pick calmly; advances when every connected player has voted (or host locks a custom topic). Ties → server random among tied.
 - No topic repeat in a game.
 - Scope boundary shown before draft.
 - Topic rounds played: **3** with 2–5 players; **2** with 6–10.
@@ -38,7 +38,7 @@ LOBBY → TOPIC_SELECTION → DRAFT (+ CORRECTION) → REVIEW
 - 4 snake passes for N=2..10. One **Lock In** per turn (server-validated). Free-text answers only (no shared suggestion catalog).
 - Pick clock 30s + short grace (5s); host pause / extend (+15s).
 - Missed after grace → placeholder miss pick.
-- **My Ideas**: private, persisted per device/room/player/topic; Use → field; Taken markers from public events; never in AI/spectator payloads.
+- **Ideas**: private queue + type field in one embedded surface; Save idea while waiting; Lock in on your turn; tap a queued idea to lock instantly when up. Never in AI/spectator payloads.
 - Host may mark Duplicate or Group Invalid → replacement turn (30s), resume cursor.
 - Review/pitch 30s optional.
 - Fantasy-style shared draft board always visible during draft (UI): whose turn / you’re next / snake order.
@@ -62,23 +62,23 @@ protected = B + E − W
 pot = W
 ```
 
-- UX: slider 0…max with protected vs at-risk; presets Keep all / Half new / All new.
+- UX: one risk number + slider + Keep/Half/All + Lock-in CTA.
 - No response in 20s → W=0. Zero-wager players still enter the dice circuit.
 - Integers only; append-only ledger.
 
 ## Bank / Dice (exact)
 
 - After wagers, **every seated player** enters dice — including W=0.
-- **Round-robin**: one roll, then pass around the table. Repeat until everyone banks or busts.
+- **Personal continuous turn**: when you’re up, keep rolling until you **Bank** or **bust**. Do **not** pass after each roll. After bank/bust, the next active seat gets their own continuous turn. Waiting players watch.
 - Personal safe counts reset each topic. First **2** personal rolls are safe.
 - 2d6. Outcomes affect **only** the roller.
 - Rolls 1–2 (safe): seven → **+70**; else **+sum** (doubles add faces).
 - Rolls 3+: seven → **bust** pot=0 exit; doubles → **double pot** (no add faces); else **+sum**.
-- **Bank** locks pot between rolls (including banking zero to sit out). Waiting players may Bank during another’s cooldown/animation without clearing alarms or advancing the seat.
-- Countdown 5s → unlock Roll (do not auto-throw). Idle 10s → auto bank.
+- **Bank** is the only exit action (current roller only). Zero pot may Bank (keep protected).
+- First turn of a seat: countdown 5s → unlock Roll. Same player continuing after a non-bust roll unlocks Roll immediately. Idle 10s → auto Bank.
 - Atomic Roll vs Bank.
-- Synchronized SVG dice with authoritative faces (all 36 outcomes).
-- Reduced-motion fallback. Prefer host sound (opt-in toggle).
+- Synchronized SVG dice; tumble then snap to authoritative faces (no post-settle flip). Dramatic settle punch + SFX/haptics. No mute toggle on dice UI.
+- Reduced-motion fallback. Full-phone mint perimeter glow when you are up.
 
 ### Worked path (tests)
 
@@ -94,7 +94,7 @@ Banking that pot yields **95 + 374 = 469** total beans — **469 is the banked t
 
 ## Superseded (do not implement)
 
-Bets on roster winning, individual-pick side bets, quarter-step multipliers, 4× cap, shared pots/busts, solo “personal BANK mini-round until bank/bust then next seat” (replaced by round-robin one-roll-then-pass), PREP countdown phase.
+Bets on roster winning, individual-pick side bets, quarter-step multipliers, 4× cap, shared pots/busts, round-robin one-roll-then-pass BANK (replaced by personal continuous turn until Bank/bust), waiting-player early Bank, topic vote countdown, PREP countdown phase, dice mute toggle.
 
 ## Architecture notes
 
@@ -102,5 +102,4 @@ Bets on roster winning, individual-pick side bets, quarter-step multipliers, 4×
 - Server timers via PartyKit `storage.setAlarm`.
 - Idempotent actions + phase revisions + append-only ledger.
 - Host failover ~20s when host disconnects.
-- Waiting-player Bank must **not** bump `phaseRevision` (pending dice alarms own it).
 - Soft bank time budget removed — round ends when everyone banks/busts.

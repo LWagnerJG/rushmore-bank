@@ -1,6 +1,6 @@
 /**
  * Simulated multi-player dice / privacy / judging flows for N = 3, 6, 10.
- * Exercises dangerous rolls and waiting-player banks without PartyKit runtime.
+ * Personal BANK: continuous turn until Bank/bust; waiting players watch.
  */
 import { describe, expect, it } from "vitest";
 import {
@@ -49,21 +49,17 @@ function seedDiceRoom(n: number): RoomState {
   return state;
 }
 
-function bankWaiting(state: RoomState, id: string) {
-  const current = state.seatOrder[state.diceTurnSeat] ?? null;
+function bankCurrent(state: RoomState) {
+  const id = state.seatOrder[state.diceTurnSeat]!;
   const c = classifyPullOut({
     phase: state.phase,
     diceSubphase: state.diceSubphase,
     playerId: id,
-    currentRollerId: current,
+    currentRollerId: id,
     diceActiveIds: state.diceActiveIds,
     pot: state.pots[id] ?? 0,
   });
   expect(c.ok).toBe(true);
-  if (!c.ok || c.kind !== "waiting_player") throw new Error("expected waiting");
-  const seatBefore = state.diceTurnSeat;
-  const subBefore = state.diceSubphase;
-  const alarmProxy = state.diceDecisionDeadlineAt;
   const result = bankPotIntoProtected({
     protectedStones: state.protectedStones[id] ?? 0,
     pot: state.pots[id] ?? 0,
@@ -72,13 +68,14 @@ function bankWaiting(state: RoomState, id: string) {
   p.stones = result.stonesAfter;
   state.pots[id] = 0;
   state.diceActiveIds = state.diceActiveIds.filter((x) => x !== id);
-  // Waiting bank must not advance seat / clear cooldown markers
-  expect(state.diceTurnSeat).toBe(seatBefore);
-  expect(state.diceSubphase).toBe(subBefore);
-  expect(state.diceDecisionDeadlineAt).toBe(alarmProxy);
+  // Advance seat after bank
+  state.diceTurnSeat = (state.diceTurnSeat + 1) % state.seatOrder.length;
 }
 
-function commitDangerousRoll(state: RoomState, faces: { d1: number; d2: number }) {
+function commitDangerousRoll(
+  state: RoomState,
+  faces: { d1: number; d2: number },
+) {
   const id = state.seatOrder[state.diceTurnSeat]!;
   expect(state.diceSubphase).toBe("READY");
   state.diceSubphase = "COMMITTED";
@@ -102,7 +99,6 @@ function commitDangerousRoll(state: RoomState, faces: { d1: number; d2: number }
     outcomeKind: outcome.kind,
     revealed: false,
   };
-  // pots unchanged until reveal
   expect(state.pots[id]).toBe(potBefore);
   return outcome;
 }
@@ -113,7 +109,9 @@ function reveal(state: RoomState) {
   state.pots[dice.rollerId] = dice.potAfter;
   dice.revealed = true;
   if (dice.busted) {
-    state.diceActiveIds = state.diceActiveIds.filter((x) => x !== dice.rollerId);
+    state.diceActiveIds = state.diceActiveIds.filter(
+      (x) => x !== dice.rollerId,
+    );
     const p = state.players.find((x) => x.id === dice.rollerId)!;
     p.stones = state.protectedStones[dice.rollerId] ?? 0;
   }
@@ -121,51 +119,64 @@ function reveal(state: RoomState) {
 }
 
 describe.each([2, 3, 6, 10])("full-ish flow N=%i", (n) => {
-  it("waiting banks during cooldown + dangerous roll + privacy", () => {
+  it("personal bank + dangerous bust + privacy", () => {
     const state = seedDiceRoom(n);
-    state.diceSubphase = "COOLDOWN";
-    state.diceDecisionDeadlineAt = Date.now() + 5000;
+    state.diceSubphase = "READY";
 
-    // Everyone except current roller banks out while cooldown runs
-    for (let i = 1; i < n; i++) {
-      bankWaiting(state, `p${i}`);
+    // Waiting players cannot bank early
+    if (n > 1) {
+      const blocked = classifyPullOut({
+        phase: state.phase,
+        diceSubphase: state.diceSubphase,
+        playerId: "p1",
+        currentRollerId: "p0",
+        diceActiveIds: state.diceActiveIds,
+        pot: state.pots.p1 ?? 0,
+      });
+      expect(blocked.ok).toBe(false);
     }
-    expect(state.diceActiveIds).toEqual(["p0"]);
-    expect(state.diceTurnSeat).toBe(0);
-    expect(state.diceSubphase).toBe("COOLDOWN");
 
-    // Unlock + dangerous seven bust
+    // Current roller banks → seat advances (protected 20 + pot 50)
+    bankCurrent(state);
+    expect(state.diceActiveIds).not.toContain("p0");
+    expect(state.players[0]!.stones).toBe(70);
+    expect(state.diceTurnSeat).toBe(1 % n);
+
+    // Next player (or only remaining) dangerous seven bust
+    // Skip ahead if needed so a still-active player is up
+    let guard = 0;
+    while (
+      guard++ < 20 &&
+      !state.diceActiveIds.includes(state.seatOrder[state.diceTurnSeat]!)
+    ) {
+      state.diceTurnSeat = (state.diceTurnSeat + 1) % n;
+    }
+    const roller = state.seatOrder[state.diceTurnSeat]!;
     state.diceSubphase = "READY";
     const outcome = commitDangerousRoll(state, { d1: 3, d2: 4 });
     expect(outcome.busted).toBe(true);
 
-    // Late bank blocked for committed roller
     const late = classifyPullOut({
       phase: state.phase,
       diceSubphase: state.diceSubphase,
-      playerId: "p0",
-      currentRollerId: "p0",
+      playerId: roller,
+      currentRollerId: roller,
       diceActiveIds: state.diceActiveIds,
-      pot: state.pots.p0 ?? 0,
+      pot: state.pots[roller] ?? 0,
     });
     expect(late.ok).toBe(false);
 
-    // Privacy: no faces in public snapshot mid-air
-    const pub = projectPublicState(state, "p1");
+    const watcher = state.seatOrder.find((id) => id !== roller) ?? roller;
+    const pub = projectPublicState(state, watcher);
     expect(publicStateLeaksBallots(pub)).toBe(false);
     expect(pub.lastDice?.d1).toBeUndefined();
     expect(pub.configuredTopicRounds).toBe(topicRoundsForPlayerCount(n));
 
     reveal(state);
-    expect(state.pots.p0).toBe(0);
-    expect(state.diceActiveIds).toEqual([]);
-    const p0 = state.players.find((p) => p.id === "p0")!;
-    expect(p0.stones).toBe(20); // protected only after bust
-
-    // Banked waiters kept protected+pot
-    for (let i = 1; i < n; i++) {
-      expect(state.players[i]!.stones).toBe(70);
-    }
+    expect(state.pots[roller]).toBe(0);
+    expect(state.diceActiveIds).not.toContain(roller);
+    const rolled = state.players.find((p) => p.id === roller)!;
+    expect(rolled.stones).toBe(20);
   });
 
   it("vote/judge privacy + reject bad client scores path", () => {
@@ -180,9 +191,10 @@ describe.each([2, 3, 6, 10])("full-ish flow N=%i", (n) => {
 
     const rosters = buildAnonymousRosters(
       state.seatOrder,
-      Object.fromEntries(state.seatOrder.map((id) => [id, ["a", "b", "c", "d"]])),
+      Object.fromEntries(
+        state.seatOrder.map((id) => [id, ["a", "b", "c", "d"]]),
+      ),
     );
-    // Fabricated partial client scores must fail validation
     expect(
       validateAndMapJudgments(rosters, [
         {
@@ -195,7 +207,10 @@ describe.each([2, 3, 6, 10])("full-ish flow N=%i", (n) => {
       ]),
     ).toBeNull();
 
-    const neutral = applyVoteCounts(neutralJudgments(rosters), state.humanVotes);
+    const neutral = applyVoteCounts(
+      neutralJudgments(rosters),
+      state.humanVotes,
+    );
     expect(neutral.every((s) => s.aiAward === 20)).toBe(true);
     expect(neutral.find((s) => s.playerId === "p1")!.votes).toBe(1);
   });

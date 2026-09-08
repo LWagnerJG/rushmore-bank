@@ -487,13 +487,15 @@ html.party-on .status-pill-ready {
 }
 @keyframes dice-tray-punch {
   0% {
-    transform: scale(1.04);
+    transform: scale(1.08);
+    filter: brightness(1.12);
   }
-  55% {
-    transform: scale(0.985);
+  40% {
+    transform: scale(0.96);
   }
   100% {
     transform: scale(1);
+    filter: brightness(1);
   }
 }
 .bean-dice-pair {
@@ -520,22 +522,28 @@ html.party-on .status-pill-ready {
   fill: #23483e;
 }
 
-/* Soft green “you’re up” perimeter glow (safe-area aware) */
-.dice-turn-glow {
+/*
+ * Full-phone “you’re up” perimeter glow.
+ * Applied on <html> (not inside animate-rise) so fixed positioning
+ * isn’t trapped by transformed ancestors — edge-to-edge device ring.
+ */
+html.dice-your-turn::after {
+  content: "";
   pointer-events: none;
   position: fixed;
   inset: 0;
-  z-index: 25;
+  z-index: 60;
   border-radius: 0;
   box-shadow:
-    inset 0 0 36px 10px rgba(126, 185, 150, 0.28),
-    inset 0 0 72px 22px rgba(167, 215, 194, 0.18);
+    inset 0 0 0 2.5px rgba(126, 185, 150, 0.7),
+    inset 0 0 18px 6px rgba(167, 215, 194, 0.45),
+    inset 0 0 48px 16px rgba(126, 185, 150, 0.22);
   animation: dice-glow-breathe 2.4s ease-in-out infinite;
 }
 @keyframes dice-glow-breathe {
   0%,
   100% {
-    opacity: 0.72;
+    opacity: 0.78;
   }
   50% {
     opacity: 1;
@@ -550,13 +558,14 @@ html.party-on .status-pill-ready {
 }
 
 .dice-result-readout {
-  min-height: 5.2rem;
+  min-height: 1.25rem;
   text-align: center;
   transition:
     transform 280ms ease,
     opacity 280ms ease;
 }
 .dice-result-readout-on {
+  min-height: 5.2rem;
   animation: dice-result-pop 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 .dice-result-faces {
@@ -596,93 +605,69 @@ html.party-on .status-pill-ready {
   }
 }
 
-/* Dice round table — who’s seated / up / banked at a glance */
-.dice-round-table {
-  display: grid;
-  gap: 0.45rem;
-  border-radius: 1.25rem;
-  border: 1.5px solid rgba(35, 72, 62, 0.16);
-  background:
-    radial-gradient(ellipse at 50% 0%, rgba(167, 215, 194, 0.35), transparent 60%),
-    rgba(255, 255, 255, 0.45);
-  padding: 0.65rem;
+/* Draft ideas — embedded under the board, not a floating drawer */
+.ideas-surface {
+  border-radius: 1.15rem;
+  background: rgba(255, 255, 255, 0.42);
+  padding: 0.85rem 0.75rem 0.95rem;
 }
 
-.dice-seat {
+/* Compact turn strip — who’s up / next / banked, no nested table chrome */
+.dice-turn-strip {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  min-height: 44px;
-  border-radius: 0.85rem;
-  padding: 0.45rem 0.7rem;
-  border: 1.5px solid transparent;
-  background: rgba(255, 255, 255, 0.55);
-  font-size: 0.9rem;
-  transition:
-    background 180ms ease,
-    border-color 180ms ease,
-    transform 180ms ease;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.55rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
-.dice-seat-up {
-  border-color: rgba(35, 72, 62, 0.22);
-  background: linear-gradient(
-    135deg,
-    rgba(167, 215, 194, 0.85),
-    rgba(244, 201, 91, 0.35)
-  );
+.dice-turn-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  min-width: 0;
+  padding: 0.15rem 0.1rem;
+  font-size: 0.85rem;
+  line-height: 1.2;
+}
+
+.dice-turn-chip-name {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 7.5rem;
+}
+
+.dice-turn-chip-meta {
+  font-size: 0.68rem;
   font-weight: 800;
-  box-shadow: 0 2px 0 rgba(35, 72, 62, 0.08);
-}
-
-.dice-seat-next {
-  border-color: rgba(231, 111, 78, 0.28);
-  background: rgba(255, 255, 255, 0.72);
-}
-
-.dice-seat-out {
-  opacity: 0.72;
-}
-
-.dice-seat-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 3.4rem;
-  border-radius: 999px;
-  padding: 0.2rem 0.55rem;
-  font-size: 0.65rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
-  background: rgba(35, 72, 62, 0.1);
+  color: var(--muted);
+}
+
+.dice-turn-chip-up .dice-turn-chip-name {
+  font-weight: 800;
   color: var(--text);
 }
 
-.dice-seat-badge-up {
-  background: var(--text);
-  color: #fff;
-}
-
-.dice-seat-badge-next {
-  background: rgba(231, 111, 78, 0.2);
+.dice-turn-chip-up .dice-turn-chip-meta {
   color: var(--text);
 }
 
-.dice-seat-badge-banked {
-  background: rgba(167, 215, 194, 0.65);
+.dice-turn-chip-up {
+  border-bottom: 2.5px solid var(--mint);
+  padding-bottom: 0.2rem;
 }
 
-.dice-seat-badge-bust {
-  background: rgba(231, 111, 78, 0.28);
+.dice-turn-chip-next .dice-turn-chip-meta {
+  color: var(--coral);
 }
 
-.dice-action-focus {
-  border-radius: 1.25rem;
-  border: 1.5px solid var(--panel-border);
-  background: var(--panel);
-  padding: 1rem 1.05rem 1.05rem;
+.dice-turn-chip-out {
+  opacity: 0.55;
 }
 
 .bean-die {
@@ -696,10 +681,10 @@ html.party-on .status-pill-ready {
 
 @keyframes die-settle {
   0% {
-    transform: translateY(-16px) scale(1.1);
+    transform: translateY(-22px) scale(1.18);
   }
-  55% {
-    transform: translateY(3px) scale(0.96);
+  45% {
+    transform: translateY(4px) scale(0.94);
   }
   100% {
     transform: translateY(0) scale(1);
@@ -710,7 +695,7 @@ html.party-on .status-pill-ready {
   .bean-die-settle,
   .bean-dice-tray-armed,
   .bean-dice-tray-punch,
-  .dice-turn-glow,
+  html.dice-your-turn::after,
   .dice-result-readout-on {
     animation: none !important;
   }

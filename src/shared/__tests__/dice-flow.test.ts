@@ -1,13 +1,13 @@
+/**
+ * Pure banking helpers for dice Bank — current roller only.
+ * Tests document personal continuous turns (roll until Bank/bust).
+ */
 import { describe, expect, it } from "vitest";
 import { applyDiceRoll } from "../engine/dice";
 import { classifyPullOut } from "../engine/banking";
 import { maxWager, applyWager } from "../engine/wager";
 
-/**
- * Pull Out vs Roll atomicity is enforced server-side by diceSubphase.
- * These tests document the pot banking math used by both paths.
- */
-describe("pull out banking", () => {
+describe("bank action", () => {
   it("banks pot into protected", () => {
     const protectedBal = 40;
     const pot = 120;
@@ -22,7 +22,7 @@ describe("pull out banking", () => {
     expect(protectedBal + o.potAfter).toBe(25);
   });
 
-  it("allows banking a zero pot (sit out)", () => {
+  it("allows current roller to bank a zero pot", () => {
     const ok = classifyPullOut({
       phase: "DICE",
       diceSubphase: "READY",
@@ -33,18 +33,59 @@ describe("pull out banking", () => {
     });
     expect(ok.ok).toBe(true);
   });
+
+  it("blocks waiting players from banking", () => {
+    const r = classifyPullOut({
+      phase: "DICE",
+      diceSubphase: "READY",
+      playerId: "b",
+      currentRollerId: "a",
+      diceActiveIds: ["a", "b"],
+      pot: 40,
+    });
+    expect(r.ok).toBe(false);
+  });
 });
 
-describe("round-robin seat advance", () => {
-  it("rotating seats completes a lap when index wraps", () => {
-    const n = 4;
-    let seat = 3;
-    let laps = 0;
-    const prev = seat;
-    seat = (seat + 1) % n;
-    if (seat <= prev) laps += 1;
+describe("personal continuous turn", () => {
+  it("same seat keeps rolling until bank/bust, then advances", () => {
+    const seatOrder = ["a", "b", "c"];
+    let seat = 0;
+    const active = new Set(["a", "b", "c"]);
+    const rolls: Record<string, number> = { a: 0, b: 0, c: 0 };
+    const pots: Record<string, number> = { a: 20, b: 10, c: 30 };
+
+    // Player a rolls twice then banks → seat advances
+    for (let i = 0; i < 2; i++) {
+      const pid = seatOrder[seat]!;
+      rolls[pid]! += 1;
+      const o = applyDiceRoll(pots[pid]!, { d1: 1, d2: 2 }, rolls[pid]!);
+      pots[pid] = o.potAfter;
+      // no seat advance on successful roll
+    }
     expect(seat).toBe(0);
-    expect(laps).toBe(1);
+    expect(rolls.a).toBe(2);
+    active.delete("a"); // banked
+    seat = (seat + 1) % seatOrder.length;
+
+    // b busts on first dangerous roll after two safes
+    while (active.has("b")) {
+      const pid = seatOrder[seat]!;
+      rolls[pid]! += 1;
+      const faces =
+        rolls[pid]! <= 2 ? { d1: 1, d2: 2 } : { d1: 3, d2: 4 };
+      const o = applyDiceRoll(pots[pid]!, faces, rolls[pid]!);
+      pots[pid] = o.potAfter;
+      if (o.busted) {
+        active.delete(pid);
+        seat = (seat + 1) % seatOrder.length;
+      }
+    }
+
+    expect(rolls.b).toBe(3);
+    expect(pots.b).toBe(0);
+    expect(seat).toBe(2);
+    expect(active.has("c")).toBe(true);
   });
 });
 

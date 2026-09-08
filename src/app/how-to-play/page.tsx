@@ -24,17 +24,18 @@ export default function HowToPlayPage() {
       <section className="panel space-y-2">
         <h2 className="font-extrabold">Each topic</h2>
         <ol className="list-decimal space-y-1 pl-5 text-sm">
-          <li>Vote one of four topics (reroll anytime).</li>
+          <li>Vote one of four topics (reroll anytime — no timer).</li>
           <li>
-            Snake draft four answers — type your own, board always on. Lock pick
-            on your turn. Optional private My Ideas while waiting.
+            Snake draft four answers — type your own, board always on. Save
+            ideas while waiting; Lock in on your turn (tap a saved idea to lock).
           </li>
           <li>
             Vote another’s roster (2 players: AI only). Earn beans.
           </li>
           <li>
-            Slider: risk beans (zero still plays). Then round-robin bank —
-            one roll, pass, two safe rolls. Bank anytime.
+            Risk beans on the slider (zero still plays). Then personal bank —
+            keep rolling until you Bank or bust; next player after that. Two
+            safe rolls each.
           </li>
         </ol>
       </section>

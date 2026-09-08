@@ -201,7 +201,7 @@ export interface RoomState {
   diceDecisionDeadlineAt: number | null;
   diceIdleDeadlineAt: number | null;
   diceRoundStartedAt: number | null;
-  /** How many full seat passes completed this dice phase (round-robin) */
+  /** How many full seat passes completed this dice phase */
   diceLapsCompleted: number;
   partyPrompt: PartyPrompt | null;
   ledger: LedgerEntry[];

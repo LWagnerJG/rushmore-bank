@@ -27,7 +27,8 @@ export const RULES = {
   topicRoundsSmallMaxPlayers: 5,
   topicRoundsSmall: 3,
   topicRoundsLarge: 2,
-  topicVoteSeconds: 20,
+  /** Topic vote — no timer; advances when every connected player has voted */
+  topicVoteSeconds: 0,
   /** Soft target session length */
   targetMinutesMin: 25,
   targetMinutesMax: 30,
@@ -55,7 +56,7 @@ export const RULES = {
   /** Wagers — every owned bean is wagerable (E + B) */
   wagerTimeoutSeconds: 20,
 
-  /** Dice — round-robin: one roll then pass around the table */
+  /** Dice — personal turn: keep rolling until Bank or bust, then next seat */
   diceDecisionCountdownSeconds: 5,
   diceIdleBankSeconds: 10,
   /** Shared tumble duration before authoritative reveal */
