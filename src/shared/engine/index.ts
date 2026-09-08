@@ -45,6 +45,7 @@ export {
 } from "./dice-sync";
 export {
   authoritativeFaces,
+  displayFaces,
   resolveDicePresentPhase,
   tumbleDisplayProgress,
   TUMBLE_DISPLAY_CAP,
