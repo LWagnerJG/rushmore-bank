@@ -2,11 +2,10 @@ import { describe, expect, it } from "vitest";
 import { applyDiceRoll } from "../engine/dice";
 import { maxWager, applyWager, wagerFromPreset } from "../engine/wager";
 import { snakeDraftOrder, totalDraftPicks } from "../engine/snake";
-import { RULES } from "../rules";
 
 /**
  * Personal BANK: keep rolling until Bank or bust, then next seat.
- * Everyone re-enters each topic (including zero wagers) with two safe rolls.
+ * Everyone re-enters each topic (including zero wagers). Any 7 busts.
  */
 describe("personal BANK circuit", () => {
   it("does not pass after every throw — only after bank/bust", () => {
@@ -16,11 +15,12 @@ describe("personal BANK circuit", () => {
     const rolls: Record<string, number> = { a: 0, b: 0, c: 0 };
     const pots: Record<string, number> = { a: 20, b: 0, c: 30 };
 
-    // a takes three safe-ish throws then banks
+    // a takes three non-seven throws then banks
     for (let i = 0; i < 3; i++) {
       const pid = seatOrder[seat]!;
       rolls[pid]! += 1;
       const o = applyDiceRoll(pots[pid]!, { d1: 1, d2: 2 }, rolls[pid]!);
+      expect(o.busted).toBe(false);
       pots[pid] = o.potAfter;
     }
     expect(seat).toBe(0);
@@ -44,7 +44,7 @@ describe("personal BANK circuit", () => {
   });
 });
 
-describe("wager + safe rolls", () => {
+describe("wager + any-seven bust", () => {
   it("max wager is full balance E+B", () => {
     expect(maxWager(40, 100)).toBe(140);
     expect(wagerFromPreset("all_new", 40, 30)).toBe(40);
@@ -53,10 +53,9 @@ describe("wager + safe rolls", () => {
     expect(locked.protected).toBe(20);
   });
 
-  it("keeps two safe personal rolls", () => {
-    expect(RULES.safePersonalRolls).toBe(2);
-    const safe = applyDiceRoll(10, { d1: 3, d2: 4 }, 1);
-    expect(safe.busted).toBe(false);
-    expect(safe.potAfter).toBe(10 + RULES.sevenSafeBonus);
+  it("first personal roll totaling 7 busts", () => {
+    const first = applyDiceRoll(10, { d1: 3, d2: 4 }, 1);
+    expect(first.busted).toBe(true);
+    expect(first.potAfter).toBe(0);
   });
 });

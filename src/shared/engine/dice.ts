@@ -1,16 +1,9 @@
-import { RULES } from "../rules";
-
 export interface DiceFaces {
   d1: number;
   d2: number;
 }
 
-export type DiceOutcomeKind =
-  | "safe_seven"
-  | "safe_sum"
-  | "bust"
-  | "double_pot"
-  | "add_sum";
+export type DiceOutcomeKind = "bust" | "double_pot" | "add_sum";
 
 export interface DiceOutcome {
   kind: DiceOutcomeKind;
@@ -38,8 +31,8 @@ export function isValidFaces(d1: number, d2: number): boolean {
 /**
  * Apply one personal 2d6 roll to a pot.
  *
- * Rolls 1–2 (safe): seven → +70; else +sum (doubles simply add both faces).
- * Rolls 3+: seven → bust pot=0; doubles → double pot (no add faces); else +sum.
+ * Any total of 7 → bust (pot=0), including the first roll of a turn.
+ * Doubles → double pot (no add faces). Else → +sum.
  */
 export function applyDiceRoll(
   pot: number,
@@ -53,40 +46,7 @@ export function applyDiceRoll(
   }
   const total = d1 + d2;
   const isDoubles = d1 === d2;
-  const safe = personalRollNumber <= RULES.safePersonalRolls;
 
-  if (safe) {
-    if (total === 7) {
-      const potAfter = potBefore + RULES.sevenSafeBonus;
-      return {
-        kind: "safe_seven",
-        potBefore,
-        potAfter,
-        delta: RULES.sevenSafeBonus,
-        total,
-        isDoubles,
-        personalRollNumber,
-        busted: false,
-        note: `Safe seven → +${RULES.sevenSafeBonus}`,
-      };
-    }
-    const potAfter = potBefore + total;
-    return {
-      kind: "safe_sum",
-      potBefore,
-      potAfter,
-      delta: total,
-      total,
-      isDoubles,
-      personalRollNumber,
-      busted: false,
-      note: isDoubles
-        ? `Safe doubles → +${d1}+${d2}`
-        : `Safe roll → +${total}`,
-    };
-  }
-
-  // Dangerous rolls (3+)
   if (total === 7) {
     return {
       kind: "bust",
@@ -97,7 +57,7 @@ export function applyDiceRoll(
       isDoubles,
       personalRollNumber,
       busted: true,
-      note: "Seven — bust! Pot wiped.",
+      note: "BEAN BUSTER — pot wiped.",
     };
   }
   if (isDoubles) {

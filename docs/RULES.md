@@ -70,10 +70,10 @@ pot = W
 
 - After wagers, **every seated player** enters dice — including W=0.
 - **Personal continuous turn**: when you’re up, keep rolling until you **Bank** or **bust**. Do **not** pass after each roll. After bank/bust, the next active seat gets their own continuous turn. Waiting players watch.
-- Personal safe counts reset each topic. First **2** personal rolls are safe.
 - 2d6. Outcomes affect **only** the roller.
-- Rolls 1–2 (safe): seven → **+70**; else **+sum** (doubles add faces).
-- Rolls 3+: seven → **bust** pot=0 exit; doubles → **double pot** (no add faces); else **+sum**.
+- **Any total of 7 is a bust** (pot=0, exit turn) — including the **first roll** of a player’s turn. No safe-first / freebie seven.
+- On bust the UI announces **BEAN BUSTER**.
+- Doubles → **double pot** (no add faces); else → **+sum**.
 - **Bank** is the only exit action (current roller only). Zero pot may Bank (keep protected).
 - First turn of a seat: countdown 5s → unlock Roll. Same player continuing after a non-bust roll unlocks Roll immediately. Idle 10s → auto Bank.
 - Atomic Roll vs Bank.
@@ -82,8 +82,8 @@ pot = W
 
 ### Worked path (tests)
 
-Protected **95**. Pot path: `105 → 175` (safe seven) → `187` (safe 6+6) → `374` (dangerous doubles).  
-Banking that pot yields **95 + 374 = 469** total beans — **469 is the banked total, not the next dice pot**.
+Protected **95**. Example pot: start **105**; first-roll doubles `6+6` → **210**; add `1+2` → **213**.  
+Banking that pot yields **95 + 213 = 308** total beans. First-roll `3+4` (seven) → **BEAN BUSTER**, pot **0**.
 
 ## Party Mode
 
@@ -94,7 +94,7 @@ Banking that pot yields **95 + 374 = 469** total beans — **469 is the banked t
 
 ## Superseded (do not implement)
 
-Bets on roster winning, individual-pick side bets, quarter-step multipliers, 4× cap, shared pots/busts, round-robin one-roll-then-pass BANK (replaced by personal continuous turn until Bank/bust), waiting-player early Bank, topic vote countdown, PREP countdown phase, dice mute toggle.
+Bets on roster winning, individual-pick side bets, quarter-step multipliers, 4× cap, shared pots/busts, round-robin one-roll-then-pass BANK (replaced by personal continuous turn until Bank/bust), waiting-player early Bank, topic vote countdown, PREP countdown phase, dice mute toggle, **safe first 2 rolls / +70 safe seven**.
 
 ## Architecture notes
 

@@ -118,16 +118,20 @@ describe("bank classification (current roller only)", () => {
   });
 });
 
-describe("banking math + 469 worked example", () => {
-  it("protected 95 + pot 374 banks to 469 total Stones (not next pot)", () => {
-    let pot = 105;
-    pot = applyDiceRoll(pot, { d1: 3, d2: 4 }, 1).potAfter; // 175
-    pot = applyDiceRoll(pot, { d1: 6, d2: 6 }, 2).potAfter; // 187
-    pot = applyDiceRoll(pot, { d1: 2, d2: 2 }, 3).potAfter; // 374
-    expect(pot).toBe(374);
-    const banked = bankPotIntoProtected({ protectedStones: 95, pot });
-    expect(banked.stonesAfter).toBe(469);
-    expect(banked.potBanked).toBe(374);
+describe("banking math + worked example", () => {
+  it("protected 95 + pot 210 banks to 305; first-roll seven busts", () => {
+    const doubles = applyDiceRoll(105, { d1: 6, d2: 6 }, 1);
+    expect(doubles.potAfter).toBe(210);
+    const banked = bankPotIntoProtected({
+      protectedStones: 95,
+      pot: doubles.potAfter,
+    });
+    expect(banked.stonesAfter).toBe(305);
+    expect(banked.potBanked).toBe(210);
+
+    const bust = applyDiceRoll(105, { d1: 3, d2: 4 }, 1);
+    expect(bust.busted).toBe(true);
+    expect(bust.potAfter).toBe(0);
   });
 
   it("duplicate bank credits once conceptually (pot cleared)", () => {
@@ -351,10 +355,18 @@ describe("synchronized dice animation", () => {
     expect(ALL_FACE_PAIRS).toHaveLength(36);
     for (const [d1, d2] of ALL_FACE_PAIRS) {
       const faces = { d1, d2 };
-      const safe = applyDiceRoll(100, faces, 1);
-      expect(safe.potAfter).toBeGreaterThanOrEqual(100);
-      const danger = applyDiceRoll(100, faces, 3);
-      expect(Number.isFinite(danger.potAfter)).toBe(true);
+      const first = applyDiceRoll(100, faces, 1);
+      const later = applyDiceRoll(100, faces, 3);
+      expect(Number.isFinite(first.potAfter)).toBe(true);
+      expect(Number.isFinite(later.potAfter)).toBe(true);
+      if (d1 + d2 === 7) {
+        expect(first.busted).toBe(true);
+        expect(first.potAfter).toBe(0);
+        expect(later.busted).toBe(true);
+      } else {
+        expect(first.busted).toBe(false);
+        expect(first.potAfter).toBeGreaterThanOrEqual(100);
+      }
     }
   });
 });
@@ -375,9 +387,9 @@ describe("session length: choices vs rounds", () => {
     expect(RULES.pickClockSeconds).toBe(30);
   });
 
-  it("dice is personal continuous turn with two safe rolls", () => {
-    expect(RULES.safePersonalRolls).toBe(2);
+  it("dice is personal continuous turn; any seven busts", () => {
     expect(RULES.diceAnimMs).toBe(2400);
+    expect(RULES).not.toHaveProperty("safePersonalRolls");
   });
 
   it("topic selection has no countdown", () => {

@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
 import { DiceScene } from "@/components/dice/DiceScene";
-import { RULES } from "@/shared/rules";
 import { classifyPullOut } from "@/shared/engine/banking";
 import { haptic } from "@/lib/haptics";
 import { ensureDiceAudio, playBankChime } from "@/lib/dice-sfx";
@@ -59,7 +58,6 @@ export function DicePanel({
   const myTurn = rollerId === youId;
   const pot = state.pots[youId] ?? 0;
   const active = state.diceActiveIds.includes(youId);
-  const personal = state.personalRollCounts[youId] ?? 0;
   const rolling = state.diceSubphase === "COMMITTED";
   const canBank =
     you.role === "player" &&
@@ -308,13 +306,6 @@ export function DicePanel({
                   {state.protectedStones[youId] ?? you.stones}
                 </strong>{" "}
                 safe
-                {myTurn && personal < RULES.safePersonalRolls ? (
-                  <>
-                    <br />
-                    {RULES.safePersonalRolls - personal} safe roll
-                    {RULES.safePersonalRolls - personal === 1 ? "" : "s"} left
-                  </>
-                ) : null}
               </p>
             )}
           </div>

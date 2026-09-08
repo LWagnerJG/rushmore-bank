@@ -16,7 +16,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        BEAN BUSTER + personal BANK polish → {RULES.productionUrl}
+        BEAN BUSTER + any-7 bust → {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -52,9 +52,10 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>BEAN BUSTER</strong> — on seven-bust, roller + spectators
-            get a clear shared moment (header + result readout), not a buried
-            status line. Party sip prompt uses the same wording.
+            <strong>BEAN BUSTER</strong> — any roll totaling 7 busts (including
+            first roll of a turn). No safe-first / +70 freebie. Roller +
+            spectators get a clear shared moment; pot wiped; turn ends; next
+            seat. Party sip uses the same wording.
           </li>
           <li>
             <strong>BANK rule</strong> — personal continuous turn: keep rolling
@@ -91,9 +92,9 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">Follow-ups</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            PartyKit unchanged for BEAN BUSTER (UI-only). Prior personal BANK
-            turn model still needs <code>npm run deploy:party</code> if not
-            already deployed.
+            <strong>Redeploy PartyKit required</strong> — any-7 bust lives in
+            shared engine used by <code>party/server.ts</code>. Run{" "}
+            <code>npm run deploy:party</code>.
           </li>
         </ul>
       </section>

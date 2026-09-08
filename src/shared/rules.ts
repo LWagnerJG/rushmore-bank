@@ -61,9 +61,6 @@ export const RULES = {
   diceIdleBankSeconds: 10,
   /** Shared tumble duration before authoritative reveal */
   diceAnimMs: 2400,
-  safePersonalRolls: 2,
-  /** On safe rolls, a seven awards this instead of face sum */
-  sevenSafeBonus: 70,
   /** AI judging HTTP timeout */
   judgeTimeoutMs: 20000,
 

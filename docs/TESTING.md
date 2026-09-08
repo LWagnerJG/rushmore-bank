@@ -5,7 +5,7 @@
 - Snake draft completeness for N=3..10 (4 picks each; forward/reverse passes)
 - Scoring: `earned = 20 + ai + 5*votes`
 - Wager: `max = E + min(25,B)`; presets; protected balance
-- Dice: `105 → 175 → 187 → 374` then sum / bust
+- Dice: any seven busts (incl. first roll); doubles double pot; add-sum / bust
 - Topic bank ≥ 120
 - Pull-out banking + settlement lap helpers
 

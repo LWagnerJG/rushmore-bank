@@ -44,7 +44,7 @@ npm run dev
 1. Create / Join with a nickname. Share code, link, or QR.
 2. Snake draft 4 answers (**Lock in**). Type your own; save private ideas while waiting. Board stays on screen.
 3. Vote for another’s roster; AI judges all. Everyone earns beans.
-4. Slider: how many beans to risk. Then personal **bank** turns — keep rolling until Bank or bust (2 safe rolls). Waiting players watch.
+4. Slider: how many beans to risk. Then personal **bank** turns — keep rolling until Bank or bust (**any 7**, including first roll). Waiting players watch.
 5. Most banked beans wins.
 
 Full rules: [`docs/RULES.md`](docs/RULES.md).
