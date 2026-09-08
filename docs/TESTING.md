@@ -44,7 +44,7 @@ Room `SMK3` measured ~19s for one compressed topic (host skip review; pull-out p
 
 ## Timing notes
 
-- Round-robin BANK (one roll then pass; everyone enters including W=0)
+- Personal BANK (keep rolling until Bank/bust; everyone enters including W=0)
 - Target session: 25–30 minutes (design), not hard-enforced
 - Host failover window: 20s
 - Dice decision countdown 5s; idle bank 10s

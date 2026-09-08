@@ -4,20 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
 import type { TopicScope } from "@/shared/topics";
 
-function Countdown({ until }: { until: number | null }) {
-  const [left, setLeft] = useState(0);
-  useEffect(() => {
-    if (!until) return;
-    const tick = () =>
-      setLeft(Math.max(0, Math.ceil((until - Date.now()) / 1000)));
-    tick();
-    const t = setInterval(tick, 250);
-    return () => clearInterval(t);
-  }, [until]);
-  if (!until) return null;
-  return <span className="tabular-nums">{left}s</span>;
-}
-
 export function TopicPanel({
   state,
   you,
@@ -50,14 +36,9 @@ export function TopicPanel({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-baseline justify-between gap-2">
-        <h2 className="font-[family-name:var(--font-display)] text-xl font-extrabold">
-          Topic · {state.topicRound + 1}/{state.configuredTopicRounds}
-        </h2>
-        <span className="text-sm font-bold tabular-nums text-[var(--muted)]">
-          <Countdown until={state.phaseDeadlineAt} />
-        </span>
-      </div>
+      <h2 className="font-[family-name:var(--font-display)] text-xl font-extrabold">
+        Topic · {state.topicRound + 1}/{state.configuredTopicRounds}
+      </h2>
 
       <div
         className={`space-y-2 ${refreshing ? "topic-refresh" : ""}`}

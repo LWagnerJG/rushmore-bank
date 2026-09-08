@@ -1,5 +1,5 @@
 /**
- * Pure banking helpers for dice Pull Out — waiting vs current roller.
+ * Pure banking helpers for dice Bank — current roller only.
  */
 export interface BankResult {
   stonesAfter: number;
@@ -17,12 +17,13 @@ export function bankPotIntoProtected(opts: {
   };
 }
 
-export type PullOutKind = "current_roller" | "waiting_player";
+export type PullOutKind = "current_roller";
 
 /**
- * Decide whether a Pull Out may proceed and which path to take.
+ * Decide whether Bank may proceed.
+ * Only the current roller may bank; waiting players watch the table.
  * Own committed roll blocks banking until settle.
- * Zero pots may bank (sit out) — everyone re-enters each topic.
+ * Zero pots may bank (exit with protected only).
  */
 export function classifyPullOut(opts: {
   phase: string;
@@ -37,21 +38,18 @@ export function classifyPullOut(opts: {
     return { ok: false, reason: "Not active" };
   }
 
-  const isCurrent = opts.currentRollerId === opts.playerId;
-
-  if (isCurrent) {
-    if (opts.diceSubphase === "COMMITTED") {
-      return { ok: false, reason: "Roll already committed — wait for settle" };
-    }
-    if (
-      opts.diceSubphase !== "READY" &&
-      opts.diceSubphase !== "COOLDOWN"
-    ) {
-      return { ok: false, reason: "Cannot pull out now" };
-    }
-    return { ok: true, kind: "current_roller" };
+  if (opts.currentRollerId !== opts.playerId) {
+    return { ok: false, reason: "Wait your turn" };
   }
 
-  // Waiting players may bank during another player's cooldown, ready, or animation.
-  return { ok: true, kind: "waiting_player" };
+  if (opts.diceSubphase === "COMMITTED") {
+    return { ok: false, reason: "Roll already committed — wait for settle" };
+  }
+  if (
+    opts.diceSubphase !== "READY" &&
+    opts.diceSubphase !== "COOLDOWN"
+  ) {
+    return { ok: false, reason: "Cannot bank now" };
+  }
+  return { ok: true, kind: "current_roller" };
 }

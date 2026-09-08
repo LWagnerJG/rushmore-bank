@@ -17,9 +17,6 @@ import {
 } from "@/lib/dice-sfx";
 import { haptic } from "@/lib/haptics";
 
-const SETTLE_MS = 520;
-const SOUND_KEY = "beans:dice-sound";
-
 function DieShell({
   elementRef,
   index,
@@ -104,6 +101,20 @@ function paint(element: SVGSVGElement | null, projection: DieProjection) {
   }
 }
 
+function paintRest(
+  dieA: SVGSVGElement | null,
+  dieB: SVGSVGElement | null,
+  d1: number,
+  d2: number,
+) {
+  paint(dieA, projectDie({ face: d1, index: 0 }));
+  paint(dieB, projectDie({ face: d2, index: 1 }));
+}
+
+/**
+ * Dice tray — tumble while rolling; on settle SNAP to authoritative faces
+ * (no post-settle face morph/flip). Subtle SFX without a mute toggle.
+ */
 export function DiceScene({
   broadcast,
   reducedMotion,
@@ -119,30 +130,11 @@ export function DiceScene({
 }) {
   const dieA = useRef<SVGSVGElement>(null);
   const dieB = useRef<SVGSVGElement>(null);
-  const [sound, setSound] = useState(() => {
-    if (typeof window === "undefined") return false;
-    try {
-      return window.sessionStorage.getItem(SOUND_KEY) === "1";
-    } catch {
-      return false;
-    }
-  });
   const audio = useRef<AudioContext | null>(null);
   const sounded = useRef<string | null>(null);
   const rollStarted = useRef<string | null>(null);
   const lastTick = useRef(0);
-  const lastTumble = useRef<
-    [
-      { rx: number; ry: number; rz: number; x: number; y: number },
-      { rx: number; ry: number; rz: number; x: number; y: number },
-    ]
-  >([
-    { rx: 0, ry: 0, rz: 0, x: -1.15, y: 0.55 },
-    { rx: 0, ry: 0, rz: 0, x: 1.15, y: 0.55 },
-  ]);
-  const settleFrom = useRef(0);
   const settleRollId = useRef<string | null>(null);
-  const [settleTick, setSettleTick] = useState(0);
   const [punch, setPunch] = useState(false);
 
   const rolling = !!broadcast && !broadcast.revealed;
@@ -151,99 +143,86 @@ export function DiceScene({
   const seed = broadcast?.animSeed ?? 0;
   const started = broadcast?.animStartedAt ?? 0;
   const settled = broadcast?.animSettleAt ?? 0;
-  const d1 = revealed ? (broadcast?.d1 ?? 1) : 1;
-  const d2 = revealed ? (broadcast?.d2 ?? 1) : 1;
-  const total = d1 + d2;
+  // Faces only when revealed — never invent a “settled” face during tumble.
+  const d1 = broadcast?.d1;
+  const d2 = broadcast?.d2;
+  const total =
+    revealed && d1 != null && d2 != null ? d1 + d2 : null;
 
   useLayoutEffect(() => {
-    if (!revealed || !rollId || reducedMotion) return;
-    if (settleRollId.current === rollId) return;
+    if (!revealed || !rollId || d1 == null || d2 == null) return;
+    if (settleRollId.current === rollId) {
+      // Already snapped this roll — keep authoritative rest pose.
+      paintRest(dieA.current, dieB.current, d1, d2);
+      return;
+    }
     settleRollId.current = rollId;
-    settleFrom.current = Date.now();
+
+    // Snap immediately to authoritative faces — no lerp from tumble (that caused the flip).
+    paintRest(dieA.current, dieB.current, d1, d2);
+
+    if (reducedMotion) return;
+
     const kick = window.setTimeout(() => {
-      setSettleTick((n) => n + 1);
       setPunch(true);
       haptic(busted ? "bust" : "settle");
+      for (const el of [dieA.current, dieB.current]) {
+        el?.classList.remove("bean-die-settle");
+        void el?.getBoundingClientRect();
+        el?.classList.add("bean-die-settle");
+      }
     }, 0);
-    const clearPunch = window.setTimeout(() => setPunch(false), 700);
-    for (const el of [dieA.current, dieB.current]) {
-      el?.classList.remove("bean-die-settle");
-      void el?.getBoundingClientRect();
-      el?.classList.add("bean-die-settle");
-    }
+    const clearPunch = window.setTimeout(() => setPunch(false), 780);
     return () => {
       window.clearTimeout(kick);
       window.clearTimeout(clearPunch);
     };
-  }, [revealed, rollId, reducedMotion, busted]);
+  }, [revealed, rollId, reducedMotion, busted, d1, d2]);
 
   useLayoutEffect(() => {
     if (!dieA.current || !dieB.current) return;
 
     if (!broadcast) {
-      paint(dieA.current, projectDie({ face: 1, index: 0 }));
-      paint(dieB.current, projectDie({ face: 1, index: 1 }));
+      paintRest(dieA.current, dieB.current, 1, 1);
       return;
     }
 
     if (reducedMotion) {
-      paint(dieA.current, projectDie({ face: d1, index: 0 }));
-      paint(dieB.current, projectDie({ face: d2, index: 1 }));
+      if (revealed && d1 != null && d2 != null) {
+        paintRest(dieA.current, dieB.current, d1, d2);
+      } else {
+        paintRest(dieA.current, dieB.current, 1, 1);
+      }
       return;
     }
 
-    if (rolling) {
-      if (sound && !audio.current) {
-        void ensureDiceAudio().then((ctx) => {
-          audio.current = ctx;
-        });
-      }
-      if (rollStarted.current !== rollId) {
-        rollStarted.current = rollId ?? null;
-        if (sound) playRollStart(audio.current);
-      }
-      let frame = 0;
-      const tick = () => {
-        const raw = animProgress(Date.now(), started, settled);
-        const progress = Math.min(0.9, raw);
-        const now = Date.now();
-        if (sound && now - lastTick.current > 160 && progress < 0.85) {
-          lastTick.current = now;
-          playRollTick(audio.current);
-        }
-        for (const index of [0, 1] as const) {
-          const pose = tumblePose(progress, seed, index);
-          lastTumble.current[index] = pose;
-          paint(
-            index ? dieB.current : dieA.current,
-            projectDie({ face: 1, index, tumble: pose }),
-          );
-        }
-        frame = requestAnimationFrame(tick);
-      };
-      frame = requestAnimationFrame(tick);
-      return () => cancelAnimationFrame(frame);
-    }
+    // Settled — authoritative paint owned by settle effect above.
+    if (revealed) return;
 
+    // Tumbling: face-agnostic spin (fixed base face); never “settle” mid-air.
     let frame = 0;
-    const from = settleFrom.current || Date.now();
+    if (rollStarted.current !== rollId) {
+      rollStarted.current = rollId ?? null;
+      void ensureDiceAudio().then((ctx) => {
+        audio.current = ctx;
+        playRollStart(ctx);
+      });
+    }
     const tick = () => {
-      const t = Math.min(1, (Date.now() - from) / SETTLE_MS);
-      const ease = 1 - Math.pow(1 - t, 3);
+      const progress = Math.min(0.92, animProgress(Date.now(), started, settled));
+      const now = Date.now();
+      if (now - lastTick.current > 160 && progress < 0.85) {
+        lastTick.current = now;
+        playRollTick(audio.current);
+      }
       for (const index of [0, 1] as const) {
-        const face = index ? d2 : d1;
-        const tumble = lastTumble.current[index];
+        const pose = tumblePose(progress, seed, index);
         paint(
           index ? dieB.current : dieA.current,
-          projectDie({
-            face,
-            index,
-            tumble: t < 1 ? tumble : undefined,
-            settle: ease,
-          }),
+          projectDie({ face: 1, index, tumble: pose }),
         );
       }
-      if (t < 1) frame = requestAnimationFrame(tick);
+      frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
@@ -258,53 +237,24 @@ export function DiceScene({
     settled,
     d1,
     d2,
-    settleTick,
-    sound,
   ]);
 
   useEffect(() => {
-    if (!broadcast?.revealed || !sound || sounded.current === broadcast.rollId)
-      return;
+    if (!broadcast?.revealed || sounded.current === broadcast.rollId) return;
+    if (broadcast.d1 == null || broadcast.d2 == null) return;
     sounded.current = broadcast.rollId;
-    playSettle(audio.current, { busted: !!busted });
-  }, [broadcast, sound, busted]);
-
-  useEffect(
-    () => () => {
-      // Keep shared AudioContext for the session; no forced close.
-    },
-    [],
-  );
-
-  async function toggleSound() {
-    if (!sound) {
-      const ctx = await ensureDiceAudio();
-      if (!ctx) return;
+    void ensureDiceAudio().then((ctx) => {
       audio.current = ctx;
-      try {
-        window.sessionStorage.setItem(SOUND_KEY, "1");
-      } catch {
-        /* ignore */
-      }
-      setSound(true);
-      return;
-    }
-    try {
-      window.sessionStorage.setItem(SOUND_KEY, "0");
-    } catch {
-      /* ignore */
-    }
-    setSound(false);
-  }
+      playSettle(ctx, { busted: !!busted });
+    });
+  }, [broadcast, busted]);
 
   async function handleRoll() {
     if (!canRoll) return;
     haptic("tap_roll");
-    if (sound) {
-      const ctx = await ensureDiceAudio();
-      audio.current = ctx;
-      playRollStart(ctx);
-    }
+    const ctx = await ensureDiceAudio();
+    audio.current = ctx;
+    playRollStart(ctx);
     onRoll();
   }
 
@@ -312,7 +262,7 @@ export function DiceScene({
     ? "Dice rolling; result pending"
     : canRoll
       ? "Tap dice to roll"
-      : revealed
+      : revealed && total != null
         ? `Dice show ${d1} and ${d2}, total ${total}`
         : "Two dice ready";
 
@@ -324,7 +274,8 @@ export function DiceScene({
     busted && revealed ? "bean-dice-tray-bust" : "",
   ]
     .filter(Boolean)
-    .join(" ");
+    .join(" ")
+    .trim();
 
   return (
     <div className="relative">
@@ -346,14 +297,6 @@ export function DiceScene({
             Rolling…
           </span>
         )}
-      </button>
-      <button
-        type="button"
-        className="absolute right-2 top-2 z-10 min-h-11 rounded-full bg-black/25 px-3 text-xs font-bold text-white/90"
-        aria-pressed={sound}
-        onClick={() => void toggleSound()}
-      >
-        {sound ? "Sound on" : "Sound off"}
       </button>
     </div>
   );

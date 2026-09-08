@@ -23,7 +23,6 @@ export function DraftPanel({
 }) {
   const [selection, setSelection] = useState("");
   const [queue, setQueue] = useState<string[]>([]);
-  const [ideasOpen, setIdeasOpen] = useState(true);
   const [saveFailed, setSaveFailed] = useState(false);
   const [busy, setBusy] = useState(false);
   const pending = useRef<{ text: string; turn: number } | null>(null);
@@ -61,7 +60,6 @@ export function DraftPanel({
     const timer = setTimeout(() => {
       setSelection("");
       setBusy(false);
-      // Drop used idea from private queue
       setQueue((prev) => {
         const next = prev.filter(
           (item) => normalizePick(item) !== normalizePick(submitted.text),
@@ -102,6 +100,7 @@ export function DraftPanel({
     )
       return;
     persist([...queue, clean]);
+    setSelection("");
   }
 
   function lock(text = selection) {
@@ -129,17 +128,40 @@ export function DraftPanel({
     setSelection(text);
   }
 
+  function primaryAction() {
+    if (myTurn) lock();
+    else addToQueue(selection);
+  }
+
+  const canPrimary = myTurn
+    ? Boolean(
+        selection.trim() &&
+          !selectedTaken &&
+          !state.pickPaused &&
+          !busy,
+      )
+    : Boolean(
+        selection.trim() &&
+          !selectedTaken &&
+          queue.length < 40 &&
+          !queue.some(
+            (item) => normalizePick(item) === normalizePick(selection),
+          ),
+      );
+
   const turnHint =
     state.phase === "CORRECTION"
       ? `Replace the ${state.correctionReason} pick`
       : myTurn
-        ? "Type below or tap an idea"
+        ? queue.length
+          ? "Tap an idea or type below"
+          : "Type your answer"
         : upcoming < 0
           ? "Your four are in"
           : `You’re up in ${upcoming}`;
 
   return (
-    <div className="space-y-3 pb-36">
+    <div className="space-y-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
       <header className="space-y-2">
         <h2 className="font-[family-name:var(--font-display)] text-xl font-extrabold leading-tight">
           {state.selectedTopic?.text}
@@ -171,152 +193,98 @@ export function DraftPanel({
       />
 
       {you.role === "player" && (
-        <div className="space-y-2">
+        <section className="ideas-surface space-y-3" aria-label="Your ideas">
+          {queue.length > 0 && (
+            <ul className="flex flex-wrap gap-2">
+              {queue.map((text) => {
+                const taken = state.takenNormalized.includes(
+                  normalizePick(text),
+                );
+                const canLock =
+                  myTurn && !taken && !state.pickPaused && !busy;
+                return (
+                  <li key={text} className="flex max-w-full items-center">
+                    <button
+                      type="button"
+                      className={`max-w-[14rem] truncate rounded-full px-3 py-2 text-sm transition ${
+                        taken
+                          ? "bg-white/40 text-[var(--muted)] line-through"
+                          : canLock
+                            ? "bg-[var(--yellow)] font-extrabold text-[var(--text)] ring-2 ring-[var(--text)]"
+                            : selection.trim() === text
+                              ? "bg-[var(--mint)] font-bold text-[var(--text)]"
+                              : "bg-white/75 font-bold text-[var(--text)]"
+                      }`}
+                      disabled={taken}
+                      aria-label={
+                        canLock
+                          ? `Lock in ${text}`
+                          : taken
+                            ? `${text} already taken`
+                            : `Use ${text}`
+                      }
+                      onClick={() => applyIdea(text)}
+                    >
+                      {text}
+                    </button>
+                    <button
+                      type="button"
+                      className="ml-0.5 flex h-9 w-9 items-center justify-center rounded-full text-lg text-[var(--muted)]"
+                      aria-label={`Remove ${text}`}
+                      onClick={() =>
+                        persist(queue.filter((item) => item !== text))
+                      }
+                    >
+                      ×
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+
+          <label className="sr-only" htmlFor="selected-pick">
+            Your draft pick
+          </label>
+          <input
+            id="selected-pick"
+            className="field w-full text-base"
+            placeholder={myTurn ? "Type your answer" : "Save an idea for later"}
+            value={selection}
+            maxLength={48}
+            autoComplete="off"
+            onChange={(e) => setSelection(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") primaryAction();
+            }}
+          />
+          {selectedTaken && (
+            <p className="text-sm font-bold" role="status">
+              Taken — try another.
+            </p>
+          )}
+          {saveFailed && (
+            <p className="text-xs text-[var(--muted)]" role="status">
+              Ideas won’t survive a reload.
+            </p>
+          )}
+
           <button
             type="button"
-            className="flex min-h-11 w-full items-center justify-between rounded-xl bg-white/60 px-3 text-sm font-bold"
-            aria-expanded={ideasOpen}
-            onClick={() => setIdeasOpen((open) => !open)}
+            className={
+              myTurn
+                ? "btn-primary w-full text-lg"
+                : "btn-secondary w-full text-lg"
+            }
+            disabled={!canPrimary}
+            onClick={() => primaryAction()}
           >
-            <span>
-              My Ideas{queue.length ? ` (${queue.length})` : ""}
-              {myTurn && queue.length > 0 ? (
-                <span className="ml-2 text-xs font-semibold text-[var(--coral)]">
-                  tap to lock
-                </span>
-              ) : null}
-            </span>
-            <span aria-hidden>{ideasOpen ? "▴" : "▾"}</span>
+            {myTurn
+              ? busy
+                ? "Locking…"
+                : "Lock in"
+              : "Save idea"}
           </button>
-          {ideasOpen && (
-            <section className="space-y-2" aria-label="Private idea queue">
-              {queue.length === 0 ? (
-                <p className="text-sm text-[var(--muted)]">
-                  Queue answers while you wait — private to you.
-                </p>
-              ) : (
-                <ul className="max-h-44 overflow-y-auto rounded-xl bg-white/60">
-                  {queue.map((text) => {
-                    const taken = state.takenNormalized.includes(
-                      normalizePick(text),
-                    );
-                    const canLock =
-                      myTurn && !taken && !state.pickPaused && !busy;
-                    return (
-                      <li
-                        key={text}
-                        className="flex items-center border-b border-[var(--mint)] last:border-0"
-                      >
-                        <button
-                          type="button"
-                          className={`min-h-12 min-w-0 flex-1 break-words px-3 py-3 text-left text-sm transition ${
-                            taken
-                              ? "line-through opacity-45"
-                              : canLock
-                                ? "font-extrabold text-[var(--text)] active:bg-[var(--yellow)]"
-                                : "font-bold text-[var(--muted)]"
-                          }`}
-                          disabled={taken}
-                          aria-label={
-                            canLock
-                              ? `Lock in ${text}`
-                              : taken
-                                ? `${text} already taken`
-                                : `Use ${text} in the input`
-                          }
-                          onClick={() => applyIdea(text)}
-                        >
-                          {text}
-                          {taken
-                            ? " · taken"
-                            : canLock
-                              ? " · lock"
-                              : ""}
-                        </button>
-                        <button
-                          type="button"
-                          className="min-h-12 min-w-12 text-xl text-[var(--muted)]"
-                          aria-label={`Remove ${text}`}
-                          onClick={() =>
-                            persist(queue.filter((item) => item !== text))
-                          }
-                        >
-                          ×
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-              {saveFailed && (
-                <p className="text-xs" role="status">
-                  Ideas won’t survive a reload.
-                </p>
-              )}
-            </section>
-          )}
-        </div>
-      )}
-
-      {you.role === "player" && (
-        <section className="fixed inset-x-0 bottom-0 z-20 border-t border-[var(--mint)] bg-[var(--bg)]/95 px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 backdrop-blur">
-          <div className="mx-auto max-w-md space-y-2">
-            <label className="sr-only" htmlFor="selected-pick">
-              Your draft pick
-            </label>
-            <input
-              id="selected-pick"
-              className="field w-full text-base"
-              placeholder={myTurn ? "Type your answer" : "Type while you wait"}
-              value={selection}
-              maxLength={48}
-              autoComplete="off"
-              onChange={(e) => setSelection(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") lock();
-              }}
-            />
-            {selectedTaken && (
-              <p className="text-sm font-bold" role="status">
-                Taken — try another.
-              </p>
-            )}
-            <div className="flex gap-2">
-              <button
-                type="button"
-                className="btn-primary flex-[2] text-lg"
-                disabled={
-                  !myTurn ||
-                  !selection.trim() ||
-                  selectedTaken ||
-                  state.pickPaused ||
-                  busy
-                }
-                onClick={() => lock()}
-              >
-                {busy ? "Locking…" : "Lock pick"}
-              </button>
-              <button
-                type="button"
-                className="btn-secondary flex-1"
-                disabled={
-                  !selection.trim() ||
-                  selectedTaken ||
-                  queue.length >= 40 ||
-                  queue.some(
-                    (item) =>
-                      normalizePick(item) === normalizePick(selection),
-                  )
-                }
-                onClick={() => {
-                  addToQueue(selection);
-                  setIdeasOpen(true);
-                }}
-              >
-                Queue
-              </button>
-            </div>
-          </div>
         </section>
       )}
     </div>

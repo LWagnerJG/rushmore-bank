@@ -1,5 +1,5 @@
 /**
- * Local regression: waiting-player Pull Out + reject client AI scores.
+ * Local regression: waiting Bank rejected + current Bank advances seat.
  * Requires partykit + next on 1999/3000 with NEXT_PUBLIC_PARTYKIT_HOST=127.0.0.1:1999
  */
 import PartySocket from "partysocket";
@@ -132,31 +132,48 @@ async function main() {
 
   const rollerId = a.state!.seatOrder[a.state!.diceTurnSeat];
   const waiter = [a, b, c].find((x) => x.youId !== rollerId)!;
-  const revBefore = a.state!.phaseRevision;
+  const roller = [a, b, c].find((x) => x.youId === rollerId)!;
   const seatBefore = a.state!.diceTurnSeat;
-  const deadlineBefore = a.state!.diceDecisionDeadlineAt;
   console.log("dice", a.state!.diceSubphase, "roller", rollerId, "waiter", waiter.youId);
 
-  // Waiter banks during cooldown/ready
   await waiter.wait(
     () =>
       waiter.state?.diceSubphase === "COOLDOWN" ||
       waiter.state?.diceSubphase === "READY",
   );
+  // Waiting players cannot bank early
+  waiter.lastError = null;
   waiter.send({ type: "pull_out" });
-  await waiter.wait(() => !waiter.state!.diceActiveIds.includes(waiter.youId));
+  await waiter.wait(() => waiter.lastError !== null, 5000);
+  if (!waiter.lastError?.toLowerCase().includes("wait")) {
+    throw new Error(`expected wait-your-turn reject, got ${waiter.lastError}`);
+  }
+  if (!waiter.state!.diceActiveIds.includes(waiter.youId)) {
+    throw new Error("waiter should still be active");
+  }
   if (waiter.state!.diceTurnSeat !== seatBefore) {
-    throw new Error("waiting bank advanced seat");
+    throw new Error("rejected waiting bank should not advance seat");
   }
-  if (waiter.state!.diceDecisionDeadlineAt !== deadlineBefore && waiter.state!.diceSubphase === "COOLDOWN") {
-    // deadline object may refresh only on bump — phaseRevision may bump but seat must hold
-  }
-  if (!waiter.state!.diceActiveIds.includes(rollerId!)) {
-    throw new Error("waiting bank removed roller");
-  }
-  console.log("OK waiting Pull Out; seat still", waiter.state!.diceTurnSeat, "rev", waiter.state!.phaseRevision, "was", revBefore);
+  console.log("OK waiting Bank rejected:", waiter.lastError);
 
-  // Current roller can still be there
+  // Current roller Banks → seat advances
+  await roller.wait(
+    () =>
+      roller.state?.diceSubphase === "READY" ||
+      roller.state?.diceSubphase === "COOLDOWN",
+  );
+  // Unlock if still in cooldown
+  if (roller.state!.diceSubphase === "COOLDOWN") {
+    await roller.wait(() => roller.state?.diceSubphase === "READY", 8000);
+  }
+  roller.send({ type: "pull_out" });
+  await roller.wait(() => !roller.state!.diceActiveIds.includes(roller.youId));
+  if (roller.state!.diceTurnSeat === seatBefore && roller.state!.diceActiveIds.length > 0) {
+    // Seat should have moved unless round already ended
+    throw new Error("current Bank should advance seat");
+  }
+  console.log("OK current Bank advanced; seat", roller.state!.diceTurnSeat);
+
   console.log("SMOKE_WAIT_BANK_OK");
   process.exit(0);
 }

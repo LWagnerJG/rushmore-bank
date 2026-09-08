@@ -310,18 +310,18 @@ export function DicePanel({
             <p className="text-sm font-semibold text-[var(--muted)]">
               You’re out this round — watch the table.
             </p>
-          ) : (
+          ) : myTurn ? (
             <button
               className="btn-secondary w-full"
               disabled={!canBank || busy}
               onClick={() => void bank()}
             >
-              {pot === 0
-                ? "Bank out"
-                : myTurn
-                  ? `Bank ${pot}`
-                  : `Bank ${pot} · sit out`}
+              {pot === 0 ? "Bank" : `Bank ${pot}`}
             </button>
+          ) : (
+            <p className="text-center text-sm font-semibold text-[var(--muted)]">
+              Watching · {roller?.name ?? "Player"} is up
+            </p>
           )}
         </section>
       )}

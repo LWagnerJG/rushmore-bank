@@ -563,12 +563,9 @@ export default class QuarryServer implements Party.Server {
     this.state.notice = null;
     bump(this.state);
     this.spinShortlist();
-    this.state.phaseDeadlineAt =
-      Date.now() + RULES.topicVoteSeconds * 1000;
-    await this.setAlarmAt(this.state.phaseDeadlineAt, {
-      kind: "phase",
-      revision: this.state.phaseRevision,
-    });
+    // No topic timer — players pick calmly; advances when all have voted.
+    this.state.phaseDeadlineAt = null;
+    await this.clearAlarm();
   }
 
   spinShortlist() {
@@ -599,12 +596,9 @@ export default class QuarryServer implements Party.Server {
     }
     this.spinShortlist();
     bump(this.state);
-    this.state.phaseDeadlineAt =
-      Date.now() + RULES.topicVoteSeconds * 1000;
-    await this.setAlarmAt(this.state.phaseDeadlineAt, {
-      kind: "phase",
-      revision: this.state.phaseRevision,
-    });
+    // Reroll does not start a countdown either.
+    this.state.phaseDeadlineAt = null;
+    await this.clearAlarm();
   }
 
   async handleCustomTopic(
@@ -1236,7 +1230,7 @@ export default class QuarryServer implements Party.Server {
     });
   }
 
-  /** Round-robin: one seat forward after each roll / current-roller bank. */
+  /** Advance to the next seat after the current player banks or busts. */
   advanceDiceSeat() {
     const n = this.state.seatOrder.length;
     if (n === 0) return;
@@ -1245,6 +1239,18 @@ export default class QuarryServer implements Party.Server {
     if (this.state.diceTurnSeat <= prev) {
       this.state.diceLapsCompleted += 1;
     }
+  }
+
+  /** Same player keeps rolling — skip decision countdown, unlock Roll. */
+  async continueSamePlayerTurn() {
+    this.state.diceSubphase = "READY";
+    this.state.diceDecisionDeadlineAt = null;
+    this.state.diceIdleDeadlineAt =
+      Date.now() + RULES.diceIdleBankSeconds * 1000;
+    await this.setAlarmAt(this.state.diceIdleDeadlineAt, {
+      kind: "dice_idle",
+      revision: this.state.phaseRevision,
+    });
   }
 
   async handleRoll(id: string) {
@@ -1332,6 +1338,7 @@ export default class QuarryServer implements Party.Server {
 
   async afterDiceAnim() {
     if (this.state.phase !== "DICE") return;
+    const busted = this.state.lastDice?.busted === true;
     this.revealCommittedDice();
 
     if (this.state.diceActiveIds.length === 0) {
@@ -1339,10 +1346,14 @@ export default class QuarryServer implements Party.Server {
       return;
     }
 
-    // Round-robin: always pass to the next seat after one throw.
-    this.advanceDiceSeat();
+    // Personal BANK: keep rolling until bank or bust; only then next seat.
     bump(this.state);
-    await this.startDiceTurn();
+    if (busted) {
+      this.advanceDiceSeat();
+      await this.startDiceTurn();
+    } else {
+      await this.continueSamePlayerTurn();
+    }
   }
 
   bankPlayer(id: string, note: string) {
@@ -1376,16 +1387,6 @@ export default class QuarryServer implements Party.Server {
       pot: this.state.pots[id] ?? 0,
     });
     if (!classified.ok) throw new Error(classified.reason);
-
-    if (classified.kind === "waiting_player") {
-      // Bank without touching shared countdown, animation, or seat.
-      this.bankPlayer(id, "Bank (waiting)");
-      if (this.state.diceActiveIds.length === 0) {
-        await this.clearAlarm();
-        await this.beginRoundResults();
-      }
-      return;
-    }
 
     this.bankPlayer(id, "Bank");
     bump(this.state);
@@ -1825,7 +1826,7 @@ export default class QuarryServer implements Party.Server {
   async onPhaseTimeout() {
     switch (this.state.phase) {
       case "TOPIC_SELECTION":
-        await this.tallyTopicVotes();
+        // No auto-advance — topic pick has no timer.
         break;
       case "REVIEW":
         await this.beginVoting();

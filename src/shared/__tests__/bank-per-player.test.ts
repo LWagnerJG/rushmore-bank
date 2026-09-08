@@ -5,33 +5,36 @@ import { snakeDraftOrder, totalDraftPicks } from "../engine/snake";
 import { RULES } from "../rules";
 
 /**
- * Round-robin BANK: one roll then pass. Everyone re-enters each topic
- * (including zero wagers) with two safe personal rolls.
+ * Personal BANK: keep rolling until Bank or bust, then next seat.
+ * Everyone re-enters each topic (including zero wagers) with two safe rolls.
  */
-describe("round-robin BANK circuit", () => {
-  it("advances seat after every throw (not solo mini-rounds)", () => {
+describe("personal BANK circuit", () => {
+  it("does not pass after every throw — only after bank/bust", () => {
     const seatOrder = ["a", "b", "c"];
     let seat = 0;
     const active = new Set(["a", "b", "c"]);
     const rolls: Record<string, number> = { a: 0, b: 0, c: 0 };
     const pots: Record<string, number> = { a: 20, b: 0, c: 30 };
 
-    // Simulate three passes around the table (one roll each when active)
-    for (let i = 0; i < 6; i++) {
+    // a takes three safe-ish throws then banks
+    for (let i = 0; i < 3; i++) {
       const pid = seatOrder[seat]!;
-      if (active.has(pid)) {
-        rolls[pid]! += 1;
-        const o = applyDiceRoll(pots[pid]!, { d1: 1, d2: 2 }, rolls[pid]!);
-        pots[pid] = o.potAfter;
-      }
-      seat = (seat + 1) % seatOrder.length;
+      rolls[pid]! += 1;
+      const o = applyDiceRoll(pots[pid]!, { d1: 1, d2: 2 }, rolls[pid]!);
+      pots[pid] = o.potAfter;
     }
+    expect(seat).toBe(0);
+    expect(rolls.a).toBe(3);
+    active.delete("a");
+    seat = (seat + 1) % seatOrder.length;
 
-    expect(rolls.a).toBe(2);
-    expect(rolls.b).toBe(2);
-    expect(rolls.c).toBe(2);
-    // Zero wager still got safe rolls
+    // b (zero wager) still gets a continuous turn
+    expect(seatOrder[seat]).toBe("b");
+    rolls.b! += 1;
+    const o = applyDiceRoll(pots.b!, { d1: 2, d2: 3 }, rolls.b!);
+    pots.b = o.potAfter;
     expect(pots.b).toBeGreaterThan(0);
+    expect(active.has("c")).toBe(true);
   });
 
   it("snake draft still covers 4 picks for N=2..10", () => {

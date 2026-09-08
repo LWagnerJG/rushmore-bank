@@ -487,13 +487,15 @@ html.party-on .status-pill-ready {
 }
 @keyframes dice-tray-punch {
   0% {
-    transform: scale(1.04);
+    transform: scale(1.08);
+    filter: brightness(1.12);
   }
-  55% {
-    transform: scale(0.985);
+  40% {
+    transform: scale(0.96);
   }
   100% {
     transform: scale(1);
+    filter: brightness(1);
   }
 }
 .bean-dice-pair {
@@ -603,6 +605,13 @@ html.dice-your-turn::after {
   }
 }
 
+/* Draft ideas — embedded under the board, not a floating drawer */
+.ideas-surface {
+  border-radius: 1.15rem;
+  background: rgba(255, 255, 255, 0.42);
+  padding: 0.85rem 0.75rem 0.95rem;
+}
+
 /* Compact turn strip — who’s up / next / banked, no nested table chrome */
 .dice-turn-strip {
   display: flex;
@@ -672,10 +681,10 @@ html.dice-your-turn::after {
 
 @keyframes die-settle {
   0% {
-    transform: translateY(-16px) scale(1.1);
+    transform: translateY(-22px) scale(1.18);
   }
-  55% {
-    transform: translateY(3px) scale(0.96);
+  45% {
+    transform: translateY(4px) scale(0.94);
   }
   100% {
     transform: translateY(0) scale(1);
