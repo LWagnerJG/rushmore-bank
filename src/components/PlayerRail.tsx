@@ -45,7 +45,7 @@ function PlayerChip({
 }) {
   return (
     <div
-      className={`player-chip min-w-[4.5rem] rounded-xl px-3 py-2 ${
+      className={`player-chip min-w-[5rem] rounded-xl px-3 py-2 ${
         you
           ? "bg-[var(--coral)] text-white"
           : "bg-white/80 text-[var(--text)]"
@@ -53,15 +53,15 @@ function PlayerChip({
     >
       <div className="flex items-center gap-1 text-[0.7rem] font-bold leading-tight">
         {player.isHost && <span title="Host">★</span>}
-        <span className="truncate">{player.name}</span>
+        <span className="max-w-[6.5rem] truncate">{player.name}</span>
       </div>
-      <div className="mt-0.5 flex items-baseline gap-1">
-        <span className="font-[family-name:var(--font-display)] text-base font-extrabold tabular-nums leading-none">
+      <div className="mt-1 flex items-baseline gap-1.5">
+        <span className="font-[family-name:var(--font-display)] text-lg font-extrabold tabular-nums leading-none">
           {player.stones}
         </span>
         {earned != null && earned > 0 ? (
           <span
-            className={`text-[0.65rem] font-extrabold tabular-nums ${
+            className={`text-xs font-extrabold tabular-nums ${
               you ? "text-white/90" : "text-[var(--coral)]"
             }`}
           >

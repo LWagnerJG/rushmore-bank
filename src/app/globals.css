@@ -353,6 +353,13 @@ html.party-on .panel {
 
 .player-chip {
   box-shadow: 0 2px 8px rgba(35, 72, 62, 0.06);
+  min-width: 5rem;
+}
+
+.player-rail {
+  max-height: 5.5rem;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .wager-slider {

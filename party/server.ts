@@ -1767,6 +1767,7 @@ export default class QuarryServer implements Party.Server {
         this.state.phase = "VOTING_AND_JUDGING";
         this.state.phaseDeadlineAt =
           Date.now() + RULES.humanVoteSeconds * 1000;
+        this.adminSeedVoteWhys();
         bump(this.state);
         await this.setAlarmAt(this.state.phaseDeadlineAt, {
           kind: "phase",
@@ -1918,8 +1919,16 @@ export default class QuarryServer implements Party.Server {
         .map((pk) => pk.text);
     }
     const rosters = buildAnonymousRosters(this.state.seatOrder, picksByPlayer);
+    const sampleWhys = [
+      "Sharp range and clear topic fit — memorable Mount Rushmore.",
+      "Solid variety with a few stretches; still fun to debate.",
+      "Cohesive list that leans hard into the theme.",
+      "Playful picks with good contrast across the four slots.",
+    ];
     this.state.scores = neutralJudgments(rosters).map((s, i) => ({
       ...s,
+      explanation: sampleWhys[i % sampleWhys.length]!,
+      aiFallback: false,
       earned: 20 + (s.aiAward ?? 20),
       votes: i === 0 ? 1 : 0,
     }));
@@ -1927,6 +1936,34 @@ export default class QuarryServer implements Party.Server {
       this.state.scores.map((s) => [s.playerId, s.earned]),
     );
     this.state.scoresLocked = true;
+    this.state.judgeStatus = "ready";
+    this.state.judgeNotice = null;
+  }
+  adminSeedVoteWhys() {
+    if (this.state.scores.length > 0) return;
+    const picksByPlayer: Record<string, string[]> = {};
+    for (const pid of this.state.seatOrder) {
+      picksByPlayer[pid] = this.state.picks
+        .filter((pk) => pk.playerId === pid)
+        .sort((a, b) => a.pickIndex - b.pickIndex)
+        .map((pk) => pk.text);
+    }
+    const rosters = buildAnonymousRosters(this.state.seatOrder, picksByPlayer);
+    const sampleWhys = [
+      "Sharp range and clear topic fit — memorable Mount Rushmore.",
+      "Solid variety with a few stretches; still fun to debate.",
+      "Cohesive list that leans hard into the theme.",
+      "Playful picks with good contrast across the four slots.",
+    ];
+    this.state.scores = neutralJudgments(rosters).map((s, i) => ({
+      ...s,
+      explanation: sampleWhys[i % sampleWhys.length]!,
+      aiFallback: false,
+      earned: 0,
+      votes: 0,
+    }));
+    this.state.scoresLocked = false;
+    this.state.judgeStatus = "ready";
   }
 
   adminSeedDice() {
