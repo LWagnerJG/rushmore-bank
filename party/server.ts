@@ -9,6 +9,7 @@ import {
   type ClientMessage,
   type HostSettings,
   type LedgerEntry,
+  type Phase,
   type Player,
   type PublicRoomState,
   type RoomState,
@@ -116,6 +117,22 @@ function connectedPlayers(state: RoomState): Player[] {
 
 function bump(state: RoomState) {
   state.phaseRevision += 1;
+}
+
+const ADMIN_PIN = "8989";
+const BOT_NAMES = [
+  "Ava",
+  "Sam",
+  "Kai",
+  "Remy",
+  "Jules",
+  "Quinn",
+  "Noah",
+  "Eli",
+];
+
+function assertAdminPin(pin: string) {
+  if (pin !== ADMIN_PIN) throw new Error("Nope");
 }
 
 function ledgerPush(
@@ -420,6 +437,12 @@ export default class QuarryServer implements Party.Server {
         await this.handleAdvance(id);
         return;
       case "dice_ready_ack":
+        return;
+      case "admin_spawn_bots":
+        this.handleAdminSpawnBots(msg.pin, msg.count);
+        return;
+      case "admin_jump_phase":
+        await this.handleAdminJumpPhase(msg.pin, msg.phase);
         return;
       default:
         throw new Error("Unknown action");
@@ -1489,6 +1512,298 @@ export default class QuarryServer implements Party.Server {
     this.ensureHost();
     bump(this.state);
     await this.clearAlarm();
+  }
+
+  handleAdminSpawnBots(pin: string, count: number) {
+    assertAdminPin(pin);
+    const n = Math.max(1, Math.min(8, Math.floor(count) || 1));
+    const existingBots = this.state.players.filter((p) =>
+      p.id.startsWith("bot-"),
+    ).length;
+    let added = 0;
+    for (let i = 0; i < n; i++) {
+      const players = this.state.players.filter((p) => p.role === "player");
+      if (players.length >= RULES.maxPlayers) break;
+      if (this.state.rosterLocked) {
+        // Mid-game: only add if we can append to seat order (debug only).
+        // Prefer adding before lock; if locked, still inject for testing.
+      }
+      const idx = existingBots + added;
+      const name = `Bot ${BOT_NAMES[idx % BOT_NAMES.length]}${idx >= BOT_NAMES.length ? idx : ""}`;
+      const id = `bot-${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 6)}`;
+      const isFirst = players.length === 0;
+      this.state.players.push({
+        id,
+        name,
+        stones: RULES.startBalance,
+        connected: true,
+        isHost: isFirst,
+        role: "player",
+        seat: null,
+        joinedAt: Date.now(),
+      });
+      if (this.state.rosterLocked) {
+        const seat = this.state.seatOrder.length;
+        const p = this.state.players.find((x) => x.id === id)!;
+        p.seat = seat;
+        this.state.seatOrder.push(id);
+        this.state.earnedThisRound[id] = this.state.earnedThisRound[id] ?? 20;
+        this.state.pots[id] = this.state.pots[id] ?? 0;
+        this.state.protectedStones[id] =
+          this.state.protectedStones[id] ?? p.stones;
+        this.state.personalRollCounts[id] = 0;
+        if (
+          this.state.phase === "DICE" &&
+          !this.state.diceActiveIds.includes(id)
+        ) {
+          this.state.diceActiveIds.push(id);
+        }
+      }
+      added += 1;
+    }
+    this.state.notice = added
+      ? `Admin · added ${added} fake player${added === 1 ? "" : "s"}`
+      : "Admin · room full";
+    bump(this.state);
+  }
+
+  async handleAdminJumpPhase(pin: string, phase: Phase) {
+    assertAdminPin(pin);
+    await this.adminEnsureRoster();
+    await this.clearAlarm();
+    this.state.notice = `Admin · jumped to ${phase}`;
+    this.state.partyPrompt = null;
+    this.state.pickPaused = false;
+
+    switch (phase) {
+      case "LOBBY":
+        this.state.phase = "LOBBY";
+        this.state.rosterLocked = false;
+        this.state.seatOrder = [];
+        this.state.players = this.state.players.map((p) => ({
+          ...p,
+          seat: null,
+        }));
+        this.state.phaseDeadlineAt = null;
+        bump(this.state);
+        return;
+      case "TOPIC_SELECTION":
+        await this.beginTopicSelection();
+        return;
+      case "DRAFT":
+        await this.adminEnsureTopic();
+        await this.beginDraft();
+        return;
+      case "CORRECTION":
+        await this.adminEnsureTopic();
+        await this.adminFillPicks();
+        this.state.phase = "CORRECTION";
+        this.state.correctionReason = "invalid";
+        this.state.draftCursor = 0;
+        bump(this.state);
+        await this.startPickClock();
+        return;
+      case "REVIEW":
+        await this.adminEnsureTopic();
+        await this.adminFillPicks();
+        this.state.phase = "REVIEW";
+        this.state.phaseDeadlineAt =
+          Date.now() + RULES.reviewSeconds * 1000;
+        bump(this.state);
+        await this.setAlarmAt(this.state.phaseDeadlineAt, {
+          kind: "phase",
+          revision: this.state.phaseRevision,
+        });
+        return;
+      case "VOTING_AND_JUDGING":
+        await this.adminEnsureTopic();
+        await this.adminFillPicks();
+        this.state.humanVotes = {};
+        this.state.scores = [];
+        this.state.scoresLocked = false;
+        this.state.judgeStatus = "idle";
+        this.state.judgeNotice = null;
+        this.state.phase = "VOTING_AND_JUDGING";
+        this.state.phaseDeadlineAt =
+          Date.now() + RULES.humanVoteSeconds * 1000;
+        bump(this.state);
+        await this.setAlarmAt(this.state.phaseDeadlineAt, {
+          kind: "phase",
+          revision: this.state.phaseRevision,
+        });
+        return;
+      case "SCORE_REVEAL":
+        await this.adminEnsureTopic();
+        await this.adminFillPicks();
+        this.adminFillScores();
+        this.state.phase = "SCORE_REVEAL";
+        this.state.scoresLocked = true;
+        this.state.judgeStatus = "ready";
+        this.state.judgeNotice = null;
+        this.state.phaseDeadlineAt = null;
+        bump(this.state);
+        return;
+      case "WAGER_SELECTION":
+        await this.adminEnsureTopic();
+        await this.adminFillPicks();
+        this.adminFillScores();
+        await this.beginWagers();
+        return;
+      case "DICE":
+        await this.adminEnsureTopic();
+        await this.adminFillPicks();
+        this.adminFillScores();
+        this.adminSeedDice();
+        await this.beginDice();
+        // Skip cooldown for faster testing
+        await this.unlockRoll();
+        return;
+      case "ROUND_RESULTS":
+        await this.adminEnsureTopic();
+        await this.adminFillPicks();
+        this.adminFillScores();
+        this.state.phase = "ROUND_RESULTS";
+        this.state.diceSubphase = "SETTLED";
+        this.state.phaseDeadlineAt = null;
+        bump(this.state);
+        return;
+      case "GAME_RESULTS":
+        await this.adminEnsureTopic();
+        await this.adminFillPicks();
+        this.adminFillScores();
+        this.state.phase = "GAME_RESULTS";
+        this.state.gameOver = true;
+        this.state.phaseDeadlineAt = null;
+        bump(this.state);
+        return;
+      default:
+        throw new Error("Unknown phase");
+    }
+  }
+
+  async adminEnsureRoster() {
+    // Need at least 2 players for most phases
+    while (
+      this.state.players.filter((p) => p.role === "player").length <
+      RULES.minPlayers
+    ) {
+      this.handleAdminSpawnBots(ADMIN_PIN, 1);
+    }
+    if (!this.state.rosterLocked || this.state.seatOrder.length === 0) {
+      const hopeful = this.state.players.filter((p) => p.role === "player");
+      const shuffled = [...hopeful];
+      this.state.players = this.state.players.map((p) => {
+        if (p.role !== "player") return { ...p, seat: null };
+        const idx = shuffled.findIndex((s) => s.id === p.id);
+        return { ...p, seat: idx };
+      });
+      this.state.seatOrder = shuffled.map((p) => p.id);
+      this.state.rosterLocked = true;
+      this.state.starterOffset = 0;
+      this.state.topicRound = Math.max(0, this.state.topicRound);
+      this.state.configuredTopicRounds = topicRoundsForPlayerCount(
+        shuffled.length,
+      );
+      this.state.checkpoint = {
+        stones: Object.fromEntries(
+          seatedPlayers(this.state).map((p) => [p.id, p.stones]),
+        ),
+        topicRound: this.state.topicRound,
+      };
+    }
+  }
+
+  async adminEnsureTopic() {
+    if (!this.state.selectedTopic) {
+      this.spinShortlist();
+      const opt = this.state.topicOptions[0];
+      if (!opt) throw new Error("No topics");
+      this.state.selectedTopic = opt;
+      if (!opt.isCustom) this.state.usedTopicIds.push(opt.id);
+    }
+  }
+
+  async adminFillPicks() {
+    const fillers = [
+      "Coffee",
+      "Rain",
+      "Dogs",
+      "Pizza",
+      "Sunrise",
+      "Vinyl",
+      "Maps",
+      "Socks",
+    ];
+    let turn = 0;
+    for (let pass = 0; pass < RULES.picksPerPlayer; pass++) {
+      for (const pid of this.state.seatOrder) {
+        const have = this.state.picks.filter((p) => p.playerId === pid).length;
+        if (have > pass) {
+          turn += 1;
+          continue;
+        }
+        const text = `${fillers[(turn + pass) % fillers.length]} ${pass + 1}`;
+        const norm = normalizePick(text);
+        if (!this.state.takenNormalized.includes(norm)) {
+          this.state.takenNormalized.push(norm);
+        }
+        this.state.picks.push({
+          playerId: pid,
+          text,
+          pickIndex: pass,
+          turnIndex: turn,
+        });
+        turn += 1;
+      }
+    }
+    this.state.draftOrder = snakeDraftOrder(
+      this.state.seatOrder.length,
+      RULES.picksPerPlayer,
+      this.state.starterOffset,
+    );
+    this.state.draftCursor = this.state.draftOrder.length;
+  }
+
+  adminFillScores() {
+    const picksByPlayer: Record<string, string[]> = {};
+    for (const pid of this.state.seatOrder) {
+      picksByPlayer[pid] = this.state.picks
+        .filter((pk) => pk.playerId === pid)
+        .sort((a, b) => a.pickIndex - b.pickIndex)
+        .map((pk) => pk.text);
+    }
+    const rosters = buildAnonymousRosters(this.state.seatOrder, picksByPlayer);
+    this.state.scores = neutralJudgments(rosters).map((s, i) => ({
+      ...s,
+      earned: 20 + (s.aiAward ?? 20),
+      votes: i === 0 ? 1 : 0,
+    }));
+    this.state.earnedThisRound = Object.fromEntries(
+      this.state.scores.map((s) => [s.playerId, s.earned]),
+    );
+    this.state.scoresLocked = true;
+  }
+
+  adminSeedDice() {
+    this.state.wagers = {};
+    this.state.pots = {};
+    this.state.protectedStones = {};
+    this.state.personalRollCounts = {};
+    this.state.diceActiveIds = [];
+    this.state.lastDice = null;
+    for (const pid of this.state.seatOrder) {
+      const p = this.state.players.find((x) => x.id === pid)!;
+      const E = this.state.earnedThisRound[pid] ?? 20;
+      const B = p.stones;
+      const W = Math.min(10, E + B);
+      const locked = applyWager({ banked: B, earned: E, wager: W });
+      this.state.wagers[pid] = W;
+      this.state.protectedStones[pid] = locked.protected;
+      this.state.pots[pid] = locked.pot;
+      this.state.personalRollCounts[pid] = 0;
+      p.stones = locked.bankedAfter;
+      this.state.diceActiveIds.push(pid);
+    }
   }
 
   handleVoidTopic(id: string) {

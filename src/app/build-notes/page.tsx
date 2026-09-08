@@ -16,8 +16,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Dice feel — perimeter glow, tap-to-roll, reveal punch, SFX/haptics →{" "}
-        {RULES.productionUrl}
+        Full iPhone polish + home tighten + secret admin → {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -37,7 +36,7 @@ export default function BuildNotesPage() {
             ) : null}
             <li>
               Target: production <code>roundacats.vercel.app</code> via merge to{" "}
-              <code>main</code>. PartyKit host stays{" "}
+              <code>main</code>. PartyKit host{" "}
               <code>rushmore-bank.lwagnerjg.partykit.dev</code>.
             </li>
           </ul>
@@ -53,58 +52,51 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            Prior polish: cream iOS status bar, Gemini friendly notices, round-table
-            dice, draft sticky timer + host Pause/+15s, topics settle, ideas
-            tap-to-lock, no PartyKit errors to players.
+            <strong>A · Status bar</strong> — cream theme-color, viewport-fit=cover,
+            black-translucent, safe-area padding.
           </li>
           <li>
-            <strong>Your-turn glow</strong> — soft mint perimeter glow while it’s
-            your dice turn; off after bank/bust/waiting.
+            <strong>B · Gemini</strong> — retry/backoff + flash fallbacks; friendly
+            “Judge unavailable · neutral award.” only.
           </li>
           <li>
-            <strong>Tap dice to roll</strong> — dice tray is the primary hit target;
-            big Roll button removed; Bank remains.
+            <strong>C · Dice</strong> — round table; tap-to-roll; your-turn mint
+            glow; dramatic reveal; SFX + haptics.
           </li>
           <li>
-            <strong>Dramatic reveal</strong> — stronger settle punch, large total
-            readout, brief hero beat with dimmed table.
+            <strong>D · Draft</strong> — sticky timer; host-only Pause/+15s; ideas
+            tap-to-lock.
           </li>
           <li>
-            <strong>SFX + haptics</strong> — roll/settle/bank sounds (mute toggle);
-            Vibration API for turn/tap/settle/bank/bust (no-op if unsupported).
+            <strong>E · Topics</strong> — no slide-up jump on land.
+          </li>
+          <li>
+            <strong>F · Errors</strong> — “Connection lost — retrying”; never
+            PartyKit/infra to players.
+          </li>
+          <li>
+            <strong>G · Home</strong> — tighter create/join card, less chrome.
+          </li>
+          <li>
+            <strong>H · Secret admin</strong> — logo ×5 → PIN unlock (session);
+            discrete room panel to jump phases + spawn fake players. Not
+            advertised on home.
+          </li>
+          <li>
+            Preserved: Beans, 4 topics + reroll, no PREP, round-robin BANK,
+            Gemini judging, PartyKit host{" "}
+            <code>rushmore-bank.lwagnerjg.partykit.dev</code>.
           </li>
         </ul>
-      </section>
-
-      <section className="panel space-y-2 text-sm">
-        <h2 className="font-extrabold">Production</h2>
-        <p>
-          <a
-            href={RULES.productionUrl}
-            className="font-bold text-[var(--coral)] underline"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            {RULES.productionUrl}
-          </a>
-        </p>
-        <p className="text-[var(--muted)]">
-          DEFAULT_PARTYKIT_HOST ={" "}
-          <code>rushmore-bank.lwagnerjg.partykit.dev</code>
-        </p>
       </section>
 
       <section className="panel space-y-2 text-sm">
         <h2 className="font-extrabold">Follow-ups</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            This dice-feel commit is <strong>client-only</strong> — no new PartyKit
-            code. If PartyKit was not redeployed after the prior judge-notice
-            sanitize, still run <code>npm run deploy:party</code>.
-          </li>
-          <li>
-            AI judging needs <code>GEMINI_API_KEY</code> + matching{" "}
-            <code>JUDGE_SECRET</code>.
+            <strong>Redeploy PartyKit required</strong> — admin spawn/jump + judge
+            notice sanitize live in <code>party/server.ts</code>. Run{" "}
+            <code>npm run deploy:party</code>.
           </li>
         </ul>
       </section>

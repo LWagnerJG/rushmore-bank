@@ -309,7 +309,10 @@ export type ClientMessage =
   | { type: "void_topic"; actionId?: string }
   | { type: "advance"; actionId?: string }
   | { type: "host_heartbeat"; actionId?: string }
-  | { type: "skip_review"; actionId?: string };
+  | { type: "skip_review"; actionId?: string }
+  /** Secret admin — PIN gated on server; not advertised in UI. */
+  | { type: "admin_spawn_bots"; pin: string; count: number; actionId?: string }
+  | { type: "admin_jump_phase"; pin: string; phase: Phase; actionId?: string };
 
 export type ServerMessage =
   | { type: "state"; state: PublicRoomState; youId: string }

@@ -16,6 +16,7 @@ import { WagerPanel } from "@/components/WagerPanel";
 import { DicePanel } from "@/components/DicePanel";
 import { ResultsPanel } from "@/components/ResultsPanel";
 import { PlayerRail } from "@/components/PlayerRail";
+import { AdminPanel } from "@/components/AdminPanel";
 
 function DraftBannerClock({
   until,
@@ -286,6 +287,7 @@ export function RoomClient({
       )}
 
       <div className="animate-rise flex-1">{body}</div>
+      <AdminPanel send={send} currentPhase={phase} />
     </main>
   );
 }

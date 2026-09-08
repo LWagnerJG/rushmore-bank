@@ -237,15 +237,11 @@ html.party-on .brand-shimmer {
   box-shadow: 0 2px 0 rgba(35, 72, 62, 0.15);
 }
 
-.panel {
-  border-radius: 1.15rem;
-  background: var(--panel);
-  border: 1.5px solid var(--panel-border);
-  padding: 1rem;
-  transition:
-    background 220ms ease,
-    border-color 220ms ease,
-    box-shadow 220ms ease;
+.home-card {
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid rgba(35, 72, 62, 0.08);
+  padding: 0.85rem 0.9rem;
 }
 
 html.party-on .panel {
