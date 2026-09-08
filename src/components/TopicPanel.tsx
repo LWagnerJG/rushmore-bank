@@ -44,15 +44,10 @@ export function TopicPanel({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <h2 className="font-[family-name:var(--font-display)] text-xl font-extrabold">
-            Pick a topic
-          </h2>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            Round {state.topicRound + 1} of {state.configuredTopicRounds}
-          </p>
-        </div>
+      <div className="flex items-baseline justify-between gap-2">
+        <h2 className="font-[family-name:var(--font-display)] text-xl font-extrabold">
+          Topic · {state.topicRound + 1}/{state.configuredTopicRounds}
+        </h2>
         <span className="text-sm font-bold tabular-nums text-[var(--muted)]">
           <Countdown until={state.phaseDeadlineAt} />
         </span>
@@ -72,17 +67,15 @@ export function TopicPanel({
               onClick={() => send({ type: "vote_topic", topicId: t.id })}
               disabled={you.role !== "player"}
             >
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="font-extrabold text-base">{t.text}</p>
-                  <p className="mt-1 text-xs text-[var(--muted)]">
-                    {t.scopeBoundary}
-                  </p>
-                </div>
-                <span className="rounded-full bg-[var(--mint)] px-2.5 py-1 text-xs font-bold">
+              <div className="flex items-center justify-between gap-3">
+                <p className="font-extrabold text-base leading-snug">{t.text}</p>
+                <span className="shrink-0 rounded-full bg-[var(--mint)] px-2.5 py-1 text-xs font-bold tabular-nums">
                   {votes}
                 </span>
               </div>
+              {selected && t.scopeBoundary ? (
+                <p className="mt-1.5 text-xs text-[var(--muted)]">{t.scopeBoundary}</p>
+              ) : null}
             </button>
           );
         })}
@@ -99,8 +92,8 @@ export function TopicPanel({
       )}
 
       {you.isHost && (
-        <div className="panel space-y-2">
-          <p className="text-xs font-bold">Custom topic</p>
+        <details className="panel space-y-2">
+          <summary className="min-h-11 cursor-pointer font-bold">Custom topic</summary>
           <input
             className="field w-full"
             value={custom}
@@ -131,7 +124,7 @@ export function TopicPanel({
           >
             Lock custom
           </button>
-        </div>
+        </details>
       )}
     </div>
   );

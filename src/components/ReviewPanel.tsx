@@ -27,15 +27,10 @@ export function ReviewPanel({
 }) {
   return (
     <div className="space-y-4">
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <h2 className="font-[family-name:var(--font-display)] text-xl font-extrabold">
-            Review rosters
-          </h2>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            Look over picks — vote is next.
-          </p>
-        </div>
+      <div className="flex items-baseline justify-between gap-2">
+        <h2 className="font-[family-name:var(--font-display)] text-xl font-extrabold">
+          Rosters
+        </h2>
         <span className="text-sm font-bold tabular-nums text-[var(--muted)]">
           <Countdown until={state.phaseDeadlineAt} />
         </span>
@@ -56,7 +51,7 @@ export function ReviewPanel({
           </div>
         );
       })}
-      {you.isHost && (
+      {you.isHost ? (
         <button
           type="button"
           className="btn-primary w-full text-lg"
@@ -64,12 +59,7 @@ export function ReviewPanel({
         >
           Start vote
         </button>
-      )}
-      {!you.isHost && (
-        <p className="text-center text-sm text-[var(--muted)]">
-          Waiting for host…
-        </p>
-      )}
+      ) : null}
     </div>
   );
 }

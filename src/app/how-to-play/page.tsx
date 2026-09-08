@@ -26,8 +26,8 @@ export default function HowToPlayPage() {
         <ol className="list-decimal space-y-1 pl-5 text-sm">
           <li>Vote one of four topics (reroll anytime).</li>
           <li>
-            Snake draft four answers — Available / My queue / Board. Lock pick
-            on your turn.
+            Snake draft four answers — type your own, board always on. Lock pick
+            on your turn. Optional private My Ideas while waiting.
           </li>
           <li>
             Vote another’s roster (2 players: AI only). Earn beans.

@@ -21,16 +21,11 @@ export function ResultsPanel({
 
   return (
     <div className="space-y-4">
-      <header className="space-y-1">
-        <h2 className="font-[family-name:var(--font-display)] text-2xl font-extrabold">
-          {final ? "Final standings" : "Round results"}
-        </h2>
-        <p className="text-sm text-[var(--muted)]">
-          {final
-            ? `Most ${RULES.currencyName} wins.`
-            : `Round ${state.topicRound} of ${state.configuredTopicRounds}`}
-        </p>
-      </header>
+      <h2 className="font-[family-name:var(--font-display)] text-2xl font-extrabold">
+        {final
+          ? "Final standings"
+          : `Round ${state.topicRound}/${state.configuredTopicRounds}`}
+      </h2>
 
       <ol className="space-y-2">
         {ranked.map((p, i) => (
@@ -53,7 +48,6 @@ export function ResultsPanel({
               ? "Bust sip (optional)"
               : "Winner sip (optional)"}
           </p>
-          <p className="text-sm">One sip, or Pass — no score effect.</p>
           <div className="flex gap-2">
             <button
               type="button"
@@ -112,11 +106,6 @@ export function ResultsPanel({
         </button>
       )}
 
-      {!you.isHost && (
-        <p className="text-center text-sm text-[var(--muted)]">
-          Waiting for host…
-        </p>
-      )}
     </div>
   );
 }

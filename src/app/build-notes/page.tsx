@@ -16,7 +16,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Production polish — 4 topic choices + reroll, leaner lobby →{" "}
+        Draft UX cleanup — type your own, board always on →{" "}
         {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
@@ -53,18 +53,24 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>Topics = 4 + reroll</strong> — always four vote options;
-            host or any player can reroll the set as needed (no 1-reroll cap,
-            no Auto/2/3 override).
+            <strong>No pick list</strong> — removed Available suggestions /
+            catalog search. Players type their own answers. Draft no longer
+            fetches or waits on <code>/api/draft-options</code>.
           </li>
           <li>
-            <strong>Cut fluff</strong> — removed “How we start”, home player-count
-            line, and redundant lobby / Party Mode microcopy.
+            <strong>Board always visible</strong> — fantasy snake board stays
+            on screen during draft; turn banner + sticky <strong>Lock pick</strong>.
+            Optional private My Ideas queue (not a competing tab).
           </li>
           <li>
-            Preserved: Beans branding, Party Mode switch, no PREP, fantasy draft,
-            round-robin BANK, Gemini-first <code>gemini-3.5-flash</code>,
-            production PartyKit host.
+            <strong>UI tighten</strong> — fewer tabs/microcopy across lobby,
+            topic, vote, score, wager, dice, results; larger primary actions.
+          </li>
+          <li>
+            Preserved: Beans branding, Party Mode switch, no PREP, always-4
+            topics + reroll, round-robin BANK, SVG dice, Gemini-first{" "}
+            <code>gemini-3.5-flash</code>, production PartyKit host, 2–10
+            players, ballot privacy, server authority.
           </li>
         </ul>
       </section>
@@ -91,12 +97,13 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">Follow-ups</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>Redeploy PartyKit</strong> after merge — topic shortlist is
-            always 4 + unlimited reroll in <code>party/server.ts</code>.
+            <strong>Redeploy PartyKit required</strong> after merge —{" "}
+            <code>party/server.ts</code> no longer loads shared draft
+            suggestions (<code>npm run deploy:party</code>).
           </li>
           <li>
-            AI judging / draft suggestions need <code>GEMINI_API_KEY</code>{" "}
-            (preferred) + matching <code>JUDGE_SECRET</code>.
+            AI judging still needs <code>GEMINI_API_KEY</code> (preferred) +
+            matching <code>JUDGE_SECRET</code>.
           </li>
         </ul>
       </section>

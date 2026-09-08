@@ -15,14 +15,9 @@ export function ScorePanel({
   const sorted = [...state.scores].sort((a, b) => b.earned - a.earned);
   return (
     <div className="space-y-4">
-      <header className="space-y-1">
-        <h2 className="font-[family-name:var(--font-display)] text-xl font-extrabold">
-          Beans earned
-        </h2>
-        <p className="text-sm text-[var(--muted)]">
-          Votes + AI judge · next up: wager
-        </p>
-      </header>
+      <h2 className="font-[family-name:var(--font-display)] text-xl font-extrabold">
+        Beans earned
+      </h2>
       {state.judgeNotice && (
         <p className="panel text-sm font-semibold text-[var(--coral)]">
           {state.judgeNotice}
@@ -42,11 +37,16 @@ export function ScorePanel({
               {s.votes} vote{s.votes === 1 ? "" : "s"} · AI {s.aiAward}
               {s.aiFallback ? " · neutral" : ""}
             </p>
-            <p className="text-sm">{s.explanation}</p>
+            {s.explanation ? (
+              <details>
+                <summary className="cursor-pointer text-xs font-bold text-[var(--muted)]">Why</summary>
+                <p className="mt-1 text-sm">{s.explanation}</p>
+              </details>
+            ) : null}
           </div>
         );
       })}
-      {you.isHost && (
+      {you.isHost ? (
         <div className="space-y-2">
           <button
             type="button"
@@ -60,15 +60,10 @@ export function ScorePanel({
             className="btn-secondary w-full"
             onClick={() => send({ type: "void_topic" })}
           >
-            Void this topic
+            Void topic
           </button>
         </div>
-      )}
-      {!you.isHost && (
-        <p className="text-center text-sm text-[var(--muted)]">
-          Waiting for host…
-        </p>
-      )}
+      ) : null}
     </div>
   );
 }

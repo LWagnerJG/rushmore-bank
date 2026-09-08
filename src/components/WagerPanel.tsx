@@ -86,9 +86,7 @@ export function WagerPanel({
           )}
         </div>
         <p className="text-sm text-[var(--muted)]">
-          You earned {earned}
-          {banked > 0 ? ` · ${banked} banked available` : ""} · zero still
-          plays (2 safe rolls)
+          Earned {earned}{banked > 0 ? ` · banked ${banked}` : ""}
         </p>
       </header>
 
@@ -98,23 +96,21 @@ export function WagerPanel({
       >
         <div className="rounded-xl bg-[rgba(167,215,194,0.35)] px-3 py-3">
           <p className="text-xs font-bold uppercase text-[var(--muted)]">
-            Protected
+            Safe
           </p>
           <p className="text-3xl font-extrabold">{protectedBal}</p>
-          <p className="text-sm">beans</p>
         </div>
         <div className="rounded-xl bg-[rgba(231,111,78,0.18)] px-3 py-3">
           <p className="text-xs font-bold uppercase text-[var(--muted)]">
-            At risk
+            Risk
           </p>
           <p className="text-3xl font-extrabold">{atRisk}</p>
-          <p className="text-sm">beans</p>
         </div>
       </section>
 
       <section className="panel space-y-3">
         <label htmlFor={sliderId} className="block text-sm font-bold">
-          Beans to risk · 0–{max}
+          Risk 0–{max}
         </label>
         <input
           id={sliderId}
@@ -186,9 +182,6 @@ export function WagerPanel({
             ? "Keep all beans safe"
             : `Lock in ${clamped} at risk`}
       </button>
-      <p className="text-center text-xs text-[var(--muted)]">
-        No choice in time? Everything stays protected.
-      </p>
     </div>
   );
 }

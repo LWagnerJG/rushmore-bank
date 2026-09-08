@@ -64,30 +64,20 @@ export function VotePanel({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <h2 className="font-[family-name:var(--font-display)] text-xl font-extrabold">
-            Pick one roster
-          </h2>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            Private · no self-vote · {state.humanVotesCast}/
-            {state.humanVotesNeeded} in
-            {state.judgeStatus === "pending" ? " · Judge scoring…" : ""}
-          </p>
-        </div>
+      <div className="flex items-baseline justify-between gap-2">
+        <h2 className="font-[family-name:var(--font-display)] text-xl font-extrabold">
+          Vote · {state.humanVotesCast}/{state.humanVotesNeeded}
+        </h2>
         <span className="text-sm font-bold tabular-nums text-[var(--muted)]">
           <Countdown until={state.phaseDeadlineAt} />
         </span>
       </div>
+      {state.judgeStatus === "pending" && (
+        <p className="text-sm text-[var(--muted)]">Judge scoring…</p>
+      )}
       {state.judgeStatus === "failed" && state.judgeNotice && (
         <p className="text-sm font-semibold text-[var(--coral)]">
           {state.judgeNotice}
-        </p>
-      )}
-      {myVote && (
-        <p className="text-sm font-bold text-[var(--text)]" aria-live="polite">
-          You picked {state.players.find((p) => p.id === myVote)?.name}. Tap
-          another to change.
         </p>
       )}
       {state.seatOrder
@@ -115,7 +105,7 @@ export function VotePanel({
             >
               <p className="font-extrabold">
                 {p?.name}
-                {selected ? " · your pick" : ""}
+                {selected ? " ✓" : ""}
               </p>
               <ol className="mt-1 list-decimal pl-5 text-sm">
                 {picks.map((pk) => (

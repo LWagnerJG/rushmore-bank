@@ -41,11 +41,6 @@ import {
   snakeDraftOrder,
   validateAndMapJudgments,
 } from "../src/shared/engine";
-import {
-  cleanDraftOptions,
-  starterDraftOptions,
-} from "../src/shared/draft-options";
-
 function roomEnv(room: Party.Room): Record<string, string | undefined> {
   return (
     (room as unknown as { env?: Record<string, string | undefined> }).env ?? {}
@@ -636,62 +631,13 @@ export default class QuarryServer implements Party.Server {
       ),
       topicRound: this.state.topicRound,
     };
-    this.state.draftOptions = starterDraftOptions(option.id, option.text);
-    this.state.draftOptionsStatus = this.state.draftOptions.length
-      ? "ready"
-      : "pending";
+    // Players type their own answers — no shared suggestion catalog.
+    this.state.draftOptions = [];
+    this.state.draftOptionsStatus = "idle";
     this.state.draftOptionsJobId = null;
     bump(this.state);
     // Topic locked → straight into draft (no prep countdown).
     await this.beginDraft();
-    if (!this.state.draftOptions.length) {
-      const jobId = crypto.randomUUID();
-      this.state.draftOptionsJobId = jobId;
-      void this.loadDraftOptions(option, jobId);
-    }
-  }
-
-  async loadDraftOptions(topic: TopicOption, jobId: string) {
-    const env = roomEnv(this.room);
-    let options: string[] = [];
-    try {
-      if (env.JUDGE_URL && env.JUDGE_SECRET) {
-        const res = await fetch(
-          `${env.JUDGE_URL.replace(/\/$/, "")}/api/draft-options`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${env.JUDGE_SECRET}`,
-            },
-            body: JSON.stringify({
-              topic: topic.text,
-              scopeBoundary: topic.scopeBoundary,
-            }),
-            signal: AbortSignal.timeout(10000),
-          },
-        );
-        if (res.ok) {
-          options = cleanDraftOptions(
-            ((await res.json()) as { options?: unknown }).options,
-          );
-        }
-      }
-    } catch {
-      /* Manual answers always remain available. */
-    }
-    if (
-      this.state.draftOptionsJobId !== jobId ||
-      this.state.selectedTopic?.id !== topic.id
-    ) {
-      return;
-    }
-    if (!["DRAFT", "CORRECTION"].includes(this.state.phase)) return;
-    this.state.draftOptions = options;
-    this.state.draftOptionsStatus = options.length ? "ready" : "unavailable";
-    this.state.draftOptionsJobId = null;
-    await this.persist();
-    this.broadcastState();
   }
 
   async beginDraft() {

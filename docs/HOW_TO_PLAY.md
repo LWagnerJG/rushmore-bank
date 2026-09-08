@@ -2,7 +2,7 @@
 
 1. **Create / Join** — nickname + room code, link, or QR. Host starts when ready.
 2. **Topic** — vote one of four options (reroll anytime), or host custom.
-3. **Draft** — snake draft four answers right away. Browse Available suggestions, save a private My queue, or watch the Board. **Lock pick** on your turn.
+3. **Draft** — snake draft four answers right away. Type your own (optional private My Ideas while waiting). Board stays on screen. **Lock pick** on your turn.
 4. **Review / Vote** — skim rosters; vote for someone else’s (2 players: AI only).
 5. **Scores** — beans = 20 + AI award + 5× votes (votes skipped at 2 players).
 6. **Wager** — slider for how many beans to risk (you can risk all banked). Zero still plays.
