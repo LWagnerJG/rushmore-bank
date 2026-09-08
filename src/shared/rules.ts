@@ -47,7 +47,8 @@ export const RULES = {
   stonesPerHumanVote: 5,
   /** Fallback when AI unavailable: neutral mid award */
   aiFallbackAward: 20,
-  aiFallbackLabel: "Judge unavailable — neutral award applied.",
+  /** Player-facing only — never append HTTP codes or model names. */
+  aiFallbackLabel: "Judge unavailable · neutral award.",
   aiExplanationMaxWords: 45,
   aiPromptVersion: "quarry-judge-v1",
 

@@ -22,6 +22,42 @@ function partyRequest(body: unknown = sampleBody): NextRequest {
   });
 }
 
+function geminiOkResponse() {
+  return new Response(
+    JSON.stringify({
+      candidates: [
+        {
+          content: {
+            parts: [
+              {
+                text: JSON.stringify({
+                  judgments: [
+                    {
+                      anonId: "R1",
+                      topicFit: 8,
+                      pickStrength: 16,
+                      rosterQuality: 7,
+                      explanation: "Solid animal Mount Rushmore.",
+                    },
+                    {
+                      anonId: "R2",
+                      topicFit: 7,
+                      pickStrength: 14,
+                      rosterQuality: 6,
+                      explanation: "Good variety of pets.",
+                    },
+                  ],
+                }),
+              },
+            ],
+          },
+        },
+      ],
+    }),
+    { status: 200, headers: { "content-type": "application/json" } },
+  );
+}
+
 describe("/api/judge Gemini preference", () => {
   const originalEnv = { ...process.env };
   const fetchMock = vi.fn();
@@ -30,6 +66,7 @@ describe("/api/judge Gemini preference", () => {
     vi.resetModules();
     fetchMock.mockReset();
     vi.stubGlobal("fetch", fetchMock);
+    vi.useRealTimers();
     delete process.env.GEMINI_API_KEY;
     delete process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     delete process.env.OPENAI_API_KEY;
@@ -39,6 +76,7 @@ describe("/api/judge Gemini preference", () => {
   afterEach(() => {
     process.env = { ...originalEnv };
     vi.unstubAllGlobals();
+    vi.useRealTimers();
   });
 
   it("returns neutral fallback when no AI keys are set", async () => {
@@ -47,8 +85,8 @@ describe("/api/judge Gemini preference", () => {
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.fallback).toBe(true);
-    expect(data.limitation).toMatch(/GEMINI_API_KEY/);
-    expect(data.limitation).toMatch(/OPENAI_API_KEY/);
+    expect(data.limitation).toBe(RULES.aiFallbackLabel);
+    expect(data.limitation).not.toMatch(/HTTP|\d{3}/);
     expect(data.judgments).toHaveLength(2);
     expect(data.judgments[0].explanation).toBe(RULES.aiFallbackLabel);
     expect(fetchMock).not.toHaveBeenCalled();
@@ -58,41 +96,7 @@ describe("/api/judge Gemini preference", () => {
     process.env.GEMINI_API_KEY = "test-gemini";
     process.env.OPENAI_API_KEY = "test-openai";
 
-    fetchMock.mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          candidates: [
-            {
-              content: {
-                parts: [
-                  {
-                    text: JSON.stringify({
-                      judgments: [
-                        {
-                          anonId: "R1",
-                          topicFit: 8,
-                          pickStrength: 16,
-                          rosterQuality: 7,
-                          explanation: "Solid animal Mount Rushmore.",
-                        },
-                        {
-                          anonId: "R2",
-                          topicFit: 7,
-                          pickStrength: 14,
-                          rosterQuality: 6,
-                          explanation: "Good variety of pets.",
-                        },
-                      ],
-                    }),
-                  },
-                ],
-              },
-            },
-          ],
-        }),
-        { status: 200, headers: { "content-type": "application/json" } },
-      ),
-    );
+    fetchMock.mockResolvedValue(geminiOkResponse());
 
     const { POST } = await import("./route");
     const res = await POST(partyRequest());
@@ -151,57 +155,60 @@ describe("/api/judge Gemini preference", () => {
     expect(String(fetchMock.mock.calls[0][0])).toContain("api.openai.com");
   });
 
-  it("falls back uniformly on Gemini HTTP failure", async () => {
+  it("retries 503 then falls back to another Gemini flash model", async () => {
     process.env.GEMINI_API_KEY = "test-gemini";
+    vi.useFakeTimers();
+
+    fetchMock
+      .mockResolvedValueOnce(new Response("busy", { status: 503 }))
+      .mockResolvedValueOnce(new Response("busy", { status: 503 }))
+      .mockResolvedValueOnce(new Response("busy", { status: 503 }))
+      .mockResolvedValueOnce(geminiOkResponse());
+
+    const { POST } = await import("./route");
+    const pending = POST(partyRequest());
+    // Flush microtasks so sleeps schedule, then fire all backoffs.
+    for (let i = 0; i < 12; i++) {
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(1000);
+    }
+    const res = await pending;
+    const data = await res.json();
+
+    expect(data.fallback).toBe(false);
+    expect(data.limitation).toBeUndefined();
+    expect(fetchMock.mock.calls.length).toBeGreaterThanOrEqual(4);
+    const urls = fetchMock.mock.calls.map((c) => String(c[0]));
+    expect(urls.some((u) => u.includes("gemini-3.5-flash"))).toBe(true);
+    expect(urls.some((u) => u.includes("gemini-2.0-flash"))).toBe(true);
+  });
+
+  it("never surfaces HTTP codes on Gemini failure", async () => {
+    process.env.GEMINI_API_KEY = "test-gemini";
+    vi.useFakeTimers();
     fetchMock.mockResolvedValue(new Response("nope", { status: 503 }));
 
     const { POST } = await import("./route");
-    const res = await POST(partyRequest());
+    const pending = POST(partyRequest());
+    for (let i = 0; i < 24; i++) {
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(1000);
+    }
+    const res = await pending;
     const data = await res.json();
     expect(data.fallback).toBe(true);
-    expect(data.limitation).toMatch(/Gemini HTTP 503/);
-    expect(data.judgments.every((j: { explanation: string }) => j.explanation === RULES.aiFallbackLabel)).toBe(
-      true,
-    );
+    expect(data.limitation).toBe(RULES.aiFallbackLabel);
+    expect(JSON.stringify(data)).not.toMatch(/HTTP|503|429/);
+    expect(
+      data.judgments.every(
+        (j: { explanation: string }) => j.explanation === RULES.aiFallbackLabel,
+      ),
+    ).toBe(true);
   });
 
   it("accepts GOOGLE_GENERATIVE_AI_API_KEY as Gemini alias", async () => {
     process.env.GOOGLE_GENERATIVE_AI_API_KEY = "test-google";
-    fetchMock.mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          candidates: [
-            {
-              content: {
-                parts: [
-                  {
-                    text: JSON.stringify({
-                      judgments: [
-                        {
-                          anonId: "R1",
-                          topicFit: 9,
-                          pickStrength: 18,
-                          rosterQuality: 8,
-                          explanation: "Excellent.",
-                        },
-                        {
-                          anonId: "R2",
-                          topicFit: 8,
-                          pickStrength: 15,
-                          rosterQuality: 7,
-                          explanation: "Strong.",
-                        },
-                      ],
-                    }),
-                  },
-                ],
-              },
-            },
-          ],
-        }),
-        { status: 200 },
-      ),
-    );
+    fetchMock.mockResolvedValue(geminiOkResponse());
 
     const { POST } = await import("./route");
     const res = await POST(partyRequest());

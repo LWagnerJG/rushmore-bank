@@ -31,7 +31,7 @@ export default function HomePage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col px-4 pb-10 pt-8">
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col px-4 pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))]">
       <div className="animate-rise flex flex-1 flex-col justify-center gap-7">
         <header className="space-y-2 text-center">
           <div className="flex justify-center">

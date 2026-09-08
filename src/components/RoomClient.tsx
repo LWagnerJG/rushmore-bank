@@ -100,7 +100,7 @@ export function RoomClient({
     // Keep manual Join form when there is no preset nickname.
     if (presetName.trim()) {
       return (
-        <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-4 px-4 py-8">
+        <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-4 px-4 pb-8 pt-[max(2rem,env(safe-area-inset-top))]">
           <BrandMark />
           <h1 className="font-[family-name:var(--font-display)] text-2xl font-extrabold">
             Room {code}
@@ -117,7 +117,7 @@ export function RoomClient({
     }
 
     return (
-      <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-4 px-4 py-8">
+      <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-4 px-4 pb-8 pt-[max(2rem,env(safe-area-inset-top))]">
         <BrandMark />
         <h1 className="font-[family-name:var(--font-display)] text-2xl font-extrabold">
           Room {code}
@@ -159,13 +159,13 @@ export function RoomClient({
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col px-4 pb-8 pt-3">
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-0">
       <header
         className={
-          "sticky top-0 z-20 -mx-4 mb-3 border-b px-4 py-2 backdrop-blur " +
+          "sticky top-0 z-20 -mx-4 mb-3 border-b px-4 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur " +
           (partyOn
-            ? "border-[rgba(255,107,74,0.18)] bg-[rgba(255,248,236,0.94)]"
-            : "border-[rgba(35,72,62,0.08)] bg-[rgba(245,240,231,0.92)]")
+            ? "border-[rgba(255,107,74,0.18)] bg-[rgba(255,248,236,0.96)]"
+            : "border-[rgba(35,72,62,0.08)] bg-[rgba(245,240,231,0.96)]")
         }
       >
         <div className="flex items-center justify-between gap-2">

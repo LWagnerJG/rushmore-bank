@@ -18,6 +18,9 @@ const title = "Beans";
 const description =
   "Draft four. Bank beans. — Party game with snake draft and synchronized dice.";
 
+/** Cream/ivory — must match `--bg` / status-bar theme so iOS clock area isn’t white. */
+const CREAM = "#F5F0E7";
+
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title,
@@ -36,7 +39,8 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: "Beans",
-    statusBarStyle: "default",
+    // Draw under the status bar so cream html/body fill the clock/notch area.
+    statusBarStyle: "black-translucent",
   },
   openGraph: {
     type: "website",
@@ -65,7 +69,11 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#F5F0E7",
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: CREAM },
+    { media: "(prefers-color-scheme: dark)", color: CREAM },
+  ],
 };
 
 export default function RootLayout({

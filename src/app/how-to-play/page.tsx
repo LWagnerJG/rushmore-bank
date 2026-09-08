@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function HowToPlayPage() {
   return (
-    <main className="mx-auto max-w-md space-y-6 px-4 py-8">
+    <main className="mx-auto max-w-md space-y-6 px-4 pb-8 pt-[max(2rem,env(safe-area-inset-top))]">
       <Link href="/" className="text-sm font-bold text-[var(--coral)]">
         ← Home
       </Link>

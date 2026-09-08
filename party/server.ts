@@ -47,6 +47,17 @@ function roomEnv(room: Party.Room): Record<string, string | undefined> {
   );
 }
 
+/** Strip HTTP codes / secrets from judge notices before players see them. */
+function sanitizeJudgeNotice(notice: string): string {
+  if (!notice) return RULES.aiFallbackLabel;
+  if (/HTTP\s*\d{3}|\b5\d{2}\b|\b429\b|JUDGE_SECRET|API_KEY|Gemini|OpenAI/i.test(notice)) {
+    return RULES.aiFallbackLabel;
+  }
+  // Keep short human notices like "No topic — neutral award."
+  if (notice.length > 80) return RULES.aiFallbackLabel;
+  return notice;
+}
+
 /** Normalize persisted state after schema additions. */
 function migrateState(raw: RoomState): RoomState {
   const base = emptyRoomState(raw.code || "ROOM");
@@ -902,7 +913,6 @@ export default class QuarryServer implements Party.Server {
       env.JUDGE_URL?.replace(/\/$/, "") ||
       env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
       "https://roundacats.vercel.app";
-    const secret = env.JUDGE_SECRET || env.OPENAI_API_KEY;
 
     try {
       const controller = new AbortController();
@@ -929,10 +939,7 @@ export default class QuarryServer implements Party.Server {
       if (this.state.phase !== "VOTING_AND_JUDGING") return;
 
       if (!res.ok) {
-        this.applyJudgeFallback(
-          jobId,
-          `Judge unavailable · neutral award. (HTTP ${res.status})`,
-        );
+        this.applyJudgeFallback(jobId, RULES.aiFallbackLabel);
         return;
       }
       const data = (await res.json()) as {
@@ -951,10 +958,7 @@ export default class QuarryServer implements Party.Server {
       if (this.state.judgeJobId !== jobId || this.state.scoresLocked) return;
 
       if (data.fallback || !data.judgments) {
-        this.applyJudgeFallback(
-          jobId,
-          data.limitation || RULES.aiFallbackLabel,
-        );
+        this.applyJudgeFallback(jobId, RULES.aiFallbackLabel);
         return;
       }
 
@@ -972,12 +976,7 @@ export default class QuarryServer implements Party.Server {
       await this.maybeFinalizeAfterJudge();
     } catch {
       if (this.state.judgeJobId !== jobId || this.state.scoresLocked) return;
-      this.applyJudgeFallback(
-        jobId,
-        secret
-          ? RULES.aiFallbackLabel
-          : "Judge unavailable · neutral award. (AI judge key / JUDGE_SECRET not configured on server)",
-      );
+      this.applyJudgeFallback(jobId, RULES.aiFallbackLabel);
     }
   }
 
@@ -993,7 +992,8 @@ export default class QuarryServer implements Party.Server {
     const rosters = buildAnonymousRosters(this.state.seatOrder, picksByPlayer);
     this.state.scores = neutralJudgments(rosters);
     this.state.judgeStatus = "failed";
-    this.state.judgeNotice = notice;
+    // Never show raw HTTP / model errors to players.
+    this.state.judgeNotice = sanitizeJudgeNotice(notice);
     void this.persist().then(() => this.broadcastState());
     void this.maybeFinalizeAfterJudge();
   }

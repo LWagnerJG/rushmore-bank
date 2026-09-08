@@ -4,8 +4,18 @@ import { heuristicJudgeUniform } from "@/shared/engine/judge";
 
 export const runtime = "nodejs";
 
-/** Cheap/fast Gemini model for structured JSON scoring. */
-const GEMINI_MODEL = "gemini-3.5-flash";
+/** Primary + fallback Gemini flash models when the primary is overloaded. */
+const GEMINI_MODELS = [
+  "gemini-3.5-flash",
+  "gemini-2.0-flash",
+  "gemini-2.5-flash",
+] as const;
+
+/** Short backoff between retries on 429 / 503 / 5xx (ms). */
+const RETRY_BACKOFF_MS = [0, 280, 700] as const;
+
+/** Player-facing copy only — never leak HTTP status or model names. */
+const FRIENDLY_LIMITATION = RULES.aiFallbackLabel;
 
 interface JudgeBody {
   topic: string;
@@ -30,6 +40,10 @@ interface Judgment {
 }
 
 type CleanRoster = { anonId: string; picks: string[] };
+
+type ModelResult =
+  | { ok: true; content: string }
+  | { ok: false; retryable: boolean };
 
 function geminiKey(): string | undefined {
   return (
@@ -129,7 +143,7 @@ function normalizeJudgments(
   return { judgments: complete, anyMissing };
 }
 
-function fallbackResponse(cleanRosters: CleanRoster[], limitation: string) {
+function fallbackResponse(cleanRosters: CleanRoster[]) {
   return NextResponse.json({
     judgments: heuristicJudgeUniform(cleanRosters).map((j) => ({
       ...j,
@@ -137,16 +151,25 @@ function fallbackResponse(cleanRosters: CleanRoster[], limitation: string) {
     })),
     fallback: true,
     promptVersion: RULES.aiPromptVersion,
-    limitation,
+    limitation: FRIENDLY_LIMITATION,
   });
 }
 
-async function callGemini(
+function isRetryableStatus(status: number): boolean {
+  return status === 429 || status === 503 || (status >= 500 && status <= 599);
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function callGeminiOnce(
   key: string,
+  model: string,
   system: string,
   user: string,
-): Promise<{ ok: true; content: string } | { ok: false; limitation: string }> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(key)}`;
+): Promise<ModelResult> {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -161,10 +184,7 @@ async function callGemini(
   });
 
   if (!res.ok) {
-    return {
-      ok: false,
-      limitation: `Judge unavailable · neutral award. (Gemini HTTP ${res.status})`,
-    };
+    return { ok: false, retryable: isRetryableStatus(res.status) };
   }
 
   const data = (await res.json()) as {
@@ -180,40 +200,73 @@ async function callGemini(
   return { ok: true, content };
 }
 
+/**
+ * Prefer gemini-3.5-flash; on 429/503/5xx retry with short backoff, then try
+ * another flash model. Never surfaces HTTP codes to callers.
+ */
+async function callGemini(
+  key: string,
+  system: string,
+  user: string,
+): Promise<{ ok: true; content: string } | { ok: false; limitation: string }> {
+  for (const model of GEMINI_MODELS) {
+    for (let attempt = 0; attempt < RETRY_BACKOFF_MS.length; attempt++) {
+      const wait = RETRY_BACKOFF_MS[attempt]!;
+      if (wait > 0) await sleep(wait);
+      try {
+        const result = await callGeminiOnce(key, model, system, user);
+        if (result.ok) return result;
+        if (!result.retryable) break; // try next model
+        // retryable: continue attempts, then next model
+      } catch {
+        // network blip — retry / next model
+      }
+    }
+  }
+  return { ok: false, limitation: FRIENDLY_LIMITATION };
+}
+
 async function callOpenAI(
   key: string,
   system: string,
   user: string,
 ): Promise<{ ok: true; content: string } | { ok: false; limitation: string }> {
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${key}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      temperature: 0.4,
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: user },
-      ],
-    }),
-  });
+  for (let attempt = 0; attempt < RETRY_BACKOFF_MS.length; attempt++) {
+    const wait = RETRY_BACKOFF_MS[attempt]!;
+    if (wait > 0) await sleep(wait);
+    try {
+      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${key}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          temperature: 0.4,
+          response_format: { type: "json_object" },
+          messages: [
+            { role: "system", content: system },
+            { role: "user", content: user },
+          ],
+        }),
+      });
 
-  if (!res.ok) {
-    return {
-      ok: false,
-      limitation: `Judge unavailable · neutral award. (OpenAI HTTP ${res.status})`,
-    };
+      if (!res.ok) {
+        if (isRetryableStatus(res.status)) continue;
+        return { ok: false, limitation: FRIENDLY_LIMITATION };
+      }
+
+      const data = (await res.json()) as {
+        choices?: Array<{ message?: { content?: string } }>;
+      };
+      const content = data.choices?.[0]?.message?.content ?? "{}";
+      return { ok: true, content };
+    } catch {
+      // retry
+    }
   }
-
-  const data = (await res.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
-  const content = data.choices?.[0]?.message?.content ?? "{}";
-  return { ok: true, content };
+  return { ok: false, limitation: FRIENDLY_LIMITATION };
 }
 
 export async function POST(req: NextRequest) {
@@ -241,10 +294,7 @@ export async function POST(req: NextRequest) {
   const oKey = openaiKey();
 
   if ((!gKey && !oKey) || auth === "fallback_only") {
-    return fallbackResponse(
-      cleanRosters,
-      "No AI judge key set (GEMINI_API_KEY preferred, or OPENAI_API_KEY) — Judge unavailable · neutral award.",
-    );
+    return fallbackResponse(cleanRosters);
   }
 
   const system = judgeSystemPrompt();
@@ -257,17 +307,14 @@ export async function POST(req: NextRequest) {
       : await callOpenAI(oKey!, system, user);
 
     if (!result.ok) {
-      return fallbackResponse(cleanRosters, result.limitation);
+      return fallbackResponse(cleanRosters);
     }
 
     let parsed: { judgments?: Judgment[] };
     try {
       parsed = JSON.parse(result.content) as { judgments?: Judgment[] };
     } catch {
-      return fallbackResponse(
-        cleanRosters,
-        "Judge unavailable · neutral award. (invalid JSON from model)",
-      );
+      return fallbackResponse(cleanRosters);
     }
 
     const { judgments, anyMissing } = normalizeJudgments(parsed, cleanRosters);
@@ -276,12 +323,9 @@ export async function POST(req: NextRequest) {
       judgments,
       fallback: anyMissing,
       promptVersion: RULES.aiPromptVersion,
-      limitation: anyMissing ? RULES.aiFallbackLabel : undefined,
+      limitation: anyMissing ? FRIENDLY_LIMITATION : undefined,
     });
-  } catch (e) {
-    return fallbackResponse(
-      cleanRosters,
-      `Judge unavailable · neutral award. (${e instanceof Error ? e.message : "unknown"})`,
-    );
+  } catch {
+    return fallbackResponse(cleanRosters);
   }
 }

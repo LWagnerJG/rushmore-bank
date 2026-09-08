@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
+import { RULES } from "@/shared/rules";
 
 function Countdown({ until }: { until: number | null }) {
   const [left, setLeft] = useState(0);
@@ -75,9 +76,9 @@ export function VotePanel({
       {state.judgeStatus === "pending" && (
         <p className="text-sm text-[var(--muted)]">Judge scoring…</p>
       )}
-      {state.judgeStatus === "failed" && state.judgeNotice && (
-        <p className="text-sm font-semibold text-[var(--coral)]">
-          {state.judgeNotice}
+      {state.judgeStatus === "failed" && (
+        <p className="text-xs font-semibold text-[var(--muted)]">
+          {RULES.aiFallbackLabel}
         </p>
       )}
       {state.seatOrder

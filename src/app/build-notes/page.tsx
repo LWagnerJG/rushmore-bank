@@ -8,7 +8,7 @@ export default function BuildNotesPage() {
   const shortSha = COMMIT_SHA ? COMMIT_SHA.slice(0, 7) : null;
 
   return (
-    <main className="mx-auto max-w-md space-y-6 px-4 py-8">
+    <main className="mx-auto max-w-md space-y-6 px-4 pb-8 pt-[max(2rem,env(safe-area-inset-top))]">
       <Link href="/" className="text-sm font-bold text-[var(--coral)]">
         ← Home
       </Link>
@@ -16,7 +16,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Draft UX cleanup — type your own, board always on →{" "}
+        iPhone polish — status bar, Gemini 503, dice table →{" "}
         {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
@@ -53,24 +53,26 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>No pick list</strong> — removed Available suggestions /
-            catalog search. Players type their own answers. Draft no longer
-            fetches or waits on <code>/api/draft-options</code>.
+            <strong>iOS status bar</strong> — cream <code>theme-color</code>,{" "}
+            <code>viewport-fit=cover</code>,{" "}
+            <code>apple-mobile-web-app-status-bar-style: black-translucent</code>,
+            html/body cream into safe areas (no white clock stripe).
           </li>
           <li>
-            <strong>Board always visible</strong> — fantasy snake board stays
-            on screen during draft; turn banner + sticky <strong>Lock pick</strong>.
-            Optional private My Ideas queue (not a competing tab).
+            <strong>Gemini 503</strong> — retry 429/503/5xx with short backoff;
+            fallback flash models; player copy is only{" "}
+            <em>Judge unavailable · neutral award.</em> (no HTTP codes). Quieter
+            scores notice.
           </li>
           <li>
-            <strong>UI tighten</strong> — fewer tabs/microcopy across lobby,
-            topic, vote, score, wager, dice, results; larger primary actions.
+            <strong>Dice round table</strong> — always-visible seats (up / next /
+            in / banked / bust); smoother settle animation; Roll is the primary
+            action for the current roller.
           </li>
           <li>
-            Preserved: Beans branding, Party Mode switch, no PREP, always-4
-            topics + reroll, round-robin BANK, SVG dice, Gemini-first{" "}
-            <code>gemini-3.5-flash</code>, production PartyKit host, 2–10
-            players, ballot privacy, server authority.
+            Preserved: type-your-own draft + always-on board, 4 topics + reroll,
+            no PREP, Beans, Party Mode, Gemini judging, PartyKit host{" "}
+            <code>rushmore-bank.lwagnerjg.partykit.dev</code>.
           </li>
         </ul>
       </section>
@@ -98,8 +100,8 @@ export default function BuildNotesPage() {
         <ul className="list-disc space-y-1 pl-5">
           <li>
             <strong>Redeploy PartyKit required</strong> after merge —{" "}
-            <code>party/server.ts</code> no longer loads shared draft
-            suggestions (<code>npm run deploy:party</code>).
+            <code>party/server.ts</code> sanitizes judge notices (no raw HTTP).
+            Run <code>npm run deploy:party</code>.
           </li>
           <li>
             AI judging still needs <code>GEMINI_API_KEY</code> (preferred) +
