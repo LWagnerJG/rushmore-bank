@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
 import { DiceScene } from "@/components/dice/DiceScene";
 import { RULES } from "@/shared/rules";
 import { classifyPullOut } from "@/shared/engine/banking";
+import { haptic } from "@/lib/haptics";
+import { ensureDiceAudio, playBankChime } from "@/lib/dice-sfx";
 
 function Countdown({ until }: { until: number | null }) {
   const [left, setLeft] = useState(0);
@@ -56,7 +58,6 @@ export function DicePanel({
   const roller = state.players.find((p) => p.id === rollerId);
   const myTurn = rollerId === youId;
   const pot = state.pots[youId] ?? 0;
-  const rollerPot = rollerId ? (state.pots[rollerId] ?? 0) : 0;
   const active = state.diceActiveIds.includes(youId);
   const personal = state.personalRollCounts[youId] ?? 0;
   const rolling = state.diceSubphase === "COMMITTED";
@@ -75,12 +76,27 @@ export function DicePanel({
     active &&
     you.role === "player" &&
     state.diceSubphase === "READY";
+  const glowOn = myTurn && active && you.role === "player";
   const [busy, setBusy] = useState(false);
+  const turnHaptic = useRef<string | null>(null);
+  const revealSeen = useRef<string | null>(null);
+  const [heroReveal, setHeroReveal] = useState(false);
+
   useEffect(() => {
     if (!busy) return;
     const timer = setTimeout(() => setBusy(false), 1000);
     return () => clearTimeout(timer);
   }, [busy]);
+
+  // Soft haptic when your turn becomes READY.
+  useEffect(() => {
+    if (!glowOn || state.diceSubphase !== "READY") return;
+    const key = `${state.diceTurnSeat}-${state.diceSubphase}-${state.phaseRevision}`;
+    if (turnHaptic.current === key) return;
+    turnHaptic.current = key;
+    haptic("your_turn");
+  }, [glowOn, state.diceSubphase, state.diceTurnSeat, state.phaseRevision]);
+
   const reducedMotion = useMemo(
     () =>
       typeof window !== "undefined" &&
@@ -98,6 +114,19 @@ export function DicePanel({
   const partyPrompt = state.partyPrompt;
   const canResolveParty =
     partyPrompt?.targetPlayerIds.includes(youId) || you.isHost;
+
+  // Dramatic result beat when faces first reveal.
+  useEffect(() => {
+    if (!last?.revealed || !last.rollId) return;
+    if (revealSeen.current === last.rollId) return;
+    revealSeen.current = last.rollId;
+    const on = window.setTimeout(() => setHeroReveal(true), 0);
+    const off = window.setTimeout(() => setHeroReveal(false), 1600);
+    return () => {
+      window.clearTimeout(on);
+      window.clearTimeout(off);
+    };
+  }, [last?.revealed, last?.rollId]);
 
   const seats = state.seatOrder.map((pid) => {
     const player = state.players.find((p) => p.id === pid);
@@ -127,23 +156,50 @@ export function DicePanel({
     send(message);
   }
 
+  async function bank() {
+    if (!canBank || busy) return;
+    haptic(pot === 0 ? "bank" : "bank");
+    try {
+      const ctx = await ensureDiceAudio();
+      playBankChime(ctx);
+    } catch {
+      /* ignore */
+    }
+    act({ type: "pull_out" });
+  }
+
   const statusLine = rolling ? (
     "Rolling…"
   ) : state.diceSubphase === "COOLDOWN" ? (
     <>
       Opens in <Countdown until={state.diceDecisionDeadlineAt} />
     </>
+  ) : myTurn && canRoll ? (
+    <>
+      Tap the dice · <Countdown until={state.diceIdleDeadlineAt} />
+    </>
   ) : myTurn ? (
     <>
-      <Countdown until={state.diceIdleDeadlineAt} /> to bank or roll
+      <Countdown until={state.diceIdleDeadlineAt} />
     </>
   ) : (
     "Watch the table"
   );
 
+  const revealed = !!last?.revealed;
+  const total =
+    revealed && last?.d1 != null && last?.d2 != null ? last.d1 + last.d2 : null;
+
   return (
-    <div className="space-y-4">
-      <section className="dice-round-table" aria-label="Round table">
+    <div className={`space-y-4 ${heroReveal ? "dice-hero-mode" : ""}`}>
+      {glowOn && (
+        <div className="dice-turn-glow" aria-hidden="true" />
+      )}
+
+      <section
+        className={`dice-round-table ${heroReveal || rolling ? "dice-table-dim" : ""}`}
+        aria-label="Round table"
+      >
         <p className="px-1 pb-0.5 text-[0.7rem] font-extrabold uppercase tracking-wide text-[var(--muted)]">
           Table
         </p>
@@ -194,18 +250,41 @@ export function DicePanel({
       <DiceScene
         broadcast={last}
         reducedMotion={reducedMotion}
-        isHost={you.isHost}
+        canRoll={canRoll && !busy}
+        busted={!!last?.busted}
+        onRoll={() => {
+          if (canRoll) act({ type: "roll" });
+        }}
       />
-      <p className="min-h-5 text-center text-sm font-bold" role="status">
-        {last?.revealed
-          ? `${lastName}: ${last.d1} + ${last.d2} · ${last.busted ? "Busted" : last.note}`
-          : myTurn
-            ? "\u00a0"
-            : `Pot ${rollerPot}`}
-      </p>
+
+      <div
+        className={`dice-result-readout ${revealed ? "dice-result-readout-on" : ""} ${last?.busted ? "dice-result-bust" : ""}`}
+        role="status"
+        aria-live="polite"
+      >
+        {revealed && total != null ? (
+          <>
+            <p className="dice-result-faces">
+              {lastName} · {last!.d1} + {last!.d2}
+            </p>
+            <p className="dice-result-total tabular-nums">
+              {last!.busted ? "BUST" : total}
+            </p>
+            <p className="dice-result-note">
+              {last!.busted ? "Pot gone" : last!.note}
+            </p>
+          </>
+        ) : (
+          <p className="min-h-[4.5rem] text-sm text-[var(--muted)]">
+            {canRoll ? "Tap the dice" : "\u00a0"}
+          </p>
+        )}
+      </div>
 
       {you.role === "player" && (
-        <section className="dice-action-focus space-y-3">
+        <section
+          className={`dice-action-focus space-y-3 ${heroReveal || rolling ? "dice-action-dim" : ""}`}
+        >
           <div className="flex items-end justify-between gap-3">
             <div>
               <p className="text-sm text-[var(--muted)]">
@@ -236,36 +315,19 @@ export function DicePanel({
             <p className="text-sm font-semibold text-[var(--muted)]">
               You’re out this round — watch the table.
             </p>
-          ) : myTurn ? (
-            <div className="flex flex-col gap-2">
-              <button
-                className="btn-primary w-full text-lg"
-                disabled={!canRoll || busy}
-                onClick={() => {
-                  if (canRoll) act({ type: "roll" });
-                }}
-              >
-                Roll
-              </button>
-              <button
-                className="btn-secondary w-full"
-                disabled={!canBank || busy}
-                onClick={() => {
-                  if (canBank) act({ type: "pull_out" });
-                }}
-              >
-                {pot === 0 ? "Bank out" : `Bank ${pot}`}
-              </button>
-            </div>
           ) : (
             <button
-              className="btn-secondary w-full"
+              className={
+                myTurn ? "btn-secondary w-full" : "btn-secondary w-full"
+              }
               disabled={!canBank || busy}
-              onClick={() => {
-                if (canBank) act({ type: "pull_out" });
-              }}
+              onClick={() => void bank()}
             >
-              {pot === 0 ? "Bank out" : `Bank ${pot} · sit out`}
+              {pot === 0
+                ? "Bank out"
+                : myTurn
+                  ? `Bank ${pot}`
+                  : `Bank ${pot} · sit out`}
             </button>
           )}
         </section>

@@ -4,9 +4,21 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 import type { PublicDiceBroadcast } from "@/shared/types";
 import { animProgress, tumblePose } from "@/shared/engine/dice-sync";
-import { DIE_PIPS, projectDie, type DieProjection } from "@/shared/engine/dice-geometry";
+import {
+  DIE_PIPS,
+  projectDie,
+  type DieProjection,
+} from "@/shared/engine/dice-geometry";
+import {
+  ensureDiceAudio,
+  playRollStart,
+  playRollTick,
+  playSettle,
+} from "@/lib/dice-sfx";
+import { haptic } from "@/lib/haptics";
 
-const SETTLE_MS = 300;
+const SETTLE_MS = 520;
+const SOUND_KEY = "beans:dice-sound";
 
 function DieShell({
   elementRef,
@@ -15,7 +27,6 @@ function DieShell({
   elementRef: RefObject<SVGSVGElement | null>;
   index: 0 | 1;
 }) {
-  // Static shell — faces painted imperatively to avoid React/RAF flicker.
   return (
     <svg
       ref={elementRef}
@@ -93,23 +104,38 @@ function paint(element: SVGSVGElement | null, projection: DieProjection) {
   }
 }
 
-/** Shared 3D geometry projected into SVG, including on Safari without GPU layers. */
 export function DiceScene({
   broadcast,
   reducedMotion,
-  isHost,
+  canRoll,
+  onRoll,
+  busted,
 }: {
   broadcast: PublicDiceBroadcast | null;
   reducedMotion: boolean;
-  isHost: boolean;
+  canRoll: boolean;
+  onRoll: () => void;
+  busted?: boolean;
 }) {
   const dieA = useRef<SVGSVGElement>(null);
   const dieB = useRef<SVGSVGElement>(null);
-  const [sound, setSound] = useState(false);
+  const [sound, setSound] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return window.sessionStorage.getItem(SOUND_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
   const audio = useRef<AudioContext | null>(null);
   const sounded = useRef<string | null>(null);
+  const rollStarted = useRef<string | null>(null);
+  const lastTick = useRef(0);
   const lastTumble = useRef<
-    [{ rx: number; ry: number; rz: number; x: number; y: number }, { rx: number; ry: number; rz: number; x: number; y: number }]
+    [
+      { rx: number; ry: number; rz: number; x: number; y: number },
+      { rx: number; ry: number; rz: number; x: number; y: number },
+    ]
   >([
     { rx: 0, ry: 0, rz: 0, x: -1.15, y: 0.55 },
     { rx: 0, ry: 0, rz: 0, x: 1.15, y: 0.55 },
@@ -117,6 +143,7 @@ export function DiceScene({
   const settleFrom = useRef(0);
   const settleRollId = useRef<string | null>(null);
   const [settleTick, setSettleTick] = useState(0);
+  const [punch, setPunch] = useState(false);
 
   const rolling = !!broadcast && !broadcast.revealed;
   const revealed = !!broadcast?.revealed;
@@ -126,21 +153,29 @@ export function DiceScene({
   const settled = broadcast?.animSettleAt ?? 0;
   const d1 = revealed ? (broadcast?.d1 ?? 1) : 1;
   const d2 = revealed ? (broadcast?.d2 ?? 1) : 1;
+  const total = d1 + d2;
 
-  // Kick soft settle animation when faces arrive (avoids abrupt snap).
   useLayoutEffect(() => {
     if (!revealed || !rollId || reducedMotion) return;
     if (settleRollId.current === rollId) return;
     settleRollId.current = rollId;
     settleFrom.current = Date.now();
-    setSettleTick((n) => n + 1);
+    const kick = window.setTimeout(() => {
+      setSettleTick((n) => n + 1);
+      setPunch(true);
+      haptic(busted ? "bust" : "settle");
+    }, 0);
+    const clearPunch = window.setTimeout(() => setPunch(false), 700);
     for (const el of [dieA.current, dieB.current]) {
       el?.classList.remove("bean-die-settle");
-      // force reflow for restart
       void el?.getBoundingClientRect();
       el?.classList.add("bean-die-settle");
     }
-  }, [revealed, rollId, reducedMotion]);
+    return () => {
+      window.clearTimeout(kick);
+      window.clearTimeout(clearPunch);
+    };
+  }, [revealed, rollId, reducedMotion, busted]);
 
   useLayoutEffect(() => {
     if (!dieA.current || !dieB.current) return;
@@ -158,11 +193,24 @@ export function DiceScene({
     }
 
     if (rolling) {
+      if (sound && !audio.current) {
+        void ensureDiceAudio().then((ctx) => {
+          audio.current = ctx;
+        });
+      }
+      if (rollStarted.current !== rollId) {
+        rollStarted.current = rollId ?? null;
+        if (sound) playRollStart(audio.current);
+      }
       let frame = 0;
       const tick = () => {
-        // Hold near the end with a soft wobble until authoritative reveal.
         const raw = animProgress(Date.now(), started, settled);
-        const progress = Math.min(0.92, raw);
+        const progress = Math.min(0.9, raw);
+        const now = Date.now();
+        if (sound && now - lastTick.current > 160 && progress < 0.85) {
+          lastTick.current = now;
+          playRollTick(audio.current);
+        }
         for (const index of [0, 1] as const) {
           const pose = tumblePose(progress, seed, index);
           lastTumble.current[index] = pose;
@@ -177,7 +225,6 @@ export function DiceScene({
       return () => cancelAnimationFrame(frame);
     }
 
-    // Revealed: blend last tumble → rest over SETTLE_MS, then hold rest.
     let frame = 0;
     const from = settleFrom.current || Date.now();
     const tick = () => {
@@ -212,77 +259,102 @@ export function DiceScene({
     d1,
     d2,
     settleTick,
+    sound,
   ]);
 
   useEffect(() => {
-    if (!broadcast?.revealed || !sound || !isHost || sounded.current === broadcast.rollId)
+    if (!broadcast?.revealed || !sound || sounded.current === broadcast.rollId)
       return;
     sounded.current = broadcast.rollId;
-    const ctx = audio.current;
-    if (!ctx || ctx.state !== "running") return;
-    const oscillator = ctx.createOscillator();
-    const gain = ctx.createGain();
-    oscillator.type = "triangle";
-    oscillator.frequency.setValueAtTime(230, ctx.currentTime);
-    oscillator.frequency.exponentialRampToValueAtTime(70, ctx.currentTime + 0.08);
-    gain.gain.setValueAtTime(0.06, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
-    oscillator.connect(gain);
-    gain.connect(ctx.destination);
-    oscillator.start();
-    oscillator.stop(ctx.currentTime + 0.11);
-    oscillator.onended = () => {
-      oscillator.disconnect();
-      gain.disconnect();
-    };
-  }, [broadcast, sound, isHost]);
+    playSettle(audio.current, { busted: !!busted });
+  }, [broadcast, sound, busted]);
 
   useEffect(
     () => () => {
-      void audio.current?.close();
+      // Keep shared AudioContext for the session; no forced close.
     },
     [],
   );
 
   async function toggleSound() {
     if (!sound) {
+      const ctx = await ensureDiceAudio();
+      if (!ctx) return;
+      audio.current = ctx;
       try {
-        audio.current ??= new AudioContext();
-        await audio.current.resume();
+        window.sessionStorage.setItem(SOUND_KEY, "1");
       } catch {
-        return;
+        /* ignore */
       }
+      setSound(true);
+      return;
     }
-    setSound(!sound);
+    try {
+      window.sessionStorage.setItem(SOUND_KEY, "0");
+    } catch {
+      /* ignore */
+    }
+    setSound(false);
+  }
+
+  async function handleRoll() {
+    if (!canRoll) return;
+    haptic("tap_roll");
+    if (sound) {
+      const ctx = await ensureDiceAudio();
+      audio.current = ctx;
+      playRollStart(ctx);
+    }
+    onRoll();
   }
 
   const label = rolling
     ? "Dice rolling; result pending"
-    : broadcast?.revealed
-      ? `Dice show ${d1} and ${d2}, total ${d1 + d2}`
-      : "Two dice ready to roll";
+    : canRoll
+      ? "Tap dice to roll"
+      : revealed
+        ? `Dice show ${d1} and ${d2}, total ${total}`
+        : "Two dice ready";
+
+  const trayClass = [
+    "bean-dice-tray",
+    canRoll ? "bean-dice-tray-armed" : "",
+    rolling ? "bean-dice-tray-rolling" : "",
+    punch ? "bean-dice-tray-punch" : "",
+    busted && revealed ? "bean-dice-tray-bust" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
-    <div className="bean-dice-tray">
-      <div className="bean-dice-pair" role="img" aria-label={label}>
-        <DieShell elementRef={dieA} index={0} />
-        <DieShell elementRef={dieB} index={1} />
-      </div>
-      {rolling && (
-        <span className="absolute bottom-3 left-0 right-0 text-center text-xs font-bold text-white/85">
-          Rolling…
-        </span>
-      )}
-      {isHost && (
-        <button
-          type="button"
-          className="absolute right-2 top-2 min-h-11 rounded-full px-3 text-xs font-bold text-white/85"
-          aria-pressed={sound}
-          onClick={() => void toggleSound()}
-        >
-          {sound ? "Sound on" : "Sound off"}
-        </button>
-      )}
+    <div className="relative">
+      <button
+        type="button"
+        className={trayClass}
+        disabled={!canRoll}
+        onClick={() => void handleRoll()}
+        aria-label={label}
+        aria-disabled={!canRoll}
+      >
+        <div className="bean-dice-pair" role="img" aria-hidden="true">
+          <DieShell elementRef={dieA} index={0} />
+          <DieShell elementRef={dieB} index={1} />
+        </div>
+        {canRoll && <span className="bean-dice-hint">Tap to roll</span>}
+        {rolling && (
+          <span className="absolute bottom-3 left-0 right-0 text-center text-xs font-bold text-white/85">
+            Rolling…
+          </span>
+        )}
+      </button>
+      <button
+        type="button"
+        className="absolute right-2 top-2 z-10 min-h-11 rounded-full bg-black/25 px-3 text-xs font-bold text-white/90"
+        aria-pressed={sound}
+        onClick={() => void toggleSound()}
+      >
+        {sound ? "Sound on" : "Sound off"}
+      </button>
     </div>
   );
 }

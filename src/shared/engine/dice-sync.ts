@@ -34,24 +34,26 @@ export function tumblePose(
   dieIndex: 0 | 1,
 ): { rx: number; ry: number; rz: number; y: number; x: number } {
   const t = Math.min(1, Math.max(0, progress01));
-  // Ease-out cubic into a soft settle; spin decays hard near the end
-  const ease = 1 - Math.pow(1 - t, 3);
-  const settle = Math.pow(1 - t, 2);
-  const spins = 5.5 + (seed % 5) * 0.35 + dieIndex * 0.55;
+  // Smoothstep into a soft coast; spin decays hard near the end
+  const ease = t * t * (3 - 2 * t);
+  const settle = Math.pow(1 - t, 2.15);
+  const spins = 5.2 + (seed % 5) * 0.32 + dieIndex * 0.5;
   const spin = settle * spins;
   const base = seed * (dieIndex === 0 ? 0.0013 : 0.0017);
-  const wobble = Math.sin(t * Math.PI * (4 + dieIndex)) * settle * 0.35;
-  const rx = base * 11 + spin * Math.PI * 2 * (1.55 + dieIndex * 0.28) + wobble;
-  const ry = base * 7 + spin * Math.PI * 2 * (1.15 + dieIndex * 0.22) - wobble * 0.6;
-  const rz = base * 5 + spin * Math.PI * 2 * (0.85 + dieIndex * 0.18);
-  // Arc bounce that dampens to resting height 0.55
+  const wobble = Math.sin(t * Math.PI * (3.6 + dieIndex)) * settle * 0.28;
+  const rx = base * 11 + spin * Math.PI * 2 * (1.5 + dieIndex * 0.26) + wobble;
+  const ry =
+    base * 7 + spin * Math.PI * 2 * (1.12 + dieIndex * 0.2) - wobble * 0.55;
+  const rz = base * 5 + spin * Math.PI * 2 * (0.82 + dieIndex * 0.16);
   const bounce =
-    Math.abs(Math.sin(t * Math.PI * 2.6 + dieIndex * 0.4)) * settle * 1.55;
+    Math.abs(Math.sin(t * Math.PI * 2.35 + dieIndex * 0.35)) * settle * 1.35;
   const xOff =
     (dieIndex === 0 ? -1.15 : 1.15) +
-    Math.sin(t * 10 + dieIndex * 1.7) * 0.18 * settle * (dieIndex === 0 ? 1 : -1);
-  // Slight lift at start then settle
-  const launch = (1 - ease) * 0.9;
+    Math.sin(t * 8.5 + dieIndex * 1.6) *
+      0.14 *
+      settle *
+      (dieIndex === 0 ? 1 : -1);
+  const launch = (1 - ease) * 0.85;
   return {
     rx,
     ry,

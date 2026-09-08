@@ -16,7 +16,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        iPhone + draft polish — status bar, Gemini, dice table, draft chrome →{" "}
+        Dice feel — perimeter glow, tap-to-roll, reveal punch, SFX/haptics →{" "}
         {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
@@ -53,34 +53,25 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>iOS status bar</strong> — cream <code>theme-color</code>,{" "}
-            <code>viewport-fit=cover</code>, black-translucent status bar,
-            html/body cream into safe areas.
+            Prior polish: cream iOS status bar, Gemini friendly notices, round-table
+            dice, draft sticky timer + host Pause/+15s, topics settle, ideas
+            tap-to-lock, no PartyKit errors to players.
           </li>
           <li>
-            <strong>Gemini 503</strong> — retry/backoff + flash fallbacks;
-            player copy only <em>Judge unavailable · neutral award.</em>
+            <strong>Your-turn glow</strong> — soft mint perimeter glow while it’s
+            your dice turn; off after bank/bust/waiting.
           </li>
           <li>
-            <strong>Dice round table</strong> — always-visible seats (up / next /
-            in / banked / bust); smoother settle; Roll primary.
+            <strong>Tap dice to roll</strong> — dice tray is the primary hit target;
+            big Roll button removed; Bank remains.
           </li>
           <li>
-            <strong>Draft chrome</strong> — pick timer sticky top-right; host-only
-            Pause / +15s discrete beside timer; ideas tap-to-lock on your turn.
+            <strong>Dramatic reveal</strong> — stronger settle punch, large total
+            readout, brief hero beat with dimmed table.
           </li>
           <li>
-            <strong>Topics</strong> — no slide-up jump on land; soft fade only on
-            reroll.
-          </li>
-          <li>
-            <strong>Connection copy</strong> — “Connection lost — retrying”; never
-            PartyKit / websocket / stack traces to players.
-          </li>
-          <li>
-            Preserved: type-your-own + always-on board, 4 topics + reroll, no PREP,
-            Beans, Party Mode, Gemini judging, host{" "}
-            <code>rushmore-bank.lwagnerjg.partykit.dev</code>.
+            <strong>SFX + haptics</strong> — roll/settle/bank sounds (mute toggle);
+            Vibration API for turn/tap/settle/bank/bust (no-op if unsupported).
           </li>
         </ul>
       </section>
@@ -107,9 +98,9 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">Follow-ups</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>Redeploy PartyKit required</strong> after merge —{" "}
-            <code>party/server.ts</code> (judge notice sanitize + safer client
-            errors). Run <code>npm run deploy:party</code>.
+            This dice-feel commit is <strong>client-only</strong> — no new PartyKit
+            code. If PartyKit was not redeployed after the prior judge-notice
+            sanitize, still run <code>npm run deploy:party</code>.
           </li>
           <li>
             AI judging needs <code>GEMINI_API_KEY</code> + matching{" "}
