@@ -6,7 +6,7 @@
 4. **Review / Vote** — skim rosters (~20s); vote for someone else’s (~40s) (2 players: AI only).
 5. **Scores** — beans = 20 + AI award + 5× votes (votes skipped at 2 players). Everyone taps **Bank the Beans** (`N/M ready`).
 6. **Wager** — slider for how many beans to risk (you can risk all banked). Zero still plays.
-7. **Bank** — when you’re up, keep rolling until you **Bank** or bust (**any 7** = BEAN BUSTER, including first roll). You get ~15s to roll or bank once Roll is unlocked. Then the next player gets their turn. Waiting players watch.
+7. **Bank** — when you’re up, keep rolling until you **Bank** or bust (**any 7** = BEAN BUSTER, including first roll). Roll is ready immediately; you get ~15s to roll or bank. Then the next player gets their turn. Waiting players watch.
 8. **Next topic** or end — topic is required each round (no void/skip after voting). Most banked beans wins.
 
 Optional **Party Mode** (off by default): light sip prompts after busts or wins. Pass anytime — no score effect.

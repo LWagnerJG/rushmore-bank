@@ -451,7 +451,7 @@ describe("session length: choices vs rounds", () => {
     expect(RULES.reviewSeconds).toBe(20);
     expect(RULES.humanVoteSeconds).toBe(40);
     expect(RULES.wagerTimeoutSeconds).toBe(20);
-    expect(RULES.diceDecisionCountdownSeconds).toBe(3);
+    expect(RULES.diceDecisionCountdownSeconds).toBe(0);
   });
 
   it("dice is personal continuous turn; any seven busts; 15s idle bank", () => {

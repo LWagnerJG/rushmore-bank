@@ -136,11 +136,7 @@ async function main() {
   const seatBefore = a.state!.diceTurnSeat;
   console.log("dice", a.state!.diceSubphase, "roller", rollerId, "waiter", waiter.youId);
 
-  await waiter.wait(
-    () =>
-      waiter.state?.diceSubphase === "COOLDOWN" ||
-      waiter.state?.diceSubphase === "READY",
-  );
+  await waiter.wait(() => waiter.state?.diceSubphase === "READY");
   // Waiting players cannot bank early
   waiter.lastError = null;
   waiter.send({ type: "pull_out" });
@@ -157,15 +153,7 @@ async function main() {
   console.log("OK waiting Bank rejected:", waiter.lastError);
 
   // Current roller Banks → seat advances
-  await roller.wait(
-    () =>
-      roller.state?.diceSubphase === "READY" ||
-      roller.state?.diceSubphase === "COOLDOWN",
-  );
-  // Unlock if still in cooldown
-  if (roller.state!.diceSubphase === "COOLDOWN") {
-    await roller.wait(() => roller.state?.diceSubphase === "READY", 8000);
-  }
+  await roller.wait(() => roller.state?.diceSubphase === "READY");
   roller.send({ type: "pull_out" });
   await roller.wait(() => !roller.state!.diceActiveIds.includes(roller.youId));
   if (roller.state!.diceTurnSeat === seatBefore && roller.state!.diceActiveIds.length > 0) {

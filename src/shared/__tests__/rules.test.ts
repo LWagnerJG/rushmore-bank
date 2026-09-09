@@ -76,6 +76,11 @@ describe("dice table", () => {
     expect(o.note).toMatch(/BEAN BUSTER/);
   });
 
+  it("has no pre-roll decision countdown; idle bank is 15s", () => {
+    expect(RULES.diceDecisionCountdownSeconds).toBe(0);
+    expect(RULES.diceIdleBankSeconds).toBe(15);
+  });
+
   it("doubles always double pot; non-seven adds sum; later seven busts", () => {
     let pot = 105;
     let o = applyDiceRoll(pot, { d1: 6, d2: 6 }, 1);

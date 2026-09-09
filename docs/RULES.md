@@ -17,7 +17,7 @@ Tunable defaults live in `src/shared/rules.ts` (`RULES`). Do not quietly change 
 ```
 LOBBY → TOPIC_SELECTION → DRAFT (+ CORRECTION) → REVIEW
   → VOTING_AND_JUDGING → SCORE_REVEAL → WAGER_SELECTION
-  → DICE / BANK (COOLDOWN / READY / COMMITTED / SETTLED)
+  → DICE / BANK (READY / COMMITTED / SETTLED; COOLDOWN legacy unused)
   → ROUND_RESULTS → GAME_RESULTS
 ```
 
@@ -75,10 +75,11 @@ pot = W
 - On bust the UI announces **BEAN BUSTER**.
 - Doubles → **double pot** (no add faces); else → **+sum**.
 - **Bank** is the only exit action (current roller only). Zero pot may Bank (keep protected).
-- First turn of a seat: countdown **3s** → unlock Roll. Same player continuing after a non-bust roll unlocks Roll immediately. Idle **15s** → auto Bank.
+- Seat starts **READY** immediately (no pre-roll “opens in Ns” wait). Same player continuing after a non-bust also unlocks Roll immediately. Idle **15s** → auto Bank. Only that idle window is shown as a countdown.
+- On bust: **BEAN BUSTER** pops during settle, then clears when the next seat is up (server clears `lastDice` on turn start).
 - Atomic Roll vs Bank.
 - Synchronized flat 2D pip dice with **scramble anticipation** while tumbling (rapidly changing faces). First settled frame paints authoritative faces only — hard cut, no coast/jump. Short settle hold before next READY / seat. Dramatic settle punch + SFX/haptics. No mute toggle on dice UI.
-- BANK table: players arranged in a **circle** (who’s up / next / banked); big decision timer; dice hero; pot + Bank. Reduced chrome.
+- BANK table: turn strip (who’s up / next / banked); honest decision timer once READY; dice hero; pot + primary Bank CTA. Reduced chrome.
 - Reduced-motion fallback. Full-phone mint perimeter glow when you are up.
 
 ### Worked path (tests)
@@ -95,7 +96,7 @@ Banking that pot yields **95 + 213 = 308** total beans. First-roll `3+4` (seven)
 
 ## Superseded (do not implement)
 
-Bets on roster winning, individual-pick side bets, quarter-step multipliers, 4× cap, shared pots/busts, round-robin one-roll-then-pass BANK (replaced by personal continuous turn until Bank/bust), waiting-player early Bank, topic vote countdown, PREP countdown phase, dice mute toggle, **safe first 2 rolls / +70 safe seven**.
+Bets on roster winning, individual-pick side bets, quarter-step multipliers, 4× cap, shared pots/busts, round-robin one-roll-then-pass BANK (replaced by personal continuous turn until Bank/bust), waiting-player early Bank, topic vote countdown, PREP countdown phase, dice pre-roll “opens in Ns” wait, dice mute toggle, **safe first 2 rolls / +70 safe seven**.
 
 ## Architecture notes
 

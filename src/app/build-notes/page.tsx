@@ -17,7 +17,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Draft 60s + human-like bots → {RULES.productionUrl}
+        Dice BANK polish → {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -38,7 +38,7 @@ export default function BuildNotesPage() {
             <li>
               Target: production <code>roundacats.vercel.app</code> via merge to{" "}
               <code>main</code>. <strong>PartyKit redeploy required</strong> —
-              server alarms read <code>RULES</code> from{" "}
+              bust clear + no pre-roll cooldown live in{" "}
               <code>party/server.ts</code>.
             </li>
           </ul>
@@ -54,26 +54,36 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>Draft clock</strong>: pick {RULES.pickClockSeconds}s +{" "}
-            {RULES.pickGraceSeconds}s grace (host +{RULES.hostExtendSeconds}s);
-            review {RULES.reviewSeconds}s; vote {RULES.humanVoteSeconds}s; wager{" "}
-            {RULES.wagerTimeoutSeconds}s; dice open{" "}
-            {RULES.diceDecisionCountdownSeconds}s → idle bank{" "}
-            {RULES.diceIdleBankSeconds}s; topic still no timer.
+            <strong>BEAN BUSTER</strong>: pops on settle, then clears when the
+            next seat is up — server nulls <code>lastDice</code> in{" "}
+            <code>startDiceTurn</code>; UI only shows bust during{" "}
+            <code>SETTLED</code>.
           </li>
           <li>
-            <strong>Admin bots</strong>: stable add-N input (no 1↔8 flicker);
-            bots vote topics, lock real draft answers, vote, bank beans, wager,
-            and roll/Bank through the same server action paths as humans.
+            <strong>Honest timers</strong>: no pre-roll “opens in Ns”
+            countdown (<code>diceDecisionCountdownSeconds: 0</code>). Seat
+            starts <code>READY</code> with the{" "}
+            {RULES.diceIdleBankSeconds}s roll/Bank idle window only.
           </li>
           <li>
-            Docs + how-to-play + tests aligned with{" "}
-            <code>src/shared/rules.ts</code>.
+            <strong>Bank CTA</strong>: coral primary button on your turn;
+            header beans stay subtle chrome.
           </li>
           <li>
-            Preserved: topic bank ~{TOPIC_COUNT} + anti-repeat, dice
-            scramble+settle, turn strip, Bank the Beans, personal BANK, Stash,
-            Beans branding.
+            Hierarchy: who’s up → dice hero → Roll/Bank (or watch) → personal
+            safe beans. Cut leftover Watching/result fluff.
+          </li>
+          <li>
+            Clocks: draft {RULES.pickClockSeconds}s +{" "}
+            {RULES.pickGraceSeconds}s grace; review {RULES.reviewSeconds}s;
+            vote {RULES.humanVoteSeconds}s; wager {RULES.wagerTimeoutSeconds}
+            s; dice idle bank {RULES.diceIdleBankSeconds}s; topic still no
+            timer.
+          </li>
+          <li>
+            Preserved: topic bank ~{TOPIC_COUNT} + anti-repeat, scramble+settle,
+            turn strip, personal BANK, green perimeter when up, Stash, Beans
+            branding.
           </li>
         </ul>
       </section>

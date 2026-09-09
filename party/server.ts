@@ -1394,20 +1394,26 @@ export default class QuarryServer implements Party.Server {
       await this.beginRoundResults();
       return;
     }
-    this.state.diceSubphase = "COOLDOWN";
-    this.state.diceDecisionDeadlineAt =
-      Date.now() + RULES.diceDecisionCountdownSeconds * 1000;
-    this.state.diceIdleDeadlineAt = null;
-    await this.setAlarmAt(this.state.diceDecisionDeadlineAt, {
-      kind: "dice_decision",
+    // Clear prior roll so BEAN BUSTER / faces never linger into the next seat.
+    this.state.lastDice = null;
+    // No pre-roll “opens in Ns” wait — Roll unlocks immediately with the
+    // honest 15s roll-or-bank idle window.
+    this.state.diceSubphase = "READY";
+    this.state.diceDecisionDeadlineAt = null;
+    this.state.diceIdleDeadlineAt =
+      Date.now() + RULES.diceIdleBankSeconds * 1000;
+    await this.setAlarmAt(this.state.diceIdleDeadlineAt, {
+      kind: "dice_idle",
       revision: this.state.phaseRevision,
     });
   }
 
+  /** Legacy helper: COOLDOWN → READY. New turns skip COOLDOWN entirely. */
   async unlockRoll() {
     if (this.state.phase !== "DICE") return;
     if (this.state.diceSubphase !== "COOLDOWN") return;
     this.state.diceSubphase = "READY";
+    this.state.diceDecisionDeadlineAt = null;
     this.state.diceIdleDeadlineAt =
       Date.now() + RULES.diceIdleBankSeconds * 1000;
     await this.setAlarmAt(this.state.diceIdleDeadlineAt, {
@@ -1442,7 +1448,7 @@ export default class QuarryServer implements Party.Server {
   async handleRoll(id: string) {
     if (this.state.phase !== "DICE") throw new Error("Wrong phase");
     if (this.state.diceSubphase !== "READY") {
-      throw new Error("Wait for countdown");
+      throw new Error("Not ready to roll");
     }
     if (this.currentDicePlayerId() !== id) throw new Error("Not your roll");
     if (!this.state.diceActiveIds.includes(id)) throw new Error("Not active");

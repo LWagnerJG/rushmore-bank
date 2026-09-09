@@ -19,7 +19,7 @@ function useSecondsLeft(until: number | null) {
   return left;
 }
 
-/** Big, obvious roll/Bank decision clock. */
+/** Honest roll/Bank decision clock — only while READY (can act). */
 function DecisionTimer({
   until,
   label,
@@ -202,18 +202,24 @@ export function DicePanel({
   const canResolveParty =
     partyPrompt?.targetPlayerIds.includes(youId) || you.isHost;
 
+  // BEAN BUSTER / settle pop only while SETTLED. Server clears lastDice on the
+  // next seat — never extend a client timer past the settle beat.
   useEffect(() => {
+    if (state.diceSubphase !== "SETTLED") return;
     if (!last?.revealed || !last.rollId) return;
     if (revealSeen.current === last.rollId) return;
     revealSeen.current = last.rollId;
-    const hold = last.busted ? 2400 : 1600;
+    const hold = Math.min(
+      last.busted ? 1100 : 900,
+      /* stay inside server settle hold */ 1100,
+    );
     const on = window.setTimeout(() => setHeroReveal(true), 0);
     const off = window.setTimeout(() => setHeroReveal(false), hold);
     return () => {
       window.clearTimeout(on);
       window.clearTimeout(off);
     };
-  }, [last?.revealed, last?.rollId, last?.busted]);
+  }, [last?.revealed, last?.rollId, last?.busted, state.diceSubphase]);
 
   const seats: SeatInfo[] = state.seatOrder.map((pid) => {
     const player = state.players.find((p) => p.id === pid);
@@ -255,48 +261,35 @@ export function DicePanel({
     act({ type: "pull_out" });
   }
 
-  const cooldown = state.diceSubphase === "COOLDOWN";
-  const timerUntil = cooldown
-    ? state.diceDecisionDeadlineAt
-    : state.diceSubphase === "READY"
-      ? state.diceIdleDeadlineAt
-      : null;
-  const timerLabel = cooldown
-    ? myTurn
-      ? "Your turn opens"
-      : "Turn opens"
-    : myTurn
-      ? "Roll or Bank"
-      : "Decision";
+  // Only the honest 15s idle bank window — never a pre-roll “opens in” clock.
+  const timerUntil =
+    state.diceSubphase === "READY" ? state.diceIdleDeadlineAt : null;
+  const timerLabel = myTurn ? "Roll or Bank" : "Decision";
 
-  const statusLine = rolling ? (
-    "Rolling…"
-  ) : settling ? (
-    heroReveal && last?.busted ? (
-      "Pot wiped"
-    ) : (
-      "Settling…"
-    )
-  ) : myTurn && canRoll ? (
-    "Tap the dice — or Bank"
-  ) : myTurn && cooldown ? (
-    "Bank anytime — Roll unlocks soon"
-  ) : myTurn ? (
-    "Your turn"
-  ) : cooldown ? (
-    "Turn opens soon"
-  ) : (
-    "Watching"
-  );
+  const bustMoment = settling && !!last?.busted && !!last?.revealed;
+  const statusLine = rolling
+    ? "Rolling…"
+    : bustMoment
+      ? "Pot wiped"
+      : settling
+        ? "Settling…"
+        : myTurn && canRoll
+          ? "Tap the dice — or Bank"
+          : myTurn
+            ? "Your turn"
+            : null;
 
   const revealed = !!last?.revealed;
   const total =
     revealed && last?.d1 != null && last?.d2 != null ? last.d1 + last.d2 : null;
-  const drama = heroReveal || rolling || settling;
-  const showResult = revealed && total != null;
+  // Result / BEAN BUSTER only during the settle beat — never into next seat.
+  const showResult = settling && revealed && total != null;
+  const drama = (heroReveal && settling) || rolling || settling;
 
   return (
-    <div className={`dice-layout ${heroReveal ? "dice-hero-mode" : ""}`}>
+    <div
+      className={`dice-layout ${heroReveal && settling ? "dice-hero-mode" : ""}`}
+    >
       {/* Who’s up / next / banked — compact turn strip */}
       <section
         className={`dice-zone dice-zone-strip ${drama ? "dice-table-dim" : ""}`}
@@ -305,21 +298,21 @@ export function DicePanel({
         <TurnStrip seats={seats} />
       </section>
 
-      {/* Who’s up + timer + dice hero — one stage */}
+      {/* Who’s up → timer → dice hero */}
       <section className="dice-zone dice-zone-stage" aria-label="Dice stage">
         <header className="dice-stage-head text-center">
           <h2 className="dice-up-title">
-            {heroReveal && last?.busted
+            {bustMoment
               ? "BEAN BUSTER"
               : myTurn
                 ? "Your roll"
                 : `${roller?.name ?? "Player"} is up`}
           </h2>
-          <p className="dice-up-status" aria-live="polite">
-            {heroReveal && last?.busted
-              ? `${lastName} · pot wiped`
-              : statusLine}
-          </p>
+          {statusLine ? (
+            <p className="dice-up-status" aria-live="polite">
+              {bustMoment ? `${lastName} · pot wiped` : statusLine}
+            </p>
+          ) : null}
         </header>
 
         {timerUntil != null && !rolling && !settling && (
@@ -332,7 +325,7 @@ export function DicePanel({
           broadcast={last}
           reducedMotion={reducedMotion}
           canRoll={canRoll && !busy}
-          busted={!!last?.busted}
+          busted={!!last?.busted && settling}
           onRoll={() => {
             if (canRoll) act({ type: "roll" });
           }}
@@ -367,7 +360,7 @@ export function DicePanel({
         </div>
       </section>
 
-      {/* Pot + Bank */}
+      {/* Personal safe beans + Bank CTA (when you’re up) */}
       {you.role === "player" && (
         <section
           className={`dice-zone dice-zone-actions ${drama && !myTurn ? "dice-action-dim" : ""}`}
@@ -376,7 +369,7 @@ export function DicePanel({
           <div className="dice-pot-row">
             <div>
               <p className="dice-pot-label">
-                {myTurn ? "Your pot" : "Your beans"}
+                {myTurn && active ? "Your pot" : "Your beans"}
               </p>
               <p className="dice-pot-value tabular-nums">
                 {active ? pot : you.stones}
@@ -394,17 +387,19 @@ export function DicePanel({
             <p className="dice-watch-note">You’re out — watch the round.</p>
           ) : myTurn ? (
             <button
-              className="btn-secondary w-full"
+              type="button"
+              className={[
+                "dice-bank-cta",
+                canBank && !busy && !settling ? "dice-bank-cta-armed" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
               disabled={!canBank || busy || settling}
               onClick={() => void bank()}
             >
               {pot === 0 ? "Bank" : `Bank ${pot}`}
             </button>
-          ) : (
-            <p className="dice-watch-note">
-              Watching · {roller?.name ?? "Player"} is up
-            </p>
-          )}
+          ) : null}
         </section>
       )}
 

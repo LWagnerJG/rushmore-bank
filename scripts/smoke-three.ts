@@ -153,10 +153,6 @@ async function main() {
       const st = luke.state!;
       if (st.phase !== "DICE") break;
       if ((st.diceActiveIds as string[]).length === 0) break;
-      if (st.diceSubphase === "COOLDOWN") {
-        await sleep(1200);
-        continue;
-      }
       if (st.diceSubphase !== "READY") {
         await sleep(400);
         continue;

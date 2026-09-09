@@ -248,7 +248,14 @@ export function RoomClient({
                 )}
                 <span>{phase ? phaseLabel(phase) : "…"}</span>
               </div>
-              <div className="font-[family-name:var(--font-display)] text-sm font-extrabold tabular-nums normal-case tracking-normal text-[var(--text)]">
+              {/* Soft balance chrome — Bank action lives in the dice CTA */}
+              <div
+                className={
+                  phase === "DICE"
+                    ? "mt-0.5 text-[0.7rem] font-semibold normal-case tracking-normal tabular-nums text-[var(--muted)]"
+                    : "font-[family-name:var(--font-display)] text-sm font-extrabold tabular-nums normal-case tracking-normal text-[var(--text)]"
+                }
+              >
                 {you.stones} {RULES.currencyName}
               </div>
             </div>
