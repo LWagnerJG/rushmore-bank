@@ -422,6 +422,12 @@ html.party-on .panel {
   gap: 0.45rem;
 }
 
+@media (max-width: 360px) {
+  .roster-board-grid-dense {
+    grid-template-columns: 1fr;
+  }
+}
+
 .roster-board-snug {
   gap: 0.65rem;
 }
