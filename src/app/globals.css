@@ -395,6 +395,16 @@ html.party-on .panel {
   padding: 0.4rem 0.5rem !important;
 }
 
+.rushmore-why {
+  margin-top: 0.75rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid rgba(35, 72, 62, 0.08);
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--muted);
+  font-weight: 600;
+}
+
 .roster-board-grid {
   display: flex;
   flex-direction: column;
