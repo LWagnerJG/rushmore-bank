@@ -197,43 +197,55 @@ export function DraftBoard({
                         .join(" ")}
                     >
                       <div className="draft-board-cell-inner">
-                        <p
-                          className={`draft-board-cell-text ${
-                            pick || current || isRedoTarget
-                              ? "font-bold"
-                              : "text-[var(--muted)]"
-                          }`}
-                        >
-                          {pick?.text ??
-                            (current || isRedoTarget ? "…" : "")}
-                        </p>
-                        {canShowRedo && pick && (
+                        {canShowRedo && pick ? (
                           <button
                             type="button"
-                            className={
-                              adminMode
-                                ? "draft-board-redo draft-board-redo-admin"
-                                : "draft-board-redo draft-board-redo-host"
-                            }
+                            className={[
+                              "draft-board-pick-hit",
+                              hostFocused ? "draft-board-pick-hit-on" : "",
+                            ]
+                              .filter(Boolean)
+                              .join(" ")}
                             aria-label={
                               hostFocused
                                 ? "Deselect pick for redo"
-                                : `Redo ${pick.text}`
+                                : `Select ${pick.text} for redo`
                             }
                             aria-pressed={hostFocused}
-                            title="Redo pick"
                             onClick={() =>
                               setHostFocusTurn((t) =>
                                 t === turn ? null : turn,
                               )
                             }
                           >
-                            {adminMode
-                              ? hostFocused
-                                ? "selected"
-                                : "redo"
-                              : "↻"}
+                            <span
+                              className={`draft-board-cell-text font-bold`}
+                            >
+                              {pick.text}
+                            </span>
+                            {hostFocused && (
+                              <span
+                                className={
+                                  adminMode
+                                    ? "draft-board-redo draft-board-redo-admin"
+                                    : "draft-board-redo draft-board-redo-host"
+                                }
+                              >
+                                {adminMode ? "redo" : "↻"}
+                              </span>
+                            )}
                           </button>
+                        ) : (
+                          <p
+                            className={`draft-board-cell-text ${
+                              pick || current || isRedoTarget
+                                ? "font-bold"
+                                : "text-[var(--muted)]"
+                            }`}
+                          >
+                            {pick?.text ??
+                              (current || isRedoTarget ? "…" : "")}
+                          </p>
                         )}
                         {isRedoTarget && (
                           <span className="draft-board-replacing">
