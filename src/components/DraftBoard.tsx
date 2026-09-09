@@ -3,17 +3,19 @@
 import { useEffect, useRef, useState } from "react";
 import type { ClientMessage, PublicRoomState } from "@/shared/types";
 import { RULES } from "@/shared/rules";
+import { currentUpPlayerId } from "@/shared/engine/up-seat";
+import { readAdminUnlocked } from "@/lib/admin-session";
 
 function densityFor(count: number): "cozy" | "snug" | "dense" {
   if (count >= 8) return "dense";
-  if (count >= 6) return "snug";
+  if (count >= 5) return "snug";
   return "cozy";
 }
 
 function colWidthPx(count: number, density: "cozy" | "snug" | "dense"): number {
-  if (density === "dense") return Math.max(64, Math.min(88, 520 / count));
-  if (density === "snug") return Math.max(78, Math.min(102, 560 / count));
-  return Math.max(100, Math.min(118, 640 / count));
+  if (density === "dense") return Math.max(58, Math.min(80, 500 / count));
+  if (density === "snug") return Math.max(72, Math.min(96, 540 / count));
+  return Math.max(92, Math.min(112, 600 / count));
 }
 
 export function DraftBoard({
@@ -36,7 +38,18 @@ export function DraftBoard({
     ? Number(state.correctionTargetPickId)
     : null;
   const [hostFocusTurn, setHostFocusTurn] = useState<number | null>(null);
+  const [adminMode, setAdminMode] = useState(false);
   const focusTurn = correcting ? null : hostFocusTurn;
+  const upId = currentUpPlayerId(state);
+  /** Host may correct; admin unlock only changes how loud the affordance is. */
+  const canShowRedo = isHost && state.phase === "DRAFT" && !correcting;
+
+  useEffect(() => {
+    const sync = () => setAdminMode(readAdminUnlocked());
+    sync();
+    window.addEventListener("focus", sync);
+    return () => window.removeEventListener("focus", sync);
+  }, []);
 
   useEffect(() => {
     const cell = activeCell.current;
@@ -64,7 +77,7 @@ export function DraftBoard({
 
   return (
     <div className="space-y-2">
-      {isHost && !correcting && focusTurn != null && (
+      {canShowRedo && focusTurn != null && (
         <div className="draft-redo-bar" role="region" aria-label="Redo pick">
           <p className="text-sm font-extrabold">
             Redo slot{" "}
@@ -102,16 +115,14 @@ export function DraftBoard({
       )}
 
       <div
-        className={`draft-board-scroll${
-          density !== "cozy" ? " draft-board-scroll-tall" : ""
-        }`}
+        className={`draft-board-scroll draft-board-scroll-${density}`}
         tabIndex={0}
         role="region"
         aria-label="Draft board"
       >
         <table
           className={`draft-board-table draft-board-density-${density}`}
-          style={{ minWidth: Math.max(280, seats.length * colW) }}
+          style={{ minWidth: Math.max(260, seats.length * colW) }}
         >
           <caption className="sr-only">
             Exactly four picks per player. Snake order.
@@ -121,10 +132,7 @@ export function DraftBoard({
               {seats.map((seat) => {
                 const pid = state.seatOrder[seat];
                 const player = state.players.find((p) => p.id === pid);
-                const onClock =
-                  state.seatOrder[state.draftOrder[state.draftCursor]] ===
-                    pid &&
-                  (state.phase === "DRAFT" || state.phase === "CORRECTION");
+                const onClock = upId === pid;
                 return (
                   <th
                     scope="col"
@@ -132,6 +140,7 @@ export function DraftBoard({
                     className={[
                       pid === youId ? "is-you" : "",
                       onClock ? "draft-board-on-clock" : "",
+                      onClock ? "draft-board-col-active" : "",
                     ]
                       .filter(Boolean)
                       .join(" ")}
@@ -157,6 +166,8 @@ export function DraftBoard({
                     pass * seats.length +
                     (pass % 2 === 0 ? column : seats.length - 1 - column);
                   const pick = state.picks.find((p) => p.turnIndex === turn);
+                  const pid = state.seatOrder[seat];
+                  const colActive = upId === pid;
                   const current =
                     state.draftCursor === turn &&
                     (state.phase === "DRAFT" || state.phase === "CORRECTION");
@@ -171,54 +182,65 @@ export function DraftBoard({
                       data-turn={turn}
                       aria-current={current || isRedoTarget ? "step" : undefined}
                       className={[
+                        "draft-board-cell",
+                        colActive ? "draft-board-col-active" : "",
                         isRedoTarget || current
-                          ? "bg-[var(--yellow)]"
+                          ? "draft-board-cell-live"
                           : hostFocused
-                            ? "bg-[rgba(244,201,91,0.45)]"
+                            ? "draft-board-cell-focus"
                             : pick
-                              ? "bg-white/70"
-                              : "bg-transparent",
+                              ? "draft-board-cell-filled"
+                              : "draft-board-cell-empty",
                         dimForRedo ? "opacity-40" : "",
                       ]
                         .filter(Boolean)
                         .join(" ")}
                     >
-                      <p
-                        className={`draft-board-cell-text ${
-                          pick || current || isRedoTarget
-                            ? "font-bold"
-                            : "text-[var(--muted)]"
-                        }`}
-                      >
-                        {pick?.text ??
-                          (current || isRedoTarget ? "…" : "")}
-                      </p>
-                      {isHost &&
-                        pick &&
-                        state.phase === "DRAFT" &&
-                        !correcting && (
+                      <div className="draft-board-cell-inner">
+                        <p
+                          className={`draft-board-cell-text ${
+                            pick || current || isRedoTarget
+                              ? "font-bold"
+                              : "text-[var(--muted)]"
+                          }`}
+                        >
+                          {pick?.text ??
+                            (current || isRedoTarget ? "…" : "")}
+                        </p>
+                        {canShowRedo && pick && (
                           <button
                             type="button"
-                            className={`draft-board-redo mt-1 font-extrabold uppercase tracking-wide ${
+                            className={
+                              adminMode
+                                ? "draft-board-redo draft-board-redo-admin"
+                                : "draft-board-redo draft-board-redo-host"
+                            }
+                            aria-label={
                               hostFocused
-                                ? "text-[var(--text)]"
-                                : "text-[var(--muted)]"
-                            }`}
+                                ? "Deselect pick for redo"
+                                : `Redo ${pick.text}`
+                            }
                             aria-pressed={hostFocused}
+                            title="Redo pick"
                             onClick={() =>
                               setHostFocusTurn((t) =>
                                 t === turn ? null : turn,
                               )
                             }
                           >
-                            {hostFocused ? "Selected" : "Redo"}
+                            {adminMode
+                              ? hostFocused
+                                ? "selected"
+                                : "redo"
+                              : "↻"}
                           </button>
                         )}
-                      {isRedoTarget && (
-                        <p className="draft-board-redo mt-1 font-extrabold uppercase tracking-wide">
-                          Replacing
-                        </p>
-                      )}
+                        {isRedoTarget && (
+                          <span className="draft-board-replacing">
+                            replacing
+                          </span>
+                        )}
+                      </div>
                     </td>
                   );
                 })}

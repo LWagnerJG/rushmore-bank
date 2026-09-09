@@ -40,8 +40,8 @@ LOBBY → TOPIC_SELECTION → DRAFT (+ CORRECTION) → REVIEW
 - Missed after grace → placeholder miss pick.
 - **Stash**: private draft queue + type field in one embedded surface; Stash it while waiting; Lock in on your turn; tap a stashed pick to lock instantly when up. Never in AI/spectator payloads.
 - Host may mark Duplicate or Group Invalid → replacement turn (60s), resume cursor.
-- Review/pitch **20s** optional (skim only).
-- Fantasy-style shared draft board always visible during draft (UI): whose turn / you’re next / snake order.
+- Review/pitch **~5s** then auto-start voting (host may skip early).
+- Fantasy-style shared draft board always visible during draft (UI): whose turn / you’re next / snake order. Top rail highlights the **current picker** (not only You). Host redo is a tiny affordance; admin mode shows a discrete redo link. Regular players see no redo UI.
 
 ## Scoring
 
@@ -49,7 +49,7 @@ LOBBY → TOPIC_SELECTION → DRAFT (+ CORRECTION) → REVIEW
 earned = 20 + ai_award(0–40) + 5 × human_votes
 ```
 
-- One private human vote for another’s full roster (no self-vote). Show counts, not voters. Vote window **40s**.
+- One private human vote for another’s full roster (no self-vote). Show counts, not voters (`N/M voted`). Vote window **45s** or until everyone has voted.
 - AI: Gemini-first (`gemini-3.5-flash` with retry/backoff + flash model fallback); OpenAI fallback; uniform neutral if no key. Player-facing notice never includes HTTP codes.
 - Prompt version: `quarry-judge-v1` (locked in `RULES.aiPromptVersion`).
 - Everyone earns beans (even 0 votes). Start balance **0**.

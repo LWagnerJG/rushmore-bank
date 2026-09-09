@@ -8,8 +8,9 @@ import {
 } from "@/shared/types";
 import { RULES } from "@/shared/rules";
 import { BOT_MAX_PER_ADD, parseBotCountDraft } from "@/shared/admin-bots";
+import { ADMIN_UNLOCK_KEY } from "@/lib/admin-session";
 
-const ADMIN_KEY = "beans:admin-unlocked";
+const ADMIN_KEY = ADMIN_UNLOCK_KEY;
 const ADMIN_PIN = "8989";
 
 const PHASES: Phase[] = [

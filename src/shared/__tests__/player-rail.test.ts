@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { sortLeaderboard } from "@/components/PlayerRail";
-import type { Player } from "@/shared/types";
+import { currentUpPlayerId } from "@/shared/engine/up-seat";
+import type { Player, PublicRoomState } from "@/shared/types";
+import { emptyRoomState } from "@/shared/types";
+import { projectPublicState } from "@/shared/engine/public-state";
 
 function p(
   partial: Partial<Player> & Pick<Player, "id" | "name" | "stones">,
@@ -42,5 +45,37 @@ describe("sortLeaderboard", () => {
       "y",
       "z",
     ]);
+  });
+});
+
+describe("currentUpPlayerId", () => {
+  it("returns the draft seat on the clock", () => {
+    const room = emptyRoomState("ABCD");
+    room.phase = "DRAFT";
+    room.seatOrder = ["sam", "ava", "you"];
+    room.draftOrder = [0, 1, 2, 2, 1, 0, 0, 1, 2, 2, 1, 0];
+    room.draftCursor = 1;
+    room.players = [
+      p({ id: "sam", name: "Bot Sam", stones: 0, seat: 0 }),
+      p({ id: "ava", name: "Bot Ava", stones: 0, seat: 1 }),
+      p({ id: "you", name: "You", stones: 0, seat: 2 }),
+    ];
+    const pub = projectPublicState(room, "you") as PublicRoomState;
+    expect(currentUpPlayerId(pub)).toBe("ava");
+  });
+
+  it("returns the dice roller when in DICE", () => {
+    const room = emptyRoomState("ABCD");
+    room.phase = "DICE";
+    room.seatOrder = ["a", "b"];
+    room.diceTurnSeat = 1;
+    expect(currentUpPlayerId(room)).toBe("b");
+  });
+
+  it("is null outside turn-based phases", () => {
+    const room = emptyRoomState("ABCD");
+    room.phase = "REVIEW";
+    room.seatOrder = ["a"];
+    expect(currentUpPlayerId(room)).toBeNull();
   });
 });

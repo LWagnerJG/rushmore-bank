@@ -67,14 +67,22 @@ export function VotePanel({
     <div className="space-y-4">
       <div className="flex items-baseline justify-between gap-2">
         <h2 className="font-[family-name:var(--font-display)] text-xl font-extrabold">
-          Vote · {state.humanVotesCast}/{state.humanVotesNeeded}
+          Vote
         </h2>
         <span className="text-sm font-bold tabular-nums text-[var(--muted)]">
           <Countdown until={state.phaseDeadlineAt} />
         </span>
       </div>
+      <p
+        className="vote-count text-sm font-extrabold tabular-nums"
+        role="status"
+        aria-live="polite"
+      >
+        {state.humanVotesCast}/{state.humanVotesNeeded} voted
+      </p>
       <p className="text-sm text-[var(--muted)]">
-        Tap a Mount Rushmore — best list for the topic.
+        Tap a Mount Rushmore — best list for the topic. Ends in{" "}
+        {RULES.humanVoteSeconds}s or when everyone has voted.
       </p>
       {state.judgeStatus === "pending" && (
         <p className="text-sm text-[var(--muted)]">Judge scoring…</p>

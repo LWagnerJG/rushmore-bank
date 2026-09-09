@@ -448,8 +448,8 @@ describe("session length: choices vs rounds", () => {
     expect(RULES.pickClockSeconds).toBe(60);
     expect(RULES.pickGraceSeconds).toBe(5);
     expect(RULES.hostExtendSeconds).toBe(15);
-    expect(RULES.reviewSeconds).toBe(20);
-    expect(RULES.humanVoteSeconds).toBe(40);
+    expect(RULES.reviewSeconds).toBe(5);
+    expect(RULES.humanVoteSeconds).toBe(45);
     expect(RULES.wagerTimeoutSeconds).toBe(20);
     expect(RULES.diceDecisionCountdownSeconds).toBe(0);
   });

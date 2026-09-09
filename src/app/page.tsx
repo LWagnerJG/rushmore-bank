@@ -6,9 +6,10 @@ import { useCallback, useRef, useState } from "react";
 import { BrandMark } from "@/components/BrandMark";
 import { normalizeRoomCode, randomRoomCode } from "@/shared/types";
 import { RULES } from "@/shared/rules";
+import { ADMIN_UNLOCK_KEY } from "@/lib/admin-session";
 
 const ADMIN_PIN = "8989";
-const ADMIN_KEY = "beans:admin-unlocked";
+const ADMIN_KEY = ADMIN_UNLOCK_KEY;
 
 export default function HomePage() {
   const router = useRouter();

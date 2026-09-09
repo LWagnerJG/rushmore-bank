@@ -39,12 +39,12 @@ export const RULES = {
   /** Grace after pick clock hits 0 before miss */
   pickGraceSeconds: 5,
   hostExtendSeconds: 15,
-  /** Skim board only */
-  reviewSeconds: 20,
+  /** Skim rosters, then auto-start voting (host may skip early). */
+  reviewSeconds: 5,
 
   /** Voting / AI */
-  /** Read Rushmores + whys */
-  humanVoteSeconds: 40,
+  /** Vote window — ends at deadline or when everyone has voted. */
+  humanVoteSeconds: 45,
   scoreBase: 20,
   aiAwardMin: 0,
   aiAwardMax: 40,

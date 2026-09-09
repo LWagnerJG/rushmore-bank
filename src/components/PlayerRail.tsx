@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect, useRef, type RefObject } from "react";
 import type { Player, PublicRoomState } from "@/shared/types";
+import { currentUpPlayerId } from "@/shared/engine/up-seat";
 
 /** You first, then beans descending (seat as stable tiebreak). */
 export function sortLeaderboard(
@@ -26,6 +28,7 @@ export function PlayerRail({
     state.players.filter((p) => p.role === "player"),
     youId,
   );
+  const upId = currentUpPlayerId(state);
   const showEarned =
     state.scoresLocked ||
     state.phase === "SCORE_REVEAL" ||
@@ -35,6 +38,16 @@ export function PlayerRail({
   const fit = count > 0 && count <= 5;
   const many = count >= 6;
   const dense = count >= 8;
+  const upRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!upId) return;
+    upRef.current?.scrollIntoView({
+      behavior: "smooth",
+      inline: "center",
+      block: "nearest",
+    });
+  }, [upId, state.draftCursor, state.diceTurnSeat, state.phase]);
 
   return (
     <div
@@ -55,6 +68,8 @@ export function PlayerRail({
             key={p.id}
             player={p}
             you={p.id === youId}
+            up={upId === p.id}
+            chipRef={upId === p.id ? upRef : undefined}
             compact={many}
             earned={
               showEarned
@@ -71,27 +86,40 @@ export function PlayerRail({
 function PlayerChip({
   player,
   you,
+  up,
   earned,
   compact,
+  chipRef,
 }: {
   player: Player;
   you: boolean;
+  up: boolean;
   earned?: number;
   compact?: boolean;
+  chipRef?: RefObject<HTMLDivElement | null>;
 }) {
   return (
     <div
+      ref={chipRef}
       className={[
         "player-chip",
         compact ? "player-chip-compact" : "",
         you ? "player-chip-you" : "player-chip-other",
+        up ? "player-chip-up" : "",
         player.connected ? "" : "opacity-50",
       ]
         .filter(Boolean)
         .join(" ")}
+      aria-current={up ? "true" : undefined}
+      title={up ? "On the clock" : undefined}
     >
       <div className="player-chip-name">
-        {player.isHost && <span title="Host">★</span>}
+        {up && (
+          <span className="player-chip-up-dot" aria-hidden="true">
+            ●
+          </span>
+        )}
+        {player.isHost && !up && <span title="Host">★</span>}
         <span className="player-chip-name-text">
           {you ? "You" : player.name}
         </span>

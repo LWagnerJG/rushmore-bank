@@ -35,8 +35,8 @@ export default function HowToPlayPage() {
             stashed pick to lock).
           </li>
           <li>
-            Skim review (~20s), then vote another’s roster (~40s) (2 players: AI
-            only). Earn beans.
+            Skim review (~5s, voting auto-starts), then vote another’s roster
+            (~45s or until everyone has voted) (2 players: AI only). Earn beans.
           </li>
           <li>
             Risk beans on the slider (zero still plays). Then personal bank —

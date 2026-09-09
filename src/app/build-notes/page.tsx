@@ -17,7 +17,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Dice layout stable → {RULES.productionUrl}
+        Draft / roster / vote UX → {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -37,7 +37,8 @@ export default function BuildNotesPage() {
             ) : null}
             <li>
               Target: production <code>roundacats.vercel.app</code> via merge to{" "}
-              <code>main</code>. UI-only — no PartyKit redeploy required.
+              <code>main</code>. PartyKit redeploy when{" "}
+              <code>src/shared</code> / review+vote timers change.
             </li>
           </ul>
         ) : (
@@ -52,29 +53,28 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>Stable dice layout</strong>: reserved fixed regions (turn
-            strip, who’s-up + status, 15s timer, dice tray, last-roll readout,
-            pot/Bank CTA, personal safe beans) with consistent min-heights so
-            the tray no longer leaps between watching / your turn / rolling /
-            settled / bust / next seat.
+            <strong>Top rail up-seat</strong>: current picker chip lights up
+            (yellow ring / fill) during draft — not only “You”. You-first
+            leaderboard sort kept.
           </li>
           <li>
-            <strong>Numbers persist</strong>: pot, safe beans, last roll total,
-            and strip pots stay mounted. Sticky last-roll survives scramble
-            (faces stay honest on the tray); idle timer shows — instead of
-            unmounting.
+            <strong>Redo gated</strong>: regular players see none. Host gets a
+            tiny ↻; admin unlock shows a discrete lowercase redo link. No more
+            big all-caps REDO under every cell.
           </li>
           <li>
-            <strong>Smooth transitions</strong>: opacity / grid-row motion for
-            timer idle↔live, result freshness, party prompt open/close, and
-            dimming — not abrupt mount/unmount.
+            <strong>Tighter draft board</strong>: denser cells, active column
+            tint, phone-first scroll height.
           </li>
           <li>
-            Preserved: <strong>BEAN BUSTER</strong> clears on next seat (server
-            nulls <code>lastDice</code>; UI bust only while{" "}
-            <code>SETTLED</code>), no pre-roll countdown,{" "}
-            {RULES.diceIdleBankSeconds}s roll/Bank only, coral Bank CTA,
-            tap-to-roll, scramble settle, turn strip, personal BANK.
+            <strong>Rosters density</strong>: review board shrinks by player
+            count (2-col dense for large groups).
+          </li>
+          <li>
+            <strong>Vote flow</strong>: review auto-starts voting after{" "}
+            {RULES.reviewSeconds}s (host “Start voting now” demoted); window{" "}
+            {RULES.humanVoteSeconds}s or until all voted; clear{" "}
+            <code>N/M voted</code>.
           </li>
           <li>
             Clocks: draft {RULES.pickClockSeconds}s +{" "}
@@ -84,8 +84,8 @@ export default function BuildNotesPage() {
             timer.
           </li>
           <li>
-            Topics ~{TOPIC_COUNT} + anti-repeat, green perimeter when up, Stash,
-            Beans branding.
+            Preserved: Stash, topic bank (~{TOPIC_COUNT}), dice polish, Beans
+            branding, admin PIN, bots.
           </li>
         </ul>
       </section>

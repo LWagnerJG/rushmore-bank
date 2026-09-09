@@ -59,3 +59,4 @@ export {
   clampRostersToCap,
 } from "./draft-picks";
 export { DIE_PIPS, projectDie, type DieProjection } from "./dice-geometry";
+export { currentUpPlayerId } from "./up-seat";
