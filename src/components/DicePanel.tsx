@@ -19,27 +19,36 @@ function useSecondsLeft(until: number | null) {
   return left;
 }
 
-/** Honest roll/Bank decision clock — only while READY (can act). */
+/**
+ * Always-mounted roll/Bank decision clock.
+ * When idle (rolling / settled / between seats), keep the slot and show — so
+ * the stage never jumps when the 15s window appears or clears.
+ */
 function DecisionTimer({
   until,
   label,
   urgent,
+  idle,
 }: {
   until: number | null;
   label: string;
   urgent?: boolean;
+  idle?: boolean;
 }) {
   const left = useSecondsLeft(until);
-  if (!until) return null;
+  const active = !!until && !idle;
   return (
     <div
-      className={`dice-timer ${urgent || left <= 5 ? "dice-timer-urgent" : ""}`}
+      className={`dice-timer ${active && (urgent || left <= 5) ? "dice-timer-urgent" : ""} ${active ? "" : "dice-timer-idle"}`}
       role="timer"
       aria-live="polite"
-      aria-label={`${label}: ${left} seconds`}
+      aria-label={active ? `${label}: ${left} seconds` : "Timer idle"}
+      aria-hidden={!active}
     >
-      <span className="dice-timer-label">{label}</span>
-      <span className="dice-timer-value tabular-nums">{left}</span>
+      <span className="dice-timer-label">{active ? label : "Timer"}</span>
+      <span className="dice-timer-value tabular-nums">
+        {active ? left : "—"}
+      </span>
       <span className="dice-timer-unit">sec</span>
     </div>
   );
@@ -75,6 +84,16 @@ type SeatInfo = {
   pot: number;
   safe: number;
   you: boolean;
+};
+
+type StickyRoll = {
+  rollId: string;
+  d1: number;
+  d2: number;
+  total: number;
+  name: string;
+  busted: boolean;
+  note?: string;
 };
 
 /**
@@ -139,6 +158,7 @@ export function DicePanel({
   const roller = state.players.find((p) => p.id === rollerId);
   const myTurn = rollerId === youId;
   const pot = state.pots[youId] ?? 0;
+  const safeBeans = state.protectedStones[youId] ?? you.stones;
   const active = state.diceActiveIds.includes(youId);
   const rolling = state.diceSubphase === "COMMITTED";
   const settling = state.diceSubphase === "SETTLED";
@@ -162,6 +182,8 @@ export function DicePanel({
   const turnHaptic = useRef<string | null>(null);
   const revealSeen = useRef<string | null>(null);
   const [heroReveal, setHeroReveal] = useState(false);
+  /** Keep last revealed faces across scramble so the total never blanks. */
+  const [stickyRoll, setStickyRoll] = useState<StickyRoll | null>(null);
 
   useEffect(() => {
     if (!busy) return;
@@ -201,6 +223,26 @@ export function DicePanel({
   const partyPrompt = state.partyPrompt;
   const canResolveParty =
     partyPrompt?.targetPlayerIds.includes(youId) || you.isHost;
+
+  // Sticky last-roll readout: update on reveal; clear when server nulls lastDice
+  // (next seat) so BEAN BUSTER never lingers.
+  useEffect(() => {
+    if (!last) {
+      setStickyRoll(null);
+      return;
+    }
+    if (last.revealed && last.d1 != null && last.d2 != null) {
+      setStickyRoll({
+        rollId: last.rollId,
+        d1: last.d1,
+        d2: last.d2,
+        total: last.d1 + last.d2,
+        name: lastName,
+        busted: !!last.busted,
+        note: last.note,
+      });
+    }
+  }, [last, lastName]);
 
   // BEAN BUSTER / settle pop only while SETTLED. Server clears lastDice on the
   // next seat — never extend a client timer past the settle beat.
@@ -265,8 +307,9 @@ export function DicePanel({
   const timerUntil =
     state.diceSubphase === "READY" ? state.diceIdleDeadlineAt : null;
   const timerLabel = myTurn ? "Roll or Bank" : "Decision";
+  const timerLive = timerUntil != null && !rolling && !settling;
 
-  const bustMoment = settling && !!last?.busted && !!last?.revealed;
+  const bustMoment = settling && !!stickyRoll?.busted;
   const statusLine = rolling
     ? "Rolling…"
     : bustMoment
@@ -277,20 +320,22 @@ export function DicePanel({
           ? "Tap the dice — or Bank"
           : myTurn
             ? "Your turn"
-            : null;
+            : "Watching";
 
-  const revealed = !!last?.revealed;
-  const total =
-    revealed && last?.d1 != null && last?.d2 != null ? last.d1 + last.d2 : null;
-  // Result / BEAN BUSTER only during the settle beat — never into next seat.
-  const showResult = settling && revealed && total != null;
+  // Fresh settle uses live faces; otherwise sticky keeps the prior total through
+  // scramble / READY so the readout never blanks mid-turn.
+  const showBust = bustMoment && stickyRoll != null;
+  const showTotal =
+    !showBust && stickyRoll != null && !stickyRoll.busted;
+  const resultFresh = settling && !!last?.revealed;
+  const resultStale = showTotal && rolling;
   const drama = (heroReveal && settling) || rolling || settling;
 
   return (
     <div
       className={`dice-layout ${heroReveal && settling ? "dice-hero-mode" : ""}`}
     >
-      {/* Who’s up / next / banked — compact turn strip */}
+      {/* Zone 1 — turn strip (fixed) */}
       <section
         className={`dice-zone dice-zone-strip ${drama ? "dice-table-dim" : ""}`}
         aria-label="Turn order"
@@ -298,7 +343,7 @@ export function DicePanel({
         <TurnStrip seats={seats} />
       </section>
 
-      {/* Who’s up → timer → dice hero */}
+      {/* Zone 2 — who’s up → timer → dice tray → last roll */}
       <section className="dice-zone dice-zone-stage" aria-label="Dice stage">
         <header className="dice-stage-head text-center">
           <h2 className="dice-up-title">
@@ -308,18 +353,22 @@ export function DicePanel({
                 ? "Your roll"
                 : `${roller?.name ?? "Player"} is up`}
           </h2>
-          {statusLine ? (
-            <p className="dice-up-status" aria-live="polite">
-              {bustMoment ? `${lastName} · pot wiped` : statusLine}
-            </p>
-          ) : null}
+          <p className="dice-up-status" aria-live="polite">
+            {bustMoment ? `${stickyRoll?.name ?? lastName} · pot wiped` : statusLine}
+          </p>
         </header>
 
-        {timerUntil != null && !rolling && !settling && (
-          <div className="dice-stage-timer" aria-label="Turn timer">
-            <DecisionTimer until={timerUntil} label={timerLabel} />
-          </div>
-        )}
+        {/* Always reserve timer height — idle shows — */}
+        <div
+          className={`dice-stage-timer ${timerLive ? "dice-stage-timer-live" : "dice-stage-timer-idle"}`}
+          aria-label="Turn timer"
+        >
+          <DecisionTimer
+            until={timerUntil}
+            label={timerLabel}
+            idle={!timerLive}
+          />
+        </div>
 
         <DiceScene
           broadcast={last}
@@ -331,36 +380,55 @@ export function DicePanel({
           }}
         />
 
+        {/* Always-on last-roll slot — sticky through scramble; bust only while SETTLED */}
         <div
-          className={`dice-result-readout ${showResult ? "dice-result-readout-on" : ""} ${last?.busted && showResult ? "dice-result-bust" : ""}`}
+          className={[
+            "dice-result-readout",
+            showBust || showTotal ? "dice-result-readout-on" : "",
+            showBust ? "dice-result-bust" : "",
+            resultFresh && showTotal ? "dice-result-fresh" : "",
+            resultStale ? "dice-result-stale" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
           role="status"
           aria-live="assertive"
         >
-          {showResult ? (
-            last!.busted ? (
-              <>
-                <p className="dice-result-faces">
-                  {lastName} · {last!.d1} + {last!.d2}
+          {showBust && stickyRoll ? (
+            <>
+              <p className="dice-result-faces">
+                {stickyRoll.name} · {stickyRoll.d1} + {stickyRoll.d2}
+              </p>
+              <p className="dice-result-bust-title">BEAN BUSTER</p>
+              <p className="dice-result-note">Pot gone</p>
+            </>
+          ) : showTotal && stickyRoll ? (
+            <>
+              <p className="dice-result-faces">
+                {stickyRoll.name} · {stickyRoll.d1} + {stickyRoll.d2}
+              </p>
+              <p className="dice-result-total tabular-nums">{stickyRoll.total}</p>
+              {stickyRoll.note && !rolling ? (
+                <p className="dice-result-note">{stickyRoll.note}</p>
+              ) : (
+                <p className="dice-result-note dice-result-note-slot" aria-hidden="true">
+                  &nbsp;
                 </p>
-                <p className="dice-result-bust-title">BEAN BUSTER</p>
-                <p className="dice-result-note">Pot gone</p>
-              </>
-            ) : (
-              <>
-                <p className="dice-result-faces">
-                  {lastName} · {last!.d1} + {last!.d2}
-                </p>
-                <p className="dice-result-total tabular-nums">{total}</p>
-                {last!.note ? (
-                  <p className="dice-result-note">{last!.note}</p>
-                ) : null}
-              </>
-            )
-          ) : null}
+              )}
+            </>
+          ) : (
+            <>
+              <p className="dice-result-faces dice-result-idle">Last roll</p>
+              <p className="dice-result-total tabular-nums dice-result-idle">—</p>
+              <p className="dice-result-note dice-result-note-slot" aria-hidden="true">
+                &nbsp;
+              </p>
+            </>
+          )}
         </div>
       </section>
 
-      {/* Personal safe beans + Bank CTA (when you’re up) */}
+      {/* Zone 3 — pot + safe + Bank CTA (always reserved for players) */}
       {you.role === "player" && (
         <section
           className={`dice-zone dice-zone-actions ${drama && !myTurn ? "dice-action-dim" : ""}`}
@@ -375,72 +443,90 @@ export function DicePanel({
                 {active ? pot : you.stones}
               </p>
             </div>
-            {active && (
-              <p className="dice-pot-safe">
-                <strong>{state.protectedStones[youId] ?? you.stones}</strong>{" "}
-                safe
-              </p>
-            )}
+            <p
+              className={`dice-pot-safe ${active ? "" : "dice-pot-safe-muted"}`}
+            >
+              <strong>{safeBeans}</strong> safe
+            </p>
           </div>
 
-          {!active ? (
-            <p className="dice-watch-note">You’re out — watch the round.</p>
-          ) : myTurn ? (
-            <button
-              type="button"
-              className={[
-                "dice-bank-cta",
-                canBank && !busy && !settling ? "dice-bank-cta-armed" : "",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-              disabled={!canBank || busy || settling}
-              onClick={() => void bank()}
-            >
-              {pot === 0 ? "Bank" : `Bank ${pot}`}
-            </button>
-          ) : null}
+          {/* Fixed-height CTA slot — Bank / ghost / out note; never collapses */}
+          <div className="dice-cta-slot">
+            {!active ? (
+              <p className="dice-watch-note">You’re out — watch the round.</p>
+            ) : myTurn ? (
+              <button
+                type="button"
+                className={[
+                  "dice-bank-cta",
+                  canBank && !busy && !settling ? "dice-bank-cta-armed" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                disabled={!canBank || busy || settling}
+                onClick={() => void bank()}
+              >
+                {pot === 0 ? "Bank" : `Bank ${pot}`}
+              </button>
+            ) : (
+              <div className="dice-bank-cta dice-bank-cta-ghost" aria-hidden="true">
+                Bank
+              </div>
+            )}
+          </div>
         </section>
       )}
 
-      {partyPrompt && !partyPrompt.resolved && (
-        <section className="panel space-y-2">
-          <p className="font-bold">
-            {partyPrompt.kind === "bust_sip" ? (
-              <>
-                BEAN BUSTER ·{" "}
-                {partyPrompt.targetPlayerIds
-                  .map((id) => state.players.find((p) => p.id === id)?.name)
-                  .join(", ")}{" "}
-                · optional sip
-              </>
-            ) : (
-              <>
-                {partyPrompt.targetPlayerIds
-                  .map((id) => state.players.find((p) => p.id === id)?.name)
-                  .join(", ")}{" "}
-                · optional sip
-              </>
-            )}
-          </p>
-          {canResolveParty && (
-            <div className="flex gap-2">
-              <button
-                className="btn-primary flex-1"
-                onClick={() => send({ type: "party_resolve", choice: "done" })}
-              >
-                Done
-              </button>
-              <button
-                className="btn-secondary flex-1"
-                onClick={() => send({ type: "party_resolve", choice: "pass" })}
-              >
-                Pass
-              </button>
-            </div>
-          )}
-        </section>
-      )}
+      {/* Zone 4 — party prompt: reserved grid slot, expands smoothly */}
+      <div
+        className={`dice-party-slot ${partyPrompt && !partyPrompt.resolved ? "dice-party-slot-open" : ""}`}
+        aria-hidden={!partyPrompt || partyPrompt.resolved}
+      >
+        <div className="dice-party-slot-inner">
+          {partyPrompt && !partyPrompt.resolved ? (
+            <section className="panel space-y-2">
+              <p className="font-bold">
+                {partyPrompt.kind === "bust_sip" ? (
+                  <>
+                    BEAN BUSTER ·{" "}
+                    {partyPrompt.targetPlayerIds
+                      .map((id) => state.players.find((p) => p.id === id)?.name)
+                      .join(", ")}{" "}
+                    · optional sip
+                  </>
+                ) : (
+                  <>
+                    {partyPrompt.targetPlayerIds
+                      .map((id) => state.players.find((p) => p.id === id)?.name)
+                      .join(", ")}{" "}
+                    · optional sip
+                  </>
+                )}
+              </p>
+              {canResolveParty && (
+                <div className="flex gap-2">
+                  <button
+                    className="btn-primary flex-1"
+                    onClick={() =>
+                      send({ type: "party_resolve", choice: "done" })
+                    }
+                  >
+                    Done
+                  </button>
+                  <button
+                    className="btn-secondary flex-1"
+                    onClick={() =>
+                      send({ type: "party_resolve", choice: "pass" })
+                    }
+                  >
+                    Pass
+                  </button>
+                </div>
+              )}
+            </section>
+          ) : null}
+        </div>
+      </div>
     </div>
   );
 }

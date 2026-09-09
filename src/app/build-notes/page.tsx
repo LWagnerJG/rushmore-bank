@@ -17,7 +17,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Dice BANK polish → {RULES.productionUrl}
+        Dice layout stable → {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -37,9 +37,7 @@ export default function BuildNotesPage() {
             ) : null}
             <li>
               Target: production <code>roundacats.vercel.app</code> via merge to{" "}
-              <code>main</code>. <strong>PartyKit redeploy required</strong> —
-              bust clear + no pre-roll cooldown live in{" "}
-              <code>party/server.ts</code>.
+              <code>main</code>. UI-only — no PartyKit redeploy required.
             </li>
           </ul>
         ) : (
@@ -54,24 +52,29 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>BEAN BUSTER</strong>: pops on settle, then clears when the
-            next seat is up — server nulls <code>lastDice</code> in{" "}
-            <code>startDiceTurn</code>; UI only shows bust during{" "}
-            <code>SETTLED</code>.
+            <strong>Stable dice layout</strong>: reserved fixed regions (turn
+            strip, who’s-up + status, 15s timer, dice tray, last-roll readout,
+            pot/Bank CTA, personal safe beans) with consistent min-heights so
+            the tray no longer leaps between watching / your turn / rolling /
+            settled / bust / next seat.
           </li>
           <li>
-            <strong>Honest timers</strong>: no pre-roll “opens in Ns”
-            countdown (<code>diceDecisionCountdownSeconds: 0</code>). Seat
-            starts <code>READY</code> with the{" "}
-            {RULES.diceIdleBankSeconds}s roll/Bank idle window only.
+            <strong>Numbers persist</strong>: pot, safe beans, last roll total,
+            and strip pots stay mounted. Sticky last-roll survives scramble
+            (faces stay honest on the tray); idle timer shows — instead of
+            unmounting.
           </li>
           <li>
-            <strong>Bank CTA</strong>: coral primary button on your turn;
-            header beans stay subtle chrome.
+            <strong>Smooth transitions</strong>: opacity / grid-row motion for
+            timer idle↔live, result freshness, party prompt open/close, and
+            dimming — not abrupt mount/unmount.
           </li>
           <li>
-            Hierarchy: who’s up → dice hero → Roll/Bank (or watch) → personal
-            safe beans. Cut leftover Watching/result fluff.
+            Preserved: <strong>BEAN BUSTER</strong> clears on next seat (server
+            nulls <code>lastDice</code>; UI bust only while{" "}
+            <code>SETTLED</code>), no pre-roll countdown,{" "}
+            {RULES.diceIdleBankSeconds}s roll/Bank only, coral Bank CTA,
+            tap-to-roll, scramble settle, turn strip, personal BANK.
           </li>
           <li>
             Clocks: draft {RULES.pickClockSeconds}s +{" "}
@@ -81,9 +84,8 @@ export default function BuildNotesPage() {
             timer.
           </li>
           <li>
-            Preserved: topic bank ~{TOPIC_COUNT} + anti-repeat, scramble+settle,
-            turn strip, personal BANK, green perimeter when up, Stash, Beans
-            branding.
+            Topics ~{TOPIC_COUNT} + anti-repeat, green perimeter when up, Stash,
+            Beans branding.
           </li>
         </ul>
       </section>
