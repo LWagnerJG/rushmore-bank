@@ -6,6 +6,11 @@ import { useGameRoom } from "@/hooks/useGameRoom";
 import { phaseLabel, type Phase } from "@/shared/types";
 import { RULES } from "@/shared/rules";
 import { BrandMark } from "@/components/BrandMark";
+import {
+  adoptPlayerIdForRejoin,
+  getLastPlayerIdForRejoin,
+  recallDisplayName,
+} from "@/lib/party";
 import { LobbyPanel } from "@/components/LobbyPanel";
 import { TopicPanel } from "@/components/TopicPanel";
 import { DraftPanel } from "@/components/DraftPanel";
@@ -68,7 +73,17 @@ export function RoomClient({
     preferSpectate,
   });
   const [name, setName] = useState(presetName || defaultName);
+  const [rejoinId] = useState(() => getLastPlayerIdForRejoin(code));
   const autoJoinAttempted = useRef(false);
+
+  function handleRejoin() {
+    const id = getLastPlayerIdForRejoin(code);
+    if (!id) return;
+    adoptPlayerIdForRejoin(code, id);
+    const n = (name.trim() || recallDisplayName()).trim();
+    const q = n ? `?name=${encodeURIComponent(n)}` : "";
+    window.location.assign(`/room/${code}${q}`);
+  }
 
   useEffect(() => {
     if (autoJoinAttempted.current) return;
@@ -178,6 +193,15 @@ export function RoomClient({
         >
           Watch only
         </button>
+        {rejoinId && (
+          <button
+            type="button"
+            className="btn-secondary text-sm"
+            onClick={handleRejoin}
+          >
+            Rejoin this room
+          </button>
+        )}
         {error && <p className="text-sm text-[var(--coral)]">{error}</p>}
         {!connected && (
           <p className="text-sm font-semibold text-[var(--muted)]">
@@ -202,7 +226,22 @@ export function RoomClient({
         }
       >
         <div className="flex items-start justify-between gap-3">
-          <BrandMark />
+          <div className="min-w-0">
+            <BrandMark />
+            {you.isHost && phase !== "LOBBY" && (
+              <button
+                type="button"
+                className="mt-0.5 block text-[0.6rem] font-bold uppercase tracking-[0.16em] text-[var(--muted)]"
+                aria-label={`Copy room code ${code}`}
+                title="Copy room code"
+                onClick={() => {
+                  void navigator.clipboard.writeText(code);
+                }}
+              >
+                Code · {code}
+              </button>
+            )}
+          </div>
           {drafting && state ? (
             <div className="flex shrink-0 items-center gap-1 pt-0.5">
               {you.isHost && (

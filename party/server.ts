@@ -30,6 +30,8 @@ import {
   applyDiceRoll,
   applyVoteCounts,
   applyWager,
+  clampWager,
+  maxWager,
   bankPotIntoProtected,
   buildAnonymousRosters,
   classifyPullOut,
@@ -181,11 +183,16 @@ function hashStr(s: string): number {
   return h >>> 0;
 }
 
+/** Brief app-switch / reconnect grace before mid-game leave advances turns. */
+const DISCONNECT_GRACE_MS = 8_000;
+
 export default class QuarryServer implements Party.Server {
   state: RoomState;
   private alarmPayload: AlarmPayload | null = null;
   /** In-memory delayed bot taps (room stays warm while host playtests). */
   private botTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  /** Soft-disconnect grace — cancelled if the same id reconnects. */
+  private leaveTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   constructor(readonly room: Party.Room) {
     this.state = emptyRoomState(room.id.toUpperCase());
@@ -311,8 +318,199 @@ export default class QuarryServer implements Party.Server {
     return false;
   }
 
+  clearLeaveTimer(playerId: string) {
+    const t = this.leaveTimers.get(playerId);
+    if (t) {
+      clearTimeout(t);
+      this.leaveTimers.delete(playerId);
+    }
+  }
+
+  /**
+   * Lobby: drop the player (headcount shrinks).
+   * Mid-game: soft-disconnect — keep the seat for rejoin, promote host, and
+   * unstick draft / vote / wager / dice waits that depended on them.
+   */
+  async handlePlayerLeave(playerId: string) {
+    const p = this.state.players.find((x) => x.id === playerId);
+    if (!p) return;
+    // Reconnected during grace — nothing to do.
+    if (p.connected) return;
+
+    const wasHost = p.isHost;
+    const wasSeated = this.state.seatOrder.includes(playerId);
+
+    if (!this.state.rosterLocked) {
+      // Lobby: drop them entirely so the headcount shrinks.
+      this.state.players = this.state.players.filter((x) => x.id !== playerId);
+    }
+    // Mid-game: keep seat + maps so the same id (or name reclaim) can rejoin.
+
+    this.ensureHost();
+    if (wasHost) {
+      const host = this.state.players.find((x) => x.isHost);
+      if (host) this.state.notice = `${host.name} is now host`;
+    } else if (!this.state.rosterLocked) {
+      this.state.notice = `${p.name} left`;
+    } else {
+      this.state.notice = `${p.name} disconnected — seat held for rejoin`;
+    }
+    bump(this.state);
+
+    // Unblock phase waits that required the leaver (connected-only counts).
+    if (this.state.phase === "TOPIC_SELECTION") {
+      const needed = connectedPlayers(this.state).length;
+      const votes = Object.keys(this.state.topicVotes).filter((id) => {
+        const pl = this.state.players.find((x) => x.id === id);
+        return pl?.connected && this.state.seatOrder.includes(id);
+      }).length;
+      if (needed > 0 && votes >= needed) {
+        await this.tallyTopicVotes();
+      }
+    }
+
+    if (
+      (this.state.phase === "DRAFT" || this.state.phase === "CORRECTION") &&
+      wasSeated
+    ) {
+      await this.skipDraftIfCurrentLeft(playerId);
+    }
+
+    if (this.state.phase === "VOTING_AND_JUDGING") {
+      await this.maybeFinalizeAfterJudge();
+    }
+
+    if (this.state.phase === "SCORE_REVEAL") {
+      await this.maybeBeginWagersFromReady();
+    }
+
+    if (this.state.phase === "WAGER_SELECTION") {
+      const needed = connectedPlayers(this.state).length;
+      const have = Object.keys(this.state.wagers).filter((id) => {
+        const pl = this.state.players.find((x) => x.id === id);
+        return pl?.connected && this.state.seatOrder.includes(id);
+      }).length;
+      if (needed === 0) {
+        await this.finalizeWagers();
+      } else if (have >= needed) {
+        await this.finalizeWagers();
+      }
+    }
+
+    if (this.state.phase === "DICE" && wasSeated) {
+      await this.recoverDiceAfterLeave(playerId);
+    }
+  }
+
+  /** Soft-disconnect: if the disconnected seat is on the clock, miss and advance. */
+  async skipDraftIfCurrentLeft(leftId: string) {
+    if (this.state.seatOrder.length === 0) {
+      this.state.phase = "GAME_RESULTS";
+      this.state.gameOver = true;
+      this.state.notice = "Everyone left — game over";
+      return;
+    }
+    if (this.currentDraftPlayerId() !== leftId) return;
+    if (this.state.phase === "CORRECTION") {
+      await this.onPickTimeout();
+      return;
+    }
+    // Miss the pick immediately so the table is not stuck on an empty seat.
+    await this.clearAlarm();
+    await this.onPickTimeout();
+  }
+
+  async recoverDiceAfterLeave(leftId: string) {
+    if (this.state.diceActiveIds.length === 0 || this.state.seatOrder.length === 0) {
+      await this.clearAlarm();
+      await this.beginRoundResults();
+      return;
+    }
+    // Mid-roll for the leaver — drop stuck COMMITTED so the table can move.
+    if (
+      this.state.lastDice?.rollerId === leftId &&
+      (this.state.diceSubphase === "COMMITTED" ||
+        this.state.diceSubphase === "SETTLED")
+    ) {
+      this.state.lastDice = null;
+      this.state.diceSubphase = "READY";
+    }
+    // Auto-bank disconnected rollers so dice cannot soft-lock on an empty seat.
+    if (this.state.diceActiveIds.includes(leftId)) {
+      this.bankPlayer(leftId, "Auto-bank (disconnected)");
+    }
+    const connectedActive = this.state.diceActiveIds.filter((id) => {
+      const pl = this.state.players.find((x) => x.id === id);
+      return pl?.connected;
+    });
+    if (connectedActive.length === 0) {
+      await this.clearAlarm();
+      await this.beginRoundResults();
+      return;
+    }
+    await this.clearAlarm();
+    await this.startDiceTurn();
+  }
+
+  /**
+   * Remap a disconnected seat onto a new connection id (name-match rejoin when
+   * localStorage was cleared / new tab without adoptPlayerIdForRejoin).
+   */
+  reclaimSeatId(oldId: string, newId: string, name: string): boolean {
+    if (oldId === newId) return false;
+    const old = this.state.players.find((p) => p.id === oldId);
+    if (!old || old.connected) return false;
+    if (this.state.players.some((p) => p.id === newId)) return false;
+
+    old.id = newId;
+    old.name = name;
+    old.connected = true;
+
+    const remapKey = <T extends Record<string, unknown>>(m: T) => {
+      if (Object.prototype.hasOwnProperty.call(m, oldId)) {
+        (m as Record<string, unknown>)[newId] = m[oldId];
+        delete m[oldId];
+      }
+    };
+    remapKey(this.state.wagers as Record<string, unknown>);
+    remapKey(this.state.bankBeansReady as Record<string, unknown>);
+    remapKey(this.state.earnedThisRound as Record<string, unknown>);
+    remapKey(this.state.pots as Record<string, unknown>);
+    remapKey(this.state.protectedStones as Record<string, unknown>);
+    remapKey(this.state.personalRollCounts as Record<string, unknown>);
+    remapKey(this.state.topicVotes as Record<string, unknown>);
+    remapKey(this.state.humanVotes as Record<string, unknown>);
+    if (this.state.checkpoint?.stones) {
+      remapKey(this.state.checkpoint.stones as Record<string, unknown>);
+    }
+
+    this.state.seatOrder = this.state.seatOrder.map((id) =>
+      id === oldId ? newId : id,
+    );
+    this.state.diceActiveIds = this.state.diceActiveIds.map((id) =>
+      id === oldId ? newId : id,
+    );
+    this.state.picks = this.state.picks.map((pk) =>
+      pk.playerId === oldId ? { ...pk, playerId: newId } : pk,
+    );
+    this.state.scores = this.state.scores.map((s) =>
+      s.playerId === oldId ? { ...s, playerId: newId } : s,
+    );
+    this.state.ledger = this.state.ledger.map((e) =>
+      e.playerId === oldId ? { ...e, playerId: newId } : e,
+    );
+    if (this.state.lastDice?.rollerId === oldId) {
+      this.state.lastDice = { ...this.state.lastDice, rollerId: newId };
+    }
+    if (old.seat != null) old.seat = this.state.seatOrder.indexOf(newId);
+    this.clearLeaveTimer(oldId);
+    this.clearLeaveTimer(newId);
+    return true;
+  }
+
   onConnect(conn: Party.Connection) {
     const playerId = conn.id;
+    this.clearLeaveTimer(playerId);
     const existing = this.state.players.find((p) => p.id === playerId);
     if (existing) {
       existing.connected = true;
@@ -329,11 +527,23 @@ export default class QuarryServer implements Party.Server {
 
   onClose(conn: Party.Connection) {
     const p = this.state.players.find((x) => x.id === conn.id);
-    if (p) {
-      p.connected = false;
-      this.ensureHost();
-      void this.persist().then(() => this.broadcastState());
-    }
+    if (!p) return;
+    p.connected = false;
+    this.ensureHost();
+    bump(this.state);
+    void this.persist().then(() => this.broadcastState());
+
+    this.clearLeaveTimer(conn.id);
+    // Lobby: leave immediately so headcount shrinks. Mid-game: grace for app switch.
+    const delay = this.state.rosterLocked ? DISCONNECT_GRACE_MS : 0;
+    const timer = setTimeout(() => {
+      this.leaveTimers.delete(conn.id);
+      void this.handlePlayerLeave(conn.id).then(() => {
+        void this.persist().then(() => this.broadcastState());
+        this.nudgeBots();
+      });
+    }, delay);
+    this.leaveTimers.set(conn.id, timer);
   }
 
   async onAlarm() {
@@ -341,6 +551,23 @@ export default class QuarryServer implements Party.Server {
     this.alarmPayload = null;
     if (!payload) return;
     if (payload.revision !== this.state.phaseRevision) return;
+
+    // Recover stuck COMMITTED rolls if the settle alarm was lost.
+    if (
+      this.state.phase === "DICE" &&
+      this.state.diceSubphase === "COMMITTED" &&
+      this.state.lastDice &&
+      !this.state.lastDice.revealed &&
+      Date.now() >= this.state.lastDice.animSettleAt &&
+      payload.kind !== "dice_anim" &&
+      payload.kind !== "dice_settle_hold"
+    ) {
+      await this.afterDiceAnim();
+      await this.persist();
+      this.broadcastState();
+      this.nudgeBots();
+      return;
+    }
 
     switch (payload.kind) {
       case "phase":
@@ -520,6 +747,7 @@ export default class QuarryServer implements Party.Server {
     const clean = name.trim().slice(0, 18);
     if (!clean) throw new Error("Enter a nickname");
 
+    this.clearLeaveTimer(id);
     const existing = this.state.players.find((p) => p.id === id);
     if (existing) {
       existing.name = clean;
@@ -528,7 +756,22 @@ export default class QuarryServer implements Party.Server {
       return;
     }
 
+    // Mid-game rejoin: reclaim a disconnected seat with the same nickname when
+    // the client could not restore the prior PartySocket id.
     if (role === "player" && this.state.rosterLocked) {
+      const needle = clean.toLowerCase();
+      const orphan = this.state.players.find(
+        (p) =>
+          p.role === "player" &&
+          !p.connected &&
+          this.state.seatOrder.includes(p.id) &&
+          p.name.trim().toLowerCase() === needle,
+      );
+      if (orphan && this.reclaimSeatId(orphan.id, id, clean)) {
+        this.ensureHost();
+        this.state.notice = `${clean} rejoined`;
+        return;
+      }
       // Late join → spectator until next game
       role = "spectator";
       this.state.notice = `${clean} joined as spectator (roster locked)`;
@@ -1270,7 +1513,7 @@ export default class QuarryServer implements Party.Server {
 
   async maybeBeginWagersFromReady() {
     if (this.state.phase !== "SCORE_REVEAL") return;
-    const needed = seatedPlayers(this.state);
+    const needed = seatedPlayers(this.state).filter((p) => p.connected);
     if (needed.length === 0) return;
     if (needed.every((p) => this.state.bankBeansReady[p.id])) {
       await this.beginWagers();
@@ -1313,11 +1556,23 @@ export default class QuarryServer implements Party.Server {
     const p = this.state.players.find((x) => x.id === id)!;
     const E = this.state.earnedThisRound[id] ?? 0;
     const B = p.stones;
-    const W = applyWager({ banked: B, earned: E, wager: amount }).pot;
+    const max = maxWager(E, B);
+    if (max >= 1 && (!Number.isFinite(amount) || amount < 1)) {
+      throw new Error("Wager at least 1 bean");
+    }
+    const W = applyWager({
+      banked: B,
+      earned: E,
+      wager: clampWager(amount, E, B),
+    }).pot;
     this.state.wagers[id] = W;
 
-    const needed = seatedPlayers(this.state).length;
-    if (Object.keys(this.state.wagers).length >= needed) {
+    const needed = connectedPlayers(this.state).length;
+    const have = Object.keys(this.state.wagers).filter((wid) => {
+      const pl = this.state.players.find((x) => x.id === wid);
+      return pl?.connected && this.state.seatOrder.includes(wid);
+    }).length;
+    if (needed > 0 && have >= needed) {
       await this.finalizeWagers();
     }
   }
@@ -1326,7 +1581,11 @@ export default class QuarryServer implements Party.Server {
     if (this.state.phase !== "WAGER_SELECTION") return;
     for (const pid of this.state.seatOrder) {
       if (this.state.wagers[pid] === undefined) {
-        this.state.wagers[pid] = 0;
+        const p = this.state.players.find((x) => x.id === pid)!;
+        const E = this.state.earnedThisRound[pid] ?? 0;
+        const B = p.stones;
+        // Timed out: still require ≥1 when they have beans (no silent zero lock-in).
+        this.state.wagers[pid] = clampWager(1, E, B);
       }
     }
 
@@ -1339,14 +1598,17 @@ export default class QuarryServer implements Party.Server {
       const p = this.state.players.find((x) => x.id === pid)!;
       const E = this.state.earnedThisRound[pid] ?? 0;
       const B = p.stones;
-      const W = this.state.wagers[pid] ?? 0;
+      const W = clampWager(this.state.wagers[pid] ?? 0, E, B);
+      this.state.wagers[pid] = W;
       const locked = applyWager({ banked: B, earned: E, wager: W });
       this.state.protectedStones[pid] = locked.protected;
       this.state.pots[pid] = locked.pot;
       this.state.personalRollCounts[pid] = 0;
       p.stones = locked.bankedAfter;
-      // Everyone re-enters dice each topic, including zero wagers.
-      this.state.diceActiveIds.push(pid);
+      // Enter dice when pot > 0. Zero-pot seats (literally no beans) skip the table.
+      if (locked.pot > 0) {
+        this.state.diceActiveIds.push(pid);
+      }
       ledgerPush(this.state, {
         playerId: pid,
         kind: "wager_lock",
@@ -1382,16 +1644,35 @@ export default class QuarryServer implements Party.Server {
   }
 
   async startDiceTurn() {
-    // Skip inactive seats (banked / busted)
+    // Skip inactive or disconnected seats (banked / busted / away)
     let guard = 0;
-    while (guard++ < 20) {
+    while (guard++ < 40) {
       const pid = this.currentDicePlayerId();
-      if (pid && this.state.diceActiveIds.includes(pid)) break;
+      if (pid && this.state.diceActiveIds.includes(pid)) {
+        const pl = this.state.players.find((x) => x.id === pid);
+        if (pl?.connected) break;
+      }
       this.advanceDiceSeat();
     }
     const pid = this.currentDicePlayerId();
-    if (!pid || this.state.diceActiveIds.length === 0) {
+    const connectedActive = this.state.diceActiveIds.filter((id) => {
+      const pl = this.state.players.find((x) => x.id === id);
+      return pl?.connected;
+    });
+    if (!pid || connectedActive.length === 0) {
       await this.beginRoundResults();
+      return;
+    }
+    // Zero pot cannot progress (doubles keep it at 0) — bank out immediately.
+    if ((this.state.pots[pid] ?? 0) <= 0) {
+      this.bankPlayer(pid, "Auto-bank (empty pot)");
+      bump(this.state);
+      if (this.state.diceActiveIds.length === 0) {
+        await this.beginRoundResults();
+      } else {
+        this.advanceDiceSeat();
+        await this.startDiceTurn();
+      }
       return;
     }
     // Clear prior roll so BEAN BUSTER / faces never linger into the next seat.
@@ -1435,6 +1716,19 @@ export default class QuarryServer implements Party.Server {
 
   /** Same player keeps rolling — skip decision countdown, unlock Roll. */
   async continueSamePlayerTurn() {
+    const pid = this.currentDicePlayerId();
+    if (pid && (this.state.pots[pid] ?? 0) <= 0) {
+      // Safety: never leave a zero-pot roller in an endless roll loop.
+      this.bankPlayer(pid, "Auto-bank (empty pot)");
+      bump(this.state);
+      if (this.state.diceActiveIds.length === 0) {
+        await this.beginRoundResults();
+      } else {
+        this.advanceDiceSeat();
+        await this.startDiceTurn();
+      }
+      return;
+    }
     this.state.diceSubphase = "READY";
     this.state.diceDecisionDeadlineAt = null;
     this.state.diceIdleDeadlineAt =
@@ -1452,6 +1746,11 @@ export default class QuarryServer implements Party.Server {
     }
     if (this.currentDicePlayerId() !== id) throw new Error("Not your roll");
     if (!this.state.diceActiveIds.includes(id)) throw new Error("Not active");
+    if ((this.state.pots[id] ?? 0) <= 0) {
+      // Empty pot cannot be rolled productively — bank out instead of sticking COMMITTED.
+      await this.handlePullOut(id);
+      return;
+    }
 
     // Atomic: mark committed — blocks late Pull Out for this roller
     this.state.diceSubphase = "COMMITTED";
