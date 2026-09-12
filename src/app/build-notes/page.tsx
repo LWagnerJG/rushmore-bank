@@ -37,7 +37,7 @@ export default function BuildNotesPage() {
             ) : null}
             <li>
               Target: production <code>roundacats.vercel.app</code> via merge to{" "}
-              <code>main</code>. PartyKit redeploy required for this wager/leave fix — also when{" "}
+              <code>main</code>. PartyKit redeploy required for wager/leave/rejoin server changes — also when{" "}
               <code>src/shared</code> / review+vote timers change.
             </li>
           </ul>
@@ -58,10 +58,16 @@ export default function BuildNotesPage() {
             Empty balance (E+B=0) skips dice cleanly — no infinite roll loop.
           </li>
           <li>
-            <strong>Leave / host</strong>: disconnect removes the seat (4→3),
-            promotes a new host if needed, and unsticks draft / vote / wager /
-            dice waits that depended on the leaver (including stuck COMMITTED
-            rolls).
+            <strong>Leave / host / rejoin</strong>: lobby leave shrinks
+            headcount. Mid-game soft-disconnect keeps the seat (~8s grace for
+            app switch), promotes host, skips draft/vote/wager/dice waits, and
+            supports rejoin (same id or nickname reclaim). Host gets a tiny
+            in-game <code>CODE · AB12</code> (tap to copy).
+          </li>
+          <li>
+            <strong>Draft board fit</strong>: at 2–5 players the Rushmore board
+            shares phone width with no horizontal scroll; 6–10 may densify /
+            scroll. Denser cells + active column tint kept.
           </li>
           <li>
             <strong>Top rail up-seat</strong>: current picker chip lights up
@@ -72,10 +78,6 @@ export default function BuildNotesPage() {
             <strong>Redo gated</strong>: regular players see none. Host gets a
             tiny ↻; admin unlock shows a discrete lowercase redo link. No more
             big all-caps REDO under every cell.
-          </li>
-          <li>
-            <strong>Tighter draft board</strong>: denser cells, active column
-            tint, phone-first scroll height.
           </li>
           <li>
             <strong>Rosters density</strong>: review board shrinks by player

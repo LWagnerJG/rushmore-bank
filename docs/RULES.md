@@ -105,5 +105,5 @@ Bets on roster winning, individual-pick side bets, quarter-step multipliers, 4×
 - Authoritative durable room state in PartyKit storage.
 - Server timers via PartyKit `storage.setAlarm`.
 - Idempotent actions + phase revisions + append-only ledger.
-- Host failover ~20s when host disconnects. On leave: seat count shrinks (4→3), host is promoted if needed, and draft/vote/wager/dice waits skip the leaver.
+- Host failover ~20s when host disconnects. Lobby leave shrinks headcount. Mid-game leave soft-disconnects (seat held for rejoin; ~8s grace for app switch), promotes host if needed, and draft/vote/wager/dice waits skip disconnected players. Host sees a tiny in-game CODE for sharing/rejoin.
 - Soft bank time budget removed — round ends when everyone banks/busts.

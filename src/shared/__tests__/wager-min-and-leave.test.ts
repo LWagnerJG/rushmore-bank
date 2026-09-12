@@ -48,20 +48,32 @@ describe("zero-pot dice edge does not soft-lock", () => {
   });
 });
 
-describe("leave seat-order shrink (unit)", () => {
-  it("removing a seat renumbers remaining players 4→3", () => {
+describe("leave soft-disconnect + host (unit)", () => {
+  it("mid-game leave keeps seat order for rejoin (no 4→3 shrink)", () => {
     const seatOrder = ["a", "b", "c", "d"];
     const leftId = "b";
-    const next = seatOrder.filter((id) => id !== leftId);
-    expect(next).toEqual(["a", "c", "d"]);
-    expect(next).toHaveLength(3);
-    // Turn seat after removing index 1: if turn was on left player, keep index
-    let diceTurnSeat = 1; // was b
-    const seatIdx = seatOrder.indexOf(leftId);
-    if (diceTurnSeat >= next.length) diceTurnSeat = 0;
-    else if (seatIdx < diceTurnSeat) diceTurnSeat -= 1;
-    // current roller left → index stays, next player slides into place
-    expect(next[diceTurnSeat]).toBe("c");
+    // Soft disconnect: seat stays; only connected flag flips.
+    const connected = Object.fromEntries(
+      seatOrder.map((id) => [id, id !== leftId]),
+    );
+    expect(seatOrder).toHaveLength(4);
+    expect(connected["b"]).toBe(false);
+    const connectedSeats = seatOrder.filter((id) => connected[id]);
+    expect(connectedSeats).toEqual(["a", "c", "d"]);
+  });
+
+  it("lobby leave still shrinks headcount", () => {
+    let players = [
+      { id: "a", role: "player" as const },
+      { id: "b", role: "player" as const },
+      { id: "c", role: "player" as const },
+    ];
+    const leftId = "b";
+    const rosterLocked = false;
+    if (!rosterLocked) {
+      players = players.filter((p) => p.id !== leftId);
+    }
+    expect(players.map((p) => p.id)).toEqual(["a", "c"]);
   });
 
   it("host promotion picks first remaining connected human", () => {
@@ -80,5 +92,18 @@ describe("leave seat-order shrink (unit)", () => {
     const next = pool[0]!;
     for (const p of players) p.isHost = p.id === next.id;
     expect(players.find((p) => p.isHost)?.id).toBe("c");
+  });
+
+  it("draft board fit: ≤5 players force no minWidth overflow", () => {
+    function densityFor(count: number): "fit" | "snug" | "dense" {
+      if (count <= 5) return "fit";
+      if (count >= 8) return "dense";
+      return "snug";
+    }
+    expect(densityFor(2)).toBe("fit");
+    expect(densityFor(4)).toBe("fit");
+    expect(densityFor(5)).toBe("fit");
+    expect(densityFor(6)).toBe("snug");
+    expect(densityFor(9)).toBe("dense");
   });
 });

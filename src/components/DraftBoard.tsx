@@ -6,16 +6,18 @@ import { RULES } from "@/shared/rules";
 import { currentUpPlayerId } from "@/shared/engine/up-seat";
 import { readAdminUnlocked } from "@/lib/admin-session";
 
-function densityFor(count: number): "cozy" | "snug" | "dense" {
+function densityFor(count: number): "fit" | "snug" | "dense" {
+  // 2–5: share the phone width with no sideways scroll.
+  // 6–7: densify; 8+: densest (may still scroll).
+  if (count <= 5) return "fit";
   if (count >= 8) return "dense";
-  if (count >= 5) return "snug";
-  return "cozy";
+  return "snug";
 }
 
-function colWidthPx(count: number, density: "cozy" | "snug" | "dense"): number {
+function colWidthPx(count: number, density: "fit" | "snug" | "dense"): number {
+  if (density === "fit") return 0; // equal flexible columns; no forced minWidth
   if (density === "dense") return Math.max(58, Math.min(80, 500 / count));
-  if (density === "snug") return Math.max(72, Math.min(96, 540 / count));
-  return Math.max(92, Math.min(112, 600 / count));
+  return Math.max(72, Math.min(96, 540 / count));
 }
 
 export function DraftBoard({
@@ -52,6 +54,7 @@ export function DraftBoard({
   }, []);
 
   useEffect(() => {
+    if (density === "fit") return; // no sideways scroll at 2–5
     const cell = activeCell.current;
     const scroller = cell?.closest(".draft-board-scroll");
     if (cell && scroller)
@@ -122,7 +125,11 @@ export function DraftBoard({
       >
         <table
           className={`draft-board-table draft-board-density-${density}`}
-          style={{ minWidth: Math.max(260, seats.length * colW) }}
+          style={
+            density === "fit"
+              ? { width: "100%", minWidth: 0 }
+              : { minWidth: Math.max(260, seats.length * colW) }
+          }
         >
           <caption className="sr-only">
             Exactly four picks per player. Snake order.

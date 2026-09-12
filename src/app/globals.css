@@ -1821,6 +1821,12 @@ html.dice-your-turn::after {
   max-height: min(42vh, 18rem);
 }
 
+/* 2–5 players: full board visible on phone — no horizontal scroll */
+.draft-board-scroll-fit {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
 .draft-board-scroll-snug,
 .draft-board-scroll-dense {
   max-height: min(46vh, 20rem);
@@ -1870,19 +1876,28 @@ html.party-on .draft-board-table thead th.is-you {
   border-bottom: 0;
 }
 
+.draft-board-density-fit .draft-board-you-label,
 .draft-board-density-cozy .draft-board-you-label {
-  font-size: 0.6rem;
+  font-size: 0.55rem;
 }
 
+.draft-board-density-fit th,
 .draft-board-density-cozy th {
-  padding: 0.35rem 0.4rem;
-  font-size: 0.8rem;
+  padding: 0.28rem 0.22rem;
+  font-size: 0.72rem;
 }
 
+.draft-board-density-fit td,
 .draft-board-density-cozy td {
-  height: 3.15rem;
-  padding: 0.32rem 0.4rem;
-  font-size: 0.8rem;
+  height: 2.85rem;
+  padding: 0.26rem 0.22rem;
+  font-size: 0.72rem;
+}
+
+.draft-board-density-fit .draft-board-cell-text {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  hyphens: auto;
 }
 
 .draft-board-density-snug th {
