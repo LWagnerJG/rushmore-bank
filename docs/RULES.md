@@ -63,18 +63,20 @@ pot = W
 ```
 
 - UX: one risk number + slider + risk/safe readout + Lock-in CTA (no Keep/Half/All presets).
-- No response in 20s → W=0. Zero-wager players still enter the dice circuit.
+- **Minimum wager is 1** whenever the player has any beans (E+B ≥ 1). No lock-in at 0.
+- No response in 20s → W=min(1, max) (still at least 1 when beans exist).
+- If E+B = 0 (nothing to risk), W=0 and that seat **skips** the dice table for the topic.
 - Integers only; append-only ledger.
 
 ## Bank / Dice (exact)
 
-- After wagers, **every seated player** enters dice — including W=0.
+- After wagers, every seated player with **pot ≥ 1** enters dice. Empty pots auto-bank / skip so the table cannot soft-lock on endless rolls.
 - **Personal continuous turn**: when you’re up, keep rolling until you **Bank** or **bust**. Do **not** pass after each roll. After bank/bust, the next active seat gets their own continuous turn. Waiting players watch.
 - 2d6. Outcomes affect **only** the roller.
 - **Any total of 7 is a bust** (pot=0, exit turn) — including the **first roll** of a player’s turn. No safe-first / freebie seven.
 - On bust the UI announces **BEAN BUSTER**.
 - Doubles → **double pot** (no add faces); else → **+sum**.
-- **Bank** is the only exit action (current roller only). Zero pot may Bank (keep protected).
+- **Bank** is the only exit action (current roller only). Empty pot auto-banks (keep protected) so rolling cannot soft-lock.
 - Seat starts **READY** immediately (no pre-roll “opens in Ns” wait). Same player continuing after a non-bust also unlocks Roll immediately. Idle **15s** → auto Bank. Only that idle window is shown as a countdown.
 - On bust: **BEAN BUSTER** pops during settle, then clears when the next seat is up (server clears `lastDice` on turn start).
 - Atomic Roll vs Bank.
@@ -103,5 +105,5 @@ Bets on roster winning, individual-pick side bets, quarter-step multipliers, 4×
 - Authoritative durable room state in PartyKit storage.
 - Server timers via PartyKit `storage.setAlarm`.
 - Idempotent actions + phase revisions + append-only ledger.
-- Host failover ~20s when host disconnects.
+- Host failover ~20s when host disconnects. On leave: seat count shrinks (4→3), host is promoted if needed, and draft/vote/wager/dice waits skip the leaver.
 - Soft bank time budget removed — round ends when everyone banks/busts.

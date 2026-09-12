@@ -30,6 +30,8 @@ import {
   applyDiceRoll,
   applyVoteCounts,
   applyWager,
+  clampWager,
+  maxWager,
   bankPotIntoProtected,
   buildAnonymousRosters,
   classifyPullOut,
@@ -311,6 +313,180 @@ export default class QuarryServer implements Party.Server {
     return false;
   }
 
+  /**
+   * Remove a disconnected player from the live table (4→3), promote host if needed,
+   * and unstick draft / vote / wager / dice waits that depended on them.
+   */
+  async handlePlayerLeave(playerId: string) {
+    const p = this.state.players.find((x) => x.id === playerId);
+    if (!p) return;
+
+    const wasHost = p.isHost;
+    const wasSeated = this.state.seatOrder.includes(playerId);
+    const seatIdx = this.state.seatOrder.indexOf(playerId);
+
+    p.connected = false;
+
+    if (!this.state.rosterLocked) {
+      // Lobby: drop them entirely so the headcount shrinks.
+      this.state.players = this.state.players.filter((x) => x.id !== playerId);
+    } else if (wasSeated) {
+      // Mid-game: remove from seat order and renumber remaining seats.
+      this.state.seatOrder = this.state.seatOrder.filter((id) => id !== playerId);
+      for (const [i, id] of this.state.seatOrder.entries()) {
+        const sp = this.state.players.find((x) => x.id === id);
+        if (sp) sp.seat = i;
+      }
+      p.seat = null;
+      p.role = "spectator";
+
+      delete this.state.wagers[playerId];
+      delete this.state.bankBeansReady[playerId];
+      delete this.state.earnedThisRound[playerId];
+      delete this.state.pots[playerId];
+      delete this.state.protectedStones[playerId];
+      delete this.state.personalRollCounts[playerId];
+      delete this.state.topicVotes[playerId];
+      delete this.state.humanVotes[playerId];
+      this.state.diceActiveIds = this.state.diceActiveIds.filter((id) => id !== playerId);
+
+      if (this.state.diceTurnSeat >= this.state.seatOrder.length) {
+        this.state.diceTurnSeat = 0;
+      } else if (seatIdx >= 0 && seatIdx < this.state.diceTurnSeat) {
+        this.state.diceTurnSeat = Math.max(0, this.state.diceTurnSeat - 1);
+      } else if (seatIdx === this.state.diceTurnSeat) {
+        // Current roller left — keep index (next player slides into it) after filter.
+        if (this.state.diceTurnSeat >= this.state.seatOrder.length) {
+          this.state.diceTurnSeat = 0;
+        }
+      }
+    }
+
+    this.ensureHost();
+    if (wasHost) {
+      const host = this.state.players.find((x) => x.isHost);
+      if (host) this.state.notice = `${host.name} is now host`;
+    } else {
+      this.state.notice = `${p.name} left`;
+    }
+    bump(this.state);
+
+    // Unblock phase waits that required the leaver.
+    if (this.state.phase === "TOPIC_SELECTION") {
+      const needed = seatedPlayers(this.state).filter((x) => x.connected).length;
+      const votes = Object.keys(this.state.topicVotes).filter((id) =>
+        this.state.seatOrder.includes(id),
+      ).length;
+      if (needed > 0 && votes >= needed) {
+        await this.tallyTopicVotes();
+      }
+    }
+
+    if (
+      (this.state.phase === "DRAFT" || this.state.phase === "CORRECTION") &&
+      wasSeated
+    ) {
+      await this.skipDraftIfCurrentLeft(playerId, seatIdx);
+    }
+
+    if (this.state.phase === "VOTING_AND_JUDGING") {
+      await this.maybeFinalizeAfterJudge();
+    }
+
+    if (this.state.phase === "SCORE_REVEAL") {
+      await this.maybeBeginWagersFromReady();
+    }
+
+    if (this.state.phase === "WAGER_SELECTION") {
+      const needed = seatedPlayers(this.state).length;
+      if (needed === 0) {
+        await this.beginRoundResults();
+      } else if (Object.keys(this.state.wagers).length >= needed) {
+        await this.finalizeWagers();
+      }
+    }
+
+    if (this.state.phase === "DICE" && wasSeated) {
+      await this.recoverDiceAfterLeave(playerId, seatIdx);
+    }
+  }
+
+  async skipDraftIfCurrentLeft(leftId: string, leftSeatIdx: number) {
+    // If the current draft seat belonged to the leaver, auto-miss and advance.
+    const seatIdx = this.state.draftOrder[this.state.draftCursor];
+    if (seatIdx === undefined) return;
+    const currentId = this.state.seatOrder[seatIdx];
+    // After removal, seat indices in draftOrder may point at wrong players.
+    // Rebuild remaining draft steps that referenced removed seats by filtering
+    // draft picks already taken; if cursor points past end, finish draft.
+    if (this.state.draftCursor >= this.state.draftOrder.length) {
+      await this.beginReview();
+      return;
+    }
+    // If nobody remains, end gracefully.
+    if (this.state.seatOrder.length === 0) {
+      this.state.phase = "GAME_RESULTS";
+      this.state.gameOver = true;
+      this.state.notice = "Everyone left — game over";
+      return;
+    }
+    // Advance past any draft cursor entries whose seat index is now invalid.
+    let guard = 0;
+    while (guard++ < 40) {
+      const sIdx = this.state.draftOrder[this.state.draftCursor];
+      if (sIdx === undefined) {
+        await this.beginReview();
+        return;
+      }
+      if (sIdx < this.state.seatOrder.length) break;
+      this.state.draftCursor += 1;
+    }
+    if (this.state.draftCursor >= this.state.draftOrder.length) {
+      await this.beginReview();
+      return;
+    }
+    await this.clearAlarm();
+    await this.startPickClock();
+  }
+
+  async recoverDiceAfterLeave(leftId: string, leftSeatIdx: number) {
+    if (this.state.diceActiveIds.length === 0 || this.state.seatOrder.length === 0) {
+      await this.clearAlarm();
+      await this.beginRoundResults();
+      return;
+    }
+    const currentId = this.currentDicePlayerId();
+    // If we were mid-roll for the leaver, drop the stuck COMMITTED state.
+    if (
+      this.state.lastDice?.rollerId === leftId &&
+      (this.state.diceSubphase === "COMMITTED" ||
+        this.state.diceSubphase === "SETTLED")
+    ) {
+      this.state.lastDice = null;
+      this.state.diceSubphase = "READY";
+    }
+    if (!currentId || !this.state.diceActiveIds.includes(currentId)) {
+      await this.clearAlarm();
+      await this.startDiceTurn();
+      return;
+    }
+    // Still a valid roller — refresh idle alarm so the table does not wait forever.
+    if (this.state.diceSubphase === "READY") {
+      this.state.diceIdleDeadlineAt =
+        Date.now() + RULES.diceIdleBankSeconds * 1000;
+      await this.setAlarmAt(this.state.diceIdleDeadlineAt, {
+        kind: "dice_idle",
+        revision: this.state.phaseRevision,
+      });
+    } else if (
+      this.state.diceSubphase === "COMMITTED" &&
+      this.state.lastDice &&
+      Date.now() >= this.state.lastDice.animSettleAt
+    ) {
+      await this.afterDiceAnim();
+    }
+  }
+
   onConnect(conn: Party.Connection) {
     const playerId = conn.id;
     const existing = this.state.players.find((p) => p.id === playerId);
@@ -330,9 +506,10 @@ export default class QuarryServer implements Party.Server {
   onClose(conn: Party.Connection) {
     const p = this.state.players.find((x) => x.id === conn.id);
     if (p) {
-      p.connected = false;
-      this.ensureHost();
-      void this.persist().then(() => this.broadcastState());
+      void this.handlePlayerLeave(conn.id).then(() => {
+        void this.persist().then(() => this.broadcastState());
+        this.nudgeBots();
+      });
     }
   }
 
@@ -341,6 +518,23 @@ export default class QuarryServer implements Party.Server {
     this.alarmPayload = null;
     if (!payload) return;
     if (payload.revision !== this.state.phaseRevision) return;
+
+    // Recover stuck COMMITTED rolls if the settle alarm was lost.
+    if (
+      this.state.phase === "DICE" &&
+      this.state.diceSubphase === "COMMITTED" &&
+      this.state.lastDice &&
+      !this.state.lastDice.revealed &&
+      Date.now() >= this.state.lastDice.animSettleAt &&
+      payload.kind !== "dice_anim" &&
+      payload.kind !== "dice_settle_hold"
+    ) {
+      await this.afterDiceAnim();
+      await this.persist();
+      this.broadcastState();
+      this.nudgeBots();
+      return;
+    }
 
     switch (payload.kind) {
       case "phase":
@@ -1313,7 +1507,15 @@ export default class QuarryServer implements Party.Server {
     const p = this.state.players.find((x) => x.id === id)!;
     const E = this.state.earnedThisRound[id] ?? 0;
     const B = p.stones;
-    const W = applyWager({ banked: B, earned: E, wager: amount }).pot;
+    const max = maxWager(E, B);
+    if (max >= 1 && (!Number.isFinite(amount) || amount < 1)) {
+      throw new Error("Wager at least 1 bean");
+    }
+    const W = applyWager({
+      banked: B,
+      earned: E,
+      wager: clampWager(amount, E, B),
+    }).pot;
     this.state.wagers[id] = W;
 
     const needed = seatedPlayers(this.state).length;
@@ -1326,7 +1528,11 @@ export default class QuarryServer implements Party.Server {
     if (this.state.phase !== "WAGER_SELECTION") return;
     for (const pid of this.state.seatOrder) {
       if (this.state.wagers[pid] === undefined) {
-        this.state.wagers[pid] = 0;
+        const p = this.state.players.find((x) => x.id === pid)!;
+        const E = this.state.earnedThisRound[pid] ?? 0;
+        const B = p.stones;
+        // Timed out: still require ≥1 when they have beans (no silent zero lock-in).
+        this.state.wagers[pid] = clampWager(1, E, B);
       }
     }
 
@@ -1339,14 +1545,17 @@ export default class QuarryServer implements Party.Server {
       const p = this.state.players.find((x) => x.id === pid)!;
       const E = this.state.earnedThisRound[pid] ?? 0;
       const B = p.stones;
-      const W = this.state.wagers[pid] ?? 0;
+      const W = clampWager(this.state.wagers[pid] ?? 0, E, B);
+      this.state.wagers[pid] = W;
       const locked = applyWager({ banked: B, earned: E, wager: W });
       this.state.protectedStones[pid] = locked.protected;
       this.state.pots[pid] = locked.pot;
       this.state.personalRollCounts[pid] = 0;
       p.stones = locked.bankedAfter;
-      // Everyone re-enters dice each topic, including zero wagers.
-      this.state.diceActiveIds.push(pid);
+      // Enter dice when pot > 0. Zero-pot seats (literally no beans) skip the table.
+      if (locked.pot > 0) {
+        this.state.diceActiveIds.push(pid);
+      }
       ledgerPush(this.state, {
         playerId: pid,
         kind: "wager_lock",
@@ -1394,6 +1603,18 @@ export default class QuarryServer implements Party.Server {
       await this.beginRoundResults();
       return;
     }
+    // Zero pot cannot progress (doubles keep it at 0) — bank out immediately.
+    if ((this.state.pots[pid] ?? 0) <= 0) {
+      this.bankPlayer(pid, "Auto-bank (empty pot)");
+      bump(this.state);
+      if (this.state.diceActiveIds.length === 0) {
+        await this.beginRoundResults();
+      } else {
+        this.advanceDiceSeat();
+        await this.startDiceTurn();
+      }
+      return;
+    }
     // Clear prior roll so BEAN BUSTER / faces never linger into the next seat.
     this.state.lastDice = null;
     // No pre-roll “opens in Ns” wait — Roll unlocks immediately with the
@@ -1435,6 +1656,19 @@ export default class QuarryServer implements Party.Server {
 
   /** Same player keeps rolling — skip decision countdown, unlock Roll. */
   async continueSamePlayerTurn() {
+    const pid = this.currentDicePlayerId();
+    if (pid && (this.state.pots[pid] ?? 0) <= 0) {
+      // Safety: never leave a zero-pot roller in an endless roll loop.
+      this.bankPlayer(pid, "Auto-bank (empty pot)");
+      bump(this.state);
+      if (this.state.diceActiveIds.length === 0) {
+        await this.beginRoundResults();
+      } else {
+        this.advanceDiceSeat();
+        await this.startDiceTurn();
+      }
+      return;
+    }
     this.state.diceSubphase = "READY";
     this.state.diceDecisionDeadlineAt = null;
     this.state.diceIdleDeadlineAt =
@@ -1452,6 +1686,11 @@ export default class QuarryServer implements Party.Server {
     }
     if (this.currentDicePlayerId() !== id) throw new Error("Not your roll");
     if (!this.state.diceActiveIds.includes(id)) throw new Error("Not active");
+    if ((this.state.pots[id] ?? 0) <= 0) {
+      // Empty pot cannot be rolled productively — bank out instead of sticking COMMITTED.
+      await this.handlePullOut(id);
+      return;
+    }
 
     // Atomic: mark committed — blocks late Pull Out for this roller
     this.state.diceSubphase = "COMMITTED";

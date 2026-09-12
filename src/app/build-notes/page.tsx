@@ -37,7 +37,7 @@ export default function BuildNotesPage() {
             ) : null}
             <li>
               Target: production <code>roundacats.vercel.app</code> via merge to{" "}
-              <code>main</code>. PartyKit redeploy when{" "}
+              <code>main</code>. PartyKit redeploy required for this wager/leave fix — also when{" "}
               <code>src/shared</code> / review+vote timers change.
             </li>
           </ul>
@@ -52,6 +52,17 @@ export default function BuildNotesPage() {
       <section className="panel space-y-2 text-sm">
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
+          <li>
+            <strong>Min wager 1</strong>: cannot lock in 0 when you have beans
+            (UI clamp + server validation). Timeout defaults to 1 when max ≥ 1.
+            Empty balance (E+B=0) skips dice cleanly — no infinite roll loop.
+          </li>
+          <li>
+            <strong>Leave / host</strong>: disconnect removes the seat (4→3),
+            promotes a new host if needed, and unsticks draft / vote / wager /
+            dice waits that depended on the leaver (including stuck COMMITTED
+            rolls).
+          </li>
           <li>
             <strong>Top rail up-seat</strong>: current picker chip lights up
             (yellow ring / fill) during draft — not only “You”. You-first

@@ -5,7 +5,7 @@ import { snakeDraftOrder, totalDraftPicks } from "../engine/snake";
 
 /**
  * Personal BANK: keep rolling until Bank or bust, then next seat.
- * Everyone re-enters each topic (including zero wagers). Any 7 busts.
+ * Everyone with pot ≥ 1 re-enters each topic. Any 7 busts.
  */
 describe("personal BANK circuit", () => {
   it("does not pass after every throw — only after bank/bust", () => {
@@ -28,7 +28,7 @@ describe("personal BANK circuit", () => {
     active.delete("a");
     seat = (seat + 1) % seatOrder.length;
 
-    // b (zero wager) still gets a continuous turn
+    // b still gets a continuous turn when they have a pot
     expect(seatOrder[seat]).toBe("b");
     rolls.b! += 1;
     const o = applyDiceRoll(pots.b!, { d1: 2, d2: 3 }, rolls.b!);

@@ -58,7 +58,7 @@ describe("wager math", () => {
   });
 
   it("presets and protected balance", () => {
-    expect(wagerFromPreset("keep_all", 40, 30)).toBe(0);
+    expect(wagerFromPreset("keep_all", 40, 30)).toBe(1); // min risk when beans exist
     expect(wagerFromPreset("half_new", 40, 30)).toBe(20);
     expect(wagerFromPreset("all_new", 40, 30)).toBe(40);
     const locked = applyWager({ banked: 30, earned: 40, wager: 50 });

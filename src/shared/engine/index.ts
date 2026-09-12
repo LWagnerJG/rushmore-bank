@@ -11,6 +11,7 @@ export {
 } from "./dice";
 export {
   maxWager,
+  clampWager,
   wagerFromPreset,
   applyWager,
   type WagerPreset,

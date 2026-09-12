@@ -319,11 +319,9 @@ export function botShouldBank(opts: {
   personalRolls: number;
   botId: string;
 }): boolean {
+  // Zero pot cannot grow via doubles (0×2=0) — always bank to avoid infinite rolls.
+  if (opts.pot <= 0) return true;
   if (opts.personalRolls <= 0) return false;
-  if (opts.pot <= 0 && opts.personalRolls >= 1) {
-    // Zero pot after weird state — still roll once more sometimes.
-    return (hashSeed(opts.botId) % 5) === 0;
-  }
   // Risk curve: early aggressive, later protective.
   const rollBias = Math.min(0.75, 0.12 * opts.personalRolls);
   const potBias = Math.min(0.55, opts.pot / 200);
@@ -341,9 +339,10 @@ export function botWagerAmount(opts: {
   const max = Math.max(0, Math.floor(opts.earned) + Math.floor(opts.banked));
   if (max <= 0) return 0;
   const style = hashSeed(`${opts.botId}:wager`) % 5;
-  if (style === 0) return 0;
-  if (style === 1) return Math.min(max, Math.floor(opts.earned / 2));
-  if (style === 2) return Math.min(max, Math.floor(opts.earned));
-  if (style === 3) return Math.min(max, Math.floor(max * 0.6));
+  // Never lock in 0 when beans are available — min risk is 1.
+  if (style === 0) return 1;
+  if (style === 1) return Math.max(1, Math.min(max, Math.floor(opts.earned / 2)));
+  if (style === 2) return Math.max(1, Math.min(max, Math.floor(opts.earned)));
+  if (style === 3) return Math.max(1, Math.min(max, Math.floor(max * 0.6)));
   return max;
 }

@@ -71,8 +71,14 @@ describe("bot picks", () => {
         banked: 20,
         botId: `bot-w-${i}`,
       });
-      expect(w).toBeGreaterThanOrEqual(0);
+      expect(w).toBeGreaterThanOrEqual(1);
       expect(w).toBeLessThanOrEqual(60);
     }
+  });
+
+  it("banks immediately on zero pot to avoid infinite rolls", () => {
+    expect(
+      botShouldBank({ pot: 0, personalRolls: 0, botId: "bot-zero" }),
+    ).toBe(true);
   });
 });
