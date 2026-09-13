@@ -16,7 +16,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Lobby simplify + home prefill + score breakdown + draft turn-count fix → {RULES.productionUrl}
+        Join room-check + lobby simplify + home prefill + score breakdown + draft turn-count fix → {RULES.productionUrl}
       </p>
 
       <section className="panel space-y-2 text-sm">
@@ -44,7 +44,26 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-<strong>Lobby simplify</strong>: QR code collapsed behind a{" "}
+<strong>Separate Create vs Join</strong>: Join now calls{" "}
+            <code>/api/room/[code]/exists</code>, which proxies a GET to the
+            PartyKit room. If the room has no players, the UI shows{" "}
+            &ldquo;Room not found — check the code&rdquo; and keeps the
+            entered code. Existing rooms, invite links, QR joins, and
+            rematches are unaffected. Falls back to allow-join on any network
+            error (safe default until PartyKit redeploy).
+          </li>
+          <li>
+            <strong>Copy fix</strong>: &ldquo;4-letter room code&rdquo;
+            corrected to &ldquo;4-character room code&rdquo;.
+          </li>
+          <li>
+            <strong>PartyKit</strong>: added <code>onRequest</code> GET
+            handler to <code>party/server.ts</code> — redeploy required
+            for live room-check (PartyKit Actions secret still blocked; see
+            TESTING.md).
+          </li>
+          <li>
+            <strong>Lobby simplify</strong>: QR code collapsed behind a{" "}
             &ldquo;Show QR&rdquo; toggle. Topic vibes removed from lobby (still
             on Topic Selection screen). Party Mode moved into the settings
             sheet (host-only). Start button no longer buried under a fixed

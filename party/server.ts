@@ -286,6 +286,38 @@ export default class QuarryServer implements Party.Server {
     conn.send(JSON.stringify(msg));
   }
 
+  /**
+   * HTTP handler — used by the Next.js /api/room/[code]/exists route to
+   * check whether a room is active (has at least one player) before joining.
+   * Returns JSON: { exists: boolean, phase: string, playerCount: number }.
+   */
+  async onRequest(req: Party.Request): Promise<Response> {
+    const headers = {
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+    };
+    if (req.method === "OPTIONS") {
+      return new Response(null, { status: 204, headers });
+    }
+    if (req.method !== "GET") {
+      return new Response(JSON.stringify({ error: "Method not allowed" }), {
+        status: 405,
+        headers,
+      });
+    }
+    const playerCount = this.state.players.filter(
+      (p) => p.role === "player",
+    ).length;
+    return new Response(
+      JSON.stringify({
+        exists: playerCount > 0,
+        phase: this.state.phase,
+        playerCount,
+      }),
+      { status: 200, headers },
+    );
+  }
+
   publicStateFor(recipientId: string): PublicRoomState {
     return projectPublicState(this.state, recipientId);
   }

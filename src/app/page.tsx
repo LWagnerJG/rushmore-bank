@@ -19,6 +19,7 @@ export default function HomePage() {
   const [nameReady, setNameReady] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
   const [joinError, setJoinError] = useState<string | null>(null);
+  const [joining, setJoining] = useState(false);
   const [adminUnlocked, setAdminUnlocked] = useState(() => {
     if (typeof window === "undefined") return false;
     try {
@@ -95,10 +96,29 @@ export default function HomePage() {
     }
     const room = normalizeRoomCode(code);
     if (room.length < 4) {
-      setJoinError("Enter the 4-letter room code");
+      setJoinError("Enter the 4-character room code");
       return;
     }
     setJoinError(null);
+    void joinRoom(room);
+  }
+
+  async function joinRoom(room: string) {
+    setJoining(true);
+    try {
+      const res = await fetch(`/api/room/${room}/exists`);
+      if (res.ok) {
+        const data = (await res.json()) as { exists: boolean };
+        if (!data.exists) {
+          setJoinError("Room not found — check the code");
+          setJoining(false);
+          return;
+        }
+      }
+      // If the request failed (network, old PartyKit), allow join anyway.
+    } catch {
+      // Safe fallback: allow join when check is unavailable.
+    }
     router.push(`/room/${room}?name=${encodeURIComponent(displayName)}`);
   }
 
@@ -190,15 +210,19 @@ export default function HomePage() {
                   value={code}
                   maxLength={4}
                   aria-label="Room code"
-                  onChange={(e) => setCode(e.target.value.toUpperCase())}
+onChange={(e) => {
+                    setCode(e.target.value.toUpperCase());
+                    setJoinError(null);
+                  }}
                   onKeyDown={(e) => e.key === "Enter" && join()}
                 />
                 <button
                   type="button"
                   className="btn-secondary home-join-go shrink-0 !min-h-12 px-4 text-sm"
+                  disabled={joining}
                   onClick={join}
                 >
-                  Join
+                  {joining ? "…" : "Join"}
                 </button>
               </div>
               {joinError && (
