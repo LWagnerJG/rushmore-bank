@@ -351,7 +351,7 @@ export function DicePanel({
           ? "TAP TO ROLL"
           : myTurn
             ? "Your turn"
-            : "Watching";
+            : "Waiting";
 
   // Fresh settle uses live faces; otherwise sticky keeps the prior total through
   // scramble / READY so the readout never blanks mid-turn.
@@ -478,11 +478,10 @@ export function DicePanel({
               <div className="dice-cta-slot">
                 {!active ? (
                   <div className="dice-spectator-status" role="status">
-                    <p className="dice-spectator-kicker">Spectator</p>
                     <p className="dice-watch-note">
                       {roller?.name
-                        ? `Watching ${roller.name} roll`
-                        : "Watching this round"}
+                        ? `${roller.name} is rolling`
+                        : "Waiting for the next roll"}
                     </p>
                   </div>
                 ) : myTurn ? (
