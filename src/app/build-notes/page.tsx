@@ -71,11 +71,11 @@ export default function BuildNotesPage() {
             current origin (no hardcoded RoundaCats in share text).
           </li>
           <li>
-            Preserved: party mode, topic vibes, dice/draft polish, rematch,
-            admin, bots. Repo name stays <code>rushmore-bank</code>.
-          </li>
-          <li>
-            Topic bank size this build: {TOPIC_COUNT}.
+            Preserved from main: no review skim countdown, vote/AI judge board,
+            earned split, BANK <code>+N beans</code> readout, Ready-to-wager
+            header CTA, Safe/Risking labels, BANK cream stage, PlayerRail glow,
+            Party Mode, topics ({TOPIC_COUNT}), rematch, bots. Repo name stays{" "}
+            <code>rushmore-bank</code>.
           </li>
         </ul>
       </section>

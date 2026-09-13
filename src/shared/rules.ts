@@ -46,8 +46,11 @@ export const RULES = {
   /** Grace after pick clock hits 0 before miss */
   pickGraceSeconds: 5,
   hostExtendSeconds: 15,
-  /** Skim rosters, then auto-start voting (host may skip early). */
-  reviewSeconds: 5,
+  /**
+   * Legacy review skim — kept at 0 so draft ends go straight into
+   * VOTING_AND_JUDGING (AI judge starts immediately; no countdown stall).
+   */
+  reviewSeconds: 0,
 
   /** Voting / AI */
   /** Vote window — ends at deadline or when everyone has voted. */

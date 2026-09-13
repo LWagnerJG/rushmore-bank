@@ -297,6 +297,24 @@ export function RoomClient({
                 paused={state.pickPaused}
               />
             </div>
+          ) : phase === "SCORE_REVEAL" && you.role === "player" && state ? (
+            <div className="flex shrink-0 flex-col items-end gap-1 pt-0.5">
+              <button
+                type="button"
+                className={
+                  "btn-primary px-3 py-1.5 text-sm leading-none " +
+                  (state.myBankBeansReady ? "" : "pulse-soft")
+                }
+                disabled={state.myBankBeansReady}
+                onClick={() => send({ type: "bank_the_beans" })}
+              >
+                {state.myBankBeansReady ? "Ready" : "Ready to wager"}
+              </button>
+              <span className="text-[0.65rem] font-bold tabular-nums text-[var(--muted)]">
+                {state.bankBeansReadyCast}/{state.bankBeansReadyNeeded} ·{" "}
+                {you.stones} {RULES.currencyName}
+              </span>
+            </div>
           ) : (
             <div className="text-right text-xs font-bold uppercase tracking-wide text-[var(--muted)]">
               <div className="flex items-center justify-end gap-1.5">
@@ -361,7 +379,15 @@ export function RoomClient({
         </p>
       )}
 
-      <div className="animate-rise flex-1">{body}</div>
+      <div
+        className={
+          phase === "SCORE_REVEAL"
+            ? "flex-1"
+            : "animate-rise flex-1"
+        }
+      >
+        {body}
+      </div>
       <SettingsSheet
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
