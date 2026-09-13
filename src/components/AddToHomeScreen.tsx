@@ -1,20 +1,23 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 };
 
-function isStandaloneDisplay(): boolean {
+/** True when running as an installed PWA (any display mode the manifest may use). */
+function isInstalledDisplay(): boolean {
   if (typeof window === "undefined") return false;
-  const mq = window.matchMedia("(display-mode: standalone)").matches;
-  const iosStandalone =
+  const modes = ["standalone", "fullscreen", "minimal-ui"] as const;
+  if (modes.some((m) => window.matchMedia(`(display-mode: ${m})`).matches)) {
+    return true;
+  }
+  return (
     "standalone" in navigator &&
-    Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
-  const twa = window.matchMedia("(display-mode: fullscreen)").matches;
-  return mq || iosStandalone || twa;
+    Boolean((navigator as Navigator & { standalone?: boolean }).standalone)
+  );
 }
 
 function isLikelyIos(): boolean {
@@ -27,19 +30,22 @@ function isLikelyIos(): boolean {
 }
 
 /**
- * Discreet home-screen install affordance.
- * iOS has no install API — shows an in-UI tip. Chromium uses beforeinstallprompt when available.
+ * Single discreet home-screen install control.
+ * Chromium: one tap → beforeinstallprompt when available.
+ * Otherwise: one-line nudge (no tutorial overlay). Hidden when installed.
  */
 export function AddToHomeScreen() {
   const [hidden, setHidden] = useState(true);
-  const [tipOpen, setTipOpen] = useState(false);
+  const [nudgeOpen, setNudgeOpen] = useState(false);
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(
     null,
   );
   const [ios, setIos] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const nudgeId = useId();
 
   useEffect(() => {
-    if (isStandaloneDisplay()) {
+    if (isInstalledDisplay()) {
       setHidden(true);
       return;
     }
@@ -54,29 +60,28 @@ export function AddToHomeScreen() {
 
     const onInstalled = () => {
       setHidden(true);
-      setTipOpen(false);
+      setNudgeOpen(false);
       setDeferred(null);
     };
     window.addEventListener("appinstalled", onInstalled);
 
-    const mq = window.matchMedia("(display-mode: standalone)");
+    const mqs = ["standalone", "fullscreen", "minimal-ui"].map((m) =>
+      window.matchMedia(`(display-mode: ${m})`),
+    );
     const onMode = () => {
-      if (isStandaloneDisplay()) {
+      if (isInstalledDisplay()) {
         setHidden(true);
-        setTipOpen(false);
+        setNudgeOpen(false);
       }
     };
-    mq.addEventListener?.("change", onMode);
+    for (const mq of mqs) mq.addEventListener?.("change", onMode);
 
     return () => {
       window.removeEventListener("beforeinstallprompt", onBip);
       window.removeEventListener("appinstalled", onInstalled);
-      mq.removeEventListener?.("change", onMode);
+      for (const mq of mqs) mq.removeEventListener?.("change", onMode);
     };
   }, []);
-
-  const openTip = useCallback(() => setTipOpen(true), []);
-  const closeTip = useCallback(() => setTipOpen(false), []);
 
   const onInstallClick = useCallback(async () => {
     if (deferred) {
@@ -84,69 +89,46 @@ export function AddToHomeScreen() {
         await deferred.prompt();
         await deferred.userChoice;
       } catch {
-        /* user dismissed or browser blocked */
+        /* dismissed / blocked */
       }
       setDeferred(null);
-      if (isStandaloneDisplay()) setHidden(true);
+      if (isInstalledDisplay()) setHidden(true);
       return;
     }
-    openTip();
-  }, [deferred, openTip]);
+    setNudgeOpen((open) => !open);
+  }, [deferred]);
+
+  const dismissNudge = useCallback(() => {
+    setNudgeOpen(false);
+    triggerRef.current?.focus();
+  }, []);
 
   if (hidden) return null;
 
-  const tipKind: "ios" | "android" = ios ? "ios" : "android";
+  const nudgeText = ios
+    ? "Tap Share, then Add to Home Screen."
+    : "Browser menu → Install or Add to Home Screen.";
 
   return (
     <div className="a2hs">
-      <button type="button" className="a2hs-trigger" onClick={onInstallClick}>
+      <button
+        ref={triggerRef}
+        type="button"
+        className="a2hs-trigger"
+        onClick={onInstallClick}
+        aria-expanded={deferred ? undefined : nudgeOpen}
+        aria-controls={deferred ? undefined : nudgeId}
+      >
         {deferred ? "Install app" : "Add to Home Screen"}
       </button>
 
-      {tipOpen ? (
-        <div
-          className="a2hs-sheet"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="a2hs-title"
-        >
-          <div className="a2hs-sheet-card">
-            <h2 id="a2hs-title" className="a2hs-sheet-title">
-              Add Beans to your home screen
-            </h2>
-            {tipKind === "ios" ? (
-              <ol className="a2hs-steps">
-                <li>
-                  Tap <ShareGlyph /> <strong>Share</strong> in Safari
-                </li>
-                <li>
-                  Scroll and tap <strong>Add to Home Screen</strong>
-                </li>
-                <li>
-                  Tap <strong>Add</strong>
-                </li>
-              </ol>
-            ) : (
-              <ol className="a2hs-steps">
-                <li>
-                  Open the browser menu (⋮ or ⋯)
-                </li>
-                <li>
-                  Tap <strong>Install app</strong> or{" "}
-                  <strong>Add to Home screen</strong>
-                </li>
-              </ol>
-            )}
-            <p className="a2hs-note">
-              {tipKind === "ios"
-                ? "Safari can’t one-tap install — those three steps are the way."
-                : "If you don’t see Install, use Add to Home screen from the menu."}
-            </p>
-            <button type="button" className="btn-secondary a2hs-dismiss" onClick={closeTip}>
-              Got it
-            </button>
-          </div>
-        </div>
+      {nudgeOpen && !deferred ? (
+        <p id={nudgeId} className="a2hs-nudge" role="status">
+          <ShareGlyph /> {nudgeText}{" "}
+          <button type="button" className="a2hs-nudge-dismiss" onClick={dismissNudge}>
+            OK
+          </button>
+        </p>
       ) : null}
     </div>
   );
@@ -157,8 +139,8 @@ function ShareGlyph() {
     <svg
       className="a2hs-share-glyph"
       viewBox="0 0 24 24"
-      width="14"
-      height="14"
+      width="12"
+      height="12"
       aria-hidden="true"
     >
       <path

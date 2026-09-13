@@ -132,9 +132,10 @@ export default function HomePage() {
             Admin unlocked · open a room
           </p>
         )}
-
-        <AddToHomeScreen />
       </div>
+
+      {/* Outside animate-rise so fixed/absolute children aren’t transform-clipped */}
+      <AddToHomeScreen />
     </main>
   );
 }
