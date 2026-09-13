@@ -528,7 +528,8 @@ export function DicePanel({
       >
         <div className="dice-party-slot-inner">
           {partyPrompt && !partyPrompt.resolved ? (
-            <section className="panel space-y-2">
+            <section className="party-sip party-sip-quiet space-y-2">
+              <p className="party-sip-kicker">Party Mode</p>
               <p className="font-bold">
                 {partyPrompt.kind === "bust_redo" ? (
                   <>
@@ -554,7 +555,7 @@ export function DicePanel({
               {canResolveParty && (
                 <div className="flex gap-2">
                   <button
-                    className="btn-primary flex-1"
+                    className="btn-party-sip flex-1"
                     onClick={() =>
                       send({ type: "party_resolve", choice: "done" })
                     }

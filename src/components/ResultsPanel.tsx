@@ -54,7 +54,8 @@ export function ResultsPanel({
       </ol>
 
       {promptOpen && prompt?.kind === "lowest_drink" && (
-        <div className="panel party-sip space-y-3">
+        <div className="party-sip party-sip-quiet space-y-3">
+          <p className="party-sip-kicker">Party Mode</p>
           <p className="font-[family-name:var(--font-display)] text-lg font-extrabold">
             Lowest beans · take a drink
           </p>
@@ -67,7 +68,7 @@ export function ResultsPanel({
             <div className="flex gap-2">
               <button
                 type="button"
-                className="btn-primary flex-1"
+                className="btn-party-sip flex-1"
                 onClick={() =>
                   send({ type: "party_resolve", choice: "done" })
                 }

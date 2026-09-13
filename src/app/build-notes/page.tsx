@@ -16,7 +16,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Vote board readable · live progress (not a spreadsheet) →{" "}
+        Party drink CTAs stay secondary to Risk / Bank / TAP →{" "}
         {RULES.productionUrl}
       </p>
 
@@ -45,9 +45,9 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>Vote board</strong>: Mount Rushmore picks stay larger and
-            clearer while votes come in. Live progress is a calm count + bar
-            (not a spreadsheet). Board stays up during AI calculating.
+            <strong>Party Mode drink CTAs</strong>: “I finished my drink” /
+            redo / Pass use quiet secondary styling so they never fight Ready to
+            wager, Risk, Bank, or TAP for attention. Next topic stays primary.
           </li>
         </ul>
       </section>
