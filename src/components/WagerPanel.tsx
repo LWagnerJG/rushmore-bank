@@ -3,6 +3,7 @@
 import { useEffect, useId, useState } from "react";
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
 import { clampWager, maxWager, wagerFromPreset } from "@/shared/engine/wager";
+import { WagerSlider } from "@/components/WagerSlider";
 
 export function WagerPanel({
   state,
@@ -41,8 +42,6 @@ export function WagerPanel({
   const readyNeeded = state.seatOrder.length;
   const nothingToRisk = max <= 0;
   const urgent = left !== null && left <= 5;
-  const pileTotal = Math.max(1, clamped + protectedBal);
-  const riskPct = Math.round((clamped / pileTotal) * 100);
 
   useEffect(() => {
     const tick = () =>
@@ -119,7 +118,7 @@ export function WagerPanel({
   }
 
   return (
-    <div className="wager-flow space-y-5">
+    <div className="wager-flow space-y-4">
       <header className="wager-header">
         <div className="wager-header-copy">
           <h2 className="font-[family-name:var(--font-display)] text-[1.65rem] font-extrabold leading-tight tracking-tight">
@@ -144,7 +143,7 @@ export function WagerPanel({
         )}
       </header>
 
-      <section className="wager-hero space-y-5" aria-live="polite">
+      <section className="wager-hero" aria-live="polite">
         <div
           className="wager-piles"
           aria-label={`${clamped} at risk, ${protectedBal} stay safe`}
@@ -157,45 +156,16 @@ export function WagerPanel({
             <p className="wager-pile-label">Stay safe</p>
             <p className="wager-pile-value tabular-nums">{protectedBal}</p>
           </div>
-          <div
-            className="wager-split-bar"
-            role="img"
-            aria-hidden="true"
-          >
-            <span
-              className="wager-split-risk"
-              style={{ flexGrow: Math.max(riskPct, 2) }}
-            />
-            <span
-              className="wager-split-safe"
-              style={{ flexGrow: Math.max(100 - riskPct, 2) }}
-            />
-          </div>
         </div>
 
-        <div className="wager-slider-block">
-          <label htmlFor={sliderId} className="sr-only">
-            Beans at risk, {min} to {max}
-          </label>
-          <input
-            id={sliderId}
-            className="wager-slider w-full"
-            type="range"
-            min={min}
-            max={max}
-            step={1}
-            value={clamped}
-            onChange={(e) => setAmount(Number(e.target.value))}
-            aria-valuemin={min}
-            aria-valuemax={max}
-            aria-valuenow={clamped}
-            aria-valuetext={`${clamped} beans at risk, ${protectedBal} protected`}
-          />
-          <div className="mt-2 flex justify-between px-0.5 text-[0.7rem] font-bold tabular-nums text-[var(--muted)]">
-            <span>{min} min</span>
-            <span>{max} max</span>
-          </div>
-        </div>
+        <WagerSlider
+          id={sliderId}
+          min={min}
+          max={max}
+          value={clamped}
+          onChange={setAmount}
+          valuetext={`${clamped} beans at risk, ${protectedBal} protected`}
+        />
       </section>
 
       <button

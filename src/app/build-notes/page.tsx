@@ -16,7 +16,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Few-player rail fill + score reveal header → {RULES.productionUrl}
+        Wager slider unify → {RULES.productionUrl}
       </p>
 
       <section className="panel space-y-2 text-sm">
@@ -44,6 +44,17 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
+            <strong>Wager slider</strong>: one unified track (orange AT RISK
+            from the left, green stay-safe on the right) — no separate ratio
+            bar, no flipped colors. Pointer capture +{" "}
+            <code>touch-action: none</code> so vertical finger drift doesn’t
+            drop the drag on iOS.
+          </li>
+          <li>
+            Loud 45s timer, min 1 / max earned+banked, Admin, and player rail
+            unchanged. No rule or PartyKit changes.
+          </li>
+          <li>
             <strong>Player rail · few seats</strong>: 2–3 player chips grow
             wider/taller (duo/trio sizes) so the top row doesn’t look sparse.
             Pot-split Safe/Risking still shares the row; 6+ densify/scroll as
@@ -56,17 +67,6 @@ export default function BuildNotesPage() {
             (+earned). Logo left stays; Ready to wager under the rail
             unchanged. Other phases keep phase label / balance for
             orientation.
-          </li>
-          <li>
-            <strong>PWA icon cache-bust</strong>: manifest + icon/apple-touch
-            URLs use <code>?v=2</code> so browsers fetch the epic icon after Add
-            to Home. Bump <code>ICON_V</code> in <code>layout.tsx</code> when
-            art changes again.
-          </li>
-          <li>
-            <strong>iOS limit</strong>: home-screen icons are still sticky —
-            if an old mark remains after install, remove the icon and Add to
-            Home Screen again. Android usually picks up the new asset sooner.
           </li>
         </ul>
       </section>
