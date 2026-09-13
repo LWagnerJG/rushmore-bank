@@ -93,14 +93,21 @@ export default function BuildNotesPage() {
             orientation.
           </li>
           <li>
+            <strong>Viewport height fix</strong>: in iOS PWA (Add to Home
+            Screen), <code>100dvh</code> maps to the layout viewport which
+            can be shorter than the real visual extent by the status-bar
+            height (~47–59 px). <code>NoPullToRefresh</code> now writes{" "}
+            <code>--app-h</code> from <code>window.innerHeight</code> on
+            mount and on resize; <code>html</code>, <code>body</code>, and{" "}
+            <code>.app-shell</code> use <code>var(--app-h, 100dvh)</code> so
+            all <code>overflow:hidden</code> clipping boundaries match the
+            actual visible area — fixing the Start CTA slice.
+          </li>
+          <li>
             <strong>Viewport paint</strong>: body::before fixed layer
             (z-index:-1, bottom:-50px) covers the visual viewport and the
-            home-indicator safe-area region. Linear-gradient last stop and
-            html canvas background-color both equal <code>var(--bg)</code>;
-            the warm <code>#ebe4d6</code> tail was removed because it
-            created a visible contrast against the panel-lightened area in
-            the lobby. Party mode canvas = <code>#fff8ec</code> with the
-            gradient returning to that value at 100%.
+            home-indicator safe-area region. Gradient last stop equals{" "}
+            <code>var(--bg)</code> so no warm strip appears at the bottom.
           </li>
         </ul>
       </section>

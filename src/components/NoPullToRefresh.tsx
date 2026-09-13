@@ -3,11 +3,36 @@
 import { useEffect } from "react";
 
 /**
+ * Sets --app-h to window.innerHeight and keeps it updated.
+ *
+ * Why not 100dvh?  In iOS PWA (Add to Home Screen) mode the CSS `dvh` unit
+ * maps to the layout viewport, which on notched / Dynamic Island iPhones can
+ * be shorter than the real visual extent by the status-bar height (~47–59 px).
+ * `window.innerHeight` always equals the actual rendered height so using it as
+ * the source of --app-h gives the true viewport size.  All height-clamped
+ * containers (html, body, .app-shell) read var(--app-h, 100dvh) so they clip
+ * at the correct boundary instead of slicing content at the bottom.
+ */
+function syncAppH() {
+  document.documentElement.style.setProperty(
+    "--app-h",
+    `${window.innerHeight}px`,
+  );
+}
+
+/**
  * Blocks Safari/Chrome pull-to-refresh on phone so the PartyKit socket
- * isn’t nuked mid-game. Only cancels the rubber-band-at-top gesture;
+ * isn't nuked mid-game. Only cancels the rubber-band-at-top gesture;
  * normal scrolling inside .app-shell-scroll / .room-phase-scroll still works.
  */
 export function NoPullToRefresh() {
+  // Sync --app-h before layout; re-sync on orientation / resize.
+  useEffect(() => {
+    syncAppH();
+    window.addEventListener("resize", syncAppH);
+    return () => window.removeEventListener("resize", syncAppH);
+  }, []);
+
   useEffect(() => {
     let startY = 0;
 
