@@ -17,7 +17,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        A2HS nudge + fix cream bottom clip → {RULES.productionUrl}
+        Wager/BANK polish + A2HS + cream clip → {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -72,6 +72,18 @@ export default function BuildNotesPage() {
             Start clears the FAB via <code>.lobby-start-slot</code>. Dropped
             scroll-phase <code>flex-1</code> + lingering rise transform that
             clipped panels.
+          </li>
+          <li>
+            <strong>Ready to wager</strong>: CTA moved under the player rail
+            (right), soft pulse — not buried in sticky header.
+          </li>
+          <li>
+            <strong>TAP</strong>: cream/terracotta pill, quieter pulse when
+            armed.
+          </li>
+          <li>
+            <strong>Safe / pot</strong>: matching visual weight on the dice
+            stage; Bank CTA shows discreet → total (safe + pot).
           </li>
           <li>
             Production URL remains <code>{RULES.productionUrl}</code>;{" "}
