@@ -590,11 +590,15 @@ html.party-on .panel {
 
 /* One soft cream rectangle: role + timer + dice + TAP + pot/Bank */
 .dice-stage-panel .dice-result-readout {
-  min-height: 3.1rem;
-  padding: 0.15rem 0.25rem 0.1rem;
+  min-height: 2.4rem;
+  padding: 0.2rem 0.25rem 0.05rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
-.dice-stage-panel .dice-result-total {
-  font-size: clamp(1.55rem, 7vw, 1.9rem);
+.dice-stage-panel .dice-result-gain {
+  font-size: clamp(1.45rem, 6.5vw, 1.85rem);
 }
 .dice-stage-panel {
   display: flex;
@@ -2095,6 +2099,17 @@ html.dice-your-turn::after {
   letter-spacing: -0.02em;
   color: var(--text);
   min-height: 2.45rem;
+  transition: opacity 200ms ease, color 200ms ease;
+}
+/* Single pot-gain line — no equation / duplicate +N clutter */
+.dice-result-gain {
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(1.65rem, 7.5vw, 2.1rem);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--coral);
+  text-align: center;
   transition: opacity 200ms ease, color 200ms ease;
 }
 .dice-result-bust {
