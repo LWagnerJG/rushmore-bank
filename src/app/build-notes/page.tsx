@@ -16,7 +16,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Wager slider unify → {RULES.productionUrl}
+        Lobby Topic vibes scroll fix → {RULES.productionUrl}
       </p>
 
       <section className="panel space-y-2 text-sm">
@@ -43,6 +43,20 @@ export default function BuildNotesPage() {
       <section className="panel space-y-2 text-sm">
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
+          <li>
+            <strong>Lobby Topic vibes clip</strong>: room shell is locked again;
+            phase content scrolls in <code>.room-phase-scroll</code> under the
+            chrome. Safe-area padding sits on the scroll content (true inset
+            only — no fake cream block).{" "}
+            <code>animate-rise</code> no longer leaves a transform that trapped
+            overflow; lobby panels are <code>shrink-0</code> so Geography +
+            helper copy + card chrome scroll fully into view. Admin FAB still
+            clears via <code>.lobby-start-slot</code>.
+          </li>
+          <li>
+            <strong>Unchanged</strong>: NoPullToRefresh, nickname-first home,
+            Join card, Party Mode, 5-tap admin.
+          </li>
           <li>
             <strong>Wager slider</strong>: one unified track (orange AT RISK
             from the left, green stay-safe on the right) — no separate ratio

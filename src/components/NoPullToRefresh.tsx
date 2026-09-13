@@ -5,7 +5,7 @@ import { useEffect } from "react";
 /**
  * Blocks Safari/Chrome pull-to-refresh on phone so the PartyKit socket
  * isn’t nuked mid-game. Only cancels the rubber-band-at-top gesture;
- * normal scrolling inside .app-shell-scroll still works.
+ * normal scrolling inside .app-shell-scroll / .room-phase-scroll still works.
  */
 export function NoPullToRefresh() {
   useEffect(() => {
