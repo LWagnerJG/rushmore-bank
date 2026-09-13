@@ -23,6 +23,9 @@ const description =
 /** Cream/ivory — must match `--bg` / status-bar theme so iOS clock area isn’t white. */
 const CREAM = "#F5F0E7";
 
+/** Bump when shipping a new epic home-screen icon (cache-bust query). */
+const ICON_V = "2";
+
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
@@ -31,17 +34,39 @@ export const metadata: Metadata = {
   },
   description,
   applicationName: "Beans",
-  manifest: "/site.webmanifest",
+  manifest: `/site.webmanifest?v=${ICON_V}`,
   icons: {
     icon: [
-      { url: "/favicon.ico", sizes: "any" },
-      { url: "/icons/favicon-32.png", sizes: "32x32", type: "image/png" },
-      { url: "/icons/favicon-16.png", sizes: "16x16", type: "image/png" },
-      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+      { url: `/favicon.ico?v=${ICON_V}`, sizes: "any" },
+      {
+        url: `/icons/favicon-32.png?v=${ICON_V}`,
+        sizes: "32x32",
+        type: "image/png",
+      },
+      {
+        url: `/icons/favicon-16.png?v=${ICON_V}`,
+        sizes: "16x16",
+        type: "image/png",
+      },
+      {
+        url: `/icons/icon-192.png?v=${ICON_V}`,
+        sizes: "192x192",
+        type: "image/png",
+      },
+      {
+        url: `/icons/icon-512.png?v=${ICON_V}`,
+        sizes: "512x512",
+        type: "image/png",
+      },
     ],
-    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
-    shortcut: ["/favicon.ico"],
+    apple: [
+      {
+        url: `/apple-touch-icon.png?v=${ICON_V}`,
+        sizes: "180x180",
+        type: "image/png",
+      },
+    ],
+    shortcut: [`/favicon.ico?v=${ICON_V}`],
   },
   appleWebApp: {
     capable: true,
