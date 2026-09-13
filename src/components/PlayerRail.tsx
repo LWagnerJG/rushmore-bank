@@ -153,18 +153,21 @@ function PlayerChip({
         <span className="player-chip-name-text">{label}</span>
       </div>
       {showPotSplit ? (
-        <div className="player-chip-split" aria-label={`${safe} safe, ${pot} pot`}>
+        <div
+          className="player-chip-split"
+          aria-label={`${safe} safe, ${pot} risking`}
+        >
           <span className="player-chip-safe tabular-nums" title="Safe">
-            <span className="player-chip-split-label">S</span>
+            <span className="player-chip-split-label">Safe</span>
             <span className="player-chip-split-num">{safe}</span>
           </span>
           <span
             className={`player-chip-pot tabular-nums ${
               wagering && pot > 0 ? "player-chip-pot-hot" : ""
             }`}
-            title="Pot"
+            title="Risking"
           >
-            <span className="player-chip-split-label">P</span>
+            <span className="player-chip-split-label">Risking</span>
             <span className="player-chip-split-num">{pot}</span>
           </span>
         </div>

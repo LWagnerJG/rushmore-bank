@@ -132,7 +132,7 @@ function TurnStrip({ seats }: { seats: SeatInfo[] }) {
           </span>
           <span className="dice-turn-chip-meta">
             <span className="dice-turn-chip-badge">{BADGE[seat.kind]}</span>
-            <span className="dice-turn-chip-split tabular-nums" aria-label={`${seat.safe} safe${seat.kind === "banked" || seat.kind === "busted" ? "" : `, ${seat.pot} pot`}`}>
+            <span className="dice-turn-chip-split tabular-nums" aria-label={`${seat.safe} safe${seat.kind === "banked" || seat.kind === "busted" ? "" : `, ${seat.pot} risking`}`}>
               {seat.kind === "banked" || seat.kind === "busted" ? (
                 <span className="dice-turn-chip-safe">
                   <span className="dice-turn-chip-num">{seat.safe}</span>

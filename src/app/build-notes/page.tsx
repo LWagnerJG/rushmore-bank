@@ -17,7 +17,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Party Mode + vibes + draft/dice polish → {RULES.productionUrl}
+        Vote → judge → wager polish → {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -54,33 +54,27 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>Topic vibes</strong>: All / Basic / Sports / Animals /
-            Geography (Spicy &amp; Niche removed) — filters shortlist + reroll.
+            <strong>Judge flow</strong>: rosters stay visible through vote → AI
+            calculating → scored board (no blank/full-screen flip); discreet
+            “AI is calculating…” on the same board.
           </li>
           <li>
-            <strong>Party Mode (real)</strong>: ON expands drink rules. Bust →
-            once-per-round drink redo CTA (<code>Finished drink · redo bust</code>
-            ) or Pass. Round end → lowest beans drink +{" "}
-            <code>I finished my drink</code> (ties share; bots auto-resolve;
-            next topic gated).
+            <strong>Earned split</strong>: under{" "}
+            <code>+N</code> — <code>X from votes · Y from AI</code> (uses
+            existing <code>votes</code> / <code>aiAward</code>).
           </li>
           <li>
-            <strong>Draft polish</strong>: removed redundant “Type your answer”
-            under Your turn; stash + draft board get stronger panel contrast on
-            cream.
+            <strong>Ready to wager</strong>: primary CTA moved to sticky header
+            top-right with a soft pulse after tallies (replaces bottom “Bank
+            the Beans”).
           </li>
           <li>
-            <strong>Dice TAP</strong>: TAP sits on top of the dice and blinks
-            when armed to roll.
+            <strong>Safe / Risking</strong>: full words replace S/P on player
+            rail + dice turn strip.
           </li>
           <li>
-            <strong>Bank confirm</strong>: “Are you sure you want to Bank?”
-            modal; idle bank timer pauses while open.
-          </li>
-          <li>
-            Preserved: spectator, logo settings, rematch, scramble settle, min
-            wager 1, leave/rejoin, 60s draft, vote auto-start, Beans branding,
-            admin, bots.
+            Topics ({TOPIC_COUNT}), Party Mode, spectator, rematch, timers,
+            Beans branding preserved. UI-only — no PartyKit host logic change.
           </li>
         </ul>
       </section>

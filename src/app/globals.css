@@ -230,6 +230,47 @@ html.party-on .btn-primary {
   animation: pulse-soft 1.6s ease-in-out infinite;
 }
 
+@keyframes judge-dot {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.judge-working {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.judge-working-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: var(--coral);
+  animation: judge-dot 1.1s ease-in-out infinite;
+}
+
+@keyframes earned-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.earned-badge {
+  animation: earned-in 420ms ease-out both;
+}
+
 @keyframes shimmer {
   0% {
     background-position: 0% 50%;
@@ -1059,8 +1100,8 @@ html.party-on .panel {
   color: #ffe6c8;
 }
 .player-chip-pot-split {
-  min-width: 5.4rem;
-  max-width: 9rem;
+  min-width: 6.4rem;
+  max-width: 10rem;
 }
 .player-rail-pot-split .player-chip {
   min-height: 3.35rem;
@@ -1569,7 +1610,9 @@ html.party-on .status-pill-ready {
   .animate-rise,
   .brand-shimmer,
   .pulse-soft,
-  .topic-refresh {
+  .topic-refresh,
+  .judge-working-dot,
+  .earned-badge {
     animation: none !important;
   }
 
@@ -2432,19 +2475,21 @@ html.party-on .draft-board-table thead th.is-you {
   content: "";
 }
 .dice-turn-chip-safe::before {
-  content: "S";
-  font-size: 0.55rem;
+  content: "Safe";
+  font-size: 0.5rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
   opacity: 0.55;
   margin-right: 0.2rem;
   vertical-align: 0.05em;
 }
 .dice-turn-chip-pot::before {
-  content: "P";
-  font-size: 0.55rem;
+  content: "Risking";
+  font-size: 0.5rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
   opacity: 0.55;
   margin-right: 0.2rem;
   vertical-align: 0.05em;

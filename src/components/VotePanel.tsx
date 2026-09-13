@@ -19,6 +19,12 @@ function Countdown({ until }: { until: number | null }) {
   return <span className="tabular-nums">{left}s</span>;
 }
 
+function rosterDensity(count: number): "cozy" | "snug" | "dense" {
+  if (count >= 8) return "dense";
+  if (count >= 5) return "snug";
+  return "cozy";
+}
+
 export function VotePanel({
   state,
   you,
@@ -32,90 +38,115 @@ export function VotePanel({
 }) {
   const myVote = state.myHumanVote;
   const [busy, setBusy] = useState(false);
-
-  if (state.seatOrder.length === 2) {
-    return (
-      <div className="space-y-4">
-        <header className="space-y-1">
-          <h2
-            className="font-[family-name:var(--font-display)] text-xl font-extrabold"
-            role="status"
-          >
-            The judge is deciding…
-          </h2>
-          <p className="text-sm text-[var(--muted)]">
-            Two players — AI scores both drafts (no vote needed).
-          </p>
-        </header>
-        {state.seatOrder.map((pid) => {
-          const p = state.players.find((x) => x.id === pid);
-          const picks = state.picks.filter((pick) => pick.playerId === pid);
-          return (
-            <RushmoreCard
-              key={pid}
-              name={p?.name ?? "Player"}
-              picks={picks}
-              why={state.rushmoreWhy[pid]}
-            />
-          );
-        })}
-      </div>
-    );
-  }
+  const twoPlayer = state.seatOrder.length === 2;
+  const density = rosterDensity(state.seatOrder.length);
+  const votesDone =
+    twoPlayer || state.humanVotesCast >= state.humanVotesNeeded;
+  /** Discreet working state on the same board — no blank/full-screen flip. */
+  const judging =
+    state.judgeStatus === "pending" ||
+    (votesDone && state.judgeStatus !== "failed");
+  const canVote = you.role === "player" && !twoPlayer && !votesDone;
 
   return (
-    <div className="space-y-4">
+    <div className={`roster-board space-y-3 roster-board-${density}`}>
       <div className="flex items-baseline justify-between gap-2">
-        <h2 className="font-[family-name:var(--font-display)] text-xl font-extrabold">
-          Vote
+        <h2
+          className="font-[family-name:var(--font-display)] text-xl font-extrabold"
+          role="status"
+        >
+          {twoPlayer
+            ? "The judge is deciding…"
+            : votesDone
+              ? "Votes in"
+              : "Vote"}
         </h2>
-        <span className="text-sm font-bold tabular-nums text-[var(--muted)]">
-          <Countdown until={state.phaseDeadlineAt} />
-        </span>
+        {!twoPlayer && !votesDone ? (
+          <span className="text-sm font-bold tabular-nums text-[var(--muted)]">
+            <Countdown until={state.phaseDeadlineAt} />
+          </span>
+        ) : null}
       </div>
-      <p
-        className="vote-count text-sm font-extrabold tabular-nums"
-        role="status"
-        aria-live="polite"
-      >
-        {state.humanVotesCast}/{state.humanVotesNeeded} voted
-      </p>
-      <p className="text-sm text-[var(--muted)]">
-        Tap a Mount Rushmore — best list for the topic. Ends in{" "}
-        {RULES.humanVoteSeconds}s or when everyone has voted.
-      </p>
-      {state.judgeStatus === "pending" && (
-        <p className="text-sm text-[var(--muted)]">Judge scoring…</p>
+
+      {twoPlayer ? (
+        <p className="text-sm text-[var(--muted)]">
+          Two players — AI scores both drafts (no vote needed).
+        </p>
+      ) : (
+        <>
+          <p
+            className="vote-count text-sm font-extrabold tabular-nums"
+            role="status"
+            aria-live="polite"
+          >
+            {state.humanVotesCast}/{state.humanVotesNeeded} voted
+          </p>
+          {!votesDone ? (
+            <p className="text-sm text-[var(--muted)]">
+              Tap a Mount Rushmore — best list for the topic. Ends in{" "}
+              {RULES.humanVoteSeconds}s or when everyone has voted.
+            </p>
+          ) : (
+            <p className="text-sm text-[var(--muted)]">
+              Rosters stay up while scores lock in.
+            </p>
+          )}
+        </>
       )}
+
+      {judging ? (
+        <p
+          className="judge-working text-sm font-semibold text-[var(--muted)]"
+          role="status"
+          aria-live="polite"
+        >
+          <span className="judge-working-dot" aria-hidden="true" />
+          AI is calculating…
+        </p>
+      ) : null}
       {state.judgeStatus === "failed" && (
         <p className="text-xs font-semibold text-[var(--muted)]">
           {RULES.aiFallbackLabel}
         </p>
       )}
-      {state.seatOrder
-        .filter((pid) => pid !== youId)
-        .map((pid) => {
+
+      <div className={`roster-board-grid roster-board-grid-${density}`}>
+        {state.seatOrder.map((pid) => {
           const p = state.players.find((x) => x.id === pid);
           const picks = state.picks.filter((pk) => pk.playerId === pid);
+          const isYou = pid === youId;
           const selected = myVote === pid;
+          const interactive = canVote && !isYou;
+
           return (
             <RushmoreCard
               key={pid}
-              name={p?.name ?? "Player"}
+              name={
+                isYou
+                  ? `${p?.name ?? "You"} (you)`
+                  : (p?.name ?? "Player")
+              }
               picks={picks}
               why={state.rushmoreWhy[pid]}
               selected={selected}
-              interactive
-              disabled={you.role !== "player" || busy}
-              onSelect={() => {
-                if (busy || you.role !== "player") return;
-                setBusy(true);
-                send({ type: "submit_vote", targetPlayerId: pid });
-                setTimeout(() => setBusy(false), 400);
-              }}
+              interactive={interactive}
+              disabled={!interactive || busy}
+              compact={density !== "cozy"}
+              density={density}
+              onSelect={
+                interactive
+                  ? () => {
+                      if (busy || you.role !== "player") return;
+                      setBusy(true);
+                      send({ type: "submit_vote", targetPlayerId: pid });
+                      setTimeout(() => setBusy(false), 400);
+                    }
+                  : undefined
+              }
             />
           );
         })}
+      </div>
     </div>
   );
 }
