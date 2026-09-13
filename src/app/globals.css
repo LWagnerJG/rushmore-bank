@@ -34,13 +34,18 @@ html.party-on {
 }
 
 /*
- * iOS Safari white-banner / rubber-band fix:
- * - Cream on html (never paint white under the chrome)
- * - Fixed full-bleed gradient layer (survives dvh churn + overscroll)
- * - overscroll-behavior kills phantom bounce that reveals gaps
+ * iOS Safari viewport paint:
+ * Keep the active surface on the root elements themselves. A fixed child
+ * inside body can end up behind the root background when Safari changes the
+ * visual viewport, exposing the html fallback below a shorter shell.
  */
 html {
   background-color: var(--bg);
+  background-image:
+    radial-gradient(900px 480px at 0% -10%, rgba(244, 201, 91, 0.35), transparent 55%),
+    radial-gradient(800px 420px at 100% 0%, rgba(167, 215, 194, 0.45), transparent 50%),
+    radial-gradient(700px 400px at 50% 110%, rgba(231, 111, 78, 0.18), transparent 45%),
+    linear-gradient(165deg, #f7f3eb 0%, #f5f0e7 40%, #ebe4d6 100%);
   height: 100%;
   height: -webkit-fill-available;
   height: 100dvh;
@@ -52,38 +57,28 @@ body {
   position: relative;
   color: var(--text);
   background-color: var(--bg);
-  height: 100%;
-  height: -webkit-fill-available;
-  height: 100dvh;
-  overflow: hidden;
-  overscroll-behavior-y: none;
-  /* gradient lives on ::before so it never peels away from the viewport */
-  background-image: none;
-}
-
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background-color: var(--bg);
   background-image:
     radial-gradient(900px 480px at 0% -10%, rgba(244, 201, 91, 0.35), transparent 55%),
     radial-gradient(800px 420px at 100% 0%, rgba(167, 215, 194, 0.45), transparent 50%),
     radial-gradient(700px 400px at 50% 110%, rgba(231, 111, 78, 0.18), transparent 45%),
     linear-gradient(165deg, #f7f3eb 0%, #f5f0e7 40%, #ebe4d6 100%);
+  height: 100%;
+  height: -webkit-fill-available;
+  height: 100dvh;
+  overflow: hidden;
+  overscroll-behavior-y: none;
 }
 
 html.party-on {
   background-color: #fff8ec;
+  background-image:
+    radial-gradient(820px 460px at 8% -8%, rgba(255, 212, 90, 0.55), transparent 52%),
+    radial-gradient(760px 420px at 100% 4%, rgba(126, 217, 184, 0.5), transparent 48%),
+    radial-gradient(680px 380px at 50% 108%, rgba(255, 107, 74, 0.28), transparent 42%),
+    linear-gradient(165deg, #fff8ec 0%, #ffe8d4 45%, #f5d9c8 100%);
 }
 
 html.party-on body {
-  background-color: #fff8ec;
-}
-
-html.party-on body::before {
   background-color: #fff8ec;
   background-image:
     radial-gradient(820px 460px at 8% -8%, rgba(255, 212, 90, 0.55), transparent 52%),
@@ -98,6 +93,7 @@ html.party-on body::before {
   height: 100%;
   height: -webkit-fill-available;
   height: 100dvh;
+  min-height: 100svh;
 }
 
 .app-shell-lock {

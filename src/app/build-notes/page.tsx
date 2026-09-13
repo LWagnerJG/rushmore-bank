@@ -82,6 +82,12 @@ export default function BuildNotesPage() {
             unchanged. Other phases keep phase label / balance for
             orientation.
           </li>
+          <li>
+            <strong>Viewport paint</strong>: active normal and Party Mode
+            gradients now live on both root surfaces, so a Safari visual
+            viewport gap below the shell cannot reveal a cream strip. Shell
+            scrolling and safe-area padding remain unchanged.
+          </li>
         </ul>
       </section>
     </main>
