@@ -807,8 +807,11 @@ html.party-on .panel {
 
 
 .wager-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
   border-radius: 1.25rem;
-  padding: 1.2rem 1rem 1.15rem;
+  padding: 1rem 0.95rem 1rem;
   background: linear-gradient(
     165deg,
     rgba(255, 255, 255, 0.78),
@@ -817,16 +820,16 @@ html.party-on .panel {
   border: 1.5px solid rgba(35, 72, 62, 0.08);
 }
 
-/* Two piles + split bar — AT RISK vs stay safe */
+/* AT RISK / stay-safe piles — split lives on the slider track below */
 .wager-piles {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.55rem 0.65rem;
+  gap: 0.55rem;
 }
 
 .wager-pile {
   border-radius: 1rem;
-  padding: 0.7rem 0.55rem 0.75rem;
+  padding: 0.65rem 0.5rem 0.7rem;
   text-align: center;
 }
 
@@ -861,9 +864,9 @@ html.party-on .panel {
 }
 
 .wager-pile-value {
-  margin-top: 0.2rem;
+  margin-top: 0.15rem;
   font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
-  font-size: clamp(2.4rem, 11vw, 3.1rem);
+  font-size: clamp(2.35rem, 11vw, 3rem);
   font-weight: 800;
   line-height: 0.95;
   letter-spacing: -0.03em;
@@ -876,30 +879,6 @@ html.party-on .panel {
 
 .wager-pile-safe .wager-pile-value {
   color: #2f6b55;
-}
-
-.wager-split-bar {
-  grid-column: 1 / -1;
-  display: flex;
-  height: 0.55rem;
-  overflow: hidden;
-  border-radius: 999px;
-  background: rgba(35, 72, 62, 0.08);
-}
-
-.wager-split-risk,
-.wager-split-safe {
-  display: block;
-  min-width: 0.35rem;
-  transition: flex-grow 160ms ease;
-}
-
-.wager-split-risk {
-  background: linear-gradient(90deg, #f0a08a, var(--coral));
-}
-
-.wager-split-safe {
-  background: linear-gradient(90deg, var(--mint), #6fbf9a);
 }
 
 .wager-flow {
@@ -980,7 +959,19 @@ html.party-on .panel {
 }
 
 .wager-slider-block {
-  padding-top: 0.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.wager-slider-ends {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 0.1rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
 }
 
 /*
@@ -2163,39 +2154,56 @@ html.party-on .player-rail-many::after {
   padding: 0.15rem 0;
 }
 
+/*
+ * Unified wager track: orange (AT RISK) grows from the left; green (stay safe)
+ * fills the rest. Same mapping as the pile cards — no second split bar.
+ * touch-action:none + setPointerCapture keep iOS drags alive on vertical drift.
+ */
 .wager-slider {
-  -webkit-appearance: none;
-  appearance: none;
-  height: 0.65rem;
+  position: relative;
+  height: 1.85rem;
+  outline: none;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: pointer;
+}
+
+.wager-slider:focus-visible .wager-slider-track {
+  box-shadow: 0 0 0 3px rgba(231, 111, 78, 0.35);
+}
+
+.wager-slider-track {
+  --wager-fill: 50%;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 0.72rem;
   border-radius: 999px;
+  transform: translateY(-50%);
+  pointer-events: none;
   background: linear-gradient(
     90deg,
-    rgba(167, 215, 194, 0.85),
-    rgba(231, 111, 78, 0.75)
+    #f0a08a 0%,
+    var(--coral) var(--wager-fill),
+    var(--mint) var(--wager-fill),
+    #6fbf9a 100%
   );
-  outline: none;
 }
 
-.wager-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 1.55rem;
-  height: 1.55rem;
+.wager-slider-thumb {
+  position: absolute;
+  top: 50%;
+  width: 1.6rem;
+  height: 1.6rem;
   border-radius: 50%;
   background: var(--text);
   border: 3px solid #fff;
-  box-shadow: 0 2px 6px rgba(35, 72, 62, 0.25);
-  cursor: pointer;
-}
-
-.wager-slider::-moz-range-thumb {
-  width: 1.55rem;
-  height: 1.55rem;
-  border-radius: 50%;
-  background: var(--text);
-  border: 3px solid #fff;
-  box-shadow: 0 2px 6px rgba(35, 72, 62, 0.25);
-  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(35, 72, 62, 0.28);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 1;
 }
 
 /* Party Mode switch */
