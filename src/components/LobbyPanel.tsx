@@ -112,8 +112,24 @@ export function LobbyPanel({
                   </span>
                 )}
               </span>
-              <span className="text-sm font-bold text-[var(--muted)]">
-                {p.stones} {RULES.currencyName}
+              <span className="flex items-center gap-2">
+                <span className="text-sm font-bold text-[var(--muted)]">
+                  {p.stones} {RULES.currencyName}
+                </span>
+                {you.isHost && p.id !== you.id && (
+                  <button
+                    type="button"
+                    className="rounded-md px-1.5 py-0.5 text-xs font-bold text-[var(--muted)] hover:bg-[rgba(231,111,78,0.12)] hover:text-[var(--coral)]"
+                    aria-label={`Remove ${p.name}`}
+                    onClick={() => {
+                      if (window.confirm(`Remove ${p.name} from the lobby?`)) {
+                        send({ type: "remove_player", playerId: p.id });
+                      }
+                    }}
+                  >
+                    Remove
+                  </button>
+                )}
               </span>
             </li>
           ))}

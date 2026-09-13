@@ -6,9 +6,8 @@ export const runtime = "nodejs";
 
 /** Primary + fallback Gemini flash models when the primary is overloaded. */
 const GEMINI_MODELS = [
-  "gemini-3.5-flash",
-  "gemini-2.0-flash",
   "gemini-2.5-flash",
+  "gemini-2.0-flash",
 ] as const;
 
 /** Short backoff between retries on 429 / 503 / 5xx (ms). */

@@ -36,9 +36,9 @@ export function DraftBoard({
   send: (m: ClientMessage) => void;
 }) {
   const activeCell = useRef<HTMLTableCellElement>(null);
-  // One unique column per seat — never snake-prefix draftOrder (duplicates on
-  // reverse passes / mid-draft seat growth).
-  const seats = draftBoardSeats(state.seatOrder.length);
+  // One unique column per seat, rotated by starterOffset so the round's first
+  // drafter is leftmost. Never derive from draftOrder prefix (duplicates seats).
+  const seats = draftBoardSeats(state.seatOrder.length, state.starterOffset);
   const density = densityFor(seats.length);
   const colW = colWidthPx(seats.length, density);
   const correcting = state.phase === "CORRECTION";
@@ -58,6 +58,14 @@ export function DraftBoard({
     window.addEventListener("focus", sync);
     return () => window.removeEventListener("focus", sync);
   }, []);
+
+  // Reset scroll to the start whenever a new draft round begins (starterOffset
+  // rotates columns, so stale scroll position would hide the first drafter).
+  useEffect(() => {
+    if (density === "fit") return;
+    const scroller = document.querySelector(".draft-board-scroll");
+    if (scroller) scroller.scrollLeft = 0;
+  }, [state.starterOffset, state.topicRound, density]);
 
   useEffect(() => {
     if (density === "fit") return; // no sideways scroll at 2–5

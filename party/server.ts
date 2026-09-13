@@ -809,6 +809,9 @@ export default class QuarryServer implements Party.Server {
         return;
       case "dice_ready_ack":
         return;
+      case "remove_player":
+        this.handleRemovePlayer(id, msg.playerId);
+        return;
       case "admin_spawn_bots":
         this.handleAdminSpawnBots(msg.pin, msg.count);
         return;
@@ -877,6 +880,26 @@ export default class QuarryServer implements Party.Server {
     };
     this.state.players.push(player);
     if (isFirst) this.state.hostLastSeenAt = Date.now();
+  }
+
+  handleRemovePlayer(hostId: string, targetId: string) {
+    if (!this.requireHost(hostId)) throw new Error("Host only");
+    if (this.state.rosterLocked) throw new Error("Game already started");
+    if (targetId === hostId) throw new Error("Host cannot remove themselves");
+    const target = this.state.players.find((p) => p.id === targetId);
+    if (!target) throw new Error("Player not found");
+    this.state.players = this.state.players.filter((p) => p.id !== targetId);
+    this.state.notice = `${target.name} was removed from the lobby`;
+    bump(this.state);
+    // Notify the removed connection if still open.
+    for (const conn of this.room.getConnections()) {
+      if (conn.id === targetId) {
+        this.send(conn, {
+          type: "error",
+          message: "You were removed from the lobby by the host.",
+        });
+      }
+    }
   }
 
   handleSettings(id: string, partial: Partial<HostSettings>) {
@@ -2088,13 +2111,9 @@ export default class QuarryServer implements Party.Server {
 
     bump(this.state);
     await this.clearAlarm();
-
-    // Auto final results after configured final round
-    if (this.state.topicRound >= this.state.configuredTopicRounds) {
-      this.state.phase = "GAME_RESULTS";
-      this.state.gameOver = true;
-      this.state.notice = `Final results · ${this.state.configuredTopicRounds} rounds complete`;
-    }
+    // Stay in ROUND_RESULTS so players see per-round standings before
+    // final results. handleNextTopic / handleAdvance will transition to
+    // GAME_RESULTS when the host taps "See final standings".
   }
 
   async handleBankConfirmOpen(id: string) {
@@ -2202,12 +2221,7 @@ export default class QuarryServer implements Party.Server {
     if (this.state.phase !== "ROUND_RESULTS") {
       throw new Error("Wrong phase");
     }
-    if (this.state.topicRound >= this.state.configuredTopicRounds) {
-      this.state.phase = "GAME_RESULTS";
-      this.state.gameOver = true;
-      bump(this.state);
-      return;
-    }
+    // Block the party drink prompt on ALL rounds (including the final one).
     if (
       this.state.partyPrompt &&
       !this.state.partyPrompt.resolved &&
@@ -2216,6 +2230,13 @@ export default class QuarryServer implements Party.Server {
       throw new Error("Finish the party drink first");
     }
     this.state.partyPrompt = null;
+
+    if (this.state.topicRound >= this.state.configuredTopicRounds) {
+      this.state.phase = "GAME_RESULTS";
+      this.state.gameOver = true;
+      bump(this.state);
+      return;
+    }
     await this.beginTopicSelection();
   }
 

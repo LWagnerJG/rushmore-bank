@@ -34,14 +34,21 @@ export function totalDraftPicks(n: number): number {
 }
 
 /**
- * Stable unique column seats for the draft board: one column per seat, in
- * seat-order (0..n-1). Never derive columns from a snake `draftOrder` prefix —
- * that prefix repeats seats on reverse passes and duplicates headers when
- * seatOrder grows mid-draft (admin add-bots) without a matching draftOrder.
+ * Stable unique column seats for the draft board: one column per seat, rotated
+ * by starterOffset so the first drafter of this round is always leftmost.
+ * Never derive columns from a snake `draftOrder` prefix — that prefix repeats
+ * seats on reverse passes and duplicates headers when seatOrder grows mid-draft
+ * (admin add-bots) without a matching draftOrder.
  */
-export function draftBoardSeats(seatCount: number): number[] {
+export function draftBoardSeats(
+  seatCount: number,
+  starterOffset: number = 0,
+): number[] {
   if (seatCount < 1) return [];
-  return Array.from({ length: seatCount }, (_, i) => i);
+  return Array.from(
+    { length: seatCount },
+    (_, i) => (i + starterOffset) % seatCount,
+  );
 }
 
 /**
