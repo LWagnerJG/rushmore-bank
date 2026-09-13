@@ -54,7 +54,7 @@ export function LobbyPanel({
     : `Need ${RULES.minPlayers - players.length} more`;
 
   return (
-    <div className="space-y-4">
+    <div className="lobby-layout space-y-4">
       <section className="panel space-y-3 text-center">
         <p className="font-[family-name:var(--font-display)] text-5xl font-extrabold tracking-[0.22em]">
           {state.code}
@@ -68,22 +68,13 @@ export function LobbyPanel({
             fgColor="#23483E"
           />
         </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            className="btn-primary flex-1 text-base"
-            onClick={share}
-          >
-            {copied ? "Copied!" : "Share invite"}
-          </button>
-          <button
-            type="button"
-            className="btn-secondary shrink-0 px-4"
-            onClick={() => navigator.clipboard.writeText(state.code)}
-          >
-            Copy code
-          </button>
-        </div>
+        <button
+          type="button"
+          className="btn-primary w-full text-base"
+          onClick={share}
+        >
+          {copied ? "Copied!" : "Share invite"}
+        </button>
       </section>
 
       <section className="panel space-y-3">
@@ -125,7 +116,7 @@ export function LobbyPanel({
       </section>
 
       {you.isHost ? (
-        <section className="space-y-3">
+        <section className="lobby-host-tools space-y-3">
           <div className="panel space-y-2">
             <p className="text-xs font-extrabold uppercase tracking-wide text-[var(--muted)]">
               Topic vibes
@@ -173,20 +164,22 @@ export function LobbyPanel({
               })
             }
           />
-          <button
-            type="button"
-            className={
-              "btn-primary w-full text-lg " + (canStart ? "pulse-soft" : "")
-            }
-            disabled={!canStart}
-            onClick={() => send({ type: "start" })}
-          >
-            {canStart
-              ? partyOn
-                ? "Start the party"
-                : "Start game"
-              : `Need ${RULES.minPlayers}+ players`}
-          </button>
+          <div className="lobby-start-slot">
+            <button
+              type="button"
+              className={
+                "btn-primary w-full text-lg " + (canStart ? "pulse-soft" : "")
+              }
+              disabled={!canStart}
+              onClick={() => send({ type: "start" })}
+            >
+              {canStart
+                ? partyOn
+                  ? "Start the party"
+                  : "Start game"
+                : `Need ${RULES.minPlayers}+ players`}
+            </button>
+          </div>
         </section>
       ) : null}
     </div>

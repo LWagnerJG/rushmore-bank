@@ -849,7 +849,26 @@ export default class QuarryServer implements Party.Server {
   handleSettings(id: string, partial: Partial<HostSettings>) {
     if (!this.requireHost(id)) throw new Error("Host only");
     if (this.state.phase !== "LOBBY") {
-      // Party mode may change between topics
+      const vibeOk =
+        partial.topicVibe === "all" ||
+        partial.topicVibe === "basic" ||
+        partial.topicVibe === "sports" ||
+        partial.topicVibe === "animals" ||
+        partial.topicVibe === "geography";
+
+      // Vibes stay switchable while picking a topic (re-spins shortlist).
+      if (this.state.phase === "TOPIC_SELECTION" && vibeOk) {
+        const prev = this.state.settings.topicVibe ?? "all";
+        this.state.settings.topicVibe = partial.topicVibe!;
+        if (prev !== this.state.settings.topicVibe) {
+          this.state.topicVotes = {};
+          this.spinShortlist();
+          this.state.phaseDeadlineAt = null;
+        }
+        return;
+      }
+
+      // Party mode / vibes may change between topics
       if (
         this.state.phase === "ROUND_RESULTS" ||
         this.state.phase === "SCORE_REVEAL"
@@ -857,14 +876,8 @@ export default class QuarryServer implements Party.Server {
         if (typeof partial.partyMode === "boolean") {
           this.state.settings.partyMode = partial.partyMode;
         }
-        if (
-          partial.topicVibe === "all" ||
-          partial.topicVibe === "basic" ||
-          partial.topicVibe === "sports" ||
-          partial.topicVibe === "animals" ||
-          partial.topicVibe === "geography"
-        ) {
-          this.state.settings.topicVibe = partial.topicVibe;
+        if (vibeOk) {
+          this.state.settings.topicVibe = partial.topicVibe!;
         }
         return;
       }

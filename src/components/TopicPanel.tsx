@@ -19,7 +19,6 @@ export function TopicPanel({
   const [scope, setScope] = useState<TopicScope>("everyday");
   const [customOpen, setCustomOpen] = useState(false);
   const myVote = state.myTopicVote;
-  const canReroll = you.role === "player";
   const seenKey = useRef<string | null>(null);
 
   // Animate only on reroll (options change after first paint) — never on land.
@@ -49,11 +48,24 @@ export function TopicPanel({
   return (
     <div className="topic-layout">
       <header className="topic-head">
-        <h2 className="topic-title">
-          Topic · {state.topicRound + 1}/{state.configuredTopicRounds}
-        </h2>
+        <div className="topic-head-row">
+          <h2 className="topic-title">
+            Topic · {state.topicRound + 1}/{state.configuredTopicRounds}
+          </h2>
+          {you.isHost ? (
+            <button
+              type="button"
+              className="topic-reroll-quiet"
+              aria-label="Reroll topics"
+              title="Reroll topics"
+              onClick={() => send({ type: "spin_topics" })}
+            >
+              ↻
+            </button>
+          ) : null}
+        </div>
         <p className="topic-sub">
-          Four from the bank — vote, write your own, or reroll
+          Four from the bank — vote or write your own
         </p>
       </header>
 
@@ -62,10 +74,10 @@ export function TopicPanel({
           {(
             [
               ["all", "All"],
-                  ["basic", "Basic"],
-                  ["sports", "Sports"],
-                  ["animals", "Animals"],
-                  ["geography", "Geography"],
+              ["basic", "Basic"],
+              ["sports", "Sports"],
+              ["animals", "Animals"],
+              ["geography", "Geography"],
             ] as const
           ).map(([value, label]) => {
             const on = (state.settings.topicVibe ?? "all") === value;
@@ -87,8 +99,6 @@ export function TopicPanel({
           })}
         </div>
       ) : null}
-
-
 
       <div
         className={`topic-choices ${refreshing ? "topic-refresh" : ""}`}
@@ -179,16 +189,6 @@ export function TopicPanel({
           </div>
         )}
       </div>
-
-      {canReroll && (
-        <button
-          type="button"
-          className="btn-secondary w-full"
-          onClick={() => send({ type: "majority_reroll" })}
-        >
-          Reroll topics
-        </button>
-      )}
     </div>
   );
 }

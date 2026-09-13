@@ -242,7 +242,14 @@ export function RoomClient({
   }
 
   return (
-    <main className="app-shell app-shell-scroll mx-auto flex max-w-md flex-col px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-0">
+    <main
+      className={
+        "app-shell app-shell-scroll mx-auto flex max-w-md flex-col px-4 pt-0 " +
+        (phase === "LOBBY"
+          ? "pb-[max(5.5rem,calc(env(safe-area-inset-bottom)+4.25rem))]"
+          : "pb-[max(1.25rem,env(safe-area-inset-bottom))]")
+      }
+    >
       <header
         className={
           "sticky top-0 z-20 -mx-4 mb-3 border-b px-4 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur " +

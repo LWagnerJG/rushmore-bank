@@ -38,6 +38,7 @@ export function PlayerRail({
     state.phase === "WAGER_SELECTION" || state.phase === "DICE";
   const count = players.length;
   const fit = count > 0 && count <= 5;
+  const few = count > 0 && count <= 3;
   const many = count >= 6;
   const dense = count >= 8;
   const upRef = useRef<HTMLDivElement | null>(null);
@@ -56,6 +57,7 @@ export function PlayerRail({
       className={[
         "player-rail mt-2",
         fit ? "player-rail-fit" : "",
+        few ? "player-rail-few" : "",
         many ? "player-rail-many" : "",
         dense ? "player-rail-dense" : "",
         showPotSplit ? "player-rail-pot-split" : "",

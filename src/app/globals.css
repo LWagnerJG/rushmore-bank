@@ -289,6 +289,42 @@ html.party-on .brand-shimmer {
   padding: 0.85rem 0.9rem;
 }
 
+/* Clean divider — hairline + muted label, no white pill */
+.home-or-join {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.15rem 0;
+}
+
+.home-or-join-line {
+  flex: 1 1 auto;
+  height: 1px;
+  background: rgba(35, 72, 62, 0.12);
+}
+
+.home-or-join-label {
+  flex: 0 0 auto;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Lobby: keep Start fully above home-indicator / Admin FAB */
+.lobby-layout {
+  padding-bottom: 0.25rem;
+}
+
+.lobby-start-slot {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+
+.lobby-start-slot .btn-primary {
+  border-radius: 0.95rem;
+}
+
 .panel {
   border-radius: 1.15rem;
   background: var(--panel);
@@ -882,13 +918,35 @@ html.party-on .panel {
   color: var(--text);
 }
 
-/* Current picker — must read louder than “You” alone */
+/* Current picker — soft lift, no harsh clip against the track */
 .player-chip-up {
   box-shadow:
-    0 0 0 3px var(--yellow),
-    0 6px 18px rgba(244, 201, 91, 0.55);
-  transform: translateY(-1px) scale(1.04);
-  z-index: 1;
+    0 0 0 2.5px var(--yellow),
+    0 8px 20px rgba(244, 201, 91, 0.42);
+  transform: translateY(-2px) scale(1.045);
+  z-index: 2;
+  animation: player-chip-up-in 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes player-chip-up-in {
+  from {
+    transform: translateY(0) scale(1);
+    box-shadow:
+      0 0 0 0 rgba(244, 201, 91, 0),
+      0 0 0 rgba(244, 201, 91, 0);
+  }
+  to {
+    transform: translateY(-2px) scale(1.045);
+    box-shadow:
+      0 0 0 2.5px var(--yellow),
+      0 8px 20px rgba(244, 201, 91, 0.42);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .player-chip-up {
+    animation: none;
+  }
 }
 
 .player-chip-other.player-chip-up {
@@ -1033,19 +1091,39 @@ html.party-on .panel {
   gap: 0.4rem;
   width: 100%;
   max-height: none;
+  /* Allow up-seat ring/glow — only scroll sideways when needed */
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: visible;
   -webkit-overflow-scrolling: touch;
   scroll-snap-type: x proximity;
   scrollbar-width: none;
-  /* Inset chips so up-seat yellow ring + glow aren't clipped by overflow
-     (first chip left/top were flat; bottom/right already showed). */
-  padding: 0.4rem 0.35rem 0.5rem;
-  scroll-padding-inline: 0.35rem;
+  /* Inset chips so up-seat yellow ring + glow aren't clipped */
+  padding: 0.55rem 0.4rem 0.65rem;
+  scroll-padding-inline: 0.4rem;
 }
 
 .player-rail-track::-webkit-scrollbar {
   display: none;
+}
+
+/* Few players — breathe: wider name gutters so labels aren't cramped */
+.player-rail-few .player-rail-track {
+  gap: 0.65rem;
+  padding-inline: 0.15rem;
+}
+
+.player-rail-few .player-chip {
+  padding: 0.48rem 0.7rem;
+}
+
+.player-rail-few .player-chip-name {
+  font-size: 0.78rem;
+  margin-inline: 0.1rem;
+}
+
+.player-rail-few .player-chip-name-text {
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
 }
 
 /* Fit everyone without scroll when the row can breathe */
@@ -1142,6 +1220,43 @@ html.party-on .player-rail-many::after {
 
 .topic-head {
   text-align: left;
+}
+
+.topic-head-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.topic-reroll-quiet {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0.2rem 0.35rem;
+  border-radius: 0.45rem;
+  opacity: 0.55;
+  transition:
+    opacity 140ms ease,
+    background 140ms ease,
+    color 140ms ease;
+}
+
+.topic-reroll-quiet:hover,
+.topic-reroll-quiet:focus-visible {
+  opacity: 1;
+  color: var(--text);
+  background: rgba(35, 72, 62, 0.06);
+  outline: none;
+}
+
+.topic-reroll-quiet:active {
+  opacity: 0.85;
+  transform: rotate(-18deg);
 }
 
 .topic-title {
@@ -2012,6 +2127,23 @@ html.party-on .draft-board-table thead th.is-you {
   font-size: 0.72rem;
 }
 
+/* Dynamic name gutters when few seats share the phone width */
+.draft-board-scroll-fit[data-seats="2"] .draft-board-density-fit th,
+.draft-board-scroll-fit[data-seats="3"] .draft-board-density-fit th {
+  padding: 0.4rem 0.55rem;
+  font-size: 0.8rem;
+}
+
+.draft-board-scroll-fit[data-seats="2"] .draft-board-name,
+.draft-board-scroll-fit[data-seats="3"] .draft-board-name {
+  margin-inline: 0.1rem;
+}
+
+.draft-board-scroll-fit[data-seats="2"] .draft-board-density-fit td,
+.draft-board-scroll-fit[data-seats="3"] .draft-board-density-fit td {
+  padding: 0.32rem 0.5rem;
+}
+
 .draft-board-density-fit td,
 .draft-board-density-cozy td {
   height: 2.85rem;
@@ -2061,15 +2193,20 @@ html.party-on .draft-board-table thead th.is-you {
 }
 
 .draft-board-col-active {
-  background: rgba(244, 201, 91, 0.18);
+  background: rgba(244, 201, 91, 0.14);
+  transition: background 220ms ease;
 }
 
 .draft-board-table thead th.draft-board-col-active {
-  background: rgba(244, 201, 91, 0.42);
+  background: rgba(244, 201, 91, 0.38);
+  box-shadow: inset 0 -3px 0 0 var(--yellow);
+  transition:
+    background 220ms ease,
+    box-shadow 220ms ease;
 }
 
 .draft-board-table thead th.is-you.draft-board-col-active {
-  background: rgba(244, 201, 91, 0.55);
+  background: rgba(244, 201, 91, 0.5);
 }
 
 .draft-board-cell-live {
