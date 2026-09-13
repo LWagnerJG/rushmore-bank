@@ -17,7 +17,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        PlayerRail up-seat ring fully visible → {RULES.productionUrl}
+        PlayerRail You-chip: full ring + soft glow → {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -69,8 +69,10 @@ export default function BuildNotesPage() {
             under Your turn; stash + draft board get stronger panel contrast on
             cream. Up-seat You-chip gold ring + glow no longer clipped on the
             rail (fit mode uses real <code>overflow: visible</code>; scroll mode
-            pads the track for the full ring/glow; sticky chrome blur moved to a
-            <code>::before</code> so it can’t clip descendants).
+            pads the track — extra inline inset so the leading You ring isn’t
+            shaved on the left; sticky chrome blur on a <code>::before</code>).
+            Glow is a longer multi-layer falloff so it eases into cream instead
+            of a hard cutoff.
           </li>
           <li>
             <strong>Dice TAP</strong>: TAP sits on top of the dice and blinks
