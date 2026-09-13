@@ -257,8 +257,19 @@ export default class QuarryServer implements Party.Server {
         // disconnect already changed the old payload's phaseRevision.
         const owner = this.alarmOwner(alarm.kind);
         if (owner) {
-          const when = owner.deadlineAt ?? await this.room.storage.getAlarm() ?? Date.now();
+          const when = owner.deadlineAt ?? (await this.room.storage.getAlarm()) ?? Date.now();
           await this.setAlarmAt(when, alarm);
+        } else if (
+          this.state.phase === "DICE" &&
+          this.state.diceSubphase === "COMMITTED" &&
+          this.state.lastDice &&
+          !this.state.lastDice.revealed
+        ) {
+          // Preserve legacy recovery when the old payload predates the roll.
+          await this.setAlarmAt(this.state.lastDice.animSettleAt, {
+            kind: "dice_anim",
+            revision: this.state.phaseRevision,
+          });
         } else {
           await this.clearAlarm();
         }
