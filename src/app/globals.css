@@ -683,13 +683,98 @@ html.party-on .panel {
 
 .wager-hero {
   border-radius: 1.25rem;
-  padding: 1.35rem 1.05rem 1.2rem;
+  padding: 1.2rem 1rem 1.15rem;
   background: linear-gradient(
     165deg,
-    rgba(255, 255, 255, 0.72),
-    rgba(167, 215, 194, 0.22)
+    rgba(255, 255, 255, 0.78),
+    rgba(167, 215, 194, 0.18)
   );
   border: 1.5px solid rgba(35, 72, 62, 0.08);
+}
+
+/* Two piles + split bar — AT RISK vs stay safe */
+.wager-piles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem 0.65rem;
+}
+
+.wager-pile {
+  border-radius: 1rem;
+  padding: 0.7rem 0.55rem 0.75rem;
+  text-align: center;
+}
+
+.wager-pile-risk {
+  background: linear-gradient(
+    165deg,
+    rgba(255, 248, 236, 0.95),
+    rgba(231, 111, 78, 0.18)
+  );
+  border: 1.5px solid rgba(231, 111, 78, 0.28);
+}
+
+.wager-pile-safe {
+  background: linear-gradient(
+    165deg,
+    rgba(255, 255, 255, 0.85),
+    rgba(167, 215, 194, 0.35)
+  );
+  border: 1.5px solid rgba(35, 72, 62, 0.1);
+}
+
+.wager-pile-label {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.wager-pile-risk .wager-pile-label {
+  color: var(--coral);
+}
+
+.wager-pile-value {
+  margin-top: 0.2rem;
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(2.4rem, 11vw, 3.1rem);
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+
+.wager-pile-risk .wager-pile-value {
+  color: var(--coral);
+}
+
+.wager-pile-safe .wager-pile-value {
+  color: #2f6b55;
+}
+
+.wager-split-bar {
+  grid-column: 1 / -1;
+  display: flex;
+  height: 0.55rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(35, 72, 62, 0.08);
+}
+
+.wager-split-risk,
+.wager-split-safe {
+  display: block;
+  min-width: 0.35rem;
+  transition: flex-grow 160ms ease;
+}
+
+.wager-split-risk {
+  background: linear-gradient(90deg, #f0a08a, var(--coral));
+}
+
+.wager-split-safe {
+  background: linear-gradient(90deg, var(--mint), #6fbf9a);
 }
 
 .wager-flow {

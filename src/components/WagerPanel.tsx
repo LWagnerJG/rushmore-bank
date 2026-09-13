@@ -41,6 +41,8 @@ export function WagerPanel({
   const readyNeeded = state.seatOrder.length;
   const nothingToRisk = max <= 0;
   const urgent = left !== null && left <= 5;
+  const pileTotal = Math.max(1, clamped + protectedBal);
+  const riskPct = Math.round((clamped / pileTotal) * 100);
 
   useEffect(() => {
     const tick = () =>
@@ -142,20 +144,33 @@ export function WagerPanel({
         )}
       </header>
 
-      <section className="wager-hero space-y-5 text-center" aria-live="polite">
-        <div className="space-y-1.5">
-          <p className="text-[0.7rem] font-extrabold uppercase tracking-[0.16em] text-[var(--muted)]">
-            At risk
-          </p>
-          <p className="font-[family-name:var(--font-display)] text-[4.25rem] font-extrabold tabular-nums leading-none tracking-tight">
-            {clamped}
-          </p>
-          <p className="text-base font-bold text-[var(--text)]">
-            <span className="tabular-nums text-[var(--mint)]">
-              {protectedBal}
-            </span>
-            {" stay safe"}
-          </p>
+      <section className="wager-hero space-y-5" aria-live="polite">
+        <div
+          className="wager-piles"
+          aria-label={`${clamped} at risk, ${protectedBal} stay safe`}
+        >
+          <div className="wager-pile wager-pile-risk">
+            <p className="wager-pile-label">At risk</p>
+            <p className="wager-pile-value tabular-nums">{clamped}</p>
+          </div>
+          <div className="wager-pile wager-pile-safe">
+            <p className="wager-pile-label">Stay safe</p>
+            <p className="wager-pile-value tabular-nums">{protectedBal}</p>
+          </div>
+          <div
+            className="wager-split-bar"
+            role="img"
+            aria-hidden="true"
+          >
+            <span
+              className="wager-split-risk"
+              style={{ flexGrow: Math.max(riskPct, 2) }}
+            />
+            <span
+              className="wager-split-safe"
+              style={{ flexGrow: Math.max(100 - riskPct, 2) }}
+            />
+          </div>
         </div>
 
         <div className="wager-slider-block">

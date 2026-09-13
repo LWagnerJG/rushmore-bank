@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { RULES } from "@/shared/rules";
-import { TOPIC_COUNT } from "@/shared/topics";
 
 const COMMIT_SHA = process.env.VERCEL_GIT_COMMIT_SHA;
 const COMMIT_MESSAGE = process.env.VERCEL_GIT_COMMIT_MESSAGE;
@@ -17,8 +16,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Wager clock 45s · dice net gain · home nickname-first →{" "}
-        {RULES.productionUrl}
+        Wager piles · AT RISK vs stay safe → {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -54,28 +52,14 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>Wager clock</strong>: <strong>20s → 45s</strong> (matches
-            vote window; draft stays 60s). Louder countdown UI kept; CTA{" "}
-            <em>Risk N beans</em>; AT RISK / stay safe / slider hierarchy.
+            <strong>Wager AT RISK / stay safe</strong>: two clear piles + split
+            bar so the slider reads as real bean piles (coral risk / mint safe).
+            Loud TIME badge + <em>Risk N beans</em> CTA kept. Clock remains{" "}
+            <strong>45s</strong>.
           </li>
           <li>
-            <strong>Dice doubles readout</strong>: net beans added to the pot (
-            <code>potAfter − potBefore</code>), not face sum. Double 4s with pot
-            40 → <code>+40</code>, not <code>+8</code>.
-          </li>
-          <li>
-            <strong>Home</strong>: nickname first → then Create / Join. Quiet
-            A2HS + 5-tap admin unchanged. No build notes on home.
-          </li>
-          <li>
-            Production <code>{RULES.productionUrl}</code>;{" "}
-            <code>roundacats.vercel.app</code> alias. Topics ({TOPIC_COUNT}).
-          </li>
-          <li>
-            <strong>PartyKit redeploy needed</strong> —{" "}
-            <code>wagerTimeoutSeconds</code> is read on the party server. Vercel
-            alone won’t lengthen live rooms until PartyKit is redeployed (ignore
-            known Actions secret failures; Fudge can deploy with local creds).
+            Prior: dice doubles show pot delta; home nickname-first; PartyKit
+            redeploy still needed for the 45s timer if not yet live.
           </li>
         </ul>
       </section>
