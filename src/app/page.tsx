@@ -1,12 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AddToHomeScreen } from "@/components/AddToHomeScreen";
 import { BrandMark } from "@/components/BrandMark";
 import { normalizeRoomCode, randomRoomCode } from "@/shared/types";
 import { RULES } from "@/shared/rules";
 import { ADMIN_UNLOCK_KEY } from "@/lib/admin-session";
+import { recallDisplayName } from "@/lib/party";
 
 const ADMIN_KEY = ADMIN_UNLOCK_KEY;
 const ADMIN_DISPLAY_NAME = "Admin";
@@ -28,6 +29,15 @@ export default function HomePage() {
   });
   const taps = useRef(0);
   const tapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Prefill last nickname on mount so returning players skip the name step.
+  useEffect(() => {
+    const saved = recallDisplayName().trim();
+    if (saved) {
+      setName(saved);
+      setNameReady(true);
+    }
+  }, []);
 
   const displayName = name.trim() || (adminUnlocked ? ADMIN_DISPLAY_NAME : "");
   const canPlay = nameReady && displayName.length > 0;
@@ -180,7 +190,6 @@ export default function HomePage() {
                   value={code}
                   maxLength={4}
                   aria-label="Room code"
-                  autoFocus
                   onChange={(e) => setCode(e.target.value.toUpperCase())}
                   onKeyDown={(e) => e.key === "Enter" && join()}
                 />
