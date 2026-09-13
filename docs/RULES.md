@@ -1,7 +1,7 @@
 # Beans — confirmed rules
 
 Display name: **Beans**. Tagline: *Draft four. Bank beans.* Currency: **beans** (internal field names remain `stones`).  
-Production (until promote): https://roundacats.vercel.app
+Production: https://roundacats.vercel.app (preferred alias when attached: https://beans-game.vercel.app)
 
 Tunable defaults live in `src/shared/rules.ts` (`RULES`). Do not quietly change confirmed behavior.
 

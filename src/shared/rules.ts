@@ -9,7 +9,14 @@ export const RULES = {
   displayName: "Beans",
   tagline: "Draft four. Bank beans.",
   currencyName: "beans",
+  /**
+   * Live production host (keep working). Preferred beans-named alias
+   * `https://beans-game.vercel.app` needs a Vercel project rename / domain
+   * add from Luke — see /build-notes. Share invites use `window.location.origin`.
+   */
   productionUrl: "https://roundacats.vercel.app",
+  /** Aspirational / next alias — not live until Luke attaches it on Vercel. */
+  preferredProductionUrl: "https://beans-game.vercel.app",
 
   /** Players */
   minPlayers: 2,
