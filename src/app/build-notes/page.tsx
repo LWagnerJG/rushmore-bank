@@ -17,7 +17,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Polish ship — dice declutter, spectator, vibes, settings, rematch → {RULES.productionUrl}
+        Party Mode + vibes + draft/dice polish → {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -54,48 +54,35 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>Dice declutter</strong>: quieter safe/pot chrome on the turn
-            strip (S/P numbers), clearer Your pot vs Your safe hierarchy, faint{" "}
-            <code>TAP</code> on the dice as the primary CTA; Bank stays secondary.
+            <strong>Topic vibes</strong>: All / Basic / Sports / Animals /
+            Geography (Spicy &amp; Niche removed) — filters shortlist + reroll.
           </li>
           <li>
-            <strong>BEAN BUSTER linger</strong>: ~2s hold + fade before the next
-            seat (<code>diceBustHoldMs</code>) so the bust moment feels intentional.
+            <strong>Party Mode (real)</strong>: ON expands drink rules. Bust →
+            once-per-round drink redo CTA (<code>Finished drink · redo bust</code>
+            ) or Pass. Round end → lowest beans drink +{" "}
+            <code>I finished my drink</code> (ties share; bots auto-resolve;
+            next topic gated).
           </li>
           <li>
-            <strong>Spectator mode</strong>: when banked/out, calm Spectator status
-            (“Watching X roll”) — no dead Bank CTAs.
+            <strong>Draft polish</strong>: removed redundant “Type your answer”
+            under Your turn; stash + draft board get stronger panel contrast on
+            cream.
           </li>
           <li>
-            <strong>How to play removed</strong>: dropped from home;{" "}
-            <code>/how-to-play</code> redirects home.
+            <strong>Dice TAP</strong>: TAP sits on top of the dice and blinks
+            when armed to roll.
           </li>
           <li>
-            <strong>Beans logo = settings</strong>: tap the bean for Sound FX
-            on/off (localStorage) + copyable room code for everyone. Always-on CODE
-            chip demoted.
+            <strong>Bank confirm</strong>: “Are you sure you want to Bank?”
+            modal; idle bank timer pauses while open.
           </li>
           <li>
-            <strong>Sound FX + haptics</strong>: roll / settle / bank / bust SFX
-            respect mute; Vibration API haptics stay best-effort.
+            Preserved: spectator, logo settings, rematch, scramble settle, min
+            wager 1, leave/rejoin, 60s draft, vote auto-start, Beans branding,
+            admin, bots.
           </li>
-          <li>
-            <strong>Rematch</strong>: after final results, Rematch keeps room +
-            players and starts a fresh run (no re-entering codes).
-          </li>
-          <li>
-            <strong>Topic vibes</strong>: Basic / Spicy / Niche filter in lobby
-            (and host topic screen) wired into shortlist + reroll.
-          </li>
-          <li>
-            <strong>PWA polish</strong>: richer manifest (maskable icon, categories);
-            friendlier <code>Reconnecting…</code> copy (never says PartyKit).
-          </li>
-          <li>
-            Preserved: scramble settle honesty, min wager 1, leave/rejoin, 60s draft,
-            vote auto-start, fillable topics, Beans branding, admin, bots.
-          </li>
-</ul>
+        </ul>
       </section>
     </main>
   );

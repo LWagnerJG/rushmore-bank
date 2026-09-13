@@ -155,7 +155,7 @@ export function DraftPanel({
       : myTurn
         ? queue.length
           ? "Tap a stash pick or type below"
-          : "Type your answer"
+          : null
         : upcoming < 0
           ? "Your four are in — watch the board"
           : `You’re up in ${upcoming} · stash picks while you wait`;
@@ -170,10 +170,14 @@ export function DraftPanel({
         <p className="draft-turn-title">
           {myTurn ? "Your turn" : `${turnPlayer?.name ?? "Player"}’s turn`}
         </p>
-        <p className="draft-turn-hint">
-          {turnHint}
-          {state.pickPaused ? " · paused" : ""}
-        </p>
+        {turnHint ? (
+          <p className="draft-turn-hint">
+            {turnHint}
+            {state.pickPaused ? " · paused" : ""}
+          </p>
+        ) : state.pickPaused ? (
+          <p className="draft-turn-hint">Paused</p>
+        ) : null}
       </div>
 
       <DraftBoard

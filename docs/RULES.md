@@ -92,9 +92,9 @@ Banking that pot yields **95 + 213 = 308** total beans. First-roll `3+4` (seven)
 ## Party Mode
 
 - Off by default; host may change between topics.
-- Winner may give one optional sip (ties share one prompt).
-- Bust → one-sip to that player only.
-- Done/Pass; **no score effect**.
+- **BEAN BUSTER redo (optional, once per round):** after a bust, that player may finish a drink and tap **Finished drink · redo bust** for a one-time redo of that bust (pot restored, same seat continues). They can **Pass** and accept the bust. Cannot redo every bust — only once per topic round. Bots auto-Pass.
+- **Lowest beans after each round:** whoever ends the round with the fewest beans takes a drink (ties share), then taps **I finished my drink** (or Pass). Next topic is blocked until those players acknowledge. Bots auto-acknowledge.
+- Pass anytime is still ok where it fits; drink CTAs are real server gates, not cosmetic copy.
 
 ## Superseded (do not implement)
 

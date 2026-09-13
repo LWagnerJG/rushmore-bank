@@ -1514,22 +1514,24 @@ html.party-on .status-pill-ready {
 }
 .bean-dice-hint {
   position: absolute;
-  bottom: 12px;
+  top: 10px;
+  bottom: auto;
   left: 0;
   right: 0;
   text-align: center;
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.95);
+  color: rgba(255, 255, 255, 0.98);
   pointer-events: none;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  animation: dice-hint-pulse 1.15s ease-in-out infinite;
 }
 .bean-dice-hint-first {
-  font-size: 0.95rem;
-  letter-spacing: 0.1em;
-  animation: dice-hint-pulse 1.4s ease-in-out infinite;
+  font-size: 1.05rem;
+  letter-spacing: 0.16em;
+  animation: dice-hint-pulse 0.9s ease-in-out infinite;
 }
 .bean-dice-tray-armed {
   min-height: 210px;
@@ -1869,8 +1871,12 @@ html.dice-your-turn::after {
 }
 .stash-surface {
   border-radius: 1.15rem;
-  background: rgba(255, 255, 255, 0.42);
-  padding: 0.85rem 0.75rem 0.95rem;
+  background: #fff;
+  padding: 0.9rem 0.8rem 1rem;
+  border: 1.5px solid rgba(35, 72, 62, 0.16);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.8) inset,
+    0 8px 22px rgba(35, 72, 62, 0.1);
 }
 
 .stash-chip {
@@ -1918,8 +1924,12 @@ html.dice-your-turn::after {
   overflow: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  border-radius: 0.85rem;
-  background: rgba(255, 255, 255, 0.5);
+  border-radius: 0.95rem;
+  background: #fff;
+  border: 1.5px solid rgba(35, 72, 62, 0.16);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.85) inset,
+    0 8px 22px rgba(35, 72, 62, 0.1);
   max-height: min(42vh, 18rem);
 }
 
@@ -2350,19 +2360,30 @@ html.party-on .draft-board-table thead th.is-you {
 }
 
 .bean-dice-hint {
-  opacity: 0.42 !important;
-  letter-spacing: 0.22em !important;
-  font-size: 0.78rem !important;
-  text-shadow: none !important;
-  color: rgba(255, 255, 255, 0.7) !important;
+  opacity: 1 !important;
+  letter-spacing: 0.14em !important;
+  font-size: 0.95rem !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45) !important;
+  color: rgba(255, 255, 255, 0.98) !important;
+  top: 10px !important;
+  bottom: auto !important;
+  animation: tap-hint-blink 1.05s ease-in-out infinite !important;
 }
 .bean-dice-hint-first {
-  opacity: 0.58 !important;
-  animation: tap-hint-breathe 1.6s ease-in-out infinite;
+  opacity: 1 !important;
+  font-size: 1.05rem !important;
+  animation: tap-hint-blink 0.85s ease-in-out infinite !important;
 }
-@keyframes tap-hint-breathe {
-  0%, 100% { opacity: 0.48; transform: translateY(0); }
-  50% { opacity: 0.72; transform: translateY(-1px); }
+@keyframes tap-hint-blink {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.04);
+  }
 }
 
 .topic-vibe-row {
@@ -2403,13 +2424,101 @@ html.party-on .draft-board-table thead th.is-you {
 }
 
 
-/* faint TAP CTA */
-.bean-dice-hint {
-  opacity: 0.4;
-  letter-spacing: 0.2em;
-  text-shadow: none;
-  color: rgba(255, 252, 245, 0.72);
+/* TAP sits on top of dice and blinks when armed — do not fade it out. */
+
+
+/* Party Mode rules under switch */
+.party-switch-wrap {
+  display: grid;
+  gap: 0.55rem;
 }
-.bean-dice-hint-first {
-  opacity: 0.55;
+.party-switch-wrap-on .party-switch {
+  border-color: rgba(231, 111, 78, 0.35);
+}
+.party-rules {
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(35, 72, 62, 0.12);
+  padding: 0.75rem 0.85rem;
+}
+.party-rules-title {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.35rem;
+}
+.party-rules-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.45rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--text);
+}
+.party-rules-compact {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--muted);
+  padding: 0 0.15rem;
+}
+
+.topic-vibe-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+.topic-vibe-chip {
+  border-radius: 999px;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 800;
+  background: rgba(35, 72, 62, 0.08);
+  color: var(--text);
+  border: 1.5px solid transparent;
+  transition: background 140ms ease, color 140ms ease, border-color 140ms ease, transform 120ms ease;
+}
+.topic-vibe-chip:active {
+  transform: scale(0.97);
+}
+.topic-vibe-chip-on {
+  background: var(--text);
+  color: var(--bg, #f5f0e7);
+  border-color: var(--text);
+}
+
+.bank-confirm-backdrop,
+.bank-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background: rgba(35, 72, 62, 0.45);
+  backdrop-filter: blur(2px);
+}
+.bank-confirm-modal {
+  width: min(100%, 22rem);
+  border-radius: 1.15rem;
+  padding: 1rem 1rem 1.1rem;
+  background: #fff;
+  box-shadow: 0 18px 40px rgba(35, 72, 62, 0.28);
+}
+
+.draft-board-table th,
+.draft-board-table td {
+  border-color: rgba(35, 72, 62, 0.12);
+}
+.draft-board-table thead th {
+  background: rgba(167, 215, 194, 0.35);
+}
+.draft-board-cell-empty {
+  background: rgba(245, 240, 231, 0.55);
+}
+.draft-board-cell-filled {
+  background: #fff;
 }

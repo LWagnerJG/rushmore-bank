@@ -18,6 +18,18 @@ export function ResultsPanel({
     .sort((a, b) => b.stones - a.stones);
 
   const final = state.phase === "GAME_RESULTS";
+  const prompt = state.partyPrompt;
+  const promptOpen = !!prompt && !prompt.resolved;
+  const lowestNames =
+    prompt?.kind === "lowest_drink"
+      ? prompt.targetPlayerIds
+          .map((id) => state.players.find((p) => p.id === id)?.name ?? "Player")
+          .join(", ")
+      : "";
+  const canResolveParty =
+    !!prompt &&
+    (prompt.targetPlayerIds.includes(you.id) || you.isHost);
+  const drinkBlocked = promptOpen && prompt?.kind === "lowest_drink";
 
   return (
     <div className="space-y-4">
@@ -41,29 +53,38 @@ export function ResultsPanel({
         ))}
       </ol>
 
-      {state.partyPrompt && !state.partyPrompt.resolved && (
+      {promptOpen && prompt?.kind === "lowest_drink" && (
         <div className="panel party-sip space-y-3">
           <p className="font-[family-name:var(--font-display)] text-lg font-extrabold">
-            {state.partyPrompt.kind === "bust_sip"
-              ? "BEAN BUSTER · optional sip"
-              : "Winner sip (optional)"}
+            Lowest beans · take a drink
           </p>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              className="btn-primary flex-1"
-              onClick={() => send({ type: "party_resolve", choice: "done" })}
-            >
-              Done
-            </button>
-            <button
-              type="button"
-              className="btn-secondary flex-1"
-              onClick={() => send({ type: "party_resolve", choice: "pass" })}
-            >
-              Pass
-            </button>
-          </div>
+          <p className="text-sm font-semibold text-[var(--muted)]">
+            {lowestNames}
+            {prompt.targetPlayerIds.length > 1 ? " (tie)" : ""} — finish a
+            drink, then continue. Pass anytime is ok.
+          </p>
+          {canResolveParty && (
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className="btn-primary flex-1"
+                onClick={() =>
+                  send({ type: "party_resolve", choice: "done" })
+                }
+              >
+                I finished my drink
+              </button>
+              <button
+                type="button"
+                className="btn-secondary flex-1"
+                onClick={() =>
+                  send({ type: "party_resolve", choice: "pass" })
+                }
+              >
+                Pass
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -82,9 +103,10 @@ export function ResultsPanel({
           <button
             type="button"
             className="btn-primary w-full text-lg"
+            disabled={drinkBlocked}
             onClick={() => send({ type: "next_topic" })}
           >
-            Next topic
+            {drinkBlocked ? "Waiting on drink…" : "Next topic"}
           </button>
           <button
             type="button"
@@ -110,7 +132,6 @@ export function ResultsPanel({
           </p>
         </div>
       )}
-
     </div>
   );
 }

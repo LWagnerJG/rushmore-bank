@@ -152,7 +152,16 @@ export function projectPublicState(
     diceIdleDeadlineAt: state.diceIdleDeadlineAt,
     diceRoundStartedAt: state.diceRoundStartedAt,
     diceLapsCompleted: state.diceLapsCompleted,
-    partyPrompt: state.partyPrompt ? { ...state.partyPrompt } : null,
+    partyPrompt: state.partyPrompt
+      ? {
+          ...state.partyPrompt,
+          acknowledgedPlayerIds: state.partyPrompt.acknowledgedPlayerIds
+            ? [...state.partyPrompt.acknowledgedPlayerIds]
+            : undefined,
+        }
+      : null,
+    partyBustRedoUsedIds: [...state.partyBustRedoUsedIds],
+    diceIdlePauseRemainingMs: state.diceIdlePauseRemainingMs,
     ledger: state.ledger.map((e) => ({ ...e })),
     checkpoint: state.checkpoint
       ? {

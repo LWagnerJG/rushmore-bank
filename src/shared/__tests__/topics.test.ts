@@ -4,6 +4,8 @@ import {
   TOPICS,
   normalizeTopicText,
   pickRandomTopics,
+  inferTopicVibe,
+  topicsMatchingVibe,
 } from "../topics";
 import { emptyRoomState } from "../types";
 import { projectPublicState } from "../engine/public-state";
@@ -95,6 +97,24 @@ describe("pickRandomTopics anti-repeat", () => {
     const flat = shortlists.flat();
     // First ~ (TOPIC_COUNT/4) rounds should be nearly all unique ids
     expect(new Set(flat).size).toBe(flat.length);
+  });
+});
+
+describe("topic vibes", () => {
+  it("classifies sports / animals / geography / basic (no spicy/niche)", () => {
+    const counts = { basic: 0, sports: 0, animals: 0, geography: 0 };
+    for (const t of TOPICS) {
+      const v = inferTopicVibe(t);
+      expect(["basic", "sports", "animals", "geography"]).toContain(v);
+      counts[v]++;
+    }
+    expect(counts.sports).toBeGreaterThanOrEqual(150);
+    expect(counts.animals).toBeGreaterThanOrEqual(15);
+    expect(counts.geography).toBeGreaterThanOrEqual(15);
+    expect(counts.basic).toBeGreaterThanOrEqual(400);
+    expect(topicsMatchingVibe("sports").every((t) => inferTopicVibe(t) === "sports")).toBe(
+      true,
+    );
   });
 });
 

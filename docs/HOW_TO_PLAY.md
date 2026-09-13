@@ -9,7 +9,7 @@
 7. **Bank** — when you’re up, keep rolling until you **Bank** or bust (**any 7** = BEAN BUSTER, including first roll). Roll is ready immediately; you get ~15s to roll or bank. Then the next player gets their turn. Waiting players watch.
 8. **Next topic** or end — topic is required each round (no void/skip after voting). Most banked beans wins.
 
-Optional **Party Mode** (off by default): light sip prompts after busts or wins. Pass anytime — no score effect.
+Optional **Party Mode** (off by default): after a bust, finish a drink once per round for a bust redo (or Pass). After each round, lowest beans take a drink then continue. Pass anytime — drink prompts are real table gates.
 
 ## Add to Home Screen
 

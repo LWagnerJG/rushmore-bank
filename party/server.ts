@@ -106,7 +106,43 @@ function migrateState(raw: RoomState): RoomState {
     bankBeansReady: raw.bankBeansReady ?? {},
     diceLapsCompleted:
       legacy.diceLapsCompleted ?? legacy.diceBanksCompleted ?? 0,
+    partyBustRedoUsedIds: Array.isArray(
+      (raw as RoomState & { partyBustRedoUsedIds?: string[] }).partyBustRedoUsedIds,
+    )
+      ? (raw as RoomState).partyBustRedoUsedIds
+      : [],
+    diceIdlePauseRemainingMs:
+      (raw as RoomState & { diceIdlePauseRemainingMs?: number | null })
+        .diceIdlePauseRemainingMs ?? null,
+    // Migrate legacy party prompt kinds / stale spicy|niche vibes
+    partyPrompt: migratePartyPrompt(raw.partyPrompt),
+    settings: {
+      ...base.settings,
+      ...raw.settings,
+      topicVibe: migrateTopicVibe(raw.settings?.topicVibe),
+      partyMode: raw.settings?.partyMode ?? base.settings.partyMode,
+    },
   };
+}
+
+function migrateTopicVibe(
+  vibe: RoomState["settings"]["topicVibe"] | "spicy" | "niche" | undefined,
+): RoomState["settings"]["topicVibe"] {
+  if (vibe === "basic" || vibe === "sports" || vibe === "animals" || vibe === "geography" || vibe === "all") {
+    return vibe;
+  }
+  return "all";
+}
+
+function migratePartyPrompt(
+  prompt: RoomState["partyPrompt"] | { kind: string; targetPlayerIds?: string[]; resolved?: boolean } | null | undefined,
+): RoomState["partyPrompt"] {
+  if (!prompt) return null;
+  if (prompt.kind === "bust_redo" || prompt.kind === "lowest_drink") {
+    return prompt as RoomState["partyPrompt"];
+  }
+  // Drop legacy cosmetic sip prompts — new rooms use real drink/redo flow.
+  return null;
 }
 
 type AlarmKind =
@@ -708,8 +744,14 @@ export default class QuarryServer implements Party.Server {
       case "pull_out":
         await this.handlePullOut(id);
         return;
+      case "bank_confirm_open":
+        await this.handleBankConfirmOpen(id);
+        return;
+      case "bank_confirm_cancel":
+        await this.handleBankConfirmCancel(id);
+        return;
       case "party_resolve":
-        this.handlePartyResolve(id, msg.choice);
+        await this.handlePartyResolve(id, msg.choice);
         return;
       case "skip_review":
         await this.handleSkipReview(id);
@@ -815,7 +857,13 @@ export default class QuarryServer implements Party.Server {
         if (typeof partial.partyMode === "boolean") {
           this.state.settings.partyMode = partial.partyMode;
         }
-        if (partial.topicVibe === "all" || partial.topicVibe === "basic" || partial.topicVibe === "spicy" || partial.topicVibe === "niche") {
+        if (
+          partial.topicVibe === "all" ||
+          partial.topicVibe === "basic" ||
+          partial.topicVibe === "sports" ||
+          partial.topicVibe === "animals" ||
+          partial.topicVibe === "geography"
+        ) {
           this.state.settings.topicVibe = partial.topicVibe;
         }
         return;
@@ -823,6 +871,7 @@ export default class QuarryServer implements Party.Server {
       throw new Error("Settings locked during play");
     }
     this.state.settings = { ...this.state.settings, ...partial };
+    this.state.settings.topicVibe = migrateTopicVibe(this.state.settings.topicVibe);
   }
 
   async handleStart(id: string) {
@@ -1635,6 +1684,9 @@ export default class QuarryServer implements Party.Server {
     this.state.diceRoundStartedAt = Date.now();
     this.state.diceLapsCompleted = 0;
     this.state.lastDice = null;
+    this.state.partyBustRedoUsedIds = [];
+    this.state.diceIdlePauseRemainingMs = null;
+    this.state.partyPrompt = null;
     const first = this.state.seatOrder.find((id) =>
       this.state.diceActiveIds.includes(id),
     );
@@ -1687,6 +1739,7 @@ export default class QuarryServer implements Party.Server {
     // honest 15s roll-or-bank idle window.
     this.state.diceSubphase = "READY";
     this.state.diceDecisionDeadlineAt = null;
+    this.state.diceIdlePauseRemainingMs = null;
     this.state.diceIdleDeadlineAt =
       Date.now() + RULES.diceIdleBankSeconds * 1000;
     await this.setAlarmAt(this.state.diceIdleDeadlineAt, {
@@ -1701,6 +1754,7 @@ export default class QuarryServer implements Party.Server {
     if (this.state.diceSubphase !== "COOLDOWN") return;
     this.state.diceSubphase = "READY";
     this.state.diceDecisionDeadlineAt = null;
+    this.state.diceIdlePauseRemainingMs = null;
     this.state.diceIdleDeadlineAt =
       Date.now() + RULES.diceIdleBankSeconds * 1000;
     await this.setAlarmAt(this.state.diceIdleDeadlineAt, {
@@ -1737,6 +1791,7 @@ export default class QuarryServer implements Party.Server {
     }
     this.state.diceSubphase = "READY";
     this.state.diceDecisionDeadlineAt = null;
+    this.state.diceIdlePauseRemainingMs = null;
     this.state.diceIdleDeadlineAt =
       Date.now() + RULES.diceIdleBankSeconds * 1000;
     await this.setAlarmAt(this.state.diceIdleDeadlineAt, {
@@ -1814,11 +1869,15 @@ export default class QuarryServer implements Party.Server {
       if (p) p.stones = this.state.protectedStones[id] ?? 0;
 
       if (this.state.settings.partyMode) {
-        this.state.partyPrompt = {
-          kind: "bust_sip",
-          targetPlayerIds: [id],
-          resolved: false,
-        };
+        const redoAvailable = !this.state.partyBustRedoUsedIds.includes(id);
+        if (redoAvailable) {
+          this.state.partyPrompt = {
+            kind: "bust_redo",
+            targetPlayerIds: [id],
+            resolved: false,
+            redoAvailable: true,
+          };
+        }
       }
     } else {
       ledgerPush(this.state, {
@@ -1866,6 +1925,17 @@ export default class QuarryServer implements Party.Server {
     if (this.state.phase !== "DICE") return;
     if (this.state.diceSubphase !== "SETTLED") return;
 
+    const prompt = this.state.partyPrompt;
+    if (
+      prompt &&
+      !prompt.resolved &&
+      prompt.kind === "bust_redo"
+    ) {
+      // Hold the table until drink-redo / pass resolves.
+      this.nudgeBots();
+      return;
+    }
+
     if (this.state.diceActiveIds.length === 0) {
       await this.beginRoundResults();
       return;
@@ -1912,6 +1982,7 @@ export default class QuarryServer implements Party.Server {
     });
     if (!classified.ok) throw new Error(classified.reason);
 
+    this.state.diceIdlePauseRemainingMs = null;
     this.bankPlayer(id, "Bank");
     bump(this.state);
     await this.clearAlarm();
@@ -1949,15 +2020,16 @@ export default class QuarryServer implements Party.Server {
 
     if (this.state.settings.partyMode) {
       const ranked = [...seatedPlayers(this.state)].sort(
-        (a, b) => b.stones - a.stones,
+        (a, b) => a.stones - b.stones,
       );
-      const top = ranked[0]?.stones ?? 0;
-      const winners = ranked.filter((p) => p.stones === top).map((p) => p.id);
+      const low = ranked[0]?.stones ?? 0;
+      const lowest = ranked.filter((p) => p.stones === low).map((p) => p.id);
       if (!this.state.partyPrompt) {
         this.state.partyPrompt = {
-          kind: "winner_sip",
-          targetPlayerIds: winners,
+          kind: "lowest_drink",
+          targetPlayerIds: lowest,
           resolved: false,
+          acknowledgedPlayerIds: [],
         };
       }
     }
@@ -1973,15 +2045,100 @@ export default class QuarryServer implements Party.Server {
     }
   }
 
-  handlePartyResolve(id: string, choice: "done" | "pass") {
-    if (!this.state.partyPrompt) return;
-    void choice; // Done/Pass are equivalent dismissals — no score effect
-    // Any involved player or host can dismiss
-    if (
-      this.state.partyPrompt.targetPlayerIds.includes(id) ||
-      this.requireHost(id)
-    ) {
+  async handleBankConfirmOpen(id: string) {
+    if (this.state.phase !== "DICE") throw new Error("Wrong phase");
+    if (this.state.diceSubphase !== "READY") throw new Error("Not ready");
+    if (this.currentDicePlayerId() !== id) throw new Error("Not your turn");
+    if (this.state.diceIdlePauseRemainingMs != null) return;
+    const deadline = this.state.diceIdleDeadlineAt;
+    const remaining = deadline ? Math.max(0, deadline - Date.now()) : RULES.diceIdleBankSeconds * 1000;
+    this.state.diceIdlePauseRemainingMs = remaining;
+    this.state.diceIdleDeadlineAt = null;
+    await this.clearAlarm();
+    bump(this.state);
+  }
+
+  async handleBankConfirmCancel(id: string) {
+    if (this.state.phase !== "DICE") return;
+    if (this.currentDicePlayerId() !== id && !this.requireHost(id)) return;
+    const remaining = this.state.diceIdlePauseRemainingMs;
+    if (remaining == null) return;
+    this.state.diceIdlePauseRemainingMs = null;
+    this.state.diceIdleDeadlineAt = Date.now() + remaining;
+    await this.setAlarmAt(this.state.diceIdleDeadlineAt, {
+      kind: "dice_idle",
+      revision: this.state.phaseRevision,
+    });
+    bump(this.state);
+  }
+
+  async handlePartyResolve(id: string, choice: "done" | "pass") {
+    const prompt = this.state.partyPrompt;
+    if (!prompt || prompt.resolved) return;
+    const isTarget = prompt.targetPlayerIds.includes(id);
+    const isHost = this.requireHost(id);
+    if (!isTarget && !isHost) return;
+
+    if (prompt.kind === "bust_redo") {
+      const bustedId = prompt.targetPlayerIds[0];
+      if (!bustedId) {
+        this.state.partyPrompt = null;
+        return;
+      }
+      const wantRedo = choice === "done" && prompt.redoAvailable !== false;
+      const alreadyUsed = this.state.partyBustRedoUsedIds.includes(bustedId);
+      if (wantRedo && !alreadyUsed) {
+        const dice = this.state.lastDice;
+        const potRestore = dice?.potBefore ?? 0;
+        if (!this.state.diceActiveIds.includes(bustedId)) {
+          this.state.diceActiveIds.push(bustedId);
+        }
+        this.state.pots[bustedId] = potRestore;
+        this.state.partyBustRedoUsedIds = [
+          ...this.state.partyBustRedoUsedIds,
+          bustedId,
+        ];
+        ledgerPush(this.state, {
+          playerId: bustedId,
+          kind: "adjust",
+          amount: potRestore,
+          balanceAfter: this.state.protectedStones[bustedId] ?? 0,
+          note: "Party drink · bust redo",
+          topicRound: this.state.topicRound,
+        });
+        this.state.partyPrompt = null;
+        this.state.lastDice = null;
+        const seat = this.state.seatOrder.indexOf(bustedId);
+        if (seat >= 0) this.state.diceTurnSeat = seat;
+        bump(this.state);
+        await this.continueSamePlayerTurn();
+        return;
+      }
+      // Pass (or redo unavailable / already used) — accept the bust.
       this.state.partyPrompt = null;
+      bump(this.state);
+      if (this.state.diceActiveIds.length === 0) {
+        await this.beginRoundResults();
+      } else {
+        this.advanceDiceSeat();
+        await this.startDiceTurn();
+      }
+      return;
+    }
+
+    if (prompt.kind === "lowest_drink") {
+      const acked = new Set(prompt.acknowledgedPlayerIds ?? []);
+      if (isTarget) acked.add(id);
+      if (isHost) {
+        for (const t of prompt.targetPlayerIds) acked.add(t);
+      }
+      // choice done/pass both count as acknowledgment (Pass anytime still ok)
+      prompt.acknowledgedPlayerIds = [...acked];
+      const allDone = prompt.targetPlayerIds.every((t) => acked.has(t));
+      if (allDone) {
+        this.state.partyPrompt = null;
+      }
+      bump(this.state);
     }
   }
 
@@ -1998,6 +2155,13 @@ export default class QuarryServer implements Party.Server {
       this.state.gameOver = true;
       bump(this.state);
       return;
+    }
+    if (
+      this.state.partyPrompt &&
+      !this.state.partyPrompt.resolved &&
+      this.state.partyPrompt.kind === "lowest_drink"
+    ) {
+      throw new Error("Finish the party drink first");
     }
     this.state.partyPrompt = null;
     await this.beginTopicSelection();
@@ -2144,6 +2308,41 @@ export default class QuarryServer implements Party.Server {
    */
   nudgeBots() {
     const bots = this.botPlayers();
+    // Party prompts: bots auto-resolve so rooms never soft-lock.
+    const prompt = this.state.partyPrompt;
+    if (prompt && !prompt.resolved) {
+      if (prompt.kind === "bust_redo") {
+        const target = prompt.targetPlayerIds[0];
+        if (target && isBotId(target)) {
+          const key = `party:bust:${target}:${prompt.kind}`;
+          if (!this.botTimers.has(key)) {
+            this.queueBot(key, botDelayMs("dice", hashStr(target)), async () => {
+              if (!this.state.partyPrompt || this.state.partyPrompt.kind !== "bust_redo") return;
+              // Bots pass — accept bust (no free redos for bots).
+              await this.handlePartyResolve(target, "pass");
+            });
+          }
+        }
+        return;
+      }
+      if (prompt.kind === "lowest_drink") {
+        const pending = prompt.targetPlayerIds.filter(
+          (pid) =>
+            isBotId(pid) &&
+            !(prompt.acknowledgedPlayerIds ?? []).includes(pid),
+        );
+        for (const pid of pending) {
+          const key = `party:low:${pid}`;
+          if (this.botTimers.has(key)) continue;
+          this.queueBot(key, botDelayMs("bank", hashStr(pid)), async () => {
+            if (!this.state.partyPrompt || this.state.partyPrompt.kind !== "lowest_drink") return;
+            await this.handlePartyResolve(pid, "done");
+          });
+        }
+        // Don't soft-lock waiting on bots — still allow other bot actions if any.
+      }
+    }
+
     if (bots.length === 0) return;
 
     switch (this.state.phase) {

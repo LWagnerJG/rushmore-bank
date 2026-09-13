@@ -127,9 +127,14 @@ export interface PublicDiceBroadcast {
 }
 
 export interface PartyPrompt {
-  kind: "winner_sip" | "bust_sip";
+  /** Bust drink→redo, or lowest-beans drink after the round. */
+  kind: "bust_redo" | "lowest_drink";
   targetPlayerIds: string[];
   resolved: boolean;
+  /** Bust redo only — false when that player already used their once-per-round redo. */
+  redoAvailable?: boolean;
+  /** Lowest-drink ties — ids that already tapped done/pass. */
+  acknowledgedPlayerIds?: string[];
 }
 
 export interface HostSettings {
@@ -219,6 +224,10 @@ export interface RoomState {
   /** How many full seat passes completed this dice phase */
   diceLapsCompleted: number;
   partyPrompt: PartyPrompt | null;
+  /** Player ids who already claimed the once-per-round Party Mode bust redo. */
+  partyBustRedoUsedIds: string[];
+  /** Remaining idle-bank ms while Bank confirm modal is open (null = not paused). */
+  diceIdlePauseRemainingMs: number | null;
   ledger: LedgerEntry[];
   checkpoint: {
     stones: Record<string, number>;
@@ -299,6 +308,8 @@ export interface PublicRoomState {
   diceRoundStartedAt: number | null;
   diceLapsCompleted: number;
   partyPrompt: PartyPrompt | null;
+  partyBustRedoUsedIds: string[];
+  diceIdlePauseRemainingMs: number | null;
   ledger: LedgerEntry[];
   checkpoint: {
     stones: Record<string, number>;
@@ -330,6 +341,8 @@ export type ClientMessage =
   | { type: "dice_ready_ack"; actionId?: string }
   | { type: "roll"; actionId?: string }
   | { type: "pull_out"; actionId?: string }
+  | { type: "bank_confirm_open"; actionId?: string }
+  | { type: "bank_confirm_cancel"; actionId?: string }
   | { type: "party_resolve"; choice: "done" | "pass"; actionId?: string }
   | { type: "next_topic"; actionId?: string }
   | { type: "end_game"; actionId?: string }
@@ -463,6 +476,8 @@ export function emptyRoomState(code: string): RoomState {
     diceRoundStartedAt: null,
     diceLapsCompleted: 0,
     partyPrompt: null,
+    partyBustRedoUsedIds: [],
+    diceIdlePauseRemainingMs: null,
     ledger: [],
     checkpoint: null,
     phaseDeadlineAt: null,

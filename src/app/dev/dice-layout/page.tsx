@@ -112,6 +112,8 @@ function baseState(): PublicRoomState {
     diceRoundStartedAt: Date.now(),
     diceLapsCompleted: 0,
     partyPrompt: null,
+    partyBustRedoUsedIds: [],
+    diceIdlePauseRemainingMs: null,
     ledger: [],
     checkpoint: null,
     phaseDeadlineAt: null,
@@ -190,7 +192,8 @@ function scenarioState(scenario: Scenario): PublicRoomState {
       s.pots[YOU_ID] = 0;
       s.diceActiveIds = [OTHER, THIRD];
       s.partyPrompt = {
-        kind: "bust_sip",
+        kind: "bust_redo",
+        redoAvailable: true,
         targetPlayerIds: [YOU_ID],
         resolved: false,
       };

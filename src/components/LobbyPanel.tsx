@@ -130,13 +130,14 @@ export function LobbyPanel({
             <p className="text-xs font-extrabold uppercase tracking-wide text-[var(--muted)]">
               Topic vibes
             </p>
-            <div className="flex flex-wrap gap-2">
+            <div className="topic-vibe-row" role="group" aria-label="Topic vibes">
               {(
                 [
                   ["all", "All"],
                   ["basic", "Basic"],
-                  ["spicy", "Spicy"],
-                  ["niche", "Niche"],
+                  ["sports", "Sports"],
+                  ["animals", "Animals"],
+                  ["geography", "Geography"],
                 ] as const
               ).map(([value, label]) => {
                 const on = (state.settings.topicVibe ?? "all") === value;
@@ -145,10 +146,7 @@ export function LobbyPanel({
                     key={value}
                     type="button"
                     className={
-                      "rounded-full px-3 py-1.5 text-sm font-extrabold " +
-                      (on
-                        ? "bg-[var(--text)] text-[var(--bg)]"
-                        : "bg-[rgba(35,72,62,0.08)] text-[var(--text)]")
+                      "topic-vibe-chip" + (on ? " topic-vibe-chip-on" : "")
                     }
                     onClick={() =>
                       send({

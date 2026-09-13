@@ -196,6 +196,7 @@ export function DicePanel({
   const [heroReveal, setHeroReveal] = useState(false);
   /** Keep last revealed faces across scramble so the total never blanks. */
   const [stickyRoll, setStickyRoll] = useState<StickyRoll | null>(null);
+  const [bankConfirm, setBankConfirm] = useState(false);
 
   useEffect(() => {
     if (!busy) return;
@@ -300,8 +301,21 @@ export function DicePanel({
     send(message);
   }
 
-  async function bank() {
+  function openBankConfirm() {
+    if (!canBank || busy || bankConfirm) return;
+    setBankConfirm(true);
+    send({ type: "bank_confirm_open" });
+  }
+
+  function cancelBankConfirm() {
+    if (!bankConfirm) return;
+    setBankConfirm(false);
+    send({ type: "bank_confirm_cancel" });
+  }
+
+  async function confirmBank() {
     if (!canBank || busy) return;
+    setBankConfirm(false);
     haptic("bank");
     try {
       const ctx = await ensureDiceAudio();
@@ -312,9 +326,14 @@ export function DicePanel({
     act({ type: "pull_out" });
   }
 
-  // Only the honest 15s idle bank window — never a pre-roll “opens in” clock.
-  const timerUntil =
-    state.diceSubphase === "READY" ? state.diceIdleDeadlineAt : null;
+  // Honest 15s idle bank window — freeze while Bank confirm modal is open.
+  const timerUntil = bankConfirm
+    ? (state.diceIdlePauseRemainingMs != null
+        ? Date.now() + state.diceIdlePauseRemainingMs
+        : null)
+    : state.diceSubphase === "READY"
+      ? state.diceIdleDeadlineAt
+      : null;
   const timerLabel = myTurn ? "Your roll" : "Decision";
   const timerLive = timerUntil != null && !rolling && !settling;
 
@@ -485,7 +504,7 @@ export function DicePanel({
                   .filter(Boolean)
                   .join(" ")}
                 disabled={!canBank || busy || settling}
-                onClick={() => void bank()}
+                onClick={() => openBankConfirm()}
               >
                 {pot === 0 ? "Bank" : `Bank ${pot}`}
               </button>
@@ -507,22 +526,26 @@ export function DicePanel({
           {partyPrompt && !partyPrompt.resolved ? (
             <section className="panel space-y-2">
               <p className="font-bold">
-                {partyPrompt.kind === "bust_sip" ? (
+                {partyPrompt.kind === "bust_redo" ? (
                   <>
                     BEAN BUSTER ·{" "}
                     {partyPrompt.targetPlayerIds
                       .map((id) => state.players.find((p) => p.id === id)?.name)
-                      .join(", ")}{" "}
-                    · optional sip
+                      .join(", ")}
                   </>
                 ) : (
                   <>
+                    Lowest beans ·{" "}
                     {partyPrompt.targetPlayerIds
                       .map((id) => state.players.find((p) => p.id === id)?.name)
-                      .join(", ")}{" "}
-                    · optional sip
+                      .join(", ")}
                   </>
                 )}
+              </p>
+              <p className="text-sm font-semibold text-[var(--muted)]">
+                {partyPrompt.kind === "bust_redo"
+                  ? "Finish a drink for a one-time redo of this bust, or Pass and accept it."
+                  : "Finish a drink to continue — Pass anytime is ok."}
               </p>
               {canResolveParty && (
                 <div className="flex gap-2">
@@ -532,7 +555,9 @@ export function DicePanel({
                       send({ type: "party_resolve", choice: "done" })
                     }
                   >
-                    Done
+                    {partyPrompt.kind === "bust_redo"
+                      ? "Finished drink · redo bust"
+                      : "I finished my drink"}
                   </button>
                   <button
                     className="btn-secondary flex-1"
@@ -548,6 +573,35 @@ export function DicePanel({
           ) : null}
         </div>
       </div>
+
+      {bankConfirm ? (
+        <div className="bank-confirm-backdrop" role="dialog" aria-modal="true" aria-labelledby="bank-confirm-title">
+          <div className="bank-confirm-modal panel space-y-3">
+            <p id="bank-confirm-title" className="font-[family-name:var(--font-display)] text-lg font-extrabold">
+              Are you sure you want to Bank?
+            </p>
+            <p className="text-sm font-semibold text-[var(--muted)]">
+              Locks in your pot now. Timer is paused while you decide.
+            </p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className="btn-primary flex-1"
+                onClick={() => void confirmBank()}
+              >
+                Yes, Bank{pot > 0 ? ` ${pot}` : ""}
+              </button>
+              <button
+                type="button"
+                className="btn-secondary flex-1"
+                onClick={cancelBankConfirm}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

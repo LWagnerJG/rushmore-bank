@@ -11,8 +11,8 @@ export type TopicScope =
   | "entertainment"
   | "custom";
 
-/** Party vibes filter — curated shortlist feel (Basic / Spicy / Niche). */
-export type TopicVibe = "basic" | "spicy" | "niche";
+/** Party vibes filter — curated shortlist feel (Basic / Sports / Animals / Geography). */
+export type TopicVibe = "basic" | "sports" | "animals" | "geography";
 
 export interface Topic {
   id: string;
@@ -6882,54 +6882,155 @@ export function getTopicById(id: string): Topic | undefined {
  * bank minus only hard-excludes (`hardExcludeIds`), so rerolls never stall.
  */
 
-/** Keyword heuristic — keeps the bank tag-free while vibes feel curated. */
+/** Word-ish match — avoid short-token false positives (cat→catalog, state→statement). */
+function hayHas(hay: string, bit: string): boolean {
+  if (bit.includes(" ")) return hay.includes(bit);
+  return new RegExp(`(?:^|[^a-z0-9])${bit}(?:[^a-z0-9]|$)`).test(hay);
+}
+
+/**
+ * Keyword + scope heuristic — bank stays tag-free; vibes feel curated.
+ * Priority: sports → animals → geography → basic.
+ */
 export function inferTopicVibe(topic: Topic): TopicVibe {
   const hay = `${topic.id} ${topic.text} ${topic.scopeBoundary}`.toLowerCase();
-  const spicyBits = [
-    "ex",
-    "dating",
-    "flirt",
-    "hookup",
-    "sex",
-    "sexy",
-    "nsfw",
-    "dirty",
-    "scandal",
-    "roast",
-    "embarrass",
-    "drunk",
-    "hangover",
-    "walk of shame",
-    "one-night",
-    "thirst",
-    "rizz",
-    "situationship",
-    "toxic",
+
+  const sportsBits = [
+    "nba",
+    "nfl",
+    "mlb",
+    "nhl",
+    "soccer",
+    "football",
+    "basketball",
+    "baseball",
+    "hockey",
+    "tennis",
+    "golf",
+    "olympics",
+    "olympic",
+    "athlete",
+    "athletes",
+    "quarterback",
+    "touchdown",
+    "world cup",
+    "super bowl",
+    "march madness",
+    "ufc",
+    "boxing",
+    "wrestling",
+    "cricket",
+    "rugby",
+    "coach",
+    "stadium",
+    "playoffs",
+    "championship",
   ];
-  const nicheBits = [
-    "obscure",
-    "underrated",
-    "deep cut",
-    "cult",
-    "letterboxd",
-    "criterion",
-    "anime",
-    "manga",
-    "k-pop",
-    "kpop",
-    "indie",
-    "b-side",
-    "wikipedia",
-    "trivia",
-    "hyper-specific",
-    "niche",
-    "regional",
-    "academic",
-    "phd",
-    "subreddit",
+  const animalBits = [
+    "animal",
+    "animals",
+    "dog",
+    "dogs",
+    "puppy",
+    "puppies",
+    "cat",
+    "cats",
+    "kitten",
+    "kittens",
+    "pet",
+    "pets",
+    "zoo",
+    "wildlife",
+    "bird",
+    "birds",
+    "fish",
+    "mammal",
+    "mammals",
+    "reptile",
+    "reptiles",
+    "insect",
+    "insects",
+    "dinosaur",
+    "dinosaurs",
+    "horse",
+    "horses",
+    "shark",
+    "sharks",
+    "whale",
+    "whales",
+    "dolphin",
+    "dolphins",
+    "bear",
+    "bears",
+    "lion",
+    "lions",
+    "tiger",
+    "tigers",
+    "wolf",
+    "wolves",
+    "breed",
+    "breeds",
+    "farm animal",
+    "sea creature",
+    "goldfish",
+    "hamster",
+    "parrot",
+    "species",
+    "safari",
+    "aquarium",
   ];
-  if (spicyBits.some((b) => hay.includes(b))) return "spicy";
-  if (nicheBits.some((b) => hay.includes(b))) return "niche";
+  const geographyBits = [
+    "country",
+    "countries",
+    "city",
+    "cities",
+    "capital",
+    "capitals",
+    "continent",
+    "continents",
+    "geography",
+    "geographic",
+    "landmark",
+    "landmarks",
+    "mountain",
+    "mountains",
+    "river",
+    "rivers",
+    "ocean",
+    "oceans",
+    "island",
+    "islands",
+    "nation",
+    "nations",
+    "travel destination",
+    "world city",
+    "us state",
+    "u.s. state",
+    "american state",
+    "european city",
+    "national park",
+    "national parks",
+    "coast",
+    "coasts",
+    "beach town",
+    "map",
+    "road trip destination",
+    "vacation destination",
+    "solo trip",
+    "honeymoon destination",
+    "backpacking destination",
+    "ski trip",
+    "winter escape",
+    "field trip destination",
+    "places to go",
+    "island vacation",
+  ];
+
+  if (topic.scope === "sports" || sportsBits.some((b) => hayHas(hay, b))) {
+    return "sports";
+  }
+  if (animalBits.some((b) => hayHas(hay, b))) return "animals";
+  if (geographyBits.some((b) => hayHas(hay, b))) return "geography";
   return "basic";
 }
 

@@ -62,9 +62,10 @@ export function TopicPanel({
           {(
             [
               ["all", "All"],
-              ["basic", "Basic"],
-              ["spicy", "Spicy"],
-              ["niche", "Niche"],
+                  ["basic", "Basic"],
+                  ["sports", "Sports"],
+                  ["animals", "Animals"],
+                  ["geography", "Geography"],
             ] as const
           ).map(([value, label]) => {
             const on = (state.settings.topicVibe ?? "all") === value;
