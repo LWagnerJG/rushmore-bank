@@ -44,6 +44,10 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
+            <strong>Lobby player rail</strong>: hidden the redundant top
+            scoreboard before the game starts; in-game phases still show it.
+          </li>
+          <li>
             <strong>Lobby Topic vibes clip</strong>: room shell is locked again;
             phase content scrolls in <code>.room-phase-scroll</code> under the
             chrome. Safe-area padding sits on the scroll content (true inset
