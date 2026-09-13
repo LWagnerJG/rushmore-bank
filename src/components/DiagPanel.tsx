@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 interface DiagData {
   buildSha: string;
   standalone: boolean;
+  userAgent: string;
+  isIpad: boolean;
   innerHeight: number;
   innerWidth: number;
   visualViewportH: number;
@@ -19,10 +21,15 @@ interface DiagData {
   htmlRect: DOMRect | null;
   bodyRect: DOMRect | null;
   appShellRect: DOMRect | null;
+  roomChromeRect: DOMRect | null;
   phaseScrollRect: DOMRect | null;
   phaseScrollClientH: number;
   phaseScrollScrollH: number;
   phaseScrollScrollTop: number;
+  /** Computed opacity of the first .animate-rise element (detects stuck anim). */
+  animRiseOpacity: string;
+  /** Computed visibility of the room chrome ::before via a workaround. */
+  chromePosType: string;
 }
 
 function measure(): DiagData {
@@ -36,12 +43,20 @@ function measure(): DiagData {
 
   const phaseScroll = document.querySelector(".room-phase-scroll");
   const appShell = document.querySelector(".app-shell");
+  const roomChrome = document.querySelector(".room-chrome");
+  const animRise = document.querySelector(".animate-rise");
+  const ua = navigator.userAgent;
+  const isIpad =
+    /iPad/.test(ua) ||
+    (navigator.maxTouchPoints > 1 && /Macintosh/.test(ua));
 
   return {
     buildSha: process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA?.slice(0, 8) ?? "local",
     standalone:
       "standalone" in window.navigator &&
       (window.navigator as { standalone?: boolean }).standalone === true,
+    userAgent: ua.slice(0, 80),
+    isIpad,
     innerHeight: window.innerHeight,
     innerWidth: window.innerWidth,
     visualViewportH: window.visualViewport?.height ?? -1,
@@ -58,10 +73,17 @@ function measure(): DiagData {
     htmlRect: document.documentElement.getBoundingClientRect(),
     bodyRect: document.body.getBoundingClientRect(),
     appShellRect: appShell?.getBoundingClientRect() ?? null,
+    roomChromeRect: roomChrome?.getBoundingClientRect() ?? null,
     phaseScrollRect: phaseScroll?.getBoundingClientRect() ?? null,
     phaseScrollClientH: (phaseScroll as HTMLElement | null)?.clientHeight ?? -1,
     phaseScrollScrollH: (phaseScroll as HTMLElement | null)?.scrollHeight ?? -1,
     phaseScrollScrollTop: (phaseScroll as HTMLElement | null)?.scrollTop ?? -1,
+    animRiseOpacity: animRise
+      ? getComputedStyle(animRise as HTMLElement).opacity
+      : "(not present)",
+    chromePosType: roomChrome
+      ? getComputedStyle(roomChrome as HTMLElement).position
+      : "(not present)",
   };
 }
 
@@ -87,6 +109,8 @@ export function DiagPanel({ onClose }: { onClose: () => void }) {
   const rows: [string, string][] = [
     ["SHA", data.buildSha],
     ["standalone", String(data.standalone)],
+    ["iPad?", String(data.isIpad)],
+    ["UA", data.userAgent],
     ["innerH", `${data.innerHeight}px`],
     ["innerW", `${data.innerWidth}px`],
     ["vvH", `${data.visualViewportH.toFixed(1)}px`],
@@ -101,10 +125,13 @@ export function DiagPanel({ onClose }: { onClose: () => void }) {
     ["html bbox", fmtRect(data.htmlRect)],
     ["body bbox", fmtRect(data.bodyRect)],
     [".app-shell bbox", fmtRect(data.appShellRect)],
+    [".room-chrome bbox", fmtRect(data.roomChromeRect)],
     [".phase-scroll bbox", fmtRect(data.phaseScrollRect)],
     ["phase clientH", `${data.phaseScrollClientH}px`],
     ["phase scrollH", `${data.phaseScrollScrollH}px`],
     ["phase scrollTop", `${data.phaseScrollScrollTop.toFixed(0)}px`],
+    [".animate-rise opacity", data.animRiseOpacity],
+    [".room-chrome position", data.chromePosType],
   ];
 
   return (

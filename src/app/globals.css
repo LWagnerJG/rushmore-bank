@@ -159,8 +159,13 @@ html.party-on body::before {
  * Sticky room chrome: keep overflow visible so the player-rail up-seat
  * ring/glow isn't clipped. Put backdrop-filter on ::before — applying blur
  * on the sticky element itself can make browsers clip descendants.
+ *
+ * position: relative is required so ::before { position: absolute; inset: 0 }
+ * is correctly contained to the header, not the nearest positioned ancestor
+ * (body/html). Without it, ::before may cover the full viewport on iPad Safari.
  */
 .room-chrome {
+  position: relative;
   overflow: visible;
   isolation: isolate;
   background: transparent;
@@ -272,8 +277,14 @@ html.party-on .btn-primary {
 }
 
 .animate-rise {
-  /* no fill-mode: after the rise, drop transform so overflow isn't trapped */
-  animation: rise 380ms ease-out;
+  /*
+   * fill-mode: forwards — keep final opacity:1/transform:none after the rise.
+   * The `to` keyframe uses `transform: none` (same as no transform) so there
+   * is no stacking-context side-effect after the animation ends. Without
+   * fill-mode, interrupted animations (orientation change, app-switch) can
+   * leave content stuck at the `from` opacity:0 on Safari/iPad.
+   */
+  animation: rise 380ms ease-out forwards;
 }
 
 @keyframes topic-refresh {
