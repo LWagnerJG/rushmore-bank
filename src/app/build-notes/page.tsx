@@ -83,11 +83,13 @@ export default function BuildNotesPage() {
             orientation.
           </li>
           <li>
-            <strong>Viewport paint</strong>: active normal and Party Mode
-            gradients use one fixed visual-viewport layer, so Safari viewport
-            changes cannot reveal a root fallback or stop the gradient at a
-            100dvh boundary. Shell scrolling and safe-area padding remain
-            unchanged.
+            <strong>Viewport paint (final)</strong>: two-layer approach — html
+            background-color equals the gradient last stop so any unrendered
+            pixel is seamless; body::before fixed layer extends 50 px below the
+            viewport (<code>bottom:-50px</code>) to cover the home-indicator /
+            safe-area strip that <code>inset:0</code> can miss.{" "}
+            <code>background-size:100% 100dvh</code> pins gradient stops to the
+            viewport height so the extension doesn't shift colours.
           </li>
         </ul>
       </section>
