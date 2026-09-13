@@ -17,7 +17,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Wager/BANK polish + A2HS + cream clip → {RULES.productionUrl}
+        Safari A2HS tip (⋯ → Share) → {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -62,8 +62,10 @@ export default function BuildNotesPage() {
           <li>
             <strong>Add to Home Screen</strong>: one discreet bottom control.
             Chromium one-tap via <code>beforeinstallprompt</code> when
-            available; otherwise a single-line nudge (Share hint on iOS — no
-            multi-step overlay). Hidden in standalone / minimal-ui / installed.
+            available. iOS Safari tip: horizontal{" "}
+            <strong>⋯ (bottom right) → Share → Add to Home Screen</strong>{" "}
+            (not vertical ⋮; no tutorial wall). Hidden in standalone /
+            fullscreen / minimal-ui / <code>navigator.standalone</code>.
           </li>
           <li>
             <strong>Cream bottom clip</strong>: lobby no longer reserves ~5.5rem

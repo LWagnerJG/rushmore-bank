@@ -105,8 +105,9 @@ export function AddToHomeScreen() {
 
   if (hidden) return null;
 
+  // iOS Safari: menu is horizontal ⋯ (not vertical ⋮), typically bottom right.
   const nudgeText = ios
-    ? "Tap Share, then Add to Home Screen."
+    ? "⋯ (bottom right) → Share → Add to Home Screen."
     : "Browser menu → Install or Add to Home Screen.";
 
   return (
@@ -124,7 +125,7 @@ export function AddToHomeScreen() {
 
       {nudgeOpen && !deferred ? (
         <p id={nudgeId} className="a2hs-nudge" role="status">
-          {ios ? <ShareGlyph /> : null}
+          {ios ? <HorizontalDotsGlyph /> : null}
           {nudgeText}{" "}
           <button
             type="button"
@@ -139,37 +140,19 @@ export function AddToHomeScreen() {
   );
 }
 
-function ShareGlyph() {
+/** Horizontal three-dots (⋯) — Safari iOS menu control, not vertical ⋮. */
+function HorizontalDotsGlyph() {
   return (
     <svg
-      className="a2hs-share-glyph"
-      viewBox="0 0 24 24"
-      width="12"
-      height="12"
+      className="a2hs-dots-glyph"
+      viewBox="0 0 24 8"
+      width="18"
+      height="6"
       aria-hidden="true"
     >
-      <path
-        d="M12 3v10"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M8 7l4-4 4 4"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-      />
+      <circle cx="4" cy="4" r="2.2" fill="currentColor" />
+      <circle cx="12" cy="4" r="2.2" fill="currentColor" />
+      <circle cx="20" cy="4" r="2.2" fill="currentColor" />
     </svg>
   );
 }
