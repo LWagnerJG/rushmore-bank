@@ -16,7 +16,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        PWA icon cache-bust v2 → {RULES.productionUrl}
+        Score reveal header cleanup → {RULES.productionUrl}
       </p>
 
       <section className="panel space-y-2 text-sm">
@@ -43,6 +43,13 @@ export default function BuildNotesPage() {
       <section className="panel space-y-2 text-sm">
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
+          <li>
+            <strong>Score reveal header</strong>: dropped redundant top-right
+            Scores + beans readout — player rail already shows totals
+            (+earned). Logo left stays; Ready to wager under the rail
+            unchanged. Other phases keep phase label / balance for
+            orientation.
+          </li>
           <li>
             <strong>PWA icon cache-bust</strong>: manifest + icon/apple-touch
             URLs use <code>?v=2</code> so browsers fetch the epic icon after Add
