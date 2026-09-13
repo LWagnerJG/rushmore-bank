@@ -1,24 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
 import { RushmoreCard } from "@/components/RushmoreCard";
-import { RULES } from "@/shared/rules";
 import { rosterDensity } from "@/shared/roster-density";
 
-function Countdown({ until }: { until: number | null }) {
-  const [left, setLeft] = useState(0);
-  useEffect(() => {
-    if (!until) return;
-    const tick = () => setLeft(Math.max(0, Math.ceil((until - Date.now()) / 1000)));
-    tick();
-    const t = setInterval(tick, 250);
-    return () => clearInterval(t);
-  }, [until]);
-  if (!until) return null;
-  return <span className="tabular-nums">{left}s</span>;
-}
-
+/**
+ * Fallback roster skim UI. Normal play skips REVIEW (reviewSeconds = 0) and
+ * goes straight into VOTING_AND_JUDGING — this panel only flashes if a host
+ * lands here via admin jump with a non-zero review window.
+ */
 export function ReviewPanel({
   state,
   you,
@@ -37,12 +27,9 @@ export function ReviewPanel({
         <h2 className="font-[family-name:var(--font-display)] text-xl font-extrabold">
           Rosters
         </h2>
-        <span className="text-sm font-bold tabular-nums text-[var(--muted)]">
-          Vote in <Countdown until={state.phaseDeadlineAt} />
-        </span>
       </div>
       <p className="text-sm text-[var(--muted)]">
-        Skim the board — voting starts automatically (~{RULES.reviewSeconds}s).
+        Starting vote + AI judge…
       </p>
       <div className={`roster-board-grid roster-board-grid-${density}`}>
         {state.seatOrder.map((pid) => {

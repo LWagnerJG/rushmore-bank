@@ -1355,6 +1355,12 @@ export default class QuarryServer implements Party.Server {
   }
 
   async beginReview() {
+    // No skim countdown — vote + AI judge start immediately (rosters stay
+    // visible on the vote board with a discreet calculating state).
+    if (RULES.reviewSeconds <= 0) {
+      await this.beginVoting();
+      return;
+    }
     this.state.phase = "REVIEW";
     this.state.phaseDeadlineAt = Date.now() + RULES.reviewSeconds * 1000;
     bump(this.state);
@@ -2589,8 +2595,13 @@ export default class QuarryServer implements Party.Server {
         await this.startPickClock();
         break;
       case "REVIEW":
+        // Admin jump: with reviewSeconds 0, land in vote+judge (no skim wait).
         await this.adminEnsureTopic();
         await this.adminFillPicks();
+        if (RULES.reviewSeconds <= 0) {
+          await this.beginVoting();
+          break;
+        }
         this.state.phase = "REVIEW";
         this.state.phaseDeadlineAt =
           Date.now() + RULES.reviewSeconds * 1000;

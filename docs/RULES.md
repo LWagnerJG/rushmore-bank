@@ -40,7 +40,7 @@ LOBBY → TOPIC_SELECTION → DRAFT (+ CORRECTION) → REVIEW
 - Missed after grace → placeholder miss pick.
 - **Stash**: private draft queue + type field in one embedded surface; Stash it while waiting; Lock in on your turn; tap a stashed pick to lock instantly when up. Never in AI/spectator payloads.
 - Host may mark Duplicate or Group Invalid → replacement turn (60s), resume cursor.
-- Review/pitch **~5s** then auto-start voting (host may skip early).
+- No review skim countdown — draft ends go straight into voting + AI judge.
 - Fantasy-style shared draft board always visible during draft (UI): whose turn / you’re next / snake order. Top rail highlights the **current picker** (not only You). Host/admin redo: tap a pick to select, then Duplicate/Invalid — no redo text under every cell. Regular players see no redo UI.
 
 ## Scoring

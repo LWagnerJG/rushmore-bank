@@ -17,7 +17,8 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Earned split + BANK readout cleanup → {RULES.productionUrl}
+        Cut review skim countdown → vote+judge immediately →{" "}
+        {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -53,6 +54,14 @@ export default function BuildNotesPage() {
       <section className="panel space-y-2 text-sm">
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
+          <li>
+            <strong>No review skim countdown</strong>: draft ends go straight
+            into vote + AI judge (<code>reviewSeconds: 0</code>). Rosters stay
+            visible; discreet “AI is calculating…” while pending. Vote window /
+            draft timers unchanged.{" "}
+            <strong>PartyKit redeploy required</strong> (<code>party/</code> +{" "}
+            <code>src/shared/rules.ts</code>).
+          </li>
           <li>
             <strong>Judge flow</strong>: rosters stay visible through vote → AI
             calculating → scored board (no blank/full-screen flip); discreet
@@ -91,8 +100,7 @@ export default function BuildNotesPage() {
           </li>
           <li>
             Topics ({TOPIC_COUNT}), Party Mode, spectator, rematch, bank-confirm
-            timer pause, scramble settle, branding preserved. UI-only — no
-            PartyKit host logic change.
+            timer pause, scramble settle, branding preserved.
           </li>
         </ul>
       </section>
