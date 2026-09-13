@@ -405,6 +405,14 @@ export function RoomClient({
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
         roomCode={code}
+        isHost={you?.isHost ?? false}
+        partyOn={partyOn}
+        onPartyChange={
+          you?.isHost
+            ? (next) =>
+                send({ type: "update_settings", settings: { partyMode: next } })
+            : undefined
+        }
       />
       <AdminPanel
         send={send}
