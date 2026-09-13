@@ -15,6 +15,13 @@
   --panel: rgba(255, 255, 255, 0.78);
   --panel-border: rgba(35, 72, 62, 0.1);
   --party-glow: transparent;
+  /*
+   * btn-primary background is intentionally darker than --coral so that
+   * white label text passes WCAG AA (≥4.5:1) at small sizes.
+   * --coral (#e76f4e) is kept for decorative use (chips, borders, badges).
+   * #c05530 ≈ 4.5:1 against white; computed via WCAG relative-luminance formula.
+   */
+  --btn-bg: #c05530;
 }
 
 html.party-on {
@@ -25,6 +32,8 @@ html.party-on {
   --panel: rgba(255, 248, 236, 0.88);
   --panel-border: rgba(255, 107, 74, 0.22);
   --party-glow: rgba(255, 107, 74, 0.12);
+  /* Party mode btn-primary stays the same accessible dark coral */
+  --btn-bg: #c05530;
 }
 
 @theme inline {
@@ -207,7 +216,7 @@ html.party-on .room-chrome::before {
 }
 
 .btn-primary {
-  background: var(--coral);
+  background: var(--btn-bg);
   color: #fff;
   padding: 0.9rem 1.15rem;
 }
@@ -415,8 +424,8 @@ html.party-on .brand-shimmer {
   color: var(--coral);
   background: transparent;
   border: 0;
-  padding: 0.2rem 0.35rem;
-  min-height: 0;
+  padding: 0.5rem 0.55rem;
+  min-height: 2.75rem;
 }
 
 .home-edit-name:active {
@@ -573,13 +582,13 @@ html.party-on .brand-shimmer {
   border-radius: 999px;
   padding: 0.45rem 0.95rem;
   min-height: 2.15rem;
-  background: linear-gradient(180deg, #e9896a, var(--coral));
+  background: linear-gradient(180deg, #b05030, var(--btn-bg));
   color: #fffaf2;
   font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
   font-size: 0.82rem;
   font-weight: 800;
   letter-spacing: 0.01em;
-  box-shadow: 0 4px 12px rgba(231, 111, 78, 0.28);
+  box-shadow: 0 4px 12px rgba(192, 85, 48, 0.3);
   cursor: pointer;
 }
 
@@ -2009,7 +2018,9 @@ html.party-on .player-rail-many::after {
   font-size: 1.15rem;
   font-weight: 700;
   line-height: 1;
-  padding: 0.2rem 0.35rem;
+  padding: 0.5rem 0.65rem;
+  min-height: 2.75rem;
+  min-width: 2.75rem;
   border-radius: 0.45rem;
   opacity: 0.55;
   transition:
@@ -3410,8 +3421,9 @@ html.party-on .draft-board-table thead th.is-you {
 }
 .topic-vibe-chip {
   border-radius: 999px;
-  padding: 0.3rem 0.7rem;
-  font-size: 0.75rem;
+  padding: 0.55rem 0.85rem;
+  min-height: 2.75rem;
+  font-size: 0.8rem;
   font-weight: 800;
   background: rgba(35, 72, 62, 0.08);
   color: var(--text);
@@ -3493,7 +3505,8 @@ html.party-on .draft-board-table thead th.is-you {
 }
 .topic-vibe-chip {
   border-radius: 999px;
-  padding: 0.4rem 0.85rem;
+  padding: 0.55rem 0.85rem;
+  min-height: 2.75rem;
   font-size: 0.8rem;
   font-weight: 800;
   background: rgba(35, 72, 62, 0.08);

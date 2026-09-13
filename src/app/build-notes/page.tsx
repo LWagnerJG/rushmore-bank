@@ -16,7 +16,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Join room-check + lobby simplify + home prefill + score breakdown + draft turn-count fix → {RULES.productionUrl}
+        Phone readability + Join room-check + lobby simplify + home prefill + score breakdown + draft turn-count fix → {RULES.productionUrl}
       </p>
 
       <section className="panel space-y-2 text-sm">
@@ -44,7 +44,20 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-<strong>Separate Create vs Join</strong>: Join now calls{" "}
+<strong>Button contrast</strong>: <code>btn-primary</code> now uses
+            a new <code>--btn-bg</code> CSS variable (<code>#c05530</code>)
+            instead of <code>var(--coral)</code>. This passes WCAG AA
+            (≥4.5:1) for white text at small sizes in both normal and Party
+            Mode. Decorative use of <code>--coral</code> (chips, badges,
+            borders) is unchanged.
+          </li>
+          <li>
+            <strong>Tap areas</strong>: topic vibe chips, topic reroll button,
+            home edit-name link, and stash remove (×) all reach ~44 CSS px
+            touch target. Other interactive controls already met the target.
+          </li>
+          <li>
+            <strong>Separate Create vs Join</strong>: Join now calls{" "}
             <code>/api/room/[code]/exists</code>, which proxies a GET to the
             PartyKit room. If the room has no players, the UI shows{" "}
             &ldquo;Room not found — check the code&rdquo; and keeps the
