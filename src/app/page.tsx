@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
+import { AddToHomeScreen } from "@/components/AddToHomeScreen";
 import { BrandMark } from "@/components/BrandMark";
 import { normalizeRoomCode, randomRoomCode } from "@/shared/types";
 import { RULES } from "@/shared/rules";
@@ -131,6 +132,8 @@ export default function HomePage() {
             Admin unlocked · open a room
           </p>
         )}
+
+        <AddToHomeScreen />
       </div>
     </main>
   );
