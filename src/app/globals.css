@@ -51,8 +51,9 @@ html.party-on {
  *   which blends seamlessly with the last gradient stop.
  */
 html {
-  /* Canvas fallback — must equal the gradient's last stop colour */
-  background-color: #ebe4d6;
+  /* Canvas fallback — equals the gradient last stop so any uncovered pixel
+   * (overscroll, home indicator, 50px extension) is indistinguishable */
+  background-color: var(--bg);
   height: 100%;
   height: -webkit-fill-available;
   height: 100dvh;
@@ -82,21 +83,21 @@ body::before {
   bottom: -50px;
   z-index: -1;
   pointer-events: none;
-  /* background-color is the canvas fallback for any area the gradient
-   * doesn't cover; colour matches gradient last stop so it's seamless */
-  background-color: #ebe4d6;
-  /* gradient fills the full element (100dvh + 50px) — no background-size
-   * restriction, so there is no hard seam where a sized rectangle ends */
+  /* Canvas fallback matches linear-gradient last stop (var(--bg) = #f5f0e7).
+   * The warmer #ebe4d6 stop was removed: it created a colour shift at the
+   * bottom of the viewport that contrasted with the panel-lightened area
+   * above it (lobby empty space / home indicator strip). */
+  background-color: var(--bg);
   background-image:
     radial-gradient(900px 480px at 0% -10%, rgba(244, 201, 91, 0.35), transparent 55%),
     radial-gradient(800px 420px at 100% 0%, rgba(167, 215, 194, 0.45), transparent 50%),
     radial-gradient(700px 400px at 50% 110%, rgba(231, 111, 78, 0.18), transparent 45%),
-    linear-gradient(165deg, #f7f3eb 0%, #f5f0e7 40%, #ebe4d6 100%);
+    linear-gradient(165deg, #f7f3eb 0%, #f5f0e7 100%);
 }
 
 html.party-on {
-  /* Party canvas fallback — matches party gradient last stop */
-  background-color: #f5d9c8;
+  /* Canvas fallback = party gradient first/last stop so uncovered pixels match */
+  background-color: #fff8ec;
 }
 
 html.party-on body {
@@ -104,12 +105,12 @@ html.party-on body {
 }
 
 html.party-on body::before {
-  background-color: #f5d9c8;
+  background-color: #fff8ec;
   background-image:
     radial-gradient(820px 460px at 8% -8%, rgba(255, 212, 90, 0.55), transparent 52%),
     radial-gradient(760px 420px at 100% 4%, rgba(126, 217, 184, 0.5), transparent 48%),
     radial-gradient(680px 380px at 50% 108%, rgba(255, 107, 74, 0.28), transparent 42%),
-    linear-gradient(165deg, #fff8ec 0%, #ffe8d4 45%, #f5d9c8 100%);
+    linear-gradient(165deg, #fff8ec 0%, #ffe8d4 45%, #fff8ec 100%);
 }
 
 /* Shell: document is locked; only .app-shell-scroll pans when content overflows */

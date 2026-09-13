@@ -87,13 +87,14 @@ export default function BuildNotesPage() {
             orientation.
           </li>
           <li>
-            <strong>Viewport paint (final)</strong>: two-layer approach — html
-            background-color equals the gradient last stop (#ebe4d6 / party
-            #f5d9c8) so any unrendered pixel is seamless; body::before fixed
-            layer extends 50 px below the viewport (<code>bottom:-50px</code>)
-            to cover the home-indicator safe-area. The gradient fills the full
-            element (no <code>background-size</code> restriction) so the
-            50 px overhang is a continuous gradient tail with no visible seam.
+            <strong>Viewport paint</strong>: body::before fixed layer
+            (z-index:-1, bottom:-50px) covers the visual viewport and the
+            home-indicator safe-area region. Linear-gradient last stop and
+            html canvas background-color both equal <code>var(--bg)</code>;
+            the warm <code>#ebe4d6</code> tail was removed because it
+            created a visible contrast against the panel-lightened area in
+            the lobby. Party mode canvas = <code>#fff8ec</code> with the
+            gradient returning to that value at 100%.
           </li>
         </ul>
       </section>
