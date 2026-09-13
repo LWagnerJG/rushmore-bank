@@ -84,12 +84,12 @@ export default function BuildNotesPage() {
           </li>
           <li>
             <strong>Viewport paint (final)</strong>: two-layer approach — html
-            background-color equals the gradient last stop so any unrendered
-            pixel is seamless; body::before fixed layer extends 50 px below the
-            viewport (<code>bottom:-50px</code>) to cover the home-indicator /
-            safe-area strip that <code>inset:0</code> can miss.{" "}
-            <code>background-size:100% 100dvh</code> pins gradient stops to the
-            viewport height so the extension doesn't shift colours.
+            background-color equals the gradient last stop (#ebe4d6 / party
+            #f5d9c8) so any unrendered pixel is seamless; body::before fixed
+            layer extends 50 px below the viewport (<code>bottom:-50px</code>)
+            to cover the home-indicator safe-area. The gradient fills the full
+            element (no <code>background-size</code> restriction) so the
+            50 px overhang is a continuous gradient tail with no visible seam.
           </li>
         </ul>
       </section>

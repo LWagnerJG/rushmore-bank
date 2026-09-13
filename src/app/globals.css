@@ -82,18 +82,16 @@ body::before {
   bottom: -50px;
   z-index: -1;
   pointer-events: none;
-  /* solid fill for the 50 px extension — matches gradient last stop */
+  /* background-color is the canvas fallback for any area the gradient
+   * doesn't cover; colour matches gradient last stop so it's seamless */
   background-color: #ebe4d6;
+  /* gradient fills the full element (100dvh + 50px) — no background-size
+   * restriction, so there is no hard seam where a sized rectangle ends */
   background-image:
     radial-gradient(900px 480px at 0% -10%, rgba(244, 201, 91, 0.35), transparent 55%),
     radial-gradient(800px 420px at 100% 0%, rgba(167, 215, 194, 0.45), transparent 50%),
     radial-gradient(700px 400px at 50% 110%, rgba(231, 111, 78, 0.18), transparent 45%),
     linear-gradient(165deg, #f7f3eb 0%, #f5f0e7 40%, #ebe4d6 100%);
-  /* pin the gradient to the viewport height so the 50 px extension below
-   * does not shift colour stops within the visible area */
-  background-size: 100% 100dvh;
-  background-repeat: no-repeat;
-  background-position: top left;
 }
 
 html.party-on {
