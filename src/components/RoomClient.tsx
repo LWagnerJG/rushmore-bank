@@ -252,10 +252,10 @@ export function RoomClient({
     >
       <header
         className={
-          "sticky top-0 z-20 -mx-4 mb-3 border-b px-4 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur " +
+          "room-chrome sticky top-0 z-20 -mx-4 mb-3 border-b px-4 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] " +
           (partyOn
-            ? "border-[rgba(255,107,74,0.18)] bg-[rgba(255,248,236,0.96)]"
-            : "border-[rgba(35,72,62,0.08)] bg-[rgba(245,240,231,0.96)]")
+            ? "room-chrome-party border-[rgba(255,107,74,0.18)]"
+            : "border-[rgba(35,72,62,0.08)]")
         }
       >
         <div className="flex items-start justify-between gap-3">
