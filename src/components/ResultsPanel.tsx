@@ -18,6 +18,11 @@ export function ResultsPanel({
     .sort((a, b) => b.stones - a.stones);
 
   const final = state.phase === "GAME_RESULTS";
+  // True when we're showing the last round's results before final standings.
+  const isFinalRoundResults =
+    !final &&
+    state.phase === "ROUND_RESULTS" &&
+    state.topicRound >= state.configuredTopicRounds;
   const prompt = state.partyPrompt;
   const promptOpen = !!prompt && !prompt.resolved;
   const lowestNames =
@@ -36,7 +41,9 @@ export function ResultsPanel({
       <h2 className="font-[family-name:var(--font-display)] text-2xl font-extrabold">
         {final
           ? "Final standings"
-          : `Round ${state.topicRound}/${state.configuredTopicRounds}`}
+          : isFinalRoundResults
+            ? "Final round results"
+            : `Round ${state.topicRound}/${state.configuredTopicRounds}`}
       </h2>
 
       <ol className="space-y-2">
@@ -91,31 +98,41 @@ export function ResultsPanel({
 
       {you.isHost && !final && (
         <div className="space-y-3">
-          <PartyModeSwitch
-            compact
-            on={state.settings.partyMode}
-            onChange={(next) =>
-              send({
-                type: "update_settings",
-                settings: { partyMode: next },
-              })
-            }
-          />
+          {!isFinalRoundResults && (
+            <PartyModeSwitch
+              compact
+              on={state.settings.partyMode}
+              onChange={(next) =>
+                send({
+                  type: "update_settings",
+                  settings: { partyMode: next },
+                })
+              }
+            />
+          )}
           <button
             type="button"
             className="btn-primary w-full text-lg"
             disabled={drinkBlocked}
             onClick={() => send({ type: "next_topic" })}
           >
-            {drinkBlocked ? "Waiting on drink…" : "Next topic"}
+            {drinkBlocked
+              ? "Waiting on drink…"
+              : isFinalRoundResults
+                ? "See final standings"
+                : state.topicRound === state.configuredTopicRounds - 1
+                  ? "Start final round"
+                  : "Next topic"}
           </button>
-          <button
-            type="button"
-            className="btn-secondary w-full"
-            onClick={() => send({ type: "end_game" })}
-          >
-            End game
-          </button>
+          {!isFinalRoundResults && (
+            <button
+              type="button"
+              className="btn-secondary w-full"
+              onClick={() => send({ type: "end_game" })}
+            >
+              End game
+            </button>
+          )}
         </div>
       )}
 

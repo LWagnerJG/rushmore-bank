@@ -50,7 +50,9 @@ export function TopicPanel({
       <header className="topic-head">
         <div className="topic-head-row">
           <h2 className="topic-title">
-            Topic · {state.topicRound + 1}/{state.configuredTopicRounds}
+            {state.topicRound === state.configuredTopicRounds - 1
+              ? `Final round · ${state.topicRound + 1}/${state.configuredTopicRounds}`
+              : `Topic · ${state.topicRound + 1}/${state.configuredTopicRounds}`}
           </h2>
           {you.isHost ? (
             <button

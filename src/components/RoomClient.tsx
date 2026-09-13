@@ -7,6 +7,7 @@ import { phaseLabel, type Phase } from "@/shared/types";
 import { RULES } from "@/shared/rules";
 import { BrandMark } from "@/components/BrandMark";
 import { SettingsSheet } from "@/components/SettingsSheet";
+import { DiagPanel } from "@/components/DiagPanel";
 import {
   adoptPlayerIdForRejoin,
   getLastPlayerIdForRejoin,
@@ -121,6 +122,27 @@ export function RoomClient({
   const phase: Phase | null = state?.phase ?? null;
   const partyOn = state?.settings.partyMode === true;
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [diagOpen, setDiagOpen] = useState(() =>
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("diag") === "1",
+  );
+  const logoTapRef = useRef(0);
+  const logoTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function handleLogoTap() {
+    logoTapRef.current += 1;
+    if (logoTapTimerRef.current) clearTimeout(logoTapTimerRef.current);
+    if (logoTapRef.current >= 5) {
+      logoTapRef.current = 0;
+      setDiagOpen((o) => !o);
+      return;
+    }
+    logoTapTimerRef.current = setTimeout(() => {
+      logoTapRef.current = 0;
+    }, 1500);
+    setSettingsOpen(true);
+  }
+
   const drafting = phase === "DRAFT" || phase === "CORRECTION";
 
   useEffect(() => {
@@ -164,7 +186,7 @@ export function RoomClient({
     if (presetName.trim()) {
       return (
         <main className="app-shell app-shell-lock mx-auto flex max-w-md flex-col gap-4 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))]">
-          <BrandMark onLogoTap={() => setSettingsOpen(true)} />
+          <BrandMark onLogoTap={handleLogoTap} />
           <h1 className="font-[family-name:var(--font-display)] text-2xl font-extrabold">
             Room {code}
           </h1>
@@ -186,7 +208,7 @@ export function RoomClient({
 
     return (
       <main className="app-shell app-shell-lock mx-auto flex max-w-md flex-col gap-4 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))]">
-        <BrandMark onLogoTap={() => setSettingsOpen(true)} />
+        <BrandMark onLogoTap={handleLogoTap} />
         <h1 className="font-[family-name:var(--font-display)] text-2xl font-extrabold">
           Room {code}
         </h1>
@@ -260,7 +282,7 @@ export function RoomClient({
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <BrandMark onLogoTap={() => setSettingsOpen(true)} />
+            <BrandMark onLogoTap={handleLogoTap} />
           </div>
           {drafting && state ? (
             <div className="flex shrink-0 items-center gap-1 pt-0.5">
@@ -336,8 +358,16 @@ export function RoomClient({
           </h1>
         )}
         {drafting && (
-          <div className="mt-1 flex justify-end text-[0.7rem] font-bold tracking-wide text-[var(--muted)]">
-            <span className="tabular-nums text-[var(--text)]">
+          <div className="mt-1 flex items-center justify-between gap-2 text-[0.7rem] font-bold tracking-wide text-[var(--muted)]">
+            <span className="uppercase">
+              {state &&
+              state.topicRound === state.configuredTopicRounds - 1
+                ? `Final round · ${phase ? phaseLabel(phase) : "Draft"}`
+                : phase
+                  ? phaseLabel(phase)
+                  : "Draft"}
+            </span>
+            <span className="normal-case tabular-nums text-[var(--text)]">
               {you.stones} {RULES.currencyName}
             </span>
           </div>
@@ -424,6 +454,7 @@ export function RoomClient({
           state?.players.filter((p) => p.id.startsWith("bot-")).length ?? 0
         }
       />
+      {diagOpen && <DiagPanel onClose={() => setDiagOpen(false)} />}
     </main>
   );
 }
