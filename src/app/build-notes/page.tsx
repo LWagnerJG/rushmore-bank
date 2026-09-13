@@ -17,7 +17,8 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        PlayerRail up-seat ring fully visible → {RULES.productionUrl}
+        Beans branding polish (PWA name + dog sunglasses icon) →{" "}
+        {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -37,9 +38,8 @@ export default function BuildNotesPage() {
             ) : null}
             <li>
               Target: production <code>roundacats.vercel.app</code> via merge to{" "}
-              <code>main</code>. PartyKit redeploy required when{" "}
-              <code>src/shared</code> changes (topics are bundled into the party
-              server) — also for reconnect/leave/rejoin and review+vote timers.
+              <code>main</code>. Old URL stays live. Preferred alias{" "}
+              <code>beans-game.vercel.app</code> needs Luke (below).
             </li>
           </ul>
         ) : (
@@ -54,36 +54,71 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>Topic vibes</strong>: All / Basic / Sports / Animals /
-            Geography (Spicy &amp; Niche removed) — filters shortlist + reroll.
+            <strong>PWA / home-screen name</strong>: manifest{" "}
+            <code>name</code> / <code>short_name</code>,{" "}
+            <code>apple-mobile-web-app-title</code>,{" "}
+            <code>application-name</code>, document / OG / Twitter titles all{" "}
+            <strong>Beans</strong> (not RoundaCats / rushmore-bank).
           </li>
           <li>
-            <strong>Party Mode (real)</strong>: ON expands drink rules. Bust →
-            once-per-round drink redo CTA (<code>Finished drink · redo bust</code>
-            ) or Pass. Round end → lowest beans drink +{" "}
-            <code>I finished my drink</code> (ties share; bots auto-resolve;
-            next topic gated).
+            <strong>App icon</strong>: new dog + <strong>BEANS sunglasses</strong>{" "}
+            mark (cream / terracotta / ink). Wired: apple-touch 180, favicon,
+            manifest 192/512 + maskable, OG share image. Source:{" "}
+            <code>public/icons/icon-source-1024.png</code>.
           </li>
           <li>
-            <strong>Draft polish</strong>: removed redundant “Type your answer”
-            under Your turn; stash + draft board get stronger panel contrast on
-            cream. Up-seat You-chip gold ring + glow no longer clipped on the
-            rail (fit mode uses real <code>overflow: visible</code>; scroll mode
-            pads the track for the full ring/glow; sticky chrome blur moved to a
-            <code>::before</code> so it can’t clip descendants).
+            <strong>Share</strong>: lobby invite already titles “Beans” and uses
+            current origin (no hardcoded RoundaCats in share text).
           </li>
           <li>
-            <strong>Dice TAP</strong>: TAP sits on top of the dice and blinks
-            when armed to roll.
+            Preserved: party mode, topic vibes, dice/draft polish, rematch,
+            admin, bots. Repo name stays <code>rushmore-bank</code>.
           </li>
           <li>
-            <strong>Bank confirm</strong>: “Are you sure you want to Bank?”
-            modal; idle bank timer pauses while open.
+            Topic bank size this build: {TOPIC_COUNT}.
+          </li>
+        </ul>
+      </section>
+
+      <section className="panel space-y-2 text-sm">
+        <h2 className="font-extrabold">URL — action for Luke</h2>
+        <ul className="list-disc space-y-1 pl-5">
+          <li>
+            Vercel project <code>roundacats</code> domains today:{" "}
+            <code>roundacats.vercel.app</code>,{" "}
+            <code>rushmore-bank.vercel.app</code>, plus team aliases. Production
+            stays on <code>roundacats.vercel.app</code> so nothing breaks.
           </li>
           <li>
-            Preserved: spectator, logo settings, rematch, scramble settle, min
-            wager 1, leave/rejoin, 60s draft, vote auto-start, Beans branding,
-            admin, bots.
+            <code>beans-game.vercel.app</code> is free (404 / not claimed). Agent
+            CLI has no Vercel write token for domains — Luke should either:
+            <ol className="mt-1 list-decimal space-y-1 pl-5">
+              <li>
+                Rename project to <code>beans-game</code> in Vercel → Settings →
+                General (creates <code>beans-game.vercel.app</code>), then{" "}
+                <strong>re-add</strong> <code>roundacats.vercel.app</code> as a
+                domain alias so the old link keeps working; or
+              </li>
+              <li>
+                Domains → Add <code>beans-game.vercel.app</code> if the UI
+                offers a vercel.app alias without rename.
+              </li>
+            </ol>
+          </li>
+          <li>
+            After the alias is live: flip <code>RULES.productionUrl</code>,{" "}
+            <code>layout</code> <code>siteUrl</code>, and PartyKit{" "}
+            <code>JUDGE_URL</code> to <code>beans-game.vercel.app</code>, then
+            redeploy PartyKit.
+          </li>
+          <li>
+            Custom DNS (optional, not done): <code>beans.game</code> ~$350/yr;{" "}
+            <code>beansgame.com</code> ~$11/yr. <code>beans.vercel.app</code> is
+            already someone else’s unrelated app — skip.
+          </li>
+          <li>
+            iOS tip: remove any old home-screen icon and re-Add to Home Screen
+            to pick up the new name + art (iOS caches aggressively).
           </li>
         </ul>
       </section>

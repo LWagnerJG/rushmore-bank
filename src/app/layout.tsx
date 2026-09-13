@@ -13,6 +13,7 @@ const sora = Sora({
   weight: ["600", "700", "800"],
 });
 
+/** Canonical until Luke attaches beans-game.vercel.app (see /build-notes). */
 const siteUrl = "https://roundacats.vercel.app";
 const title = "Beans";
 const description =
@@ -23,13 +24,18 @@ const CREAM = "#F5F0E7";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title,
+  title: {
+    default: title,
+    template: "%s · Beans",
+  },
   description,
   applicationName: "Beans",
   manifest: "/site.webmanifest",
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
+      { url: "/icons/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icons/favicon-16.png", sizes: "16x16", type: "image/png" },
       { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
       { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
     ],
@@ -53,7 +59,7 @@ export const metadata: Metadata = {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Beans party game",
+        alt: "Beans — dog with Beans sunglasses",
       },
     ],
   },
@@ -62,6 +68,9 @@ export const metadata: Metadata = {
     title,
     description,
     images: ["/og-image.png"],
+  },
+  other: {
+    "apple-mobile-web-app-title": "Beans",
   },
 };
 
