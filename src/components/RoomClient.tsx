@@ -298,6 +298,16 @@ export function RoomClient({
                 paused={state.pickPaused}
               />
             </div>
+          ) : phase === "SCORE_REVEAL" ? (
+            // Rail already shows totals (+earned) — drop Scores/beans chrome.
+            // Keep Party badge alone when party mode is on.
+            partyOn ? (
+              <div className="flex shrink-0 items-center justify-end pt-0.5">
+                <span className="rounded-full bg-[rgba(255,107,74,0.25)] px-2 py-0.5 text-[0.65rem] font-extrabold text-[var(--text)]">
+                  Party
+                </span>
+              </div>
+            ) : null
           ) : (
             <div className="text-right text-xs font-bold uppercase tracking-wide text-[var(--muted)]">
               <div className="flex items-center justify-end gap-1.5">
