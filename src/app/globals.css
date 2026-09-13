@@ -436,10 +436,57 @@ html.party-on .brand-shimmer {
   color: var(--coral);
   font-size: inherit;
   font-weight: 800;
-  padding: 0 0.15rem;
+  min-height: 2rem;
+  min-width: 2rem;
+  padding: 0.35rem 0.55rem;
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 0.12em;
+}
+
+/* Ready to wager — under player rail, right-aligned, soft pulse */
+.ready-wager-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  margin-top: 0.55rem;
+  padding-top: 0.15rem;
+}
+
+.ready-wager-meta {
+  font-size: 0.68rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.ready-wager-cta {
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.45rem 0.95rem;
+  min-height: 2.15rem;
+  background: linear-gradient(180deg, #e9896a, var(--coral));
+  color: #fffaf2;
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  box-shadow: 0 4px 12px rgba(231, 111, 78, 0.28);
+  cursor: pointer;
+}
+
+.ready-wager-cta:disabled,
+.ready-wager-cta-done {
+  background: rgba(35, 72, 62, 0.14);
+  color: var(--muted);
+  box-shadow: none;
+  cursor: default;
+}
+
+.ready-wager-cta:not(:disabled):active {
+  transform: translateY(1px) scale(0.98);
 }
 
 /* Lobby: clear fixed Admin FAB without a full-bleed cream dead zone */
@@ -756,23 +803,53 @@ html.party-on .panel {
   align-items: flex-end;
   justify-content: space-between;
   gap: 0.75rem;
-  margin-bottom: 0.45rem;
-  min-height: 2.6rem;
+  margin-bottom: 0.55rem;
+  min-height: 2.85rem;
 }
 
 .dice-pot-label {
-  font-size: 0.85rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--muted);
 }
 
 .dice-pot-value {
   font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
-  font-size: 2.1rem;
+  font-size: clamp(1.65rem, 7vw, 2.05rem);
   font-weight: 800;
   line-height: 1;
+  color: var(--text);
   transition: opacity 180ms ease;
 }
 
+.dice-pot-stack {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+}
+
+.dice-pot-stack-end {
+  text-align: right;
+  align-items: flex-end;
+}
+
+.dice-pot-hint {
+  margin-top: 0.05rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.dice-pot-safe-muted {
+  opacity: 0.55;
+}
+
+/* Legacy safe column — kept for older markup / tests */
 .dice-pot-safe {
   font-size: 0.85rem;
   color: var(--muted);
@@ -780,19 +857,12 @@ html.party-on .panel {
   min-width: 4.5rem;
   transition: opacity 200ms ease;
 }
-.dice-pot-stack {
-  min-width: 0;
-}
 .dice-pot-safe-value {
   font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
-  font-size: 1.35rem;
+  font-size: clamp(1.65rem, 7vw, 2.05rem);
   font-weight: 800;
   line-height: 1;
   color: var(--text);
-}
-
-.dice-pot-safe-muted {
-  opacity: 0.55;
 }
 
 .dice-watch-note {
@@ -815,18 +885,20 @@ html.party-on .panel {
 .dice-bank-cta {
   display: flex;
   width: 100%;
-  min-height: 2.65rem;
+  min-height: 2.85rem;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  border-radius: 0.9rem;
-  border: 1.5px solid rgba(35, 72, 62, 0.22);
-  background: transparent;
+  gap: 0.1rem;
+  border-radius: 0.95rem;
+  border: 1.5px solid rgba(35, 72, 62, 0.2);
+  background: rgba(255, 252, 245, 0.72);
   color: var(--text);
   font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
   font-size: 1.05rem;
   font-weight: 800;
   letter-spacing: 0.01em;
-  box-shadow: none;
+  box-shadow: 0 1px 0 rgba(35, 72, 62, 0.04);
   transition:
     transform 120ms ease,
     background 160ms ease,
@@ -834,7 +906,7 @@ html.party-on .panel {
     opacity 200ms ease;
 }
 .dice-bank-cta-secondary {
-  background: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 252, 245, 0.72);
 }
 .dice-bank-cta:active:not(:disabled) {
   transform: translateY(1px) scale(0.99);
@@ -844,12 +916,23 @@ html.party-on .panel {
   opacity: 0.4;
 }
 .dice-bank-cta-ready {
-  border-color: rgba(35, 72, 62, 0.34);
-  background: rgba(255, 255, 255, 0.55);
+  border-color: rgba(196, 92, 58, 0.45);
+  background: rgba(255, 248, 236, 0.95);
+  box-shadow: 0 0 0 3px rgba(231, 111, 78, 0.1);
 }
 .dice-bank-cta-ghost {
   visibility: hidden;
   pointer-events: none;
+}
+.dice-bank-cta-main {
+  line-height: 1.1;
+}
+.dice-bank-cta-hint {
+  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--muted);
 }
 .dice-cta-slot {
   min-height: 2.65rem;
@@ -1890,27 +1973,32 @@ html.party-on .status-pill-ready {
   right: auto;
   transform: translateX(-50%);
   text-align: center;
-  padding: 0.28rem 0.75rem;
+  padding: 0.32rem 0.9rem;
   border-radius: 999px;
-  font-size: 1.05rem;
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.92rem;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: #3a2418;
-  background: linear-gradient(180deg, #ffe7b8, #f4c95b 55%, #e76f4e);
-  border: 1.5px solid rgba(58, 36, 24, 0.2);
+  color: #9a4a32;
+  background: linear-gradient(180deg, #fffaf2 0%, #f3e2cc 100%);
+  border: 1.5px solid rgba(196, 92, 58, 0.42);
   pointer-events: none;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+  text-shadow: none;
   box-shadow:
-    0 0 0 3px rgba(244, 201, 91, 0.28),
-    0 8px 18px rgba(0, 0, 0, 0.28);
-  animation: dice-hint-pulse 0.85s ease-in-out infinite;
+    0 0 0 3px rgba(231, 111, 78, 0.12),
+    0 6px 14px rgba(35, 72, 62, 0.12);
+  animation: dice-hint-pulse 1.35s ease-in-out infinite;
 }
 .bean-dice-hint-first {
-  font-size: 1.15rem;
-  letter-spacing: 0.2em;
-  padding: 0.32rem 0.85rem;
-  animation: dice-hint-pulse 0.7s ease-in-out infinite;
+  font-size: 1rem;
+  letter-spacing: 0.18em;
+  padding: 0.36rem 1rem;
+  border-color: rgba(196, 92, 58, 0.55);
+  box-shadow:
+    0 0 0 3px rgba(231, 111, 78, 0.16),
+    0 8px 16px rgba(35, 72, 62, 0.14);
+  animation: dice-hint-pulse 1.15s ease-in-out infinite;
 }
 .bean-dice-tray-armed {
   min-height: 260px;
@@ -1934,12 +2022,12 @@ html.party-on .status-pill-ready {
 @keyframes dice-hint-pulse {
   0%,
   100% {
-    opacity: 0.82;
+    opacity: 0.9;
     transform: translateX(-50%) translateY(0) scale(1);
   }
   50% {
     opacity: 1;
-    transform: translateX(-50%) translateY(-3px) scale(1.06);
+    transform: translateX(-50%) translateY(-2px) scale(1.035);
   }
 }
 .bean-dice-hint-rolling {
@@ -2786,11 +2874,19 @@ html.party-on .draft-board-table thead th.is-you {
   bottom: auto !important;
   left: 50% !important;
   right: auto !important;
-  animation: dice-hint-pulse 0.85s ease-in-out infinite !important;
+  color: #9a4a32 !important;
+  background: linear-gradient(180deg, #fffaf2 0%, #f3e2cc 100%) !important;
+  border: 1.5px solid rgba(196, 92, 58, 0.42) !important;
+  text-shadow: none !important;
+  box-shadow:
+    0 0 0 3px rgba(231, 111, 78, 0.12),
+    0 6px 14px rgba(35, 72, 62, 0.12) !important;
+  animation: dice-hint-pulse 1.35s ease-in-out infinite !important;
 }
 .bean-dice-hint-first {
   opacity: 1 !important;
-  animation: dice-hint-pulse 0.7s ease-in-out infinite !important;
+  border-color: rgba(196, 92, 58, 0.55) !important;
+  animation: dice-hint-pulse 1.15s ease-in-out infinite !important;
 }
 
 .topic-vibe-row {

@@ -298,24 +298,6 @@ export function RoomClient({
                 paused={state.pickPaused}
               />
             </div>
-          ) : phase === "SCORE_REVEAL" && you.role === "player" && state ? (
-            <div className="flex shrink-0 flex-col items-end gap-1 pt-0.5">
-              <button
-                type="button"
-                className={
-                  "btn-primary px-3 py-1.5 text-sm leading-none " +
-                  (state.myBankBeansReady ? "" : "pulse-soft")
-                }
-                disabled={state.myBankBeansReady}
-                onClick={() => send({ type: "bank_the_beans" })}
-              >
-                {state.myBankBeansReady ? "Ready" : "Ready to wager"}
-              </button>
-              <span className="text-[0.65rem] font-bold tabular-nums text-[var(--muted)]">
-                {state.bankBeansReadyCast}/{state.bankBeansReadyNeeded} ·{" "}
-                {you.stones} {RULES.currencyName}
-              </span>
-            </div>
           ) : (
             <div className="text-right text-xs font-bold uppercase tracking-wide text-[var(--muted)]">
               <div className="flex items-center justify-end gap-1.5">
@@ -355,6 +337,25 @@ export function RoomClient({
         {state && phase !== "DICE" && (
           <PlayerRail state={state} youId={youId} />
         )}
+        {/* Under the player rail — scoreboard context, not buried in header */}
+        {phase === "SCORE_REVEAL" && you.role === "player" && state ? (
+          <div className="ready-wager-row">
+            <div className="ready-wager-meta" aria-live="polite">
+              {state.bankBeansReadyCast}/{state.bankBeansReadyNeeded} ready
+            </div>
+            <button
+              type="button"
+              className={
+                "ready-wager-cta " +
+                (state.myBankBeansReady ? "ready-wager-cta-done" : "pulse-soft")
+              }
+              disabled={state.myBankBeansReady}
+              onClick={() => send({ type: "bank_the_beans" })}
+            >
+              {state.myBankBeansReady ? "Ready" : "Ready to wager"}
+            </button>
+          </div>
+        ) : null}
         {state?.notice && (
           <p className="mt-1 text-xs font-semibold text-[var(--coral)]">
             {state.notice}
