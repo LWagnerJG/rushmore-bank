@@ -88,6 +88,19 @@ export function applyDiceRoll(
   };
 }
 
+/**
+ * Beans the roll actually added to the pot (UI readout).
+ * Doubles → pot delta (not face sum). Bust → 0 (UI shows BEAN BUSTER).
+ */
+export function rollNetBeansAdded(
+  potBefore: number,
+  potAfter: number,
+  busted?: boolean,
+): number {
+  if (busted) return 0;
+  return Math.max(0, Math.floor(potAfter) - Math.floor(potBefore));
+}
+
 /** All 36 face pairs for synchronized animation lookup. */
 export const ALL_FACE_PAIRS: Array<[number, number]> = (() => {
   const out: Array<[number, number]> = [];

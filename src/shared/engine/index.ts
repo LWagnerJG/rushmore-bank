@@ -7,6 +7,7 @@ export {
 } from "./snake";
 export {
   applyDiceRoll,
+  rollNetBeansAdded,
   isValidFaces,
   ALL_FACE_PAIRS,
   type DiceFaces,

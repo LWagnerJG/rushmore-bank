@@ -40,6 +40,7 @@ export function WagerPanel({
   ).length;
   const readyNeeded = state.seatOrder.length;
   const nothingToRisk = max <= 0;
+  const urgent = left !== null && left <= 5;
 
   useEffect(() => {
     const tick = () =>
@@ -90,7 +91,7 @@ export function WagerPanel({
 
   if (nothingToRisk) {
     return (
-      <div className="space-y-6">
+      <div className="wager-flow space-y-5">
         <header className="space-y-1 text-center">
           <h2 className="font-[family-name:var(--font-display)] text-2xl font-extrabold">
             No beans to risk
@@ -116,58 +117,69 @@ export function WagerPanel({
   }
 
   return (
-    <div className="space-y-6">
-      <header className="space-y-1 text-center">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="font-[family-name:var(--font-display)] text-2xl font-extrabold">
+    <div className="wager-flow space-y-5">
+      <header className="wager-header">
+        <div className="wager-header-copy">
+          <h2 className="font-[family-name:var(--font-display)] text-[1.65rem] font-extrabold leading-tight tracking-tight">
             Risk how many?
           </h2>
-          {left !== null && (
-            <span className="text-sm font-bold tabular-nums text-[var(--muted)]">
-              {left}s
-            </span>
-          )}
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            Earned {earned}
+            {banked > 0 ? ` · banked ${banked}` : ""}
+          </p>
         </div>
-        <p className="text-sm text-[var(--muted)]">
-          Earned {earned}
-          {banked > 0 ? ` · banked ${banked}` : ""}
-        </p>
+        {left !== null && (
+          <div
+            className={`wager-timer ${urgent ? "wager-timer-urgent" : ""}`}
+            role="timer"
+            aria-live="polite"
+            aria-label={`${left} seconds left`}
+          >
+            <span className="wager-timer-label">Time</span>
+            <span className="wager-timer-value tabular-nums">{left}</span>
+            <span className="wager-timer-unit">s</span>
+          </div>
+        )}
       </header>
 
-      <section className="wager-hero space-y-4 text-center" aria-live="polite">
-        <div className="space-y-1">
-          <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[var(--muted)]">
+      <section className="wager-hero space-y-5 text-center" aria-live="polite">
+        <div className="space-y-1.5">
+          <p className="text-[0.7rem] font-extrabold uppercase tracking-[0.16em] text-[var(--muted)]">
             At risk
           </p>
-          <p className="font-[family-name:var(--font-display)] text-6xl font-extrabold tabular-nums leading-none tracking-tight">
+          <p className="font-[family-name:var(--font-display)] text-[4.25rem] font-extrabold tabular-nums leading-none tracking-tight">
             {clamped}
           </p>
+          <p className="text-base font-bold text-[var(--text)]">
+            <span className="tabular-nums text-[var(--mint)]">
+              {protectedBal}
+            </span>
+            {" stay safe"}
+          </p>
         </div>
-        <p className="text-base font-bold text-[var(--text)]">
-          <span className="tabular-nums text-[var(--mint)]">{protectedBal}</span>
-          {" stay safe"}
-        </p>
 
-        <label htmlFor={sliderId} className="sr-only">
-          Beans at risk, {min} to {max}
-        </label>
-        <input
-          id={sliderId}
-          className="wager-slider mt-2 w-full"
-          type="range"
-          min={min}
-          max={max}
-          step={1}
-          value={clamped}
-          onChange={(e) => setAmount(Number(e.target.value))}
-          aria-valuemin={min}
-          aria-valuemax={max}
-          aria-valuenow={clamped}
-          aria-valuetext={`${clamped} beans at risk, ${protectedBal} protected`}
-        />
-        <div className="flex justify-between px-0.5 text-[0.7rem] font-bold tabular-nums text-[var(--muted)]">
-          <span>{min} min</span>
-          <span>{max} max</span>
+        <div className="wager-slider-block">
+          <label htmlFor={sliderId} className="sr-only">
+            Beans at risk, {min} to {max}
+          </label>
+          <input
+            id={sliderId}
+            className="wager-slider w-full"
+            type="range"
+            min={min}
+            max={max}
+            step={1}
+            value={clamped}
+            onChange={(e) => setAmount(Number(e.target.value))}
+            aria-valuemin={min}
+            aria-valuemax={max}
+            aria-valuenow={clamped}
+            aria-valuetext={`${clamped} beans at risk, ${protectedBal} protected`}
+          />
+          <div className="mt-2 flex justify-between px-0.5 text-[0.7rem] font-bold tabular-nums text-[var(--muted)]">
+            <span>{min} min</span>
+            <span>{max} max</span>
+          </div>
         </div>
       </section>
 
@@ -181,7 +193,9 @@ export function WagerPanel({
           send({ type: "submit_wager", amount: clamped });
         }}
       >
-        {busy ? "Locking…" : `Lock in ${clamped}`}
+        {busy
+          ? "Locking…"
+          : `Risk ${clamped} bean${clamped === 1 ? "" : "s"}`}
       </button>
     </div>
   );
