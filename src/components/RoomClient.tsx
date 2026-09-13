@@ -245,9 +245,10 @@ export function RoomClient({
     <main
       className={
         "app-shell app-shell-scroll mx-auto flex max-w-md flex-col px-4 pt-0 " +
-        (phase === "LOBBY"
-          ? "pb-[max(5.5rem,calc(env(safe-area-inset-bottom)+4.25rem))]"
-          : "pb-[max(1.25rem,env(safe-area-inset-bottom))]")
+        // True safe-area only — do NOT reserve a huge cream band for Admin FAB
+        // (that looked like an opaque block eating topic-vibe chips / Start).
+        // Lobby Start clears the FAB via .lobby-start-slot instead.
+        "pb-[max(0.75rem,env(safe-area-inset-bottom))]"
       }
     >
       <header
@@ -381,9 +382,9 @@ export function RoomClient({
 
       <div
         className={
-          phase === "SCORE_REVEAL"
-            ? "flex-1"
-            : "animate-rise flex-1"
+          // Avoid flex-1 on scroll phases: basis-0 + transform (animate-rise)
+          // was clipping lobby panels so cream shell showed as a bottom block.
+          phase === "SCORE_REVEAL" ? "min-h-0 flex-1" : "animate-rise"
         }
       >
         {body}

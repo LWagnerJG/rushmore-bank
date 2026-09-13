@@ -227,7 +227,8 @@ html.party-on .btn-primary {
 }
 
 .animate-rise {
-  animation: rise 380ms ease-out both;
+  /* forwards (not both): avoid lingering transform that traps overflow */
+  animation: rise 380ms ease-out forwards;
 }
 
 @keyframes topic-refresh {
@@ -380,11 +381,15 @@ html.party-on .brand-shimmer {
   color: var(--muted);
 }
 
-/* Discreet Add to Home Screen — quiet, not marketing */
+/* Discreet Add to Home Screen — quiet bottom control, no tutorial wall */
 .a2hs {
   display: flex;
-  justify-content: center;
-  padding-top: 0.15rem;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.15rem;
+  flex-shrink: 0;
 }
 
 .a2hs-trigger {
@@ -407,80 +412,44 @@ html.party-on .brand-shimmer {
   color: var(--text);
 }
 
-.a2hs-sheet {
-  position: fixed;
-  inset: 0;
-  z-index: 80;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding: 1rem;
-  padding-bottom: max(1rem, env(safe-area-inset-bottom));
-  background: rgba(35, 72, 62, 0.28);
-}
-
-.a2hs-sheet-card {
-  width: min(100%, 22rem);
-  border-radius: 1.1rem;
-  background: var(--bg);
-  border: 1.5px solid rgba(35, 72, 62, 0.12);
-  box-shadow: 0 12px 40px rgba(35, 72, 62, 0.18);
-  padding: 1.1rem 1.15rem 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.a2hs-sheet-title {
-  font-family: var(--font-display), system-ui, sans-serif;
-  font-size: 1.15rem;
-  font-weight: 800;
-  line-height: 1.25;
-  color: var(--text);
-}
-
-.a2hs-steps {
+.a2hs-nudge {
   margin: 0;
-  padding-left: 1.15rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-  font-size: 0.92rem;
+  max-width: 18rem;
+  text-align: center;
+  font-size: 0.7rem;
   font-weight: 600;
-  color: var(--text);
-}
-
-.a2hs-steps li {
   line-height: 1.35;
+  color: var(--muted);
 }
 
 .a2hs-share-glyph {
   display: inline-block;
-  vertical-align: -0.15em;
+  vertical-align: -0.12em;
   color: var(--coral);
-  margin-right: 0.1em;
+  margin-right: 0.15em;
 }
 
-.a2hs-note {
-  margin: 0;
-  font-size: 0.75rem;
-  font-weight: 600;
-  line-height: 1.4;
-  color: var(--muted);
+.a2hs-nudge-dismiss {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--coral);
+  font-size: inherit;
+  font-weight: 800;
+  padding: 0 0.15rem;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
 }
 
-.a2hs-dismiss {
-  width: 100%;
-  margin-top: 0.15rem;
-}
-
-/* Lobby: keep Start fully above home-indicator / Admin FAB */
+/* Lobby: clear fixed Admin FAB without a full-bleed cream dead zone */
 .lobby-layout {
   padding-bottom: 0.25rem;
 }
 
 .lobby-start-slot {
-  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  /* FAB is ~2.5rem + gap; shell already applies safe-area pb — don't double it */
+  padding-bottom: 3.25rem;
 }
 
 .lobby-start-slot .btn-primary {

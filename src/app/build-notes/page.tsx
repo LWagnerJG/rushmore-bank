@@ -17,7 +17,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Epic PWA icon + discreet Add to Home Screen → {RULES.productionUrl}
+        A2HS nudge + fix cream bottom clip → {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -60,10 +60,18 @@ export default function BuildNotesPage() {
             <code>icon.png</code> / <code>apple-icon.png</code>, OG.
           </li>
           <li>
-            <strong>Add to Home Screen</strong>: discreet control on home. iOS
-            shows Share → Add to Home Screen tip (no fake one-tap). Chromium
-            uses <code>beforeinstallprompt</code> when available; otherwise a
-            short menu tip. Hidden in standalone / installed mode.
+            <strong>Add to Home Screen</strong>: one discreet bottom control.
+            Chromium one-tap via <code>beforeinstallprompt</code> when
+            available; otherwise a single-line nudge (Share hint on iOS — no
+            multi-step overlay). Hidden in standalone / minimal-ui / installed.
+          </li>
+          <li>
+            <strong>Cream bottom clip</strong>: lobby no longer reserves ~5.5rem
+            of opaque shell padding for Admin FAB (that band ate topic-vibe
+            chips). Shell keeps true <code>safe-area-inset-bottom</code> only;
+            Start clears the FAB via <code>.lobby-start-slot</code>. Dropped
+            scroll-phase <code>flex-1</code> + lingering rise transform that
+            clipped panels.
           </li>
           <li>
             Production URL remains <code>{RULES.productionUrl}</code>;{" "}
@@ -83,8 +91,9 @@ export default function BuildNotesPage() {
             Alias: <code>https://roundacats.vercel.app</code>
           </li>
           <li>
-            After merge: Fudge can re-point the beans-game alias if Vercel
-            doesn’t auto-attach to the newest deployment.
+            After merge: Fudge can re-point the{" "}
+            <code>roundacats.vercel.app</code> alias if Vercel doesn’t
+            auto-attach the newest deployment to production.
           </li>
           <li>
             iOS: remove old home-screen icon and re-Add to pick up the new art.
