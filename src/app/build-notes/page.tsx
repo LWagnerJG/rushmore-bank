@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { RULES } from "@/shared/rules";
-import { TOPIC_COUNT } from "@/shared/topics";
 
 const COMMIT_SHA = process.env.VERCEL_GIT_COMMIT_SHA;
 const COMMIT_MESSAGE = process.env.VERCEL_GIT_COMMIT_MESSAGE;
