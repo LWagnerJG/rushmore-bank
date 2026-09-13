@@ -117,13 +117,14 @@ async function main() {
     console.log(`pick ${i + 1}: ${actor.name} -> ${pick}`);
   }
 
-  // REVIEW (~5s) or host skip
+  // Draft ends go straight into VOTING_AND_JUDGING (reviewSeconds = 0).
+  // Tolerate a brief REVIEW flash if an older party host is still live.
   try {
-    await luke.waitPhase("REVIEW", 8000);
-    console.log("REVIEW — host skip");
+    await luke.waitPhase("REVIEW", 1500);
+    console.log("REVIEW flash — host skip");
     luke.send({ type: "skip_review" });
   } catch {
-    /* */
+    /* expected: usually already in VOTING_AND_JUDGING */
   }
 
   await luke.waitPhase("VOTING_AND_JUDGING", 10000);
