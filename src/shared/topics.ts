@@ -6862,6 +6862,616 @@ export const TOPICS: Topic[] = [
     text: "Award show moments people remember",
     scope: "entertainment",
     scopeBoundary: "Oscars / Grammys moments people know.",
+  },
+
+  // ── Animals vibe additions ──────────────────────────────────────────────────
+  {
+    id: "most-dangerous-animals",
+    text: "Most dangerous animals in the world",
+    scope: "everyday",
+    scopeBoundary: "Wild animals — any species known to be deadly to humans.",
+  },
+  {
+    id: "smartest-animals",
+    text: "Smartest animals",
+    scope: "everyday",
+    scopeBoundary: "Animal intelligence across any species. Domestic or wild.",
+  },
+  {
+    id: "cutest-baby-animals",
+    text: "Cutest baby animals",
+    scope: "everyday",
+    scopeBoundary: "Any young animal that's undeniably adorable as a baby.",
+  },
+  {
+    id: "best-apex-predators",
+    text: "Best apex predators",
+    scope: "everyday",
+    scopeBoundary: "Animals at the top of their food chain — land, sea, or sky.",
+  },
+  {
+    id: "most-underrated-animals",
+    text: "Most underrated animals",
+    scope: "everyday",
+    scopeBoundary: "Creatures that don't get enough appreciation or attention.",
+  },
+  {
+    id: "scariest-ocean-creatures",
+    text: "Scariest ocean creatures",
+    scope: "everyday",
+    scopeBoundary: "Real sea life that would terrify most people. No fictional creatures.",
+  },
+  {
+    id: "most-colorful-animals",
+    text: "Most colorful animals",
+    scope: "everyday",
+    scopeBoundary: "Animals known for vibrant or striking coloration.",
+  },
+  {
+    id: "best-animal-defense-mechanisms",
+    text: "Best animal defense mechanisms",
+    scope: "everyday",
+    scopeBoundary: "Natural defenses — venom, camouflage, spines, ink, etc.",
+  },
+  {
+    id: "fastest-animals-on-land",
+    text: "Fastest animals on land",
+    scope: "everyday",
+    scopeBoundary: "Any terrestrial animal known for speed.",
+  },
+  {
+    id: "largest-animals-on-earth",
+    text: "Largest animals on Earth",
+    scope: "everyday",
+    scopeBoundary: "By size or mass — land, sea, or sky.",
+  },
+  {
+    id: "most-intelligent-sea-creatures",
+    text: "Most intelligent sea creatures",
+    scope: "everyday",
+    scopeBoundary: "Marine animals known for cognitive ability.",
+  },
+  {
+    id: "animals-with-best-camouflage",
+    text: "Animals with the best camouflage",
+    scope: "everyday",
+    scopeBoundary: "Masters of blending in — any species.",
+  },
+  {
+    id: "most-venomous-creatures",
+    text: "Most venomous creatures",
+    scope: "everyday",
+    scopeBoundary: "Animals with the most potent venom — insects, snakes, marine life.",
+  },
+  {
+    id: "animals-longest-lifespan",
+    text: "Animals that live the longest",
+    scope: "everyday",
+    scopeBoundary: "Species known for exceptional longevity.",
+  },
+  {
+    id: "best-animals-in-mythology",
+    text: "Best animals in mythology and folklore",
+    scope: "everyday",
+    scopeBoundary: "Real or mythical animals from any culture's mythology.",
+  },
+  {
+    id: "most-loyal-animals",
+    text: "Most loyal animals",
+    scope: "everyday",
+    scopeBoundary: "Known for bonding with humans or mates. Any species.",
+  },
+  {
+    id: "best-bird-watching-birds",
+    text: "Best birds to spot while bird-watching",
+    scope: "everyday",
+    scopeBoundary: "Any bird species — rare, colorful, or exciting to find.",
+  },
+  {
+    id: "most-fascinating-insects",
+    text: "Most fascinating insects",
+    scope: "everyday",
+    scopeBoundary: "Any insect or bug known for something remarkable.",
+  },
+  {
+    id: "best-reptiles-as-pets",
+    text: "Best reptiles to keep as pets",
+    scope: "everyday",
+    scopeBoundary: "Reptiles people actually keep — lizards, snakes, tortoises.",
+  },
+  {
+    id: "best-animals-trainable",
+    text: "Best animals that can be trained",
+    scope: "everyday",
+    scopeBoundary: "Any species capable of learning tricks, commands, or complex behaviors.",
+  },
+  {
+    id: "best-animal-documentaries",
+    text: "Best animal documentaries",
+    scope: "everyday",
+    scopeBoundary: "Wildlife or nature documentaries. Series count if they focus on animals.",
+  },
+  {
+    id: "best-fictional-animal-characters",
+    text: "Best fictional animal characters",
+    scope: "entertainment",
+    scopeBoundary: "Animal characters from movies, TV, books, or games.",
+  },
+  {
+    id: "weirdest-deep-sea-creatures",
+    text: "Weirdest deep-sea creatures",
+    scope: "everyday",
+    scopeBoundary: "Strange real animals from the deep ocean.",
+  },
+  {
+    id: "cutest-dog-breeds",
+    text: "Cutest dog breeds",
+    scope: "everyday",
+    scopeBoundary: "Any dog breed — based purely on adorableness.",
+  },
+  {
+    id: "most-aggressive-animals",
+    text: "Most aggressive animals",
+    scope: "everyday",
+    scopeBoundary: "Animals known to attack unprovoked. Wild only.",
+  },
+  {
+    id: "animals-with-best-eyesight",
+    text: "Animals with the best senses",
+    scope: "everyday",
+    scopeBoundary: "Vision, hearing, smell, echolocation — any extraordinary sense.",
+  },
+  {
+    id: "best-spirit-animals",
+    text: "Best spirit animals",
+    scope: "everyday",
+    scopeBoundary: "Any animal you'd want as your personal symbol or totem.",
+  },
+  {
+    id: "animals-that-mate-for-life",
+    text: "Animals that mate for life",
+    scope: "everyday",
+    scopeBoundary: "Species known for monogamous, lifelong pair bonds.",
+  },
+  {
+    id: "most-social-animals",
+    text: "Most social animals",
+    scope: "everyday",
+    scopeBoundary: "Species that live in groups or colonies — highly cooperative.",
+  },
+  {
+    id: "best-farm-animals",
+    text: "Best farm animals",
+    scope: "everyday",
+    scopeBoundary: "Livestock and animals raised on farms — any criteria.",
+  },
+  {
+    id: "most-unique-animal-migrations",
+    text: "Most impressive animal migrations",
+    scope: "everyday",
+    scopeBoundary: "Species known for extraordinary seasonal travel.",
+  },
+  {
+    id: "animals-with-surprising-superpowers",
+    text: "Animals with surprising abilities",
+    scope: "everyday",
+    scopeBoundary: "Real biological abilities that seem almost supernatural.",
+  },
+  {
+    id: "best-zoo-animals-to-see",
+    text: "Best zoo animals to see in person",
+    scope: "everyday",
+    scopeBoundary: "Animals worth going to the zoo specifically to see.",
+  },
+  {
+    id: "animals-best-parents",
+    text: "Animals that are the best parents",
+    scope: "everyday",
+    scopeBoundary: "Species known for exceptional parenting or offspring care.",
+  },
+  {
+    id: "most-mysterious-creatures",
+    text: "Most mysterious creatures",
+    scope: "everyday",
+    scopeBoundary: "Real animals that remain poorly understood or rarely seen.",
+  },
+  {
+    id: "endangered-animals-worth-saving",
+    text: "Endangered animals worth saving",
+    scope: "everyday",
+    scopeBoundary: "Threatened or endangered species — any reason counts.",
+  },
+  {
+    id: "best-nocturnal-animals",
+    text: "Best nocturnal animals",
+    scope: "everyday",
+    scopeBoundary: "Animals that are most active at night.",
+  },
+  {
+    id: "animals-that-look-prehistoric",
+    text: "Animals that look prehistoric",
+    scope: "everyday",
+    scopeBoundary: "Living species that look like they haven't evolved in millions of years.",
+  },
+  {
+    id: "best-insects-to-have-in-your-garden",
+    text: "Best insects to have in your garden",
+    scope: "everyday",
+    scopeBoundary: "Beneficial bugs — pollinators, pest-eaters, decomposers.",
+  },
+  {
+    id: "animals-best-disguises",
+    text: "Animals with the best disguises",
+    scope: "everyday",
+    scopeBoundary: "Mimicry, deception, or mimicry in the animal kingdom.",
+  },
+  {
+    id: "most-playful-animals",
+    text: "Most playful animals",
+    scope: "everyday",
+    scopeBoundary: "Species known for playing — even as adults.",
+  },
+  {
+    id: "best-safari-animals",
+    text: "Best animals to see on safari",
+    scope: "everyday",
+    scopeBoundary: "African wildlife anyone would want to spot on safari.",
+  },
+  {
+    id: "sea-creatures-most-beautiful",
+    text: "Most beautiful sea creatures",
+    scope: "everyday",
+    scopeBoundary: "Marine animals — fish, invertebrates, mammals.",
+  },
+  {
+    id: "animals-with-best-teamwork",
+    text: "Animals with the best teamwork",
+    scope: "everyday",
+    scopeBoundary: "Species that coordinate or cooperate to hunt, build, or survive.",
+  },
+  {
+    id: "famous-animals-in-history",
+    text: "Famous animals in history",
+    scope: "everyday",
+    scopeBoundary: "Real animals that became famous — war animals, space animals, celebrity pets.",
+  },
+  {
+    id: "animals-with-weirdest-names",
+    text: "Animals with the weirdest names",
+    scope: "everyday",
+    scopeBoundary: "Real species with names that sound made up or funny.",
+  },
+  {
+    id: "best-animal-sounds",
+    text: "Best animal sounds",
+    scope: "everyday",
+    scopeBoundary: "Animals with the most notable, funny, or impressive calls.",
+  },
+  {
+    id: "animals-symbolize-countries",
+    text: "Best national animals",
+    scope: "everyday",
+    scopeBoundary: "Any country's official or symbolic animal — any criteria.",
+  },
+  {
+    id: "best-types-of-dogs",
+    text: "Best dog types by personality",
+    scope: "everyday",
+    scopeBoundary: "Any dog breed or mix — based on personality or traits.",
+  },
+  {
+    id: "cats-vs-dogs-categories",
+    text: "Reasons cats make better pets",
+    scope: "everyday",
+    scopeBoundary: "Arguments for why cats win as pets. No 'dogs are better' picks.",
+  },
+  {
+    id: "reasons-dogs-better",
+    text: "Reasons dogs make better pets",
+    scope: "everyday",
+    scopeBoundary: "Arguments for why dogs win as pets.",
+  },
+  {
+    id: "animals-in-pop-culture",
+    text: "Most iconic animals in pop culture",
+    scope: "entertainment",
+    scopeBoundary: "Animals made famous by movies, TV, games, or memes.",
+  },
+  {
+    id: "best-aquarium-fish-species",
+    text: "Best fish to keep in an aquarium",
+    scope: "everyday",
+    scopeBoundary: "Freshwater or saltwater fish — beauty, ease, or personality.",
+  },
+  {
+    id: "animals-most-useful-to-humans",
+    text: "Most useful animals to humans throughout history",
+    scope: "everyday",
+    scopeBoundary: "Animals that shaped civilization — farming, transport, medicine.",
+  },
+
+  // ── Geography vibe additions ─────────────────────────────────────────────────
+  {
+    id: "best-countries-to-visit-europe",
+    text: "Best countries to visit in Europe",
+    scope: "everyday",
+    scopeBoundary: "Any European nation — any type of travel.",
+  },
+  {
+    id: "best-us-cities",
+    text: "Best cities in the United States",
+    scope: "everyday",
+    scopeBoundary: "Any US city — any criteria (food, nightlife, culture, vibe).",
+  },
+  {
+    id: "best-tropical-destinations",
+    text: "Best tropical vacation destinations",
+    scope: "everyday",
+    scopeBoundary: "Tropical or warm-weather destinations worldwide.",
+  },
+  {
+    id: "most-beautiful-natural-wonders",
+    text: "Most beautiful natural wonders of the world",
+    scope: "everyday",
+    scopeBoundary: "Real natural formations or phenomena — any continent.",
+  },
+  {
+    id: "best-countries-for-food",
+    text: "Best countries for food",
+    scope: "everyday",
+    scopeBoundary: "Nations with the most celebrated culinary culture.",
+  },
+  {
+    id: "best-landmarks-to-visit",
+    text: "Best landmarks to visit before you die",
+    scope: "everyday",
+    scopeBoundary: "Any famous landmark worldwide — man-made or natural.",
+  },
+  {
+    id: "most-underrated-countries",
+    text: "Most underrated countries to visit",
+    scope: "everyday",
+    scopeBoundary: "Countries that deserve more tourist attention.",
+  },
+  {
+    id: "best-cities-for-foodies",
+    text: "Best cities for foodies",
+    scope: "everyday",
+    scopeBoundary: "Cities known for exceptional restaurant or street-food scenes.",
+  },
+  {
+    id: "most-livable-cities-world",
+    text: "Most livable cities in the world",
+    scope: "everyday",
+    scopeBoundary: "Cities ranked on quality of life — safety, transit, culture.",
+  },
+  {
+    id: "best-hidden-gem-travel",
+    text: "Best hidden gem travel destinations",
+    scope: "everyday",
+    scopeBoundary: "Places that feel like a secret — undervisited but worth it.",
+  },
+  {
+    id: "most-iconic-monuments",
+    text: "Most iconic world monuments",
+    scope: "everyday",
+    scopeBoundary: "Man-made structures or monuments recognized worldwide.",
+  },
+  {
+    id: "best-beach-destinations-world",
+    text: "Best beach destinations in the world",
+    scope: "everyday",
+    scopeBoundary: "Beaches or beach towns worldwide — any criteria.",
+  },
+  {
+    id: "best-cities-for-nightlife",
+    text: "Best cities for nightlife",
+    scope: "everyday",
+    scopeBoundary: "Cities with legendary bar, club, or late-night scenes.",
+  },
+  {
+    id: "most-affordable-travel-destinations",
+    text: "Most affordable travel destinations",
+    scope: "everyday",
+    scopeBoundary: "Great places to visit on a budget — anywhere in the world.",
+  },
+  {
+    id: "best-places-retire-abroad",
+    text: "Best places to retire abroad",
+    scope: "everyday",
+    scopeBoundary: "Countries or cities ideal for retiring expatriates.",
+  },
+  {
+    id: "best-cities-for-art-culture",
+    text: "Best cities for art and culture",
+    scope: "everyday",
+    scopeBoundary: "Museums, galleries, theaters, architecture — any city worldwide.",
+  },
+  {
+    id: "most-extreme-climates-to-visit",
+    text: "Most extreme places on Earth",
+    scope: "everyday",
+    scopeBoundary: "Hottest, coldest, driest, wettest, highest — real places.",
+  },
+  {
+    id: "best-mountains-to-hike",
+    text: "Best mountains to hike or climb",
+    scope: "everyday",
+    scopeBoundary: "Real mountains — iconic hikes or climbing routes.",
+  },
+  {
+    id: "best-countries-for-adventure-travel",
+    text: "Best countries for adventure travel",
+    scope: "everyday",
+    scopeBoundary: "Destinations for hiking, diving, skydiving, or outdoor thrills.",
+  },
+  {
+    id: "best-asian-countries-visit",
+    text: "Best countries to visit in Asia",
+    scope: "everyday",
+    scopeBoundary: "Any Asian nation — any type of travel.",
+  },
+  {
+    id: "best-capital-cities",
+    text: "Best capital cities in the world",
+    scope: "everyday",
+    scopeBoundary: "National capitals worth visiting — any criteria.",
+  },
+  {
+    id: "most-visited-landmarks-us",
+    text: "Most visited landmarks in the United States",
+    scope: "everyday",
+    scopeBoundary: "Famous American sites — monuments, parks, attractions.",
+  },
+  {
+    id: "best-island-countries",
+    text: "Best island nations to visit",
+    scope: "everyday",
+    scopeBoundary: "Countries that are islands or island groups.",
+  },
+  {
+    id: "cities-with-best-architecture",
+    text: "Cities with the best architecture",
+    scope: "everyday",
+    scopeBoundary: "Skylines, historic districts, iconic buildings — any city.",
+  },
+  {
+    id: "best-latin-american-countries",
+    text: "Best countries to visit in Latin America",
+    scope: "everyday",
+    scopeBoundary: "Central or South American nations — any travel style.",
+  },
+  {
+    id: "best-national-parks-world",
+    text: "Best national parks in the world",
+    scope: "everyday",
+    scopeBoundary: "Protected wilderness areas — any country.",
+  },
+  {
+    id: "most-scenic-train-routes",
+    text: "Most scenic train routes in the world",
+    scope: "everyday",
+    scopeBoundary: "Rail journeys known for breathtaking views or experience.",
+  },
+  {
+    id: "best-countries-for-beaches-islands",
+    text: "Best countries with stunning beaches",
+    scope: "everyday",
+    scopeBoundary: "Nations where beach quality is a defining attraction.",
+  },
+  {
+    id: "most-historic-cities",
+    text: "Most historic cities in the world",
+    scope: "everyday",
+    scopeBoundary: "Cities with deep history — ancient, medieval, or colonial.",
+  },
+  {
+    id: "best-places-northern-lights",
+    text: "Best places to see the northern lights",
+    scope: "everyday",
+    scopeBoundary: "Real destinations known for aurora viewing.",
+  },
+  {
+    id: "best-us-national-parks",
+    text: "Best US national parks",
+    scope: "everyday",
+    scopeBoundary: "America's national parks — any criteria.",
+  },
+  {
+    id: "best-road-trips-us",
+    text: "Best US road trip routes",
+    scope: "everyday",
+    scopeBoundary: "Classic or underrated American road-trip drives.",
+  },
+  {
+    id: "best-wine-regions-world",
+    text: "Best wine regions in the world",
+    scope: "everyday",
+    scopeBoundary: "Geographic regions famous for wine production.",
+  },
+  {
+    id: "most-unique-countries-culture",
+    text: "Countries with the most unique culture",
+    scope: "everyday",
+    scopeBoundary: "Nations with traditions or customs unlike anywhere else.",
+  },
+  {
+    id: "best-cities-for-expats",
+    text: "Best cities for expats",
+    scope: "everyday",
+    scopeBoundary: "Cities welcoming to foreigners — job market, lifestyle, community.",
+  },
+  {
+    id: "most-photogenic-places-world",
+    text: "Most photogenic places in the world",
+    scope: "everyday",
+    scopeBoundary: "Places that look unreal in photos — any location.",
+  },
+  {
+    id: "best-african-countries-visit",
+    text: "Best countries to visit in Africa",
+    scope: "everyday",
+    scopeBoundary: "Any African nation — wildlife, culture, beaches, history.",
+  },
+  {
+    id: "best-cities-for-street-food",
+    text: "Best cities for street food",
+    scope: "everyday",
+    scopeBoundary: "Cities famous for food markets, carts, and street vendors.",
+  },
+  {
+    id: "best-rivers-to-explore",
+    text: "Best rivers to explore",
+    scope: "everyday",
+    scopeBoundary: "Famous rivers — cruise, canoe, or swim. Any river worldwide.",
+  },
+  {
+    id: "most-walkable-cities",
+    text: "Most walkable cities in the world",
+    scope: "everyday",
+    scopeBoundary: "Cities where you can explore everything on foot.",
+  },
+  {
+    id: "best-places-diving-snorkeling",
+    text: "Best places for diving or snorkeling",
+    scope: "everyday",
+    scopeBoundary: "Real underwater destinations — coral reefs, wrecks, walls.",
+  },
+  {
+    id: "best-places-to-watch-sunrise-sunset",
+    text: "Best places to watch a sunrise or sunset",
+    scope: "everyday",
+    scopeBoundary: "Real locations with legendary sunrise or sunset views.",
+  },
+  {
+    id: "most-surprising-countries",
+    text: "Most surprising countries to visit",
+    scope: "everyday",
+    scopeBoundary: "Countries that exceed expectations once you actually go.",
+  },
+  {
+    id: "best-cities-in-south-america",
+    text: "Best cities in South America",
+    scope: "everyday",
+    scopeBoundary: "Any South American city — nightlife, food, culture, scenery.",
+  },
+  {
+    id: "best-places-to-see-wildlife",
+    text: "Best places to see wildlife in the wild",
+    scope: "everyday",
+    scopeBoundary: "Destinations famous for watching animals in their natural habitat.",
+  },
+  {
+    id: "most-expensive-cities-world",
+    text: "Most expensive cities to live in",
+    scope: "everyday",
+    scopeBoundary: "Cities with the highest cost of living worldwide.",
+  },
+  {
+    id: "best-places-camping",
+    text: "Best camping destinations",
+    scope: "everyday",
+    scopeBoundary: "Real places — national parks, remote wilderness, glamping spots.",
   }
 ];
 
@@ -6891,9 +7501,13 @@ function hayHas(hay: string, bit: string): boolean {
 /**
  * Keyword + scope heuristic — bank stays tag-free; vibes feel curated.
  * Priority: sports → animals → geography → basic.
+ *
+ * Hay uses only id + text, NOT scopeBoundary. Including scopeBoundary caused
+ * "Best hot dog toppings" (dog), "Things that start with C" (Cat in boundary)
+ * and many food topics to be mis-filed as animals.
  */
 export function inferTopicVibe(topic: Topic): TopicVibe {
-  const hay = `${topic.id} ${topic.text} ${topic.scopeBoundary}`.toLowerCase();
+  const hay = `${topic.id} ${topic.text}`.toLowerCase();
 
   const sportsBits = [
     "nba",
@@ -7026,11 +7640,20 @@ export function inferTopicVibe(topic: Topic): TopicVibe {
     "island vacation",
   ];
 
+  // Hard-exclude food compound words that would otherwise trip animal/geo matchers.
+  const isHotDog = /hot[\s-]dog/.test(hay);
+  // "country" in music context → not geography
+  const isCountryMusic = hay.includes("country album") ||
+    hay.includes("country song") ||
+    hay.includes("country music") ||
+    hay.includes("country artist") ||
+    hay.includes("country singer");
+
   if (topic.scope === "sports" || sportsBits.some((b) => hayHas(hay, b))) {
     return "sports";
   }
-  if (animalBits.some((b) => hayHas(hay, b))) return "animals";
-  if (geographyBits.some((b) => hayHas(hay, b))) return "geography";
+  if (!isHotDog && animalBits.some((b) => hayHas(hay, b))) return "animals";
+  if (!isCountryMusic && geographyBits.some((b) => hayHas(hay, b))) return "geography";
   return "basic";
 }
 
