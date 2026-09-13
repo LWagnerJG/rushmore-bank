@@ -69,7 +69,8 @@ export default function BuildNotesPage() {
             under Your turn; stash + draft board get stronger panel contrast on
             cream. Up-seat You-chip gold ring + glow no longer clipped on the
             rail (fit mode uses real <code>overflow: visible</code>; scroll mode
-            pads the track enough for the full ring/glow).
+            pads the track for the full ring/glow; sticky chrome blur moved to a
+            <code>::before</code> so it can’t clip descendants).
           </li>
           <li>
             <strong>Dice TAP</strong>: TAP sits on top of the dice and blinks
