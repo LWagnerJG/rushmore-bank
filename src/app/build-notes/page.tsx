@@ -56,26 +56,32 @@ export default function BuildNotesPage() {
           <li>
             <strong>Judge flow</strong>: rosters stay visible through vote → AI
             calculating → scored board (no blank/full-screen flip); discreet
-            “AI is calculating…” on the same board.
+            “AI is calculating…” on the same board (pending only).
           </li>
           <li>
-            <strong>Earned split</strong>: under{" "}
-            <code>+N</code> — <code>X from votes · Y from AI</code> (uses
-            existing <code>votes</code> / <code>aiAward</code>).
+            <strong>Earned split</strong>: under <code>+N</code> —{" "}
+            <code>X from votes · Y from AI</code> (uses existing{" "}
+            <code>votes</code> / <code>aiAward</code>).
           </li>
           <li>
             <strong>Ready to wager</strong>: primary CTA moved to sticky header
-            top-right with a soft pulse after tallies (replaces bottom “Bank
-            the Beans”).
+            top-right with a soft pulse after tallies (replaces bottom “Bank the
+            Beans”).
           </li>
           <li>
             <strong>Safe / Risking</strong>: full words replace S/P on player
-            rail + dice turn strip.
+            rail + dice turn strip; pot-split fit mode scrolls so labels don’t
+            clip.
           </li>
           <li>
             <strong>BANK stage</strong>: one soft cream panel holds role +
             pressing timer + bigger dice + louder TAP + pot/Bank — less outer
             chrome, more dice weight.
+          </li>
+          <li>
+            <strong>PlayerRail You-chip</strong>: gold ring + soft multi-layer
+            glow no longer clipped (fit overflow visible; scroll track padded;
+            sticky chrome blur on <code>::before</code>).
           </li>
           <li>
             Topics ({TOPIC_COUNT}), Party Mode, spectator, rematch, bank-confirm
