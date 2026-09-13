@@ -17,7 +17,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Vote → judge → BANK polish → {RULES.productionUrl}
+        Earned split + BANK readout cleanup → {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -60,8 +60,14 @@ export default function BuildNotesPage() {
           </li>
           <li>
             <strong>Earned split</strong>: under <code>+N</code> —{" "}
-            <code>X from votes · Y from AI</code> (uses existing{" "}
-            <code>votes</code> / <code>aiAward</code>).
+            <code>X from (N) votes · Y from AI</code> (vote count in
+            parentheses; uses existing <code>votes</code> /{" "}
+            <code>aiAward</code>).
+          </li>
+          <li>
+            <strong>BANK readout</strong>: one clear <code>+N beans</code>{" "}
+            line after a roll — no face equation or duplicate +N under a bare
+            total. Pot / Safe unchanged.
           </li>
           <li>
             <strong>Ready to wager</strong>: primary CTA moved to sticky header
