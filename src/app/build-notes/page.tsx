@@ -17,7 +17,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Vote → judge → wager polish → {RULES.productionUrl}
+        Vote → judge → BANK polish → {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -73,8 +73,14 @@ export default function BuildNotesPage() {
             rail + dice turn strip.
           </li>
           <li>
-            Topics ({TOPIC_COUNT}), Party Mode, spectator, rematch, timers,
-            Beans branding preserved. UI-only — no PartyKit host logic change.
+            <strong>BANK stage</strong>: one soft cream panel holds role +
+            pressing timer + bigger dice + louder TAP + pot/Bank — less outer
+            chrome, more dice weight.
+          </li>
+          <li>
+            Topics ({TOPIC_COUNT}), Party Mode, spectator, rematch, bank-confirm
+            timer pause, scramble settle, branding preserved. UI-only — no
+            PartyKit host logic change.
           </li>
         </ul>
       </section>

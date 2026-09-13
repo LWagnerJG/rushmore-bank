@@ -363,7 +363,7 @@ export function DicePanel({
     <div
       className={`dice-layout ${heroReveal && settling ? "dice-hero-mode" : ""} ${bustMoment ? "dice-bust-linger" : ""} ${!active && you.role === "player" ? "dice-spectator" : ""}`}
     >
-      {/* Zone 1 — turn strip (fixed) */}
+      {/* Zone 1 — turn strip (table context, outside the soft stage) */}
       <section
         className={`dice-zone dice-zone-strip ${drama ? "dice-table-dim" : ""}`}
         aria-label="Turn order"
@@ -371,153 +371,177 @@ export function DicePanel({
         <TurnStrip seats={seats} />
       </section>
 
-      {/* Zone 2 — who’s up → timer → dice tray → last roll */}
-      <section className="dice-zone dice-zone-stage" aria-label="Dice stage">
-        <header className="dice-stage-head text-center">
-          <h2 className="dice-up-title">
-            {bustMoment
-              ? "BEAN BUSTER"
-              : myTurn
-                ? "Your roll"
-                : `${roller?.name ?? "Player"} is up`}
-          </h2>
-          <p className="dice-up-status" aria-live="polite">
-            {bustMoment ? `${stickyRoll?.name ?? lastName} · pot wiped` : statusLine}
-          </p>
-        </header>
-
-        {/* Always reserve timer height — idle shows — */}
-        <div
-          className={`dice-stage-timer ${timerLive ? "dice-stage-timer-live" : "dice-stage-timer-idle"}`}
-          aria-label="Turn timer"
-        >
-          <DecisionTimer
-            until={timerUntil}
-            label={timerLabel}
-            idle={!timerLive}
-          />
-        </div>
-
-        <DiceScene
-          broadcast={last}
-          reducedMotion={reducedMotion}
-          canRoll={canRoll && !busy}
-          busted={!!last?.busted && settling}
-          firstRollHint={canRoll && (state.personalRollCounts[youId] ?? 0) === 0}
-          onRoll={() => {
-            if (canRoll) act({ type: "roll" });
-          }}
-        />
-
-        {/* Always-on last-roll slot — sticky through scramble; bust only while SETTLED */}
-        <div
-          className={[
-            "dice-result-readout",
-            showBust || showTotal ? "dice-result-readout-on" : "",
-            showBust ? "dice-result-bust" : "",
-            resultFresh && showTotal ? "dice-result-fresh" : "",
-            resultStale ? "dice-result-stale" : "",
-          ]
-            .filter(Boolean)
-            .join(" ")}
-          role="status"
-          aria-live="assertive"
-        >
-          {showBust && stickyRoll ? (
-            <>
-              <p className="dice-result-faces">
-                {stickyRoll.name} · {stickyRoll.d1} + {stickyRoll.d2}
+      {/* Zone 2 — one soft cream panel: role + timer + dice + TAP + last roll + pot/Bank */}
+      <section
+        className={`dice-zone dice-zone-stage ${drama && !myTurn ? "dice-stage-dim" : ""}`}
+        aria-label="Dice stage"
+      >
+        <div className="dice-stage-panel">
+          <header className="dice-stage-chrome">
+            <div className="dice-stage-role">
+              <h2 className="dice-up-title">
+                {bustMoment
+                  ? "BEAN BUSTER"
+                  : myTurn
+                    ? "Your roll"
+                    : `${roller?.name ?? "Player"} is up`}
+              </h2>
+              <p className="dice-up-status" aria-live="polite">
+                {bustMoment
+                  ? `${stickyRoll?.name ?? lastName} · pot wiped`
+                  : statusLine}
               </p>
-              <p className="dice-result-bust-title">BEAN BUSTER</p>
-              <p className="dice-result-note">Pot gone</p>
-            </>
-          ) : showTotal && stickyRoll ? (
-            <>
-              <p className="dice-result-faces">
-                {stickyRoll.name} · {stickyRoll.d1} + {stickyRoll.d2}
-              </p>
-              <p className="dice-result-total tabular-nums">{stickyRoll.total}</p>
-              {stickyRoll.note && !rolling ? (
-                <p className="dice-result-note">{stickyRoll.note}</p>
-              ) : (
-                <p className="dice-result-note dice-result-note-slot" aria-hidden="true">
+            </div>
+            <div
+              className={`dice-stage-timer ${timerLive ? "dice-stage-timer-live" : "dice-stage-timer-idle"}`}
+              aria-label="Turn timer"
+            >
+              <DecisionTimer
+                until={timerUntil}
+                label={timerLabel}
+                idle={!timerLive}
+              />
+            </div>
+          </header>
+
+          <div className="dice-stage-tray">
+            <DiceScene
+              broadcast={last}
+              reducedMotion={reducedMotion}
+              canRoll={canRoll && !busy}
+              busted={!!last?.busted && settling}
+              firstRollHint={
+                canRoll && (state.personalRollCounts[youId] ?? 0) === 0
+              }
+              onRoll={() => {
+                if (canRoll) act({ type: "roll" });
+              }}
+            />
+          </div>
+
+          <div
+            className={[
+              "dice-result-readout",
+              showBust || showTotal ? "dice-result-readout-on" : "",
+              showBust ? "dice-result-bust" : "",
+              resultFresh && showTotal ? "dice-result-fresh" : "",
+              resultStale ? "dice-result-stale" : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+            role="status"
+            aria-live="assertive"
+          >
+            {showBust && stickyRoll ? (
+              <>
+                <p className="dice-result-faces">
+                  {stickyRoll.name} · {stickyRoll.d1} + {stickyRoll.d2}
+                </p>
+                <p className="dice-result-bust-title">BEAN BUSTER</p>
+                <p className="dice-result-note">Pot gone</p>
+              </>
+            ) : showTotal && stickyRoll ? (
+              <>
+                <p className="dice-result-faces">
+                  {stickyRoll.name} · {stickyRoll.d1} + {stickyRoll.d2}
+                </p>
+                <p className="dice-result-total tabular-nums">
+                  {stickyRoll.total}
+                </p>
+                {stickyRoll.note && !rolling ? (
+                  <p className="dice-result-note">{stickyRoll.note}</p>
+                ) : (
+                  <p
+                    className="dice-result-note dice-result-note-slot"
+                    aria-hidden="true"
+                  >
+                    &nbsp;
+                  </p>
+                )}
+              </>
+            ) : (
+              <>
+                <p className="dice-result-faces dice-result-idle">Last roll</p>
+                <p className="dice-result-total tabular-nums dice-result-idle">
+                  —
+                </p>
+                <p
+                  className="dice-result-note dice-result-note-slot"
+                  aria-hidden="true"
+                >
                   &nbsp;
                 </p>
-              )}
-            </>
-          ) : (
-            <>
-              <p className="dice-result-faces dice-result-idle">Last roll</p>
-              <p className="dice-result-total tabular-nums dice-result-idle">—</p>
-              <p className="dice-result-note dice-result-note-slot" aria-hidden="true">
-                &nbsp;
-              </p>
-            </>
-          )}
+              </>
+            )}
+          </div>
+
+          {you.role === "player" ? (
+            <div className="dice-stage-actions" aria-label="Pot and Bank">
+              <div className="dice-pot-row">
+                <div className="dice-pot-stack">
+                  <p className="dice-pot-label">
+                    {active ? "Your pot" : "Your beans"}
+                  </p>
+                  <p className="dice-pot-value tabular-nums">
+                    {active ? pot : you.stones}
+                  </p>
+                  {active ? (
+                    <p className="dice-pot-hint">at risk</p>
+                  ) : (
+                    <p className="dice-pot-hint">banked</p>
+                  )}
+                </div>
+                <div
+                  className={`dice-pot-safe ${active ? "" : "dice-pot-safe-muted"}`}
+                >
+                  <p className="dice-pot-label">Your safe</p>
+                  <p className="dice-pot-safe-value tabular-nums">
+                    <strong>{safeBeans}</strong>
+                  </p>
+                </div>
+              </div>
+
+              <div className="dice-cta-slot">
+                {!active ? (
+                  <div className="dice-spectator-status" role="status">
+                    <p className="dice-spectator-kicker">Spectator</p>
+                    <p className="dice-watch-note">
+                      {roller?.name
+                        ? `Watching ${roller.name} roll`
+                        : "Watching this round"}
+                    </p>
+                  </div>
+                ) : myTurn ? (
+                  <button
+                    type="button"
+                    className={[
+                      "dice-bank-cta dice-bank-cta-secondary",
+                      canBank && !busy && !settling
+                        ? "dice-bank-cta-ready"
+                        : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                    disabled={!canBank || busy || settling}
+                    onClick={() => openBankConfirm()}
+                  >
+                    {pot === 0 ? "Bank" : `Bank ${pot}`}
+                  </button>
+                ) : (
+                  <div
+                    className="dice-bank-cta dice-bank-cta-secondary dice-bank-cta-ghost"
+                    aria-hidden="true"
+                  >
+                    Bank
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : null}
         </div>
       </section>
 
-      {/* Zone 3 — pot + safe + Bank CTA (always reserved for players) */}
-      {you.role === "player" && (
-        <section
-          className={`dice-zone dice-zone-actions ${drama && !myTurn ? "dice-action-dim" : ""}`}
-          aria-label="Pot and Bank"
-        >
-          <div className="dice-pot-row">
-            <div className="dice-pot-stack">
-              <p className="dice-pot-label">{active ? "Your pot" : "Your beans"}</p>
-              <p className="dice-pot-value tabular-nums">
-                {active ? pot : you.stones}
-              </p>
-              {active ? (
-                <p className="dice-pot-hint">at risk</p>
-              ) : (
-                <p className="dice-pot-hint">banked</p>
-              )}
-            </div>
-            <div
-              className={`dice-pot-safe ${active ? "" : "dice-pot-safe-muted"}`}
-            >
-              <p className="dice-pot-label">Your safe</p>
-              <p className="dice-pot-safe-value tabular-nums">
-                <strong>{safeBeans}</strong>
-              </p>
-            </div>
-          </div>
-
-          {/* Fixed-height CTA slot — Bank / ghost / spectator; never collapses */}
-          <div className="dice-cta-slot">
-            {!active ? (
-              <div className="dice-spectator-status" role="status">
-                <p className="dice-spectator-kicker">Spectator</p>
-                <p className="dice-watch-note">
-                  {roller?.name ? `Watching ${roller.name} roll` : "Watching this round"}
-                </p>
-              </div>
-            ) : myTurn ? (
-              <button
-                type="button"
-                className={[
-                  "dice-bank-cta dice-bank-cta-secondary",
-                  canBank && !busy && !settling ? "dice-bank-cta-ready" : "",
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-                disabled={!canBank || busy || settling}
-                onClick={() => openBankConfirm()}
-              >
-                {pot === 0 ? "Bank" : `Bank ${pot}`}
-              </button>
-            ) : (
-              <div className="dice-bank-cta dice-bank-cta-secondary dice-bank-cta-ghost" aria-hidden="true">
-                Bank
-              </div>
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* Zone 4 — party prompt: reserved grid slot, expands smoothly */}
+      {/* Zone 3 — party prompt: reserved slot, expands smoothly */}
       <div
         className={`dice-party-slot ${partyPrompt && !partyPrompt.resolved ? "dice-party-slot-open" : ""}`}
         aria-hidden={!partyPrompt || partyPrompt.resolved}
@@ -573,6 +597,7 @@ export function DicePanel({
           ) : null}
         </div>
       </div>
+
 
       {bankConfirm ? (
         <div className="bank-confirm-backdrop" role="dialog" aria-modal="true" aria-labelledby="bank-confirm-title">
