@@ -16,10 +16,8 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Quieter spectators · active seat pops → {RULES.productionUrl}
-      </p>
-      <p className="text-sm text-[var(--muted)]">
-        Public handoff — no secrets, credentials, or private session data.
+        Vote board readable · live progress (not a spreadsheet) →{" "}
+        {RULES.productionUrl}
       </p>
 
       <section className="panel space-y-2 text-sm">
@@ -34,10 +32,6 @@ export default function BuildNotesPage() {
                 Message: <span className="italic">{COMMIT_MESSAGE}</span>
               </li>
             ) : null}
-            <li>
-              Target: production <code>beans-game.vercel.app</code> via merge to{" "}
-              <code>main</code>.
-            </li>
           </ul>
         ) : (
           <p className="text-[var(--muted)]">
@@ -51,9 +45,9 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>Whose turn</strong>: only the active seat pops; waiting
-            chips / You-not-up sit quieter. Spectator copy stays clear but calm
-            (no shouty SPECTATOR kicker).
+            <strong>Vote board</strong>: Mount Rushmore picks stay larger and
+            clearer while votes come in. Live progress is a calm count + bar
+            (not a spreadsheet). Board stays up during AI calculating.
           </li>
         </ul>
       </section>

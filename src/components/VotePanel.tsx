@@ -69,25 +69,47 @@ export function VotePanel({
           Two players — AI scores both drafts (no vote needed).
         </p>
       ) : (
-        <>
-          <p
-            className="vote-count text-sm font-extrabold tabular-nums"
-            role="status"
-            aria-live="polite"
+        <div className="vote-live">
+          <div className="vote-live-row" role="status" aria-live="polite">
+            <span className="vote-live-count tabular-nums">
+              {state.humanVotesCast}
+              <span className="vote-live-of">/{state.humanVotesNeeded}</span>
+            </span>
+            <span className="vote-live-label">
+              {votesDone ? "voted · locking scores" : "voted"}
+            </span>
+          </div>
+          <div
+            className="vote-live-bar"
+            aria-hidden="true"
           >
-            {state.humanVotesCast}/{state.humanVotesNeeded} voted
-          </p>
+            <span
+              className="vote-live-fill"
+              style={{
+                width: `${
+                  state.humanVotesNeeded > 0
+                    ? Math.min(
+                        100,
+                        Math.round(
+                          (100 * state.humanVotesCast) /
+                            state.humanVotesNeeded,
+                        ),
+                      )
+                    : 0
+                }%`,
+              }}
+            />
+          </div>
           {!votesDone ? (
-            <p className="text-sm text-[var(--muted)]">
-              Tap a Mount Rushmore — best list for the topic. Ends in{" "}
-              {RULES.humanVoteSeconds}s or when everyone has voted.
+            <p className="vote-live-hint">
+              Tap the best Mount Rushmore for this topic.
             </p>
           ) : (
-            <p className="text-sm text-[var(--muted)]">
-              Rosters stay up while scores lock in.
+            <p className="vote-live-hint">
+              Rosters stay up while AI finishes scoring.
             </p>
           )}
-        </>
+        </div>
       )}
 
       {judging ? (
