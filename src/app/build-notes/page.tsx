@@ -96,6 +96,11 @@ export default function BuildNotesPage() {
             the lobby. Party mode canvas = <code>#fff8ec</code> with the
             gradient returning to that value at 100%.
           </li>
+          <li>
+            <strong>Beans wordmark</strong>: logo shimmer now moves at a
+            slower, discreet pace and reverses direction at each end,
+            including in Party Mode.
+          </li>
         </ul>
       </section>
     </main>
