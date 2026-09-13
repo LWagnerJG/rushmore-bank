@@ -4,7 +4,6 @@ import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
 import { RULES } from "@/shared/rules";
-import { PartyModeSwitch } from "@/components/PartyModeSwitch";
 
 export function LobbyPanel({
   state,
@@ -16,6 +15,7 @@ export function LobbyPanel({
   send: (m: ClientMessage) => void;
 }) {
   const [copied, setCopied] = useState(false);
+  const [showQR, setShowQR] = useState(false);
   const url =
     typeof window !== "undefined"
       ? `${window.location.origin}/room/${state.code}`
@@ -60,27 +60,40 @@ export function LobbyPanel({
           {state.code}
         </p>
         <p className="text-sm font-semibold text-[var(--muted)]">{statusText}</p>
-        <div className="mx-auto w-fit rounded-2xl bg-white p-3 shadow-sm">
-          <QRCodeSVG
-            value={url}
-            size={148}
-            bgColor="#ffffff"
-            fgColor="#23483E"
-          />
+
+        {showQR && (
+          <div className="mx-auto w-fit rounded-2xl bg-white p-3 shadow-sm">
+            <QRCodeSVG
+              value={url}
+              size={148}
+              bgColor="#ffffff"
+              fgColor="#23483E"
+            />
+          </div>
+        )}
+
+        <div className="flex flex-col gap-2">
+          <button
+            type="button"
+            className="btn-primary w-full text-base"
+            onClick={share}
+          >
+            {copied ? "Copied!" : "Share invite"}
+          </button>
+          <button
+            type="button"
+            className="btn-secondary w-full text-sm"
+            onClick={() => setShowQR((v) => !v)}
+          >
+            {showQR ? "Hide QR" : "Show QR"}
+          </button>
         </div>
-        <button
-          type="button"
-          className="btn-primary w-full text-base"
-          onClick={share}
-        >
-          {copied ? "Copied!" : "Share invite"}
-        </button>
       </section>
 
       <section className="panel space-y-3">
         <div className="flex items-baseline justify-between gap-2">
           <h2 className="font-[family-name:var(--font-display)] text-lg font-extrabold">
-            Who’s in
+            Who&rsquo;s in
           </h2>
           <span className="text-sm font-bold text-[var(--muted)]">
             {players.length}/{RULES.maxPlayers}
@@ -116,54 +129,7 @@ export function LobbyPanel({
       </section>
 
       {you.isHost ? (
-        <section className="lobby-host-tools space-y-3">
-          <div className="panel space-y-2">
-            <p className="text-xs font-extrabold uppercase tracking-wide text-[var(--muted)]">
-              Topic vibes
-            </p>
-            <div className="topic-vibe-row" role="group" aria-label="Topic vibes">
-              {(
-                [
-                  ["all", "All"],
-                  ["basic", "Basic"],
-                  ["sports", "Sports"],
-                  ["animals", "Animals"],
-                  ["geography", "Geography"],
-                ] as const
-              ).map(([value, label]) => {
-                const on = (state.settings.topicVibe ?? "all") === value;
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    className={
-                      "topic-vibe-chip" + (on ? " topic-vibe-chip-on" : "")
-                    }
-                    onClick={() =>
-                      send({
-                        type: "update_settings",
-                        settings: { topicVibe: value },
-                      })
-                    }
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-            <p className="text-xs font-semibold text-[var(--muted)]">
-              Filters the topic bank for this room’s shortlists &amp; rerolls.
-            </p>
-          </div>
-          <PartyModeSwitch
-            on={partyOn}
-            onChange={(next) =>
-              send({
-                type: "update_settings",
-                settings: { partyMode: next },
-              })
-            }
-          />
+        <section className="lobby-host-tools">
           <div className="lobby-start-slot">
             <button
               type="button"

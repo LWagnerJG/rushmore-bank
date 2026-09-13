@@ -16,7 +16,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Home prefill + score breakdown + draft turn-count fix → {RULES.productionUrl}
+        Lobby simplify + home prefill + score breakdown + draft turn-count fix → {RULES.productionUrl}
       </p>
 
       <section className="panel space-y-2 text-sm">
@@ -44,7 +44,14 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-<strong>Home screen prefill</strong>: last nickname is recalled on
+<strong>Lobby simplify</strong>: QR code collapsed behind a{" "}
+            &ldquo;Show QR&rdquo; toggle. Topic vibes removed from lobby (still
+            on Topic Selection screen). Party Mode moved into the settings
+            sheet (host-only). Start button no longer buried under a fixed
+            footer.
+          </li>
+          <li>
+            <strong>Home screen prefill</strong>: last nickname is recalled on
             mount so returning players land directly on Create / Join. Edit
             link stays visible. Room-code field no longer steals focus after
             Continue — keyboard opens only when the player taps an input.

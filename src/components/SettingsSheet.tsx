@@ -11,10 +11,16 @@ export function SettingsSheet({
   open,
   onClose,
   roomCode,
+  isHost = false,
+  partyOn = false,
+  onPartyChange,
 }: {
   open: boolean;
   onClose: () => void;
   roomCode?: string | null;
+  isHost?: boolean;
+  partyOn?: boolean;
+  onPartyChange?: (next: boolean) => void;
 }) {
   const [muted, setMuted] = useState(() =>
     typeof window !== "undefined" ? isSfxMuted() : false,
@@ -119,6 +125,27 @@ export function SettingsSheet({
               {copied ? "Copied" : "Copy"}
             </button>
           </div>
+        ) : null}
+
+        {isHost && onPartyChange ? (
+          <label className="settings-row">
+            <span className="settings-row-label">
+              <span className="font-extrabold">Party Mode</span>
+              <span className="text-xs text-[var(--muted)]">
+                Drink prompts after bust &amp; low beans
+              </span>
+            </span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={partyOn}
+              className={`settings-toggle ${partyOn ? "settings-toggle-on" : ""}`}
+              onClick={() => onPartyChange(!partyOn)}
+            >
+              <span className="settings-toggle-knob" />
+              <span className="sr-only">{partyOn ? "On" : "Off"}</span>
+            </button>
+          </label>
         ) : null}
       </div>
     </div>
