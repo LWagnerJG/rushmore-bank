@@ -17,7 +17,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Polish + reconnect + dice hierarchy → {RULES.productionUrl}
+        Better Rushmore topics (basic &amp; fillable) → {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -52,6 +52,13 @@ export default function BuildNotesPage() {
       <section className="panel space-y-2 text-sm">
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
+          <li>
+            <strong>Topic bank</strong>: pruned niche / clever-but-unfillable
+            prompts; added basic party fillers (colors, letter starts, everyday
+            lists). Bank still ~{TOPIC_COUNT} with anti-repeat{" "}
+            <code>seenTopicIds</code> / <code>pickRandomTopics</code>. PartyKit
+            redeploy needed so the server ships the new bank.
+          </li>
           <li>
             <strong>Name cutoff</strong>: player rail / draft headers / dice turn
             chips use 2-line clamp + full-name <code>title</code> tooltips so long
