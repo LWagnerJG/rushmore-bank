@@ -1,0 +1,37 @@
+name: Server deadline regression tests
+
+on:
+  pull_request:
+    paths:
+      - "party/**"
+      - "src/shared/**"
+      - "package.json"
+      - "package-lock.json"
+      - "vitest.config.ts"
+      - ".github/workflows/server-tests.yml"
+  push:
+    branches: [main]
+    paths:
+      - "party/**"
+      - "src/shared/**"
+      - "package.json"
+      - "package-lock.json"
+      - "vitest.config.ts"
+      - ".github/workflows/server-tests.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  deadlines:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test -- src/shared/__tests__/server-alarms.test.ts
+      - run: npx tsc --noEmit
