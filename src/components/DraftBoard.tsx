@@ -122,6 +122,7 @@ export function DraftBoard({
         tabIndex={0}
         role="region"
         aria-label="Draft board"
+        data-seats={seats.length}
       >
         <table
           className={`draft-board-table draft-board-density-${density}`}
