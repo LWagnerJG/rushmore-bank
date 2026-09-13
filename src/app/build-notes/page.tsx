@@ -84,9 +84,10 @@ export default function BuildNotesPage() {
           </li>
           <li>
             <strong>Viewport paint</strong>: active normal and Party Mode
-            gradients now live on both root surfaces, so a Safari visual
-            viewport gap below the shell cannot reveal a cream strip. Shell
-            scrolling and safe-area padding remain unchanged.
+            gradients use one fixed visual-viewport layer, so Safari viewport
+            changes cannot reveal a root fallback or stop the gradient at a
+            100dvh boundary. Shell scrolling and safe-area padding remain
+            unchanged.
           </li>
         </ul>
       </section>
