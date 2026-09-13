@@ -16,7 +16,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Score breakdown + draft turn-count fix → {RULES.productionUrl}
+        Home prefill + score breakdown + draft turn-count fix → {RULES.productionUrl}
       </p>
 
       <section className="panel space-y-2 text-sm">
@@ -44,7 +44,13 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-<strong>Score breakdown</strong>: each card now shows{" "}
+<strong>Home screen prefill</strong>: last nickname is recalled on
+            mount so returning players land directly on Create / Join. Edit
+            link stays visible. Room-code field no longer steals focus after
+            Continue — keyboard opens only when the player taps an input.
+          </li>
+          <li>
+            <strong>Score breakdown</strong>: each card now shows{" "}
             <code>20 base + N AI + N votes</code> so the components add up to
             the displayed total. Neutral AI fallback is flagged with{" "}
             <code>*</code>.
