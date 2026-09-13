@@ -105,8 +105,9 @@ export function AddToHomeScreen() {
 
   if (hidden) return null;
 
+  // iOS Safari: Share is under ⋯ (typically bottom right), not the old bottom Share bar.
   const nudgeText = ios
-    ? "Tap Share, then Add to Home Screen."
+    ? "⋯ (bottom right) → Share → Add to Home Screen."
     : "Browser menu → Install or Add to Home Screen.";
 
   return (
@@ -124,7 +125,6 @@ export function AddToHomeScreen() {
 
       {nudgeOpen && !deferred ? (
         <p id={nudgeId} className="a2hs-nudge" role="status">
-          {ios ? <ShareGlyph /> : null}
           {nudgeText}{" "}
           <button
             type="button"
@@ -136,40 +136,5 @@ export function AddToHomeScreen() {
         </p>
       ) : null}
     </div>
-  );
-}
-
-function ShareGlyph() {
-  return (
-    <svg
-      className="a2hs-share-glyph"
-      viewBox="0 0 24 24"
-      width="12"
-      height="12"
-      aria-hidden="true"
-    >
-      <path
-        d="M12 3v10"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M8 7l4-4 4 4"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-      />
-    </svg>
   );
 }
