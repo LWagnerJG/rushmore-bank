@@ -3,6 +3,6 @@
   "main": "party/server.ts",
   "compatibilityDate": "2024-09-01",
   "vars": {
-    "JUDGE_URL": "https://roundacats.vercel.app"
+    "JUDGE_URL": "https://beans-game.vercel.app"
   }
 }

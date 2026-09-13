@@ -13,8 +13,8 @@ const sora = Sora({
   weight: ["600", "700", "800"],
 });
 
-/** Canonical until Luke attaches beans-game.vercel.app (see /build-notes). */
-const siteUrl = "https://roundacats.vercel.app";
+/** Canonical production host (`roundacats.vercel.app` still aliases). */
+const siteUrl = "https://beans-game.vercel.app";
 const title = "Beans";
 const description =
   "Draft four. Bank beans. — Party game with snake draft and synchronized dice.";

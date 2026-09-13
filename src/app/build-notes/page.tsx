@@ -17,8 +17,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Admin add-bots draft columns + Beans branding polish →{" "}
-        {RULES.productionUrl}
+        Canonical production URL → {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -37,14 +36,14 @@ export default function BuildNotesPage() {
               </li>
             ) : null}
             <li>
-              Target: production <code>roundacats.vercel.app</code> via merge to{" "}
-              <code>main</code>. Old URL stays live. Preferred alias{" "}
-              <code>beans-game.vercel.app</code> needs Luke (below).
+              Target: production <code>beans-game.vercel.app</code> via merge to{" "}
+              <code>main</code>. Old URL <code>roundacats.vercel.app</code>{" "}
+              remains a working alias.
             </li>
             <li>
-              <strong>PartyKit redeploy required</strong> —{" "}
-              <code>party/server.ts</code> + shared snake helpers changed for
-              mid-draft add-bots seat sync.
+              <strong>PartyKit redeploy</strong> when{" "}
+              <code>JUDGE_URL</code> / party server fallback changes — point at{" "}
+              <code>beans-game.vercel.app</code> (no secrets in this page).
             </li>
           </ul>
         ) : (
@@ -59,78 +58,52 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>Admin add-bots draft columns</strong>: mid-draft bot inject
-            no longer duplicates Admin/You headers — board columns follow unique{" "}
-            <code>seatOrder</code>; server rebuilds snake <code>draftOrder</code>{" "}
-            + remaps picks. <strong>PartyKit redeploy required</strong> (
-            <code>party/server.ts</code> + shared snake helpers).
+            <strong>Canonical URL flip</strong>:{" "}
+            <code>RULES.productionUrl</code>, layout <code>siteUrl</code> /
+            metadataBase / OG, docs, and PartyKit <code>JUDGE_URL</code> /
+            judge fallback now use <code>https://beans-game.vercel.app</code>.
           </li>
           <li>
-            <strong>PWA / home-screen name</strong>: manifest{" "}
-            <code>name</code> / <code>short_name</code>,{" "}
-            <code>apple-mobile-web-app-title</code>,{" "}
-            <code>application-name</code>, document / OG / Twitter titles all{" "}
-            <strong>Beans</strong> (not RoundaCats / rushmore-bank).
+            <strong>Alias</strong>: <code>roundacats.vercel.app</code> still
+            works (Vercel project renamed to <code>beans-game</code>; old host
+            kept as alias).
           </li>
           <li>
-            <strong>App icon</strong>: new dog + <strong>BEANS sunglasses</strong>{" "}
-            mark (cream / terracotta / ink). Wired: apple-touch 180, favicon,
-            manifest 192/512 + maskable, OG share image. Source:{" "}
-            <code>public/icons/icon-source-1024.png</code>.
+            <strong>Share</strong>: lobby invite titles “Beans” and uses{" "}
+            <code>window.location.origin</code> when in-browser (QR/share stay
+            origin-based).
           </li>
           <li>
-            <strong>Share</strong>: lobby invite already titles “Beans” and uses
-            current origin (no hardcoded RoundaCats in share text).
-          </li>
-          <li>
-            Preserved from main: no review skim countdown, vote/AI judge board,
-            earned split, BANK <code>+N beans</code> readout, Ready-to-wager
-            header CTA, Safe/Risking labels, BANK cream stage, PlayerRail glow,
-            Party Mode, topics ({TOPIC_COUNT}), rematch, bots. Repo name stays{" "}
+            No game logic changes. Preserved: topics ({TOPIC_COUNT}), Party Mode,
+            vote/judge/BANK polish, rematch, bots. Repo name stays{" "}
             <code>rushmore-bank</code>.
           </li>
         </ul>
       </section>
 
       <section className="panel space-y-2 text-sm">
-        <h2 className="font-extrabold">URL — action for Luke</h2>
+        <h2 className="font-extrabold">URL status</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            Vercel project <code>roundacats</code> domains today:{" "}
-            <code>roundacats.vercel.app</code>,{" "}
-            <code>rushmore-bank.vercel.app</code>, plus team aliases. Production
-            stays on <code>roundacats.vercel.app</code> so nothing breaks.
+            Primary: <code>https://beans-game.vercel.app</code> (Vercel project{" "}
+            <code>beans-game</code>).
           </li>
           <li>
-            <code>beans-game.vercel.app</code> is free (404 / not claimed). Agent
-            CLI has no Vercel write token for domains — Luke should either:
-            <ol className="mt-1 list-decimal space-y-1 pl-5">
-              <li>
-                Rename project to <code>beans-game</code> in Vercel → Settings →
-                General (creates <code>beans-game.vercel.app</code>), then{" "}
-                <strong>re-add</strong> <code>roundacats.vercel.app</code> as a
-                domain alias so the old link keeps working; or
-              </li>
-              <li>
-                Domains → Add <code>beans-game.vercel.app</code> if the UI
-                offers a vercel.app alias without rename.
-              </li>
-            </ol>
+            Alias: <code>https://roundacats.vercel.app</code> still serves the
+            same app.
           </li>
           <li>
-            After the alias is live: flip <code>RULES.productionUrl</code>,{" "}
-            <code>layout</code> <code>siteUrl</code>, and PartyKit{" "}
-            <code>JUDGE_URL</code> to <code>beans-game.vercel.app</code>, then
-            redeploy PartyKit.
+            After merge: if the beans-game alias does not auto-attach to the
+            newest deployment, Fudge can re-point it on Vercel.
           </li>
           <li>
-            Custom DNS (optional, not done): <code>beans.game</code> ~$350/yr;{" "}
-            <code>beansgame.com</code> ~$11/yr. <code>beans.vercel.app</code> is
-            already someone else’s unrelated app — skip.
+            PartyKit: ensure deployed <code>JUDGE_URL</code> matches{" "}
+            <code>beans-game.vercel.app</code> after this land (redeploy party
+            if vars were baked previously).
           </li>
           <li>
             iOS tip: remove any old home-screen icon and re-Add to Home Screen
-            to pick up the new name + art (iOS caches aggressively).
+            if the PWA name/icon looks stale.
           </li>
         </ul>
       </section>
