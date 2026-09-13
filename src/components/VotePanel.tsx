@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
 import { RULES } from "@/shared/rules";
+import { rosterDensity } from "@/shared/roster-density";
 import { RushmoreCard } from "@/components/RushmoreCard";
 
 function Countdown({ until }: { until: number | null }) {
@@ -17,12 +18,6 @@ function Countdown({ until }: { until: number | null }) {
   }, [until]);
   if (!until) return null;
   return <span className="tabular-nums">{left}s</span>;
-}
-
-function rosterDensity(count: number): "cozy" | "snug" | "dense" {
-  if (count >= 8) return "dense";
-  if (count >= 5) return "snug";
-  return "cozy";
 }
 
 export function VotePanel({
@@ -40,12 +35,13 @@ export function VotePanel({
   const [busy, setBusy] = useState(false);
   const twoPlayer = state.seatOrder.length === 2;
   const density = rosterDensity(state.seatOrder.length);
+  /** Server only auto-completes when needed > 0; don’t treat 0/0 as done. */
   const votesDone =
-    twoPlayer || state.humanVotesCast >= state.humanVotesNeeded;
-  /** Discreet working state on the same board — no blank/full-screen flip. */
-  const judging =
-    state.judgeStatus === "pending" ||
-    (votesDone && state.judgeStatus !== "failed");
+    twoPlayer ||
+    (state.humanVotesNeeded > 0 &&
+      state.humanVotesCast >= state.humanVotesNeeded);
+  /** Only show while the judge is actually running — not ready/idle. */
+  const judging = state.judgeStatus === "pending";
   const canVote = you.role === "player" && !twoPlayer && !votesDone;
 
   return (

@@ -2,13 +2,8 @@
 
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
 import { RULES } from "@/shared/rules";
+import { rosterDensity } from "@/shared/roster-density";
 import { RushmoreCard } from "@/components/RushmoreCard";
-
-function rosterDensity(count: number): "cozy" | "snug" | "dense" {
-  if (count >= 8) return "dense";
-  if (count >= 5) return "snug";
-  return "cozy";
-}
 
 function EarnedBadge({
   earned,
