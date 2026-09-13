@@ -25,7 +25,7 @@ LOBBY → TOPIC_SELECTION → DRAFT (+ CORRECTION) → REVIEW
 
 - Random shortlist: always **4** choices. Anyone can **reroll** the set as needed.
 - Scopes: sports / food / everyday / entertainment + host custom.
-- ~1150 curated topics with scope tags (`src/shared/topics.ts`).
+- ~1100 curated topics with scope tags (`src/shared/topics.ts`) — prefer basic, fillable prompts.
 - **No topic timer** — players pick calmly; advances when every connected player has voted (or host locks a custom topic). Ties → server random among tied.
 - No locked-topic repeat in a game; shortlist/reroll also soft-avoids already-shown bank topics until the pool cycles.
 - Scope boundary shown before draft.
