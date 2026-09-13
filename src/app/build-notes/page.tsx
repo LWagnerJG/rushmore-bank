@@ -17,7 +17,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Dice net gain · wager timer · home nickname-first →{" "}
+        Wager clock 45s · dice net gain · home nickname-first →{" "}
         {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
@@ -54,24 +54,28 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>Dice doubles readout</strong>: shows net beans added to the
-            pot (<code>potAfter − potBefore</code>), not face sum. Double 4s
-            with pot 40 → <code>+40</code>, not <code>+8</code>.
+            <strong>Wager clock</strong>: <strong>20s → 45s</strong> (matches
+            vote window; draft stays 60s). Louder countdown UI kept; CTA{" "}
+            <em>Risk N beans</em>; AT RISK / stay safe / slider hierarchy.
           </li>
           <li>
-            <strong>Wager screen</strong>: louder countdown timer, CTA{" "}
-            <em>Risk N beans</em>, tighter hierarchy (AT RISK / stay safe /
-            slider).
+            <strong>Dice doubles readout</strong>: net beans added to the pot (
+            <code>potAfter − potBefore</code>), not face sum. Double 4s with pot
+            40 → <code>+40</code>, not <code>+8</code>.
           </li>
           <li>
             <strong>Home</strong>: nickname first → then Create / Join. Quiet
             A2HS + 5-tap admin unchanged. No build notes on home.
           </li>
           <li>
-            Production URL remains <code>{RULES.productionUrl}</code>;{" "}
+            Production <code>{RULES.productionUrl}</code>;{" "}
             <code>roundacats.vercel.app</code> alias. Topics ({TOPIC_COUNT}).
-            Scoring rules unchanged (UI readout only) — no PartyKit redeploy
-            required for this ship.
+          </li>
+          <li>
+            <strong>PartyKit redeploy needed</strong> —{" "}
+            <code>wagerTimeoutSeconds</code> is read on the party server. Vercel
+            alone won’t lengthen live rooms until PartyKit is redeployed (ignore
+            known Actions secret failures; Fudge can deploy with local creds).
           </li>
         </ul>
       </section>

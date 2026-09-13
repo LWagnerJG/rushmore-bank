@@ -64,7 +64,7 @@ pot = W
 
 - UX: one risk number + slider + risk/safe readout + Risk-N-beans CTA (no Keep/Half/All presets).
 - **Minimum wager is 1** whenever the player has any beans (E+B ≥ 1). No lock-in at 0.
-- No response in 20s → W=min(1, max) (still at least 1 when beans exist).
+- No response in 45s → W=min(1, max) (still at least 1 when beans exist).
 - If E+B = 0 (nothing to risk), W=0 and that seat **skips** the dice table for the topic.
 - Integers only; append-only ledger.
 
