@@ -57,6 +57,31 @@ export default function BuildNotesPage() {
             <strong>Unchanged</strong>: NoPullToRefresh, nickname-first home,
             Join card, Party Mode, 5-tap admin.
           </li>
+          <li>
+            <strong>Wager slider</strong>: one unified track (orange AT RISK
+            from the left, green stay-safe on the right) — no separate ratio
+            bar, no flipped colors. Pointer capture +{" "}
+            <code>touch-action: none</code> so vertical finger drift doesn’t
+            drop the drag on iOS.
+          </li>
+          <li>
+            Loud 45s timer, min 1 / max earned+banked, Admin, and player rail
+            unchanged. No rule or PartyKit changes.
+          </li>
+          <li>
+            <strong>Player rail · few seats</strong>: 2–3 player chips grow
+            wider/taller (duo/trio sizes) so the top row doesn’t look sparse.
+            Pot-split Safe/Risking still shares the row; 6+ densify/scroll as
+            before. You highlight/glow stays unclipped; Ready to wager under
+            the rail unchanged.
+          </li>
+          <li>
+            <strong>Score reveal header</strong>: dropped redundant top-right
+            Scores + beans readout — player rail already shows totals
+            (+earned). Logo left stays; Ready to wager under the rail
+            unchanged. Other phases keep phase label / balance for
+            orientation.
+          </li>
         </ul>
       </section>
     </main>
