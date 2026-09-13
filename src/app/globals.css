@@ -51,12 +51,14 @@ html.party-on {
  *   which blends seamlessly with the last gradient stop.
  */
 html {
-  /* Canvas fallback — equals the gradient last stop so any uncovered pixel
-   * (overscroll, home indicator, 50px extension) is indistinguishable */
   background-color: var(--bg);
-  height: 100%;
-  height: -webkit-fill-available;
-  height: 100dvh;
+  /*
+   * Use --app-h (set from window.innerHeight in NoPullToRefresh) so the
+   * height matches the real visual viewport on iOS PWA, where 100dvh can
+   * under-count by the status-bar height (~47–59 px on notched iPhones).
+   * Fall back to 100dvh for SSR / before the first effect fires.
+   */
+  height: var(--app-h, 100dvh);
   overflow: hidden;
   overscroll-behavior: none;
 }
@@ -65,9 +67,7 @@ body {
   position: relative;
   color: var(--text);
   background-color: transparent;
-  height: 100%;
-  height: -webkit-fill-available;
-  height: 100dvh;
+  height: var(--app-h, 100dvh);
   overflow: hidden;
   overscroll-behavior-y: none;
 }
@@ -116,9 +116,8 @@ html.party-on body::before {
 /* Shell: document is locked; only .app-shell-scroll pans when content overflows */
 .app-shell {
   box-sizing: border-box;
-  height: 100%;
-  height: -webkit-fill-available;
-  height: 100dvh;
+  /* Same --app-h source as html/body so overflow:hidden clips at the right edge */
+  height: var(--app-h, 100dvh);
 }
 
 .app-shell-lock {
