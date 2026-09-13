@@ -565,6 +565,16 @@ html.party-on .panel {
   min-width: 4.5rem;
   transition: opacity 200ms ease;
 }
+.dice-pot-stack {
+  min-width: 0;
+}
+.dice-pot-safe-value {
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--text);
+}
 
 .dice-pot-safe-muted {
   opacity: 0.55;
@@ -586,52 +596,48 @@ html.party-on .panel {
   min-height: 3.4rem;
 }
 
-/* Primary Bank CTA — coral, full-width, on-brand (not header chrome) */
+/* Secondary Bank CTA — outline, quieter than the dice tray (roll is primary). */
 .dice-bank-cta {
   display: flex;
   width: 100%;
-  min-height: 3.4rem;
+  min-height: 2.65rem;
   align-items: center;
   justify-content: center;
-  border-radius: 1rem;
-  border: none;
-  background: var(--coral);
-  color: #fff;
+  border-radius: 0.9rem;
+  border: 1.5px solid rgba(35, 72, 62, 0.22);
+  background: transparent;
+  color: var(--text);
   font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
-  font-size: 1.35rem;
+  font-size: 1.05rem;
   font-weight: 800;
   letter-spacing: 0.01em;
-  box-shadow: 0 5px 0 rgba(35, 72, 62, 0.16);
+  box-shadow: none;
   transition:
     transform 120ms ease,
-    box-shadow 160ms ease,
-    opacity 200ms ease,
-    filter 160ms ease;
+    background 160ms ease,
+    border-color 160ms ease,
+    opacity 200ms ease;
+}
+.dice-bank-cta-secondary {
+  background: rgba(255, 255, 255, 0.35);
 }
 .dice-bank-cta:active:not(:disabled) {
-  transform: translateY(2px) scale(0.98);
-  box-shadow: 0 2px 0 rgba(35, 72, 62, 0.16);
+  transform: translateY(1px) scale(0.99);
+  background: rgba(35, 72, 62, 0.06);
 }
 .dice-bank-cta:disabled {
-  opacity: 0.45;
-  box-shadow: none;
+  opacity: 0.4;
 }
-.dice-bank-cta-armed {
-  animation: dice-bank-cta-pulse 1.9s ease-in-out infinite;
+.dice-bank-cta-ready {
+  border-color: rgba(35, 72, 62, 0.34);
+  background: rgba(255, 255, 255, 0.55);
 }
 .dice-bank-cta-ghost {
   visibility: hidden;
   pointer-events: none;
-  box-shadow: none;
 }
-@keyframes dice-bank-cta-pulse {
-  0%,
-  100% {
-    filter: brightness(1);
-  }
-  50% {
-    filter: brightness(1.06);
-  }
+.dice-cta-slot {
+  min-height: 2.65rem;
 }
 
 /* Party prompt — grid 0fr→1fr so open/close doesn't hard-jump the stack */
@@ -769,8 +775,29 @@ html.party-on .panel {
   font-size: 0.78rem;
   font-weight: 800;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
+  line-height: 1.15;
+}
+.dice-turn-chip-split {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+}
+.dice-turn-chip-safe {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+.dice-turn-chip-pot {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: var(--text);
 }
 
 .dice-turn-chip-meta {
@@ -829,8 +856,8 @@ html.party-on .panel {
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
-  min-width: 4.6rem;
-  max-width: 7rem;
+  min-width: 5.1rem;
+  max-width: 8.25rem;
   padding: 0.4rem 0.55rem;
   border-radius: 0.85rem;
   box-shadow: 0 2px 8px rgba(35, 72, 62, 0.06);
@@ -908,8 +935,15 @@ html.party-on .panel {
 
 .player-chip-name-text {
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
+  line-height: 1.15;
+  max-width: 100%;
 }
 
 .player-chip-score {
@@ -938,6 +972,42 @@ html.party-on .panel {
 .player-chip-earned-you {
   color: rgba(255, 255, 255, 0.92);
 }
+
+.player-chip-split {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+.player-chip-split-label {
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.72;
+  margin-right: 0.2rem;
+}
+.player-chip-safe,
+.player-chip-pot {
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+.player-chip-pot-hot {
+  color: var(--coral);
+}
+.player-chip-you .player-chip-pot-hot {
+  color: #ffe6c8;
+}
+.player-chip-pot-split {
+  min-width: 5.4rem;
+  max-width: 9rem;
+}
+.player-rail-pot-split .player-chip {
+  min-height: 3.35rem;
+}
+
 
 /*
  * Failproof player rail = live leaderboard:
@@ -988,8 +1058,8 @@ html.party-on .panel {
 }
 
 .player-rail-fit .player-chip-name-text {
+  /* Keep 2-line clamp from base; fit mode still ellipsizes via line-clamp. */
   overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .player-rail-many::after {
@@ -1445,12 +1515,41 @@ html.party-on .status-pill-ready {
   left: 0;
   right: 0;
   text-align: center;
-  font-size: 0.75rem;
+  font-size: 0.85rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(255, 255, 255, 0.95);
   pointer-events: none;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+.bean-dice-hint-first {
+  font-size: 0.95rem;
+  letter-spacing: 0.1em;
+  animation: dice-hint-pulse 1.4s ease-in-out infinite;
+}
+.bean-dice-tray-armed {
+  min-height: 210px;
+}
+.bean-dice-tray-first-hint {
+  animation: dice-armed-pulse 1.25s ease-in-out infinite;
+  border-color: rgba(244, 201, 91, 0.85);
+  box-shadow:
+    inset 0 0 0 7px #ffffff08,
+    inset 0 10px 28px #0002,
+    0 0 0 4px rgba(244, 201, 91, 0.45),
+    0 12px 30px rgba(35, 72, 62, 0.22);
+}
+@keyframes dice-hint-pulse {
+  0%,
+  100% {
+    opacity: 0.88;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
 }
 .bean-dice-hint-rolling {
   color: rgba(255, 246, 228, 0.92);
@@ -1840,6 +1939,19 @@ html.dice-your-turn::after {
   text-align: left;
 }
 
+.draft-board-name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  font-weight: 800;
+  line-height: 1.15;
+  max-width: 100%;
+}
+
 .draft-board-table thead th {
   position: sticky;
   top: 0;
@@ -2065,6 +2177,8 @@ html.party-on .draft-board-table thead th.is-you {
   .bean-pip-die-tumbling,
   .bean-pip-die-scrambling .bean-pip-die-pip,
   .bean-dice-tray-armed,
+  .bean-dice-tray-first-hint,
+  .bean-dice-hint-first,
   .bean-dice-tray-punch,
   html.dice-your-turn::after,
   .dice-result-bust,

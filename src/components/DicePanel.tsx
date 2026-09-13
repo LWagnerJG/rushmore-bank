@@ -125,16 +125,21 @@ function TurnStrip({ seats }: { seats: SeatInfo[] }) {
             .filter(Boolean)
             .join(" ")}
         >
-          <span className="dice-turn-chip-name">
+          <span className="dice-turn-chip-name" title={seat.name}>
             {seat.name}
             {seat.you ? " · you" : ""}
           </span>
           <span className="dice-turn-chip-meta">
             <span className="dice-turn-chip-badge">{BADGE[seat.kind]}</span>
-            <span className="dice-turn-chip-pot tabular-nums">
-              {seat.kind === "banked" || seat.kind === "busted"
-                ? `${seat.safe} safe`
-                : `pot ${seat.pot}`}
+            <span className="dice-turn-chip-split tabular-nums">
+              {seat.kind === "banked" || seat.kind === "busted" ? (
+                <span className="dice-turn-chip-safe">{seat.safe} safe</span>
+              ) : (
+                <>
+                  <span className="dice-turn-chip-safe">{seat.safe} safe</span>
+                  <span className="dice-turn-chip-pot">pot {seat.pot}</span>
+                </>
+              )}
             </span>
           </span>
         </li>
@@ -306,7 +311,7 @@ export function DicePanel({
   // Only the honest 15s idle bank window — never a pre-roll “opens in” clock.
   const timerUntil =
     state.diceSubphase === "READY" ? state.diceIdleDeadlineAt : null;
-  const timerLabel = myTurn ? "Roll or Bank" : "Decision";
+  const timerLabel = myTurn ? "Your roll" : "Decision";
   const timerLive = timerUntil != null && !rolling && !settling;
 
   const bustMoment = settling && !!stickyRoll?.busted;
@@ -317,7 +322,7 @@ export function DicePanel({
       : settling
         ? "Settling…"
         : myTurn && canRoll
-          ? "Tap the dice — or Bank"
+          ? "TAP TO ROLL"
           : myTurn
             ? "Your turn"
             : "Watching";
@@ -375,6 +380,7 @@ export function DicePanel({
           reducedMotion={reducedMotion}
           canRoll={canRoll && !busy}
           busted={!!last?.busted && settling}
+          firstRollHint={canRoll && (state.personalRollCounts[youId] ?? 0) === 0}
           onRoll={() => {
             if (canRoll) act({ type: "roll" });
           }}
@@ -434,20 +440,23 @@ export function DicePanel({
           className={`dice-zone dice-zone-actions ${drama && !myTurn ? "dice-action-dim" : ""}`}
           aria-label="Pot and Bank"
         >
-          <div className="dice-pot-row">
-            <div>
+                    <div className="dice-pot-row">
+            <div className="dice-pot-stack">
               <p className="dice-pot-label">
-                {myTurn && active ? "Your pot" : "Your beans"}
+                {active ? "Your pot · at risk" : "Your beans"}
               </p>
               <p className="dice-pot-value tabular-nums">
                 {active ? pot : you.stones}
               </p>
             </div>
-            <p
+            <div
               className={`dice-pot-safe ${active ? "" : "dice-pot-safe-muted"}`}
             >
-              <strong>{safeBeans}</strong> safe
-            </p>
+              <p className="dice-pot-label">Safe</p>
+              <p className="dice-pot-safe-value tabular-nums">
+                <strong>{safeBeans}</strong>
+              </p>
+            </div>
           </div>
 
           {/* Fixed-height CTA slot — Bank / ghost / out note; never collapses */}
@@ -458,8 +467,8 @@ export function DicePanel({
               <button
                 type="button"
                 className={[
-                  "dice-bank-cta",
-                  canBank && !busy && !settling ? "dice-bank-cta-armed" : "",
+                  "dice-bank-cta dice-bank-cta-secondary",
+                  canBank && !busy && !settling ? "dice-bank-cta-ready" : "",
                 ]
                   .filter(Boolean)
                   .join(" ")}
@@ -469,7 +478,7 @@ export function DicePanel({
                 {pot === 0 ? "Bank" : `Bank ${pot}`}
               </button>
             ) : (
-              <div className="dice-bank-cta dice-bank-cta-ghost" aria-hidden="true">
+              <div className="dice-bank-cta dice-bank-cta-secondary dice-bank-cta-ghost" aria-hidden="true">
                 Bank
               </div>
             )}

@@ -152,7 +152,10 @@ export function DraftBoard({
                       .filter(Boolean)
                       .join(" ")}
                   >
-                    <span className="block truncate font-extrabold">
+                    <span
+                      className="draft-board-name"
+                      title={player?.name ?? undefined}
+                    >
                       {player?.name}
                     </span>
                     {pid === youId && (

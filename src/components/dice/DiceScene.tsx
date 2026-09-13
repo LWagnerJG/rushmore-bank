@@ -102,12 +102,15 @@ export function DiceScene({
   canRoll,
   onRoll,
   busted,
+  firstRollHint = false,
 }: {
   broadcast: PublicDiceBroadcast | null;
   reducedMotion: boolean;
   canRoll: boolean;
   onRoll: () => void;
   busted?: boolean;
+  /** Stronger pulse / TAP TO ROLL on the first roll of a turn. */
+  firstRollHint?: boolean;
 }) {
   const audio = useRef<AudioContext | null>(null);
   const sounded = useRef<string | null>(null);
@@ -229,7 +232,7 @@ export function DiceScene({
   const label = rolling
     ? "Dice rolling; result pending"
     : canRoll
-      ? "Tap dice to roll"
+      ? "TAP TO ROLL"
       : revealed && total != null
         ? `Dice show ${authD1} and ${authD2}, total ${total}`
         : "Two dice ready";
@@ -237,6 +240,7 @@ export function DiceScene({
   const trayClass = [
     "bean-dice-tray",
     canRoll ? "bean-dice-tray-armed" : "",
+    canRoll && firstRollHint ? "bean-dice-tray-first-hint" : "",
     rolling ? "bean-dice-tray-rolling" : "",
     punch ? "bean-dice-tray-punch" : "",
     busted && revealed ? "bean-dice-tray-bust" : "",
@@ -277,7 +281,11 @@ export function DiceScene({
             settlePunch={punch && revealed}
           />
         </div>
-        {canRoll && <span className="bean-dice-hint">Tap to roll</span>}
+        {canRoll && (
+          <span className={`bean-dice-hint ${firstRollHint ? "bean-dice-hint-first" : ""}`}>
+            TAP TO ROLL
+          </span>
+        )}
         {rolling && (
           <span className="bean-dice-hint bean-dice-hint-rolling">
             Rolling…
