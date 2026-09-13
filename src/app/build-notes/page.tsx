@@ -17,7 +17,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Draft / roster / vote UX → {RULES.productionUrl}
+        Polish + reconnect + dice hierarchy → {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -37,7 +37,7 @@ export default function BuildNotesPage() {
             ) : null}
             <li>
               Target: production <code>roundacats.vercel.app</code> via merge to{" "}
-              <code>main</code>. PartyKit redeploy required for wager/leave/rejoin server changes — also when{" "}
+              <code>main</code>. PartyKit redeploy required for reconnect/leave/rejoin server changes — also when{" "}
               <code>src/shared</code> / review+vote timers change.
             </li>
           </ul>
@@ -52,6 +52,31 @@ export default function BuildNotesPage() {
       <section className="panel space-y-2 text-sm">
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
+          <li>
+            <strong>Name cutoff</strong>: player rail / draft headers / dice turn
+            chips use 2-line clamp + full-name <code>title</code> tooltips so long
+            nicknames stay readable on phones instead of ugly mid-word cuts.
+          </li>
+          <li>
+            <strong>Reconnect + auto-rejoin</strong>: PartySocket backoff tightened;
+            visibility / online / pageshow forces a prompt reconnect. Room membership
+            remembered in session+local storage — returning from another app auto-rejoins
+            the same seat (id reclaim) without hunting for Rejoin. Host{" "}
+            <code>CODE · AB12</code> share affordance kept. Soft-disconnect grace (~8s)
+            still holds the seat; reclaim cancels it immediately on matching connect.
+          </li>
+          <li>
+            <strong>Dice vs Bank hierarchy</strong>: tap-the-dice is the primary action
+            (bigger armed tray, <code>TAP TO ROLL</code>, stronger first-roll pulse).
+            Bank is demoted to a quiet outline secondary control — still reachable in
+            the 15s window, no longer the fat-finger coral CTA. Scramble settle honesty
+            + BEAN BUSTER clarity preserved.
+          </li>
+          <li>
+            <strong>Pot vs safe</strong>: your pot (at risk) vs safe always labeled on
+            the dice panel; during wager/dice the player rail and turn strip show each
+            seat&apos;s safe + pot at a glance.
+          </li>
           <li>
             <strong>Min wager 1</strong>: cannot lock in 0 when you have beans
             (UI clamp + server validation). Timeout defaults to 1 when max ≥ 1.

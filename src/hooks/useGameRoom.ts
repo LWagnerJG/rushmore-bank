@@ -12,7 +12,9 @@ import {
   getStablePlayerId,
   newActionId,
   recallDisplayName,
+  recallRoomSession,
   rememberDisplayName,
+  rememberRoomSession,
 } from "@/lib/party";
 
 /** Map infra / transport failures to player-safe copy. Never mention PartyKit. */
@@ -53,6 +55,11 @@ export function useGameRoom(
     name: string;
     role: "player" | "spectator";
   } | null>(null);
+  const membershipRef = useRef<{
+    name: string;
+    role: "player" | "spectator";
+  } | null>(null);
+  const lastForceReconnectAt = useRef(0);
 
   const setError = useCallback((msg: string | null) => {
     setErrorRaw(friendlyPlayerError(msg));
@@ -60,28 +67,45 @@ export function useGameRoom(
 
   // Prefer URL/preset nickname for onOpen join — never auto-queue from shared
   // localStorage alone (that made tab B join as Luke when ?name=Brynna).
+  // If no preset, restore a fresh room session so app-switch returns auto-rejoin.
   useEffect(() => {
     if (preferredName) {
       pendingJoin.current = {
         name: preferredName,
         role: preferSpectate ? "spectator" : "player",
       };
+      return;
     }
-  }, [preferredName, preferSpectate]);
+    const session = recallRoomSession(code);
+    if (!session) return;
+    pendingJoin.current = {
+      name: session.name,
+      role: preferSpectate ? "spectator" : session.role,
+    };
+    membershipRef.current = pendingJoin.current;
+  }, [preferredName, preferSpectate, code]);
 
   const socket = usePartySocket({
     host: getPartyHost(),
     room: code,
     id: playerId,
+    // Snappier resume after brief leaves / backgrounding.
+    minReconnectionDelay: 400,
+    maxReconnectionDelay: 6_000,
+    reconnectionDelayGrowFactor: 1.35,
+    connectionTimeout: 3_500,
+    maxRetries: Infinity,
     onOpen() {
       setConnected(true);
       setErrorRaw(null);
-      if (pendingJoin.current) {
+      const resume = pendingJoin.current ?? membershipRef.current;
+      if (resume) {
+        pendingJoin.current = resume;
         socket.send(
           JSON.stringify({
             type: "join",
-            name: pendingJoin.current.name,
-            role: pendingJoin.current.role,
+            name: resume.name,
+            role: resume.role,
             actionId: newActionId(),
           } satisfies ClientMessage),
         );
@@ -101,7 +125,19 @@ export function useGameRoom(
           setState(msg.state);
           setYouId(msg.youId);
           const me = msg.state.players.find((p) => p.id === msg.youId);
-          if (me) setJoined(true);
+          if (me) {
+            setJoined(true);
+            const role = me.role === "spectator" ? "spectator" : "player";
+            membershipRef.current = { name: me.name, role };
+            pendingJoin.current = { name: me.name, role };
+            rememberRoomSession({
+              code,
+              name: me.name,
+              role,
+              playerId: msg.youId,
+              at: Date.now(),
+            });
+          }
         } else if (msg.type === "error") {
           setError(msg.message);
         }
@@ -110,6 +146,43 @@ export function useGameRoom(
       }
     },
   });
+
+  const forceReconnect = useCallback(() => {
+    const now = Date.now();
+    if (now - lastForceReconnectAt.current < 750) return;
+    lastForceReconnectAt.current = now;
+    try {
+      socket.reconnect();
+    } catch {
+      /* ignore */
+    }
+  }, [socket]);
+
+  // Prompt reconnect when returning from another app / brief offline.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState !== "visible") return;
+      if (socket.readyState === WebSocket.OPEN) return;
+      forceReconnect();
+    };
+    const onOnline = () => {
+      if (socket.readyState === WebSocket.OPEN) return;
+      forceReconnect();
+    };
+    const onPageShow = (ev: PageTransitionEvent) => {
+      if (ev.persisted || socket.readyState !== WebSocket.OPEN) {
+        forceReconnect();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("online", onOnline);
+    window.addEventListener("pageshow", onPageShow);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("pageshow", onPageShow);
+    };
+  }, [socket, forceReconnect]);
 
   const send = useCallback(
     (msg: ClientMessage) => {
@@ -132,11 +205,21 @@ export function useGameRoom(
       }
       rememberDisplayName(clean);
       pendingJoin.current = { name: clean, role };
+      membershipRef.current = { name: clean, role };
+      rememberRoomSession({
+        code,
+        name: clean,
+        role,
+        playerId,
+        at: Date.now(),
+      });
       if (socket.readyState === WebSocket.OPEN) {
         send({ type: "join", name: clean, role });
+      } else {
+        forceReconnect();
       }
     },
-    [send, socket],
+    [send, socket, code, playerId, forceReconnect],
   );
 
   // Host heartbeat for failover
@@ -162,5 +245,6 @@ export function useGameRoom(
     join,
     send,
     defaultName: recallDisplayName(),
+    forceReconnect,
   };
 }

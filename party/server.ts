@@ -183,7 +183,8 @@ function hashStr(s: string): number {
   return h >>> 0;
 }
 
-/** Brief app-switch / reconnect grace before mid-game leave advances turns. */
+/** Brief app-switch / reconnect grace before mid-game leave advances turns.
+ * Client forces a snappy reconnect on visibility/online; matching id cancels this timer in onConnect. */
 const DISCONNECT_GRACE_MS = 8_000;
 
 export default class QuarryServer implements Party.Server {

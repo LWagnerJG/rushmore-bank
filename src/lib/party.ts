@@ -81,6 +81,65 @@ export function recallDisplayName(): string {
   );
 }
 
+
+export type RoomSession = {
+  code: string;
+  name: string;
+  role: "player" | "spectator";
+  playerId: string;
+  at: number;
+};
+
+function roomSessionKey(roomCode: string): string {
+  return `quarry:room-session:${roomCode.toUpperCase()}`;
+}
+
+/** Persist membership so brief leaves / app switches can auto-rejoin promptly. */
+export function rememberRoomSession(session: RoomSession) {
+  if (typeof window === "undefined") return;
+  const payload = JSON.stringify(session);
+  window.sessionStorage.setItem(roomSessionKey(session.code), payload);
+  window.localStorage.setItem(roomSessionKey(session.code), payload);
+  window.localStorage.setItem(lastPidKey(session.code), session.playerId);
+  window.sessionStorage.setItem(sessionPidKey(session.code), session.playerId);
+  rememberDisplayName(session.name);
+}
+
+/** Recall a still-fresh room membership (default 2h). */
+export function recallRoomSession(
+  roomCode: string,
+  maxAgeMs = 2 * 60 * 60 * 1000,
+): RoomSession | null {
+  if (typeof window === "undefined") return null;
+  const key = roomSessionKey(roomCode);
+  const raw =
+    window.sessionStorage.getItem(key) ?? window.localStorage.getItem(key);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as RoomSession;
+    if (
+      !parsed?.code ||
+      !parsed?.name ||
+      !parsed?.playerId ||
+      parsed.code.toUpperCase() !== roomCode.toUpperCase()
+    ) {
+      return null;
+    }
+    if (Date.now() - (parsed.at || 0) > maxAgeMs) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+/** Clear remembered membership for this room (optional leave). */
+export function clearRoomSession(roomCode: string) {
+  if (typeof window === "undefined") return;
+  const key = roomSessionKey(roomCode);
+  window.sessionStorage.removeItem(key);
+  window.localStorage.removeItem(key);
+}
+
 /**
  * Private draft Stash (formerly Ideas) — never sent to server / AI /
  * spectator payloads. Storage key kept as `quarry:ideas:` for continuity.

@@ -10,6 +10,7 @@ import {
   adoptPlayerIdForRejoin,
   getLastPlayerIdForRejoin,
   recallDisplayName,
+  recallRoomSession,
 } from "@/lib/party";
 import { LobbyPanel } from "@/components/LobbyPanel";
 import { TopicPanel } from "@/components/TopicPanel";
@@ -57,6 +58,16 @@ export function RoomClient({
   presetName: string;
   preferSpectate: boolean;
 }) {
+  // Reclaim prior seat id BEFORE opening the socket so soft-disconnect grace
+  // cancels on the matching connection — no hunt for Rejoin after app switch.
+  const [sessionResume] = useState(() => {
+    if (typeof window === "undefined") return null;
+    if (presetName.trim()) return null;
+    const session = recallRoomSession(code);
+    if (session?.playerId) adoptPlayerIdForRejoin(code, session.playerId);
+    return session;
+  });
+
   const {
     state,
     you,
@@ -69,8 +80,8 @@ export function RoomClient({
     send,
     defaultName,
   } = useGameRoom(code, {
-    preferredName: presetName,
-    preferSpectate,
+    preferredName: presetName || sessionResume?.name || "",
+    preferSpectate: preferSpectate || sessionResume?.role === "spectator",
   });
   const [name, setName] = useState(presetName || defaultName);
   const [rejoinId] = useState(() => getLastPlayerIdForRejoin(code));
@@ -87,11 +98,24 @@ export function RoomClient({
 
   useEffect(() => {
     if (autoJoinAttempted.current) return;
-    const clean = presetName.trim();
+    const clean = (presetName.trim() || sessionResume?.name || "").trim();
     if (!connected || joined || !clean) return;
     autoJoinAttempted.current = true;
-    join(clean, preferSpectate ? "spectator" : "player");
-  }, [connected, joined, presetName, preferSpectate, join]);
+    join(
+      clean,
+      preferSpectate || sessionResume?.role === "spectator"
+        ? "spectator"
+        : "player",
+    );
+  }, [
+    connected,
+    joined,
+    presetName,
+    preferSpectate,
+    join,
+    sessionResume?.name,
+    sessionResume?.role,
+  ]);
 
   const phase: Phase | null = state?.phase ?? null;
   const partyOn = state?.settings.partyMode === true;

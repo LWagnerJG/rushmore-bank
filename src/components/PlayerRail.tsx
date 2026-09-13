@@ -34,6 +34,8 @@ export function PlayerRail({
     state.phase === "SCORE_REVEAL" ||
     state.phase === "WAGER_SELECTION" ||
     state.phase === "VOTING_AND_JUDGING";
+  const showPotSplit =
+    state.phase === "WAGER_SELECTION" || state.phase === "DICE";
   const count = players.length;
   const fit = count > 0 && count <= 5;
   const many = count >= 6;
@@ -56,6 +58,7 @@ export function PlayerRail({
         fit ? "player-rail-fit" : "",
         many ? "player-rail-many" : "",
         dense ? "player-rail-dense" : "",
+        showPotSplit ? "player-rail-pot-split" : "",
       ]
         .filter(Boolean)
         .join(" ")}
@@ -63,21 +66,32 @@ export function PlayerRail({
       aria-label={`Leaderboard · ${count} players`}
     >
       <div className="player-rail-track">
-        {players.map((p) => (
-          <PlayerChip
-            key={p.id}
-            player={p}
-            you={p.id === youId}
-            up={upId === p.id}
-            chipRef={upId === p.id ? upRef : undefined}
-            compact={many}
-            earned={
-              showEarned
-                ? (state.earnedThisRound[p.id] ?? undefined)
-                : undefined
-            }
-          />
-        ))}
+        {players.map((p) => {
+          const inDice = state.diceActiveIds?.includes(p.id) ?? false;
+          const pot = state.pots?.[p.id] ?? 0;
+          const safe = inDice
+            ? (state.protectedStones?.[p.id] ?? p.stones)
+            : p.stones;
+          return (
+            <PlayerChip
+              key={p.id}
+              player={p}
+              you={p.id === youId}
+              up={upId === p.id}
+              chipRef={upId === p.id ? upRef : undefined}
+              compact={many}
+              earned={
+                showEarned
+                  ? (state.earnedThisRound[p.id] ?? undefined)
+                  : undefined
+              }
+              showPotSplit={showPotSplit}
+              pot={pot}
+              safe={safe}
+              wagering={showPotSplit && (inDice || pot > 0)}
+            />
+          );
+        })}
       </div>
     </div>
   );
@@ -90,6 +104,10 @@ function PlayerChip({
   earned,
   compact,
   chipRef,
+  showPotSplit,
+  pot,
+  safe,
+  wagering,
 }: {
   player: Player;
   you: boolean;
@@ -97,7 +115,16 @@ function PlayerChip({
   earned?: number;
   compact?: boolean;
   chipRef?: RefObject<HTMLDivElement | null>;
+  showPotSplit?: boolean;
+  pot: number;
+  safe: number;
+  wagering?: boolean;
 }) {
+  const label = you ? "You" : player.name;
+  const tip = up
+    ? `${player.name} · on the clock`
+    : player.name;
+
   return (
     <div
       ref={chipRef}
@@ -107,11 +134,12 @@ function PlayerChip({
         you ? "player-chip-you" : "player-chip-other",
         up ? "player-chip-up" : "",
         player.connected ? "" : "opacity-50",
+        showPotSplit ? "player-chip-pot-split" : "",
       ]
         .filter(Boolean)
         .join(" ")}
       aria-current={up ? "true" : undefined}
-      title={up ? "On the clock" : undefined}
+      title={tip}
     >
       <div className="player-chip-name">
         {up && (
@@ -120,22 +148,35 @@ function PlayerChip({
           </span>
         )}
         {player.isHost && !up && <span title="Host">★</span>}
-        <span className="player-chip-name-text">
-          {you ? "You" : player.name}
-        </span>
+        <span className="player-chip-name-text">{label}</span>
       </div>
-      <div className="player-chip-score">
-        <span className="player-chip-stones tabular-nums">{player.stones}</span>
-        {earned != null && earned > 0 ? (
+      {showPotSplit ? (
+        <div className="player-chip-split" aria-label={`${safe} safe, ${pot} pot`}>
+          <span className="player-chip-safe tabular-nums">
+            <span className="player-chip-split-label">safe</span> {safe}
+          </span>
           <span
-            className={`player-chip-earned tabular-nums ${
-              you ? "player-chip-earned-you" : ""
+            className={`player-chip-pot tabular-nums ${
+              wagering && pot > 0 ? "player-chip-pot-hot" : ""
             }`}
           >
-            +{earned}
+            <span className="player-chip-split-label">pot</span> {pot}
           </span>
-        ) : null}
-      </div>
+        </div>
+      ) : (
+        <div className="player-chip-score">
+          <span className="player-chip-stones tabular-nums">{player.stones}</span>
+          {earned != null && earned > 0 ? (
+            <span
+              className={`player-chip-earned tabular-nums ${
+                you ? "player-chip-earned-you" : ""
+              }`}
+            >
+              +{earned}
+            </span>
+          ) : null}
+        </div>
+      )}
     </div>
   );
 }
