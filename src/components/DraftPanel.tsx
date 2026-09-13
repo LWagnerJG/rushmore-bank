@@ -243,7 +243,7 @@ export function DraftPanel({
                     </button>
                     <button
                       type="button"
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-base text-[var(--muted)]"
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-base text-[var(--muted)]"
                       aria-label={`Remove ${text}`}
                       onClick={() =>
                         persist(queue.filter((item) => item !== text))
