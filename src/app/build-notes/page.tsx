@@ -17,7 +17,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Canonical production URL → {RULES.productionUrl}
+        Epic PWA icon + discreet Add to Home Screen → {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -37,13 +37,8 @@ export default function BuildNotesPage() {
             ) : null}
             <li>
               Target: production <code>beans-game.vercel.app</code> via merge to{" "}
-              <code>main</code>. Old URL <code>roundacats.vercel.app</code>{" "}
-              remains a working alias.
-            </li>
-            <li>
-              <strong>PartyKit redeploy</strong> when{" "}
-              <code>JUDGE_URL</code> / party server fallback changes — point at{" "}
-              <code>beans-game.vercel.app</code> (no secrets in this page).
+              <code>main</code>. Alias <code>roundacats.vercel.app</code> still
+              works.
             </li>
           </ul>
         ) : (
@@ -58,25 +53,22 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>Canonical URL flip</strong>:{" "}
-            <code>RULES.productionUrl</code>, layout <code>siteUrl</code> /
-            metadataBase / OG, docs, and PartyKit <code>JUDGE_URL</code> /
-            judge fallback now use <code>https://beans-game.vercel.app</code>.
+            <strong>Epic icon</strong>: refreshed dog + BEANS sunglasses mark
+            (stronger silhouette, cream/terracotta). Source{" "}
+            <code>public/icons/icon-source-1024.png</code> → favicon,
+            apple-touch, manifest 192/512 + maskable, Next{" "}
+            <code>icon.png</code> / <code>apple-icon.png</code>, OG.
           </li>
           <li>
-            <strong>Alias</strong>: <code>roundacats.vercel.app</code> still
-            works (Vercel project renamed to <code>beans-game</code>; old host
-            kept as alias).
+            <strong>Add to Home Screen</strong>: discreet control on home. iOS
+            shows Share → Add to Home Screen tip (no fake one-tap). Chromium
+            uses <code>beforeinstallprompt</code> when available; otherwise a
+            short menu tip. Hidden in standalone / installed mode.
           </li>
           <li>
-            <strong>Share</strong>: lobby invite titles “Beans” and uses{" "}
-            <code>window.location.origin</code> when in-browser (QR/share stay
-            origin-based).
-          </li>
-          <li>
-            No game logic changes. Preserved: topics ({TOPIC_COUNT}), Party Mode,
-            vote/judge/BANK polish, rematch, bots. Repo name stays{" "}
-            <code>rushmore-bank</code>.
+            Production URL remains <code>{RULES.productionUrl}</code>;{" "}
+            <code>roundacats.vercel.app</code> alias. Topics ({TOPIC_COUNT}), no
+            game logic change.
           </li>
         </ul>
       </section>
@@ -85,25 +77,17 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">URL status</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            Primary: <code>https://beans-game.vercel.app</code> (Vercel project{" "}
-            <code>beans-game</code>).
+            Primary: <code>https://beans-game.vercel.app</code>
           </li>
           <li>
-            Alias: <code>https://roundacats.vercel.app</code> still serves the
-            same app.
+            Alias: <code>https://roundacats.vercel.app</code>
           </li>
           <li>
-            After merge: if the beans-game alias does not auto-attach to the
-            newest deployment, Fudge can re-point it on Vercel.
+            After merge: Fudge can re-point the beans-game alias if Vercel
+            doesn’t auto-attach to the newest deployment.
           </li>
           <li>
-            PartyKit: ensure deployed <code>JUDGE_URL</code> matches{" "}
-            <code>beans-game.vercel.app</code> after this land (redeploy party
-            if vars were baked previously).
-          </li>
-          <li>
-            iOS tip: remove any old home-screen icon and re-Add to Home Screen
-            if the PWA name/icon looks stale.
+            iOS: remove old home-screen icon and re-Add to pick up the new art.
           </li>
         </ul>
       </section>
