@@ -1,6 +1,9 @@
 export {
   snakeDraftOrder,
   totalDraftPicks,
+  draftBoardSeats,
+  turnIndexForSeatPick,
+  remapDraftAfterSeatGrowth,
 } from "./snake";
 export {
   applyDiceRoll,

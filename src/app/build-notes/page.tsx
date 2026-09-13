@@ -17,7 +17,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Beans branding polish (PWA name + dog sunglasses icon) →{" "}
+        Admin add-bots draft columns + Beans branding polish →{" "}
         {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
@@ -41,6 +41,11 @@ export default function BuildNotesPage() {
               <code>main</code>. Old URL stays live. Preferred alias{" "}
               <code>beans-game.vercel.app</code> needs Luke (below).
             </li>
+            <li>
+              <strong>PartyKit redeploy required</strong> —{" "}
+              <code>party/server.ts</code> + shared snake helpers changed for
+              mid-draft add-bots seat sync.
+            </li>
           </ul>
         ) : (
           <p className="text-[var(--muted)]">
@@ -53,6 +58,13 @@ export default function BuildNotesPage() {
       <section className="panel space-y-2 text-sm">
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
+          <li>
+            <strong>Admin add-bots draft columns</strong>: mid-draft bot inject
+            no longer duplicates Admin/You headers — board columns follow unique{" "}
+            <code>seatOrder</code>; server rebuilds snake <code>draftOrder</code>{" "}
+            + remaps picks. <strong>PartyKit redeploy required</strong> (
+            <code>party/server.ts</code> + shared snake helpers).
+          </li>
           <li>
             <strong>PWA / home-screen name</strong>: manifest{" "}
             <code>name</code> / <code>short_name</code>,{" "}
