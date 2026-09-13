@@ -44,4 +44,4 @@ next-env.d.ts
 # partykit local state
 .partykit/
 artifacts/
-beans-*.webp
+/beans-*.webp
