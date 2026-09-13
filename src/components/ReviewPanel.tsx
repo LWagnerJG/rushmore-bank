@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
 import { RushmoreCard } from "@/components/RushmoreCard";
 import { RULES } from "@/shared/rules";
+import { rosterDensity } from "@/shared/roster-density";
 
 function Countdown({ until }: { until: number | null }) {
   const [left, setLeft] = useState(0);
@@ -16,12 +17,6 @@ function Countdown({ until }: { until: number | null }) {
   }, [until]);
   if (!until) return null;
   return <span className="tabular-nums">{left}s</span>;
-}
-
-function rosterDensity(count: number): "cozy" | "snug" | "dense" {
-  if (count >= 8) return "dense";
-  if (count >= 5) return "snug";
-  return "cozy";
 }
 
 export function ReviewPanel({

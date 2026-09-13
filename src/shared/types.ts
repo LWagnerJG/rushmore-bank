@@ -206,7 +206,7 @@ export interface RoomState {
   judgeStatus: JudgeStatus;
   judgeJobId: string | null;
   judgeNotice: string | null;
-  /** Players who tapped “Bank the Beans” on SCORE_REVEAL */
+  /** Players who tapped “Ready to wager” on SCORE_REVEAL */
   bankBeansReady: Record<string, true>;
   earnedThisRound: Record<string, number>;
   wagers: Record<string, number>;
@@ -289,7 +289,7 @@ export interface PublicRoomState {
    * and on score reveal. Never includes award numbers during vote.
    */
   rushmoreWhy: Record<string, string>;
-  /** SCORE_REVEAL readiness for “Bank the Beans” */
+  /** SCORE_REVEAL readiness for “Ready to wager” */
   bankBeansReadyCast: number;
   bankBeansReadyNeeded: number;
   myBankBeansReady: boolean;

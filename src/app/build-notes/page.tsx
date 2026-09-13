@@ -17,7 +17,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        PlayerRail You-chip: full ring + soft glow → {RULES.productionUrl}
+        Vote → judge → BANK polish → {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -54,38 +54,39 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>Topic vibes</strong>: All / Basic / Sports / Animals /
-            Geography (Spicy &amp; Niche removed) — filters shortlist + reroll.
+            <strong>Judge flow</strong>: rosters stay visible through vote → AI
+            calculating → scored board (no blank/full-screen flip); discreet
+            “AI is calculating…” on the same board (pending only).
           </li>
           <li>
-            <strong>Party Mode (real)</strong>: ON expands drink rules. Bust →
-            once-per-round drink redo CTA (<code>Finished drink · redo bust</code>
-            ) or Pass. Round end → lowest beans drink +{" "}
-            <code>I finished my drink</code> (ties share; bots auto-resolve;
-            next topic gated).
+            <strong>Earned split</strong>: under <code>+N</code> —{" "}
+            <code>X from votes · Y from AI</code> (uses existing{" "}
+            <code>votes</code> / <code>aiAward</code>).
           </li>
           <li>
-            <strong>Draft polish</strong>: removed redundant “Type your answer”
-            under Your turn; stash + draft board get stronger panel contrast on
-            cream. Up-seat You-chip gold ring + glow no longer clipped on the
-            rail (fit mode uses real <code>overflow: visible</code>; scroll mode
-            pads the track — extra inline inset so the leading You ring isn’t
-            shaved on the left; sticky chrome blur on a <code>::before</code>).
-            Glow is a longer multi-layer falloff so it eases into cream instead
-            of a hard cutoff.
+            <strong>Ready to wager</strong>: primary CTA moved to sticky header
+            top-right with a soft pulse after tallies (replaces bottom “Bank the
+            Beans”).
           </li>
           <li>
-            <strong>Dice TAP</strong>: TAP sits on top of the dice and blinks
-            when armed to roll.
+            <strong>Safe / Risking</strong>: full words replace S/P on player
+            rail + dice turn strip; pot-split fit mode scrolls so labels don’t
+            clip.
           </li>
           <li>
-            <strong>Bank confirm</strong>: “Are you sure you want to Bank?”
-            modal; idle bank timer pauses while open.
+            <strong>BANK stage</strong>: one soft cream panel holds role +
+            pressing timer + bigger dice + louder TAP + pot/Bank — less outer
+            chrome, more dice weight.
           </li>
           <li>
-            Preserved: spectator, logo settings, rematch, scramble settle, min
-            wager 1, leave/rejoin, 60s draft, vote auto-start, Beans branding,
-            admin, bots.
+            <strong>PlayerRail You-chip</strong>: gold ring + soft multi-layer
+            glow no longer clipped (fit overflow visible; scroll track padded;
+            sticky chrome blur on <code>::before</code>).
+          </li>
+          <li>
+            Topics ({TOPIC_COUNT}), Party Mode, spectator, rematch, bank-confirm
+            timer pause, scramble settle, branding preserved. UI-only — no
+            PartyKit host logic change.
           </li>
         </ul>
       </section>
