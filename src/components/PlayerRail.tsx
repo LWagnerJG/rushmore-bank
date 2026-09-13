@@ -17,6 +17,22 @@ export function sortLeaderboard(
   });
 }
 
+/** Match the draft board's left-to-right columns while drafting. */
+export function sortDraftBoardPlayers(
+  players: Player[],
+  seatOrder: string[],
+): Player[] {
+  const seatByPlayerId = new Map(seatOrder.map((id, seat) => [id, seat]));
+  return players
+    .map((player, index) => ({ player, index }))
+    .sort((a, b) => {
+      const aSeat = seatByPlayerId.get(a.player.id) ?? a.player.seat ?? 99;
+      const bSeat = seatByPlayerId.get(b.player.id) ?? b.player.seat ?? 99;
+      return aSeat - bSeat || a.index - b.index;
+    })
+    .map(({ player }) => player);
+}
+
 export function PlayerRail({
   state,
   youId,
@@ -24,10 +40,11 @@ export function PlayerRail({
   state: PublicRoomState;
   youId: string;
 }) {
-  const players = sortLeaderboard(
-    state.players.filter((p) => p.role === "player"),
-    youId,
-  );
+  const playerList = state.players.filter((p) => p.role === "player");
+  const players =
+    state.phase === "DRAFT" || state.phase === "CORRECTION"
+      ? sortDraftBoardPlayers(playerList, state.seatOrder)
+      : sortLeaderboard(playerList, youId);
   const upId = currentUpPlayerId(state);
   const showEarned =
     state.scoresLocked ||
