@@ -1754,24 +1754,87 @@ html.party-on .panel {
   display: none;
 }
 
-/* Few players — breathe: wider name gutters so labels aren't cramped */
+/*
+ * Few players (2–3) — fill the top row generously so seats don’t look
+ * sparse. Keep track padding so the You / up-seat ring+glow stay unclipped.
+ */
 .player-rail-few .player-rail-track {
-  gap: 0.65rem;
-  /* Keep track padding — shrinking inline inset re-clips the You ring. */
+  gap: 0.55rem;
+  align-items: stretch;
 }
 
 .player-rail-few .player-chip {
-  padding: 0.48rem 0.7rem;
+  padding: 0.65rem 0.85rem;
+  min-height: 3.85rem;
+  border-radius: 1rem;
+  gap: 0.28rem;
+  justify-content: space-between;
 }
 
 .player-rail-few .player-chip-name {
-  font-size: 0.78rem;
-  margin-inline: 0.1rem;
+  font-size: 0.82rem;
+  margin-inline: 0.05rem;
 }
 
 .player-rail-few .player-chip-name-text {
   -webkit-line-clamp: 1;
   line-clamp: 1;
+}
+
+.player-rail-few .player-chip-stones {
+  font-size: 1.4rem;
+}
+
+.player-rail-few .player-chip-earned {
+  font-size: 0.85rem;
+}
+
+.player-rail-few .player-chip-safe,
+.player-rail-few .player-chip-pot {
+  font-size: 0.86rem;
+}
+
+.player-rail-few .player-chip-split-label {
+  font-size: 0.6rem;
+}
+
+.player-rail-few .player-chip-split-num {
+  font-size: 1.05rem;
+}
+
+/* Duo — maximum presence across the row */
+.player-rail[data-count="2"].player-rail-few .player-chip {
+  padding: 0.78rem 1.05rem;
+  min-height: 4.25rem;
+  border-radius: 1.15rem;
+  gap: 0.35rem;
+}
+
+.player-rail[data-count="2"].player-rail-few .player-chip-name {
+  font-size: 0.92rem;
+}
+
+.player-rail[data-count="2"].player-rail-few .player-chip-stones {
+  font-size: 1.6rem;
+}
+
+.player-rail[data-count="2"].player-rail-few .player-chip-earned {
+  font-size: 0.95rem;
+}
+
+.player-rail[data-count="2"].player-rail-few .player-chip-split-num {
+  font-size: 1.15rem;
+}
+
+/* Trio — still generous, a touch tighter than duo */
+.player-rail[data-count="3"].player-rail-few .player-chip {
+  padding: 0.7rem 0.85rem;
+  min-height: 4rem;
+  border-radius: 1.05rem;
+}
+
+.player-rail[data-count="3"].player-rail-few .player-chip-stones {
+  font-size: 1.45rem;
 }
 
 /* Fit everyone without scroll when the row can breathe */
@@ -1798,6 +1861,27 @@ html.party-on .panel {
 }
 .player-rail-fit.player-rail-pot-split .player-chip-pot-split {
   min-width: 6.4rem;
+}
+
+/*
+ * Pot-split + few: share the row (don’t lock fixed min-widths / scroll).
+ * After the general pot-split fit rules so 2–3 seats still stretch.
+ * Safe/Risking stays readable; You glow stays unclipped (overflow:visible).
+ */
+.player-rail-few.player-rail-fit.player-rail-pot-split .player-rail-track {
+  overflow: visible;
+  scroll-snap-type: none;
+}
+
+.player-rail-few.player-rail-fit.player-rail-pot-split .player-chip {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: none;
+}
+
+.player-rail-few.player-rail-fit.player-rail-pot-split .player-chip-pot-split {
+  min-width: 0;
+  max-width: none;
 }
 
 .player-rail-fit .player-chip-name-text {
