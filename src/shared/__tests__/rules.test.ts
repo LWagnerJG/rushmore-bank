@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { snakeDraftOrder, totalDraftPicks } from "../engine/snake";
-import { applyDiceRoll } from "../engine/dice";
+import { applyDiceRoll, rollNetBeansAdded } from "../engine/dice";
 import { applyWager, maxWager, wagerFromPreset } from "../engine/wager";
 import { aiAwardFromScores, computeEarnedStones } from "../engine/scoring";
 import { RULES } from "../rules";
@@ -87,10 +87,12 @@ describe("dice table", () => {
     expect(o.busted).toBe(false);
     expect(o.kind).toBe("double_pot");
     expect(o.potAfter).toBe(210);
+    expect(o.delta).toBe(105); // net beans, not face sum 12
     pot = o.potAfter;
 
     o = applyDiceRoll(pot, { d1: 1, d2: 2 }, 2);
     expect(o.potAfter).toBe(213);
+    expect(o.delta).toBe(3);
     pot = o.potAfter;
 
     // Banked total with protected 95 (NOT a dice pot step)
@@ -99,6 +101,15 @@ describe("dice table", () => {
     o = applyDiceRoll(pot, { d1: 1, d2: 6 }, 3);
     expect(o.busted).toBe(true);
     expect(o.potAfter).toBe(0);
+  });
+
+  it("double 4s net pot delta, not face sum 8", () => {
+    const o = applyDiceRoll(40, { d1: 4, d2: 4 }, 1);
+    expect(o.kind).toBe("double_pot");
+    expect(o.total).toBe(8); // face sum (internal)
+    expect(o.delta).toBe(40); // beans actually added
+    expect(o.potAfter).toBe(80);
+    expect(rollNetBeansAdded(o.potBefore, o.potAfter, o.busted)).toBe(40);
   });
 });
 

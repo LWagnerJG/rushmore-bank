@@ -17,7 +17,8 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Safari A2HS tip (⋯ → Share) → {RULES.productionUrl}
+        Dice net gain · wager timer · home nickname-first →{" "}
+        {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -53,44 +54,24 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>Epic icon</strong>: refreshed dog + BEANS sunglasses mark
-            (stronger silhouette, cream/terracotta). Source{" "}
-            <code>public/icons/icon-source-1024.png</code> → favicon,
-            apple-touch, manifest 192/512 + maskable, Next{" "}
-            <code>icon.png</code> / <code>apple-icon.png</code>, OG.
+            <strong>Dice doubles readout</strong>: shows net beans added to the
+            pot (<code>potAfter − potBefore</code>), not face sum. Double 4s
+            with pot 40 → <code>+40</code>, not <code>+8</code>.
           </li>
           <li>
-            <strong>Add to Home Screen</strong>: one discreet bottom control.
-            Chromium one-tap via <code>beforeinstallprompt</code> when
-            available. iOS Safari tip: horizontal{" "}
-            <strong>⋯ (bottom right) → Share → Add to Home Screen</strong>{" "}
-            (not vertical ⋮; no tutorial wall). Hidden in standalone /
-            fullscreen / minimal-ui / <code>navigator.standalone</code>.
+            <strong>Wager screen</strong>: louder countdown timer, CTA{" "}
+            <em>Risk N beans</em>, tighter hierarchy (AT RISK / stay safe /
+            slider).
           </li>
           <li>
-            <strong>Cream bottom clip</strong>: lobby no longer reserves ~5.5rem
-            of opaque shell padding for Admin FAB (that band ate topic-vibe
-            chips). Shell keeps true <code>safe-area-inset-bottom</code> only;
-            Start clears the FAB via <code>.lobby-start-slot</code>. Dropped
-            scroll-phase <code>flex-1</code> + lingering rise transform that
-            clipped panels.
-          </li>
-          <li>
-            <strong>Ready to wager</strong>: CTA moved under the player rail
-            (right), soft pulse — not buried in sticky header.
-          </li>
-          <li>
-            <strong>TAP</strong>: cream/terracotta pill, quieter pulse when
-            armed.
-          </li>
-          <li>
-            <strong>Safe / pot</strong>: matching visual weight on the dice
-            stage; Bank CTA shows discreet → total (safe + pot).
+            <strong>Home</strong>: nickname first → then Create / Join. Quiet
+            A2HS + 5-tap admin unchanged. No build notes on home.
           </li>
           <li>
             Production URL remains <code>{RULES.productionUrl}</code>;{" "}
-            <code>roundacats.vercel.app</code> alias. Topics ({TOPIC_COUNT}), no
-            game logic change.
+            <code>roundacats.vercel.app</code> alias. Topics ({TOPIC_COUNT}).
+            Scoring rules unchanged (UI readout only) — no PartyKit redeploy
+            required for this ship.
           </li>
         </ul>
       </section>
@@ -108,9 +89,6 @@ export default function BuildNotesPage() {
             After merge: Fudge can re-point the{" "}
             <code>roundacats.vercel.app</code> alias if Vercel doesn’t
             auto-attach the newest deployment to production.
-          </li>
-          <li>
-            iOS: remove old home-screen icon and re-Add to pick up the new art.
           </li>
         </ul>
       </section>

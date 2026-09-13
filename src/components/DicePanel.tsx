@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
 import { DiceScene } from "@/components/dice/DiceScene";
 import { classifyPullOut } from "@/shared/engine/banking";
+import { rollNetBeansAdded } from "@/shared/engine/dice";
 import { haptic } from "@/lib/haptics";
 import { RULES } from "@/shared/rules";
 import { ensureDiceAudio, playBankChime } from "@/lib/dice-sfx";
@@ -91,7 +92,8 @@ type StickyRoll = {
   rollId: string;
   d1: number;
   d2: number;
-  total: number;
+  /** Net beans added to the pot (doubles = pot delta, not face sum). */
+  gain: number;
   name: string;
   busted: boolean;
   note?: string;
@@ -245,11 +247,12 @@ export function DicePanel({
       return;
     }
     if (last.revealed && last.d1 != null && last.d2 != null) {
+      const potAfter = last.potAfter ?? last.potBefore;
       setStickyRoll({
         rollId: last.rollId,
         d1: last.d1,
         d2: last.d2,
-        total: last.d1 + last.d2,
+        gain: rollNetBeansAdded(last.potBefore, potAfter, last.busted),
         name: lastName,
         busted: !!last.busted,
         note: last.note,
@@ -439,7 +442,7 @@ export function DicePanel({
               </>
             ) : showTotal && stickyRoll ? (
               <p className="dice-result-gain tabular-nums">
-                +{stickyRoll.total} {RULES.currencyName}
+                +{stickyRoll.gain} {RULES.currencyName}
               </p>
             ) : (
               <p className="dice-result-gain dice-result-idle tabular-nums">—</p>
