@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { sortLeaderboard } from "@/components/PlayerRail";
+import {
+  sortDraftBoardPlayers,
+  sortLeaderboard,
+} from "@/components/PlayerRail";
 import { currentUpPlayerId } from "@/shared/engine/up-seat";
 import type { Player, PublicRoomState } from "@/shared/types";
 import { emptyRoomState } from "@/shared/types";
@@ -45,6 +48,19 @@ describe("sortLeaderboard", () => {
       "y",
       "z",
     ]);
+  });
+});
+
+describe("sortDraftBoardPlayers", () => {
+  it("matches the draft board's seat columns, without putting You first", () => {
+    const players = [
+      p({ id: "you", name: "You", stones: 1, seat: 2 }),
+      p({ id: "a", name: "Ada", stones: 3, seat: 0 }),
+      p({ id: "b", name: "Bea", stones: 12, seat: 1 }),
+    ];
+    expect(
+      sortDraftBoardPlayers(players, ["a", "b", "you"]).map((x) => x.id),
+    ).toEqual(["a", "b", "you"]);
   });
 });
 

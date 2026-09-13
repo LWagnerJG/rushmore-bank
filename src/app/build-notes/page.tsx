@@ -16,7 +16,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Lobby Topic vibes scroll fix → {RULES.productionUrl}
+        Draft rail + header polish → {RULES.productionUrl}
       </p>
 
       <section className="panel space-y-2 text-sm">
@@ -43,6 +43,12 @@ export default function BuildNotesPage() {
       <section className="panel space-y-2 text-sm">
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
+          <li>
+            <strong>Draft rail order</strong>: player chips now follow the
+            draft board&apos;s left-to-right seat columns during DRAFT and
+            CORRECTION; score-focused phases keep leaderboard ordering. The
+            redundant Draft header subtitle is gone.
+          </li>
           <li>
             <strong>Lobby player rail</strong>: hidden the redundant top
             scoreboard before the game starts; in-game phases still show it.

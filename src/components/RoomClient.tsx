@@ -336,9 +336,8 @@ export function RoomClient({
           </h1>
         )}
         {drafting && (
-          <div className="mt-1 flex items-center justify-between gap-2 text-[0.7rem] font-bold uppercase tracking-wide text-[var(--muted)]">
-            <span>{phase ? phaseLabel(phase) : "Draft"}</span>
-            <span className="normal-case tracking-normal text-[var(--text)]">
+          <div className="mt-1 flex justify-end text-[0.7rem] font-bold tracking-wide text-[var(--muted)]">
+            <span className="tabular-nums text-[var(--text)]">
               {you.stones} {RULES.currencyName}
             </span>
           </div>
