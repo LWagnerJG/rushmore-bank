@@ -64,8 +64,8 @@ export const RULES = {
   aiExplanationMaxWords: 45,
   aiPromptVersion: "quarry-judge-v1",
 
-  /** Wagers — every owned bean is wagerable (E + B) */
-  wagerTimeoutSeconds: 20,
+  /** Wagers — every owned bean is wagerable (E + B). 45s matches vote window; was 20s (too rushed). */
+  wagerTimeoutSeconds: 45,
 
   /** Dice — personal turn: keep rolling until Bank or bust, then next seat */
   /**
