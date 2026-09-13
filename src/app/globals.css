@@ -111,6 +111,33 @@ html.party-on body::before {
   -webkit-overflow-scrolling: touch;
 }
 
+/*
+ * Sticky room chrome: keep overflow visible so the player-rail up-seat
+ * ring/glow isn't clipped. Put backdrop-filter on ::before — applying blur
+ * on the sticky element itself can make browsers clip descendants.
+ */
+.room-chrome {
+  overflow: visible;
+  isolation: isolate;
+  background: transparent;
+}
+
+.room-chrome::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: rgba(245, 240, 231, 0.96);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.room-chrome-party::before,
+html.party-on .room-chrome::before {
+  background: rgba(255, 248, 236, 0.96);
+}
+
 .field {
   border-radius: 0.85rem;
   border: 1.5px solid rgba(35, 72, 62, 0.18);
