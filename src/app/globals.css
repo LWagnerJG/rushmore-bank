@@ -107,8 +107,10 @@ html.party-on body::before {
 .app-shell-scroll {
   overflow-x: hidden;
   overflow-y: auto;
-  overscroll-behavior-y: contain;
+  /* none (not contain): Safari still pull-to-refreshes with contain */
+  overscroll-behavior-y: none;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 }
 
 /*

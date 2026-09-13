@@ -16,8 +16,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Party drink CTAs stay secondary to Risk / Bank / TAP →{" "}
-        {RULES.productionUrl}
+        Block pull-to-refresh (Safari socket-safe) → {RULES.productionUrl}
       </p>
 
       <section className="panel space-y-2 text-sm">
@@ -45,9 +44,9 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>Party Mode drink CTAs</strong>: “I finished my drink” /
-            redo / Pass use quiet secondary styling so they never fight Ready to
-            wager, Risk, Bank, or TAP for attention. Next topic stays primary.
+            <strong>No pull-to-refresh</strong> on home/room shells: overscroll
+            locked + touch guard so Safari doesn’t reload and kill the PartyKit
+            socket. Intentional in-panel scrolling still works.
           </li>
         </ul>
       </section>
