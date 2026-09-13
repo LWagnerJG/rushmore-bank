@@ -4,6 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import type { ClientMessage, PublicRoomState } from "@/shared/types";
 import { RULES } from "@/shared/rules";
 import { currentUpPlayerId } from "@/shared/engine/up-seat";
+import {
+  draftBoardSeats,
+  turnIndexForSeatPick,
+} from "@/shared/engine/snake";
 import { readAdminUnlocked } from "@/lib/admin-session";
 
 function densityFor(count: number): "fit" | "snug" | "dense" {
@@ -32,7 +36,9 @@ export function DraftBoard({
   send: (m: ClientMessage) => void;
 }) {
   const activeCell = useRef<HTMLTableCellElement>(null);
-  const seats = state.draftOrder.slice(0, state.seatOrder.length);
+  // One unique column per seat — never snake-prefix draftOrder (duplicates on
+  // reverse passes / mid-draft seat growth).
+  const seats = draftBoardSeats(state.seatOrder.length);
   const density = densityFor(seats.length);
   const colW = colWidthPx(seats.length, density);
   const correcting = state.phase === "CORRECTION";
@@ -172,25 +178,31 @@ export function DraftBoard({
           <tbody>
             {Array.from({ length: RULES.picksPerPlayer }, (_, pass) => (
               <tr key={pass}>
-                {seats.map((seat, column) => {
-                  const turn =
-                    pass * seats.length +
-                    (pass % 2 === 0 ? column : seats.length - 1 - column);
-                  const pick = state.picks.find((p) => p.turnIndex === turn);
+                {seats.map((seat) => {
+                  const turn = turnIndexForSeatPick(
+                    state.draftOrder,
+                    seat,
+                    pass,
+                  );
+                  const pick =
+                    turn >= 0
+                      ? state.picks.find((p) => p.turnIndex === turn)
+                      : undefined;
                   const pid = state.seatOrder[seat];
                   const colActive = upId === pid;
                   const current =
+                    turn >= 0 &&
                     state.draftCursor === turn &&
                     (state.phase === "DRAFT" || state.phase === "CORRECTION");
-                  const isRedoTarget = redoTurn === turn;
-                  const hostFocused = focusTurn === turn;
+                  const isRedoTarget = turn >= 0 && redoTurn === turn;
+                  const hostFocused = turn >= 0 && focusTurn === turn;
                   const dimForRedo =
                     correcting && !isRedoTarget && !current;
                   return (
                     <td
                       key={`${pass}-${seat}`}
                       ref={current || isRedoTarget ? activeCell : undefined}
-                      data-turn={turn}
+                      data-turn={turn >= 0 ? turn : undefined}
                       aria-current={current || isRedoTarget ? "step" : undefined}
                       className={[
                         "draft-board-cell",

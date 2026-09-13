@@ -54,6 +54,13 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
+            <strong>Admin add-bots draft columns</strong>: mid-draft bot inject
+            no longer duplicates Admin/You headers — board columns follow unique{" "}
+            <code>seatOrder</code>; server rebuilds snake <code>draftOrder</code>{" "}
+            + remaps picks. <strong>PartyKit redeploy required</strong> (
+            <code>party/server.ts</code> + shared snake helpers).
+          </li>
+          <li>
             <strong>Judge flow</strong>: rosters stay visible through vote → AI
             calculating → scored board (no blank/full-screen flip); discreet
             “AI is calculating…” on the same board (pending only).
@@ -83,11 +90,12 @@ export default function BuildNotesPage() {
             glow no longer clipped (fit overflow visible; scroll track padded;
             sticky chrome blur on <code>::before</code>).
           </li>
-          <li>
-            Topics ({TOPIC_COUNT}), Party Mode, spectator, rematch, bank-confirm
-            timer pause, scramble settle, branding preserved. UI-only — no
-            PartyKit host logic change.
-          </li>
+            <li>
+              Topics ({TOPIC_COUNT}), Party Mode, spectator, rematch, bank-confirm
+              timer pause, scramble settle, branding preserved. PartyKit host
+              changes require redeploy when <code>party/</code> or shared seat
+              logic ships.
+            </li>
         </ul>
       </section>
     </main>

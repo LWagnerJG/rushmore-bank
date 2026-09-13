@@ -43,6 +43,7 @@ import {
   projectPublicState,
   roll2d6,
   rosterFull,
+  remapDraftAfterSeatGrowth,
   snakeDraftOrder,
   takenFromPicks,
   upsertDraftPick,
@@ -2219,21 +2220,18 @@ export default class QuarryServer implements Party.Server {
   handleAdminSpawnBots(pin: string, count: number) {
     assertAdminPin(pin);
     const n = Math.max(1, Math.min(8, Math.floor(count) || 1));
-    const existingBots = this.state.players.filter((p) =>
-      p.id.startsWith("bot-"),
-    ).length;
+    const existingBots = this.state.players.filter((p) => isBotId(p.id)).length;
+    const seatCountBefore = this.state.seatOrder.length;
     let added = 0;
     for (let i = 0; i < n; i++) {
       const players = this.state.players.filter((p) => p.role === "player");
       if (players.length >= RULES.maxPlayers) break;
-      if (this.state.rosterLocked) {
-        // Mid-game: only add if we can append to seat order (debug only).
-        // Prefer adding before lock; if locked, still inject for testing.
-      }
       const idx = existingBots + added;
       const name = `Bot ${BOT_NAMES[idx % BOT_NAMES.length]}${idx >= BOT_NAMES.length ? idx : ""}`;
       botSeq += 1;
+      // Always unique bot id — never reuse a human/admin connection id.
       const id = `bot-${botSeq}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+      if (this.state.players.some((p) => p.id === id)) continue;
       const isFirst = players.length === 0;
       this.state.players.push({
         id,
@@ -2246,6 +2244,7 @@ export default class QuarryServer implements Party.Server {
         joinedAt: Date.now(),
       });
       if (this.state.rosterLocked) {
+        // Mid-game debug inject: append a new seat; never clone an existing seat.
         const seat = this.state.seatOrder.length;
         const p = this.state.players.find((x) => x.id === id)!;
         p.seat = seat;
@@ -2264,12 +2263,60 @@ export default class QuarryServer implements Party.Server {
       }
       added += 1;
     }
+    if (
+      added > 0 &&
+      this.state.rosterLocked &&
+      this.state.seatOrder.length > seatCountBefore &&
+      (this.state.phase === "DRAFT" || this.state.phase === "CORRECTION")
+    ) {
+      // seatOrder grew but draftOrder was still the old snake — rebuild so
+      // board columns / turn indices stay 1:1 with unique seats.
+      this.resyncDraftAfterSeatGrowth();
+    }
     this.state.notice = added
       ? `Admin · added ${added} fake player${added === 1 ? "" : "s"}`
       : "Admin · room full";
     bump(this.state);
     // Kick bot brain so they start acting in the current phase.
     this.nudgeBots();
+  }
+
+  /**
+   * After mid-draft seat growth (admin bots), rebuild snake order and remap
+   * picks so headers never duplicate Admin/You over missing bot columns.
+   */
+  resyncDraftAfterSeatGrowth() {
+    const priorCorrection =
+      this.state.correctionTargetPickId != null
+        ? Number(this.state.correctionTargetPickId)
+        : null;
+    const remapped = remapDraftAfterSeatGrowth({
+      seatOrder: this.state.seatOrder,
+      picks: this.state.picks,
+      starterOffset: this.state.starterOffset,
+      correctionTargetTurnIndex: Number.isFinite(priorCorrection)
+        ? priorCorrection
+        : null,
+    });
+    this.state.draftOrder = remapped.draftOrder;
+    this.state.picks = remapped.picks;
+    if (this.state.phase === "DRAFT") {
+      this.state.draftCursor = remapped.draftCursor;
+    }
+    if (
+      this.state.phase === "CORRECTION" &&
+      remapped.correctionTargetTurnIndex != null
+    ) {
+      this.state.correctionTargetPickId = String(
+        remapped.correctionTargetTurnIndex,
+      );
+    }
+    if (
+      this.state.correctionResumeCursor != null &&
+      this.state.correctionResumeCursor > remapped.draftOrder.length
+    ) {
+      this.state.correctionResumeCursor = remapped.draftOrder.length;
+    }
   }
 
   clearBotTimer(key: string) {
