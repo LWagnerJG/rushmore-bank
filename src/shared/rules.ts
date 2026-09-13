@@ -9,7 +9,14 @@ export const RULES = {
   displayName: "Beans",
   tagline: "Draft four. Bank beans.",
   currencyName: "beans",
+  /**
+   * Live production host (keep working). Preferred beans-named alias
+   * `https://beans-game.vercel.app` needs a Vercel project rename / domain
+   * add from Luke — see /build-notes. Share invites use `window.location.origin`.
+   */
   productionUrl: "https://roundacats.vercel.app",
+  /** Aspirational / next alias — not live until Luke attaches it on Vercel. */
+  preferredProductionUrl: "https://beans-game.vercel.app",
 
   /** Players */
   minPlayers: 2,
@@ -39,8 +46,11 @@ export const RULES = {
   /** Grace after pick clock hits 0 before miss */
   pickGraceSeconds: 5,
   hostExtendSeconds: 15,
-  /** Skim rosters, then auto-start voting (host may skip early). */
-  reviewSeconds: 5,
+  /**
+   * Legacy review skim — kept at 0 so draft ends go straight into
+   * VOTING_AND_JUDGING (AI judge starts immediately; no countdown stall).
+   */
+  reviewSeconds: 0,
 
   /** Voting / AI */
   /** Vote window — ends at deadline or when everyone has voted. */

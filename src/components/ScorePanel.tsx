@@ -23,7 +23,8 @@ function EarnedBadge({
         +{earned}
       </span>
       <span className="earned-badge-split text-[0.65rem] font-semibold leading-tight text-[var(--muted)]">
-        {fromVotes} from votes · {aiAward} from AI
+        {fromVotes} from ({votes}) vote{votes === 1 ? "" : "s"} · {aiAward}{" "}
+        from AI
         {aiFallback ? " · neutral" : ""}
       </span>
     </span>

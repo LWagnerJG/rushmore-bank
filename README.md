@@ -2,7 +2,7 @@
 
 **Draft four. Bank beans.** — mobile-first party game. Currency: **beans** (protocol fields still named `stones`).
 
-Production today: [https://roundacats.vercel.app](https://roundacats.vercel.app) (Quarry on `main`). This branch is a Fudge polish candidate.
+Production today: [https://roundacats.vercel.app](https://roundacats.vercel.app) (PWA name **Beans**). Preferred beans-named host `beans-game.vercel.app` — Luke attach on Vercel (see `/build-notes`); keep `roundacats.vercel.app` as alias.
 
 ## Stack
 

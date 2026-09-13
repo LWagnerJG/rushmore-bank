@@ -434,44 +434,15 @@ export function DicePanel({
           >
             {showBust && stickyRoll ? (
               <>
-                <p className="dice-result-faces">
-                  {stickyRoll.name} · {stickyRoll.d1} + {stickyRoll.d2}
-                </p>
                 <p className="dice-result-bust-title">BEAN BUSTER</p>
                 <p className="dice-result-note">Pot gone</p>
               </>
             ) : showTotal && stickyRoll ? (
-              <>
-                <p className="dice-result-faces">
-                  {stickyRoll.name} · {stickyRoll.d1} + {stickyRoll.d2}
-                </p>
-                <p className="dice-result-total tabular-nums">
-                  {stickyRoll.total}
-                </p>
-                {stickyRoll.note && !rolling ? (
-                  <p className="dice-result-note">{stickyRoll.note}</p>
-                ) : (
-                  <p
-                    className="dice-result-note dice-result-note-slot"
-                    aria-hidden="true"
-                  >
-                    &nbsp;
-                  </p>
-                )}
-              </>
+              <p className="dice-result-gain tabular-nums">
+                +{stickyRoll.total} {RULES.currencyName}
+              </p>
             ) : (
-              <>
-                <p className="dice-result-faces dice-result-idle">Last roll</p>
-                <p className="dice-result-total tabular-nums dice-result-idle">
-                  —
-                </p>
-                <p
-                  className="dice-result-note dice-result-note-slot"
-                  aria-hidden="true"
-                >
-                  &nbsp;
-                </p>
-              </>
+              <p className="dice-result-gain dice-result-idle tabular-nums">—</p>
             )}
           </div>
 

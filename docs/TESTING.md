@@ -40,14 +40,14 @@ Room `SMK3` measured ~19s for one compressed topic (host skip review; pull-out p
 | https://roundacats.vercel.app loads | After merge/deploy |
 | PartyKit protocol matches this branch | **Blocked** — GitHub Actions `Deploy PartyKit` fails: missing `PARTYKIT_TOKEN` / `PARTYKIT_LOGIN` secrets. Run `npx partykit token generate`, add both repo secrets, then re-run the workflow (or `npx partykit deploy` locally). |
 | 2 sessions join one room | After PartyKit redeploy |
-| Dog favicon / apple-touch / OG intact | Preserved in repo |
+| Beans PWA name + dog/sunglasses icons / OG | Branding assets in `public/` + manifest |
 
 ## Timing notes
 
 - Personal BANK (keep rolling until Bank/bust; everyone enters including W=0)
 - Target session: 25–30 minutes (design), not hard-enforced
 - Host failover window: 20s
-- Draft pick **60s** + **5s** grace; review **5s** (auto-start vote); vote **45s** or until all voted; wager **20s**; dice no pre-roll countdown; idle bank **15s**; topic **no** timer
+- Draft pick **60s** + **5s** grace; review skim **0s** (straight into vote+judge); vote **45s** or until all voted; wager **20s**; dice no pre-roll countdown; idle bank **15s**; topic **no** timer
 - PartyKit redeploy still **blocked** on missing `PARTYKIT_TOKEN` / `PARTYKIT_LOGIN` — server timers (review/vote) won’t update in prod until secrets are set and the workflow is re-run (or `npx partykit deploy` locally).
 
 ## AI

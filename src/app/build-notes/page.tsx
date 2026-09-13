@@ -17,7 +17,8 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Vote → judge → BANK polish → {RULES.productionUrl}
+        Admin add-bots draft columns + Beans branding polish →{" "}
+        {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -37,9 +38,13 @@ export default function BuildNotesPage() {
             ) : null}
             <li>
               Target: production <code>roundacats.vercel.app</code> via merge to{" "}
-              <code>main</code>. PartyKit redeploy required when{" "}
-              <code>src/shared</code> changes (topics are bundled into the party
-              server) — also for reconnect/leave/rejoin and review+vote timers.
+              <code>main</code>. Old URL stays live. Preferred alias{" "}
+              <code>beans-game.vercel.app</code> needs Luke (below).
+            </li>
+            <li>
+              <strong>PartyKit redeploy required</strong> —{" "}
+              <code>party/server.ts</code> + shared snake helpers changed for
+              mid-draft add-bots seat sync.
             </li>
           </ul>
         ) : (
@@ -61,41 +66,72 @@ export default function BuildNotesPage() {
             <code>party/server.ts</code> + shared snake helpers).
           </li>
           <li>
-            <strong>Judge flow</strong>: rosters stay visible through vote → AI
-            calculating → scored board (no blank/full-screen flip); discreet
-            “AI is calculating…” on the same board (pending only).
+            <strong>PWA / home-screen name</strong>: manifest{" "}
+            <code>name</code> / <code>short_name</code>,{" "}
+            <code>apple-mobile-web-app-title</code>,{" "}
+            <code>application-name</code>, document / OG / Twitter titles all{" "}
+            <strong>Beans</strong> (not RoundaCats / rushmore-bank).
           </li>
           <li>
-            <strong>Earned split</strong>: under <code>+N</code> —{" "}
-            <code>X from votes · Y from AI</code> (uses existing{" "}
-            <code>votes</code> / <code>aiAward</code>).
+            <strong>App icon</strong>: new dog + <strong>BEANS sunglasses</strong>{" "}
+            mark (cream / terracotta / ink). Wired: apple-touch 180, favicon,
+            manifest 192/512 + maskable, OG share image. Source:{" "}
+            <code>public/icons/icon-source-1024.png</code>.
           </li>
           <li>
-            <strong>Ready to wager</strong>: primary CTA moved to sticky header
-            top-right with a soft pulse after tallies (replaces bottom “Bank the
-            Beans”).
+            <strong>Share</strong>: lobby invite already titles “Beans” and uses
+            current origin (no hardcoded RoundaCats in share text).
           </li>
           <li>
-            <strong>Safe / Risking</strong>: full words replace S/P on player
-            rail + dice turn strip; pot-split fit mode scrolls so labels don’t
-            clip.
+            Preserved from main: no review skim countdown, vote/AI judge board,
+            earned split, BANK <code>+N beans</code> readout, Ready-to-wager
+            header CTA, Safe/Risking labels, BANK cream stage, PlayerRail glow,
+            Party Mode, topics ({TOPIC_COUNT}), rematch, bots. Repo name stays{" "}
+            <code>rushmore-bank</code>.
+          </li>
+        </ul>
+      </section>
+
+      <section className="panel space-y-2 text-sm">
+        <h2 className="font-extrabold">URL — action for Luke</h2>
+        <ul className="list-disc space-y-1 pl-5">
+          <li>
+            Vercel project <code>roundacats</code> domains today:{" "}
+            <code>roundacats.vercel.app</code>,{" "}
+            <code>rushmore-bank.vercel.app</code>, plus team aliases. Production
+            stays on <code>roundacats.vercel.app</code> so nothing breaks.
           </li>
           <li>
-            <strong>BANK stage</strong>: one soft cream panel holds role +
-            pressing timer + bigger dice + louder TAP + pot/Bank — less outer
-            chrome, more dice weight.
+            <code>beans-game.vercel.app</code> is free (404 / not claimed). Agent
+            CLI has no Vercel write token for domains — Luke should either:
+            <ol className="mt-1 list-decimal space-y-1 pl-5">
+              <li>
+                Rename project to <code>beans-game</code> in Vercel → Settings →
+                General (creates <code>beans-game.vercel.app</code>), then{" "}
+                <strong>re-add</strong> <code>roundacats.vercel.app</code> as a
+                domain alias so the old link keeps working; or
+              </li>
+              <li>
+                Domains → Add <code>beans-game.vercel.app</code> if the UI
+                offers a vercel.app alias without rename.
+              </li>
+            </ol>
           </li>
           <li>
-            <strong>PlayerRail You-chip</strong>: gold ring + soft multi-layer
-            glow no longer clipped (fit overflow visible; scroll track padded;
-            sticky chrome blur on <code>::before</code>).
+            After the alias is live: flip <code>RULES.productionUrl</code>,{" "}
+            <code>layout</code> <code>siteUrl</code>, and PartyKit{" "}
+            <code>JUDGE_URL</code> to <code>beans-game.vercel.app</code>, then
+            redeploy PartyKit.
           </li>
-            <li>
-              Topics ({TOPIC_COUNT}), Party Mode, spectator, rematch, bank-confirm
-              timer pause, scramble settle, branding preserved. PartyKit host
-              changes require redeploy when <code>party/</code> or shared seat
-              logic ships.
-            </li>
+          <li>
+            Custom DNS (optional, not done): <code>beans.game</code> ~$350/yr;{" "}
+            <code>beansgame.com</code> ~$11/yr. <code>beans.vercel.app</code> is
+            already someone else’s unrelated app — skip.
+          </li>
+          <li>
+            iOS tip: remove any old home-screen icon and re-Add to Home Screen
+            to pick up the new name + art (iOS caches aggressively).
+          </li>
         </ul>
       </section>
     </main>
