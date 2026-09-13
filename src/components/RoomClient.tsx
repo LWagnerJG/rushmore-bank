@@ -343,7 +343,7 @@ export function RoomClient({
             </span>
           </div>
         )}
-        {state && phase !== "DICE" && (
+        {state && phase !== "LOBBY" && phase !== "DICE" && (
           <PlayerRail state={state} youId={youId} />
         )}
         {/* Under the player rail — scoreboard context, not buried in header */}
