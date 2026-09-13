@@ -365,7 +365,7 @@ html.party-on .btn-primary {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  animation: shimmer 5s linear infinite;
+  animation: shimmer 12s ease-in-out infinite alternate;
 }
 
 html.party-on .brand-shimmer {
@@ -380,7 +380,7 @@ html.party-on .brand-shimmer {
   background-size: 220% auto;
   -webkit-background-clip: text;
   background-clip: text;
-  animation: shimmer 3.2s linear infinite;
+  animation: shimmer 8s ease-in-out infinite alternate;
 }
 
 .stone-tile {

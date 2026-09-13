@@ -167,6 +167,11 @@ export default function BuildNotesPage() {
             home-indicator safe-area region. Gradient last stop equals{" "}
             <code>var(--bg)</code> so no warm strip appears at the bottom.
           </li>
+          <li>
+            <strong>Beans wordmark</strong>: logo shimmer now moves at a
+            slower, discreet pace and reverses direction at each end,
+            including in Party Mode.
+          </li>
         </ul>
       </section>
     </main>
