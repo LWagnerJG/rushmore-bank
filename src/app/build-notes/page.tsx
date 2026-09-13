@@ -16,7 +16,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Wager piles · AT RISK vs stay safe → {RULES.productionUrl}
+        Home Join calm card → {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -36,8 +36,7 @@ export default function BuildNotesPage() {
             ) : null}
             <li>
               Target: production <code>beans-game.vercel.app</code> via merge to{" "}
-              <code>main</code>. Alias <code>roundacats.vercel.app</code> still
-              works.
+              <code>main</code>.
             </li>
           </ul>
         ) : (
@@ -52,31 +51,9 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>Wager AT RISK / stay safe</strong>: two clear piles + split
-            bar so the slider reads as real bean piles (coral risk / mint safe).
-            Loud TIME badge + <em>Risk N beans</em> CTA kept. Clock remains{" "}
-            <strong>45s</strong>.
-          </li>
-          <li>
-            Prior: dice doubles show pot delta; home nickname-first; PartyKit
-            redeploy still needed for the 45s timer if not yet live.
-          </li>
-        </ul>
-      </section>
-
-      <section className="panel space-y-2 text-sm">
-        <h2 className="font-extrabold">URL status</h2>
-        <ul className="list-disc space-y-1 pl-5">
-          <li>
-            Primary: <code>https://beans-game.vercel.app</code>
-          </li>
-          <li>
-            Alias: <code>https://roundacats.vercel.app</code>
-          </li>
-          <li>
-            After merge: Fudge can re-point the{" "}
-            <code>roundacats.vercel.app</code> alias if Vercel doesn’t
-            auto-attach the newest deployment to production.
+            <strong>Home Join</strong>: after nickname, Join is one calm room-code
+            card (less chrome). Create stays the clear primary. A2HS, 5-tap
+            admin, and no Build notes on home preserved.
           </li>
         </ul>
       </section>

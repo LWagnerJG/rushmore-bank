@@ -143,7 +143,7 @@ export default function HomePage() {
             </button>
           </section>
         ) : (
-          <section className="home-card home-card-step space-y-4 animate-rise">
+          <section className="home-play-stack space-y-4 animate-rise">
             <div className="home-playing-as">
               <p className="text-[0.65rem] font-extrabold uppercase tracking-[0.12em] text-[var(--muted)]">
                 Playing as
@@ -170,36 +170,34 @@ export default function HomePage() {
               Create game
             </button>
 
-            <div className="home-or-join" role="separator" aria-label="or join">
-              <span className="home-or-join-line" aria-hidden="true" />
-              <span className="home-or-join-label">or join</span>
-              <span className="home-or-join-line" aria-hidden="true" />
+            <div className="home-join-card">
+              <p className="home-join-card-kicker">Have a code?</p>
+              <p className="home-join-card-title">Join a room</p>
+              <div className="mt-3 flex gap-2">
+                <input
+                  className="field home-join-code w-full !py-2.5 uppercase tracking-[0.28em]"
+                  placeholder="CODE"
+                  value={code}
+                  maxLength={4}
+                  aria-label="Room code"
+                  autoFocus
+                  onChange={(e) => setCode(e.target.value.toUpperCase())}
+                  onKeyDown={(e) => e.key === "Enter" && join()}
+                />
+                <button
+                  type="button"
+                  className="btn-secondary home-join-go shrink-0 !min-h-12 px-4 text-sm"
+                  onClick={join}
+                >
+                  Join
+                </button>
+              </div>
+              {joinError && (
+                <p className="mt-2 text-sm font-semibold text-[var(--coral)]">
+                  {joinError}
+                </p>
+              )}
             </div>
-
-            <div className="flex gap-2">
-              <input
-                className="field w-full !py-2.5 uppercase tracking-[0.22em]"
-                placeholder="CODE"
-                value={code}
-                maxLength={4}
-                aria-label="Room code"
-                autoFocus
-                onChange={(e) => setCode(e.target.value.toUpperCase())}
-                onKeyDown={(e) => e.key === "Enter" && join()}
-              />
-              <button
-                type="button"
-                className="btn-secondary shrink-0 !min-h-12 px-4 text-sm"
-                onClick={join}
-              >
-                Join
-              </button>
-            </div>
-            {joinError && (
-              <p className="text-sm font-semibold text-[var(--coral)]">
-                {joinError}
-              </p>
-            )}
           </section>
         )}
 
