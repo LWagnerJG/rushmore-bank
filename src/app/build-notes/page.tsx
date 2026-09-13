@@ -17,7 +17,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Minimal A2HS nudge (no tutorial wall) → {RULES.productionUrl}
+        A2HS nudge + fix cream bottom clip → {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -64,6 +64,14 @@ export default function BuildNotesPage() {
             Chromium one-tap via <code>beforeinstallprompt</code> when
             available; otherwise a single-line nudge (Share hint on iOS — no
             multi-step overlay). Hidden in standalone / minimal-ui / installed.
+          </li>
+          <li>
+            <strong>Cream bottom clip</strong>: lobby no longer reserves ~5.5rem
+            of opaque shell padding for Admin FAB (that band ate topic-vibe
+            chips). Shell keeps true <code>safe-area-inset-bottom</code> only;
+            Start clears the FAB via <code>.lobby-start-slot</code>. Dropped
+            scroll-phase <code>flex-1</code> + lingering rise transform that
+            clipped panels.
           </li>
           <li>
             Production URL remains <code>{RULES.productionUrl}</code>;{" "}

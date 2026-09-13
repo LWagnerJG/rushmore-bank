@@ -227,7 +227,8 @@ html.party-on .btn-primary {
 }
 
 .animate-rise {
-  animation: rise 380ms ease-out both;
+  /* forwards (not both): avoid lingering transform that traps overflow */
+  animation: rise 380ms ease-out forwards;
 }
 
 @keyframes topic-refresh {
@@ -441,13 +442,14 @@ html.party-on .brand-shimmer {
   text-underline-offset: 0.12em;
 }
 
-/* Lobby: keep Start fully above home-indicator / Admin FAB */
+/* Lobby: clear fixed Admin FAB without a full-bleed cream dead zone */
 .lobby-layout {
   padding-bottom: 0.25rem;
 }
 
 .lobby-start-slot {
-  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  /* FAB is ~2.5rem + gap; shell already applies safe-area pb — don't double it */
+  padding-bottom: 3.25rem;
 }
 
 .lobby-start-slot .btn-primary {
