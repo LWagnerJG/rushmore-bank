@@ -422,11 +422,12 @@ html.party-on .brand-shimmer {
   color: var(--muted);
 }
 
-.a2hs-share-glyph {
+.a2hs-share-glyph,
+.a2hs-dots-glyph {
   display: inline-block;
-  vertical-align: -0.12em;
+  vertical-align: -0.05em;
   color: var(--coral);
-  margin-right: 0.15em;
+  margin-right: 0.2em;
 }
 
 .a2hs-nudge-dismiss {

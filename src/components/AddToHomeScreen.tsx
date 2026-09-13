@@ -105,7 +105,7 @@ export function AddToHomeScreen() {
 
   if (hidden) return null;
 
-  // iOS Safari: Share is under ⋯ (typically bottom right), not the old bottom Share bar.
+  // iOS Safari: menu is horizontal ⋯ (not vertical ⋮), typically bottom right.
   const nudgeText = ios
     ? "⋯ (bottom right) → Share → Add to Home Screen."
     : "Browser menu → Install or Add to Home Screen.";
@@ -125,6 +125,7 @@ export function AddToHomeScreen() {
 
       {nudgeOpen && !deferred ? (
         <p id={nudgeId} className="a2hs-nudge" role="status">
+          {ios ? <HorizontalDotsGlyph /> : null}
           {nudgeText}{" "}
           <button
             type="button"
@@ -136,5 +137,22 @@ export function AddToHomeScreen() {
         </p>
       ) : null}
     </div>
+  );
+}
+
+/** Horizontal three-dots (⋯) — Safari iOS menu control, not vertical ⋮. */
+function HorizontalDotsGlyph() {
+  return (
+    <svg
+      className="a2hs-dots-glyph"
+      viewBox="0 0 24 8"
+      width="18"
+      height="6"
+      aria-hidden="true"
+    >
+      <circle cx="4" cy="4" r="2.2" fill="currentColor" />
+      <circle cx="12" cy="4" r="2.2" fill="currentColor" />
+      <circle cx="20" cy="4" r="2.2" fill="currentColor" />
+    </svg>
   );
 }

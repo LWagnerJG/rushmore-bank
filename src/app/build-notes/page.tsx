@@ -62,8 +62,9 @@ export default function BuildNotesPage() {
           <li>
             <strong>Add to Home Screen</strong>: one discreet bottom control.
             Chromium one-tap via <code>beforeinstallprompt</code> when
-            available. iOS Safari tip: <strong>⋯ (bottom right) → Share → Add
-            to Home Screen</strong> (no tutorial wall). Hidden in standalone /
+            available. iOS Safari tip: horizontal{" "}
+            <strong>⋯ (bottom right) → Share → Add to Home Screen</strong>{" "}
+            (not vertical ⋮; no tutorial wall). Hidden in standalone /
             fullscreen / minimal-ui / <code>navigator.standalone</code>.
           </li>
           <li>
