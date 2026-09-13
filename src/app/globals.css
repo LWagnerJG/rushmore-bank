@@ -362,6 +362,11 @@ html.party-on .brand-shimmer {
   padding: 1.15rem 1rem 1.05rem;
 }
 
+.home-play-stack {
+  display: flex;
+  flex-direction: column;
+}
+
 .home-playing-as {
   text-align: center;
 }
@@ -382,7 +387,47 @@ html.party-on .brand-shimmer {
   opacity: 0.75;
 }
 
-/* Clean divider — hairline + muted label, no white pill */
+/* Calm join card — soft cream, less chrome than a second primary CTA */
+.home-join-card {
+  border-radius: 1.2rem;
+  padding: 1rem 1rem 1.05rem;
+  background: linear-gradient(
+    165deg,
+    rgba(255, 255, 255, 0.42),
+    rgba(245, 240, 231, 0.88)
+  );
+  border: 1px solid rgba(35, 72, 62, 0.07);
+  box-shadow: none;
+}
+
+.home-join-card-kicker {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.home-join-card-title {
+  margin-top: 0.15rem;
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.home-join-code {
+  text-align: center;
+  background: rgba(255, 255, 255, 0.72) !important;
+  border-color: rgba(35, 72, 62, 0.1) !important;
+}
+
+.home-join-go {
+  background: rgba(255, 255, 255, 0.55);
+}
+
+/* Legacy divider kept for nickname step / older screenshots */
 .home-or-join {
   display: flex;
   align-items: center;
