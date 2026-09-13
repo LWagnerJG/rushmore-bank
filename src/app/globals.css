@@ -114,6 +114,19 @@ html.party-on body::before {
 }
 
 /*
+ * Room phase body: the only vertical scrollport under sticky-ish chrome.
+ * Keeps Topic vibes / Start fully reachable — shell padding is no longer a
+ * cream dead zone that eats the bottom of the scrollable stack.
+ */
+.room-phase-scroll {
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: none;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}
+
+/*
  * Sticky room chrome: keep overflow visible so the player-rail up-seat
  * ring/glow isn't clipped. Put backdrop-filter on ::before — applying blur
  * on the sticky element itself can make browsers clip descendants.
@@ -224,13 +237,14 @@ html.party-on .btn-primary {
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    /* none — translateY(0) still creates a containing block that clips scroll */
+    transform: none;
   }
 }
 
 .animate-rise {
-  /* forwards (not both): avoid lingering transform that traps overflow */
-  animation: rise 380ms ease-out forwards;
+  /* no fill-mode: after the rise, drop transform so overflow isn't trapped */
+  animation: rise 380ms ease-out;
 }
 
 @keyframes topic-refresh {
@@ -563,11 +577,12 @@ html.party-on .brand-shimmer {
 
 /* Lobby: clear fixed Admin FAB without a full-bleed cream dead zone */
 .lobby-layout {
-  padding-bottom: 0.25rem;
+  /* End padding so Topic vibes chrome + Start clear the scrollport bottom */
+  padding-bottom: 0.5rem;
 }
 
 .lobby-start-slot {
-  /* FAB is ~2.5rem + gap; shell already applies safe-area pb — don't double it */
+  /* FAB is ~2.5rem + gap; phase scroll already applies safe-area pb — don't double it */
   padding-bottom: 3.25rem;
 }
 

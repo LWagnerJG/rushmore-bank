@@ -244,16 +244,15 @@ export function RoomClient({
   return (
     <main
       className={
-        "app-shell app-shell-scroll mx-auto flex max-w-md flex-col px-4 pt-0 " +
-        // True safe-area only — do NOT reserve a huge cream band for Admin FAB
-        // (that looked like an opaque block eating topic-vibe chips / Start).
-        // Lobby Start clears the FAB via .lobby-start-slot instead.
-        "pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+        // Lock the shell; scroll lives in .room-phase-scroll below the chrome.
+        // Scrolling the whole flex main + shrinkable animate-rise child let the
+        // cream safe-area padding read as an opaque band over Topic vibes.
+        "app-shell app-shell-lock mx-auto flex max-w-md flex-col px-4 pt-0"
       }
     >
       <header
         className={
-          "room-chrome sticky top-0 z-20 -mx-4 mb-3 border-b px-4 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] " +
+          "room-chrome shrink-0 -mx-4 mb-3 border-b px-4 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] " +
           (partyOn
             ? "room-chrome-party border-[rgba(255,107,74,0.18)]"
             : "border-[rgba(35,72,62,0.08)]")
@@ -363,32 +362,35 @@ export function RoomClient({
         )}
       </header>
 
-      {!connected && (
-        <p className="mb-2 text-sm font-semibold text-[var(--muted)]">
-          Reconnecting…
-        </p>
-      )}
-      {error && (
-        <p className="mb-2 text-sm text-[var(--coral)]" role="alert">
-          {error}{" "}
-          <button
-            type="button"
-            className="underline"
-            onClick={() => setError(null)}
-          >
-            dismiss
-          </button>
-        </p>
-      )}
-
-      <div
-        className={
-          // Avoid flex-1 on scroll phases: basis-0 + transform (animate-rise)
-          // was clipping lobby panels so cream shell showed as a bottom block.
-          phase === "SCORE_REVEAL" ? "min-h-0 flex-1" : "animate-rise"
-        }
-      >
-        {body}
+      <div className="room-phase-scroll min-h-0 flex-1">
+        {!connected && (
+          <p className="mb-2 text-sm font-semibold text-[var(--muted)]">
+            Reconnecting…
+          </p>
+        )}
+        {error && (
+          <p className="mb-2 text-sm text-[var(--coral)]" role="alert">
+            {error}{" "}
+            <button
+              type="button"
+              className="underline"
+              onClick={() => setError(null)}
+            >
+              dismiss
+            </button>
+          </p>
+        )}
+        <div
+          className={
+            // shrink-0: never let flex crush lobby panels against the cream band.
+            // Safe-area lives on the scroll content (not a dead shell padding strip).
+            phase === "SCORE_REVEAL"
+              ? "flex min-h-full flex-col pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+              : "animate-rise shrink-0 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+          }
+        >
+          {body}
+        </div>
       </div>
       <SettingsSheet
         open={settingsOpen}
