@@ -242,4 +242,18 @@ describe("authoritative deadlines across reconnects", () => {
     await g.fire(restarted);
     assert.equal(restarted.state.draftCursor, 1);
   });
+
+  it("recovers an old committed roll whose persisted alarm still targets idle", async () => {
+    const g = game();
+    await dice(g.server);
+    await g.server.handleRoll("A");
+    await g.server.persist();
+    g.saved.set("alarm", { kind: "dice_idle", revision: g.server.state.phaseRevision });
+    const restarted = new QuarryServer(g.room);
+    await restarted.onStart();
+    await reconnect(restarted, "A");
+    await g.fire(restarted);
+    assert.equal(restarted.state.diceSubphase, "SETTLED");
+    assert.equal(restarted.state.lastDice!.revealed, true);
+  });
 });
