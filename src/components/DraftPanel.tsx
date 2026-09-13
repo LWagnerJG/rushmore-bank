@@ -32,9 +32,12 @@ export function DraftPanel({
   const turnPlayer = state.players.find((p) => p.id === turnId);
   const myTurn = turnId === youId && you.role === "player";
   const selectedTaken = state.takenNormalized.includes(normalizePick(selection));
-  const upcoming = state.draftOrder.findIndex(
+  // Find absolute index of our next turn after the current cursor.
+  const nextTurnIndex = state.draftOrder.findIndex(
     (s, index) => index > state.draftCursor && state.seatOrder[s] === youId,
   );
+  // Distance from current cursor to our next turn (negative = no more turns).
+  const turnsAway = nextTurnIndex >= 0 ? nextTurnIndex - state.draftCursor : -1;
 
   useEffect(() => {
     const timer = setTimeout(
@@ -156,9 +159,11 @@ export function DraftPanel({
         ? queue.length
           ? "Tap a stash pick or type below"
           : null
-        : upcoming < 0
+        : turnsAway < 0
           ? "Your four are in — watch the board"
-          : `You’re up in ${upcoming} · stash picks while you wait`;
+          : turnsAway === 1
+            ? "You’re next · stash picks while you wait"
+            : `You’re up in ${turnsAway} · stash picks while you wait`;
 
   return (
     <div className="draft-panel space-y-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
