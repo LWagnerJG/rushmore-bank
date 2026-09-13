@@ -37,7 +37,7 @@ Room `SMK3` measured ~19s for one compressed topic (host skip review; pull-out p
 
 | Check | Result |
 |---|---|
-| https://roundacats.vercel.app loads | After merge/deploy |
+| https://beans-game.vercel.app loads (roundacats alias OK) | After merge/deploy |
 | PartyKit protocol matches this branch | **Blocked** — GitHub Actions `Deploy PartyKit` fails: missing `PARTYKIT_TOKEN` / `PARTYKIT_LOGIN` secrets. Run `npx partykit token generate`, add both repo secrets, then re-run the workflow (or `npx partykit deploy` locally). |
 | 2 sessions join one room | After PartyKit redeploy |
 | Beans PWA name + dog/sunglasses icons / OG | Branding assets in `public/` + manifest |

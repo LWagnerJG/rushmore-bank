@@ -2,7 +2,7 @@
 
 **Draft four. Bank beans.** — mobile-first party game. Currency: **beans** (protocol fields still named `stones`).
 
-Production today: [https://roundacats.vercel.app](https://roundacats.vercel.app) (PWA name **Beans**). Preferred beans-named host `beans-game.vercel.app` — Luke attach on Vercel (see `/build-notes`); keep `roundacats.vercel.app` as alias.
+Production: [https://beans-game.vercel.app](https://beans-game.vercel.app) (PWA name **Beans**). Old host [https://roundacats.vercel.app](https://roundacats.vercel.app) remains a working alias.
 
 ## Stack
 

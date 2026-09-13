@@ -1420,7 +1420,7 @@ export default class QuarryServer implements Party.Server {
     const judgeBase =
       env.JUDGE_URL?.replace(/\/$/, "") ||
       env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
-      "https://roundacats.vercel.app";
+      "https://beans-game.vercel.app";
 
     try {
       const controller = new AbortController();
