@@ -97,13 +97,18 @@ export function ResultsPanel({
       )}
 
       {you.isHost && final && (
-        <button
-          type="button"
-          className="btn-primary w-full text-lg"
-          onClick={() => send({ type: "play_again" })}
-        >
-          Play again
-        </button>
+        <div className="space-y-2">
+          <button
+            type="button"
+            className="btn-primary w-full text-lg"
+            onClick={() => send({ type: "play_again" })}
+          >
+            Rematch
+          </button>
+          <p className="text-center text-xs font-semibold text-[var(--muted)]">
+            Same room &amp; players — fresh run, no new codes.
+          </p>
+        </div>
       )}
 
     </div>

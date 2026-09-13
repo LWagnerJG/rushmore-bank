@@ -109,7 +109,7 @@ export function DiceScene({
   canRoll: boolean;
   onRoll: () => void;
   busted?: boolean;
-  /** Stronger pulse / TAP TO ROLL on the first roll of a turn. */
+  /** Stronger pulse / TAP on the first roll of a turn. */
   firstRollHint?: boolean;
 }) {
   const audio = useRef<AudioContext | null>(null);
@@ -282,8 +282,8 @@ export function DiceScene({
           />
         </div>
         {canRoll && (
-          <span className={`bean-dice-hint ${firstRollHint ? "bean-dice-hint-first" : ""}`}>
-            TAP TO ROLL
+          <span className={`bean-dice-hint ${firstRollHint ? "bean-dice-hint-first" : ""}`} aria-hidden="true">
+            TAP
           </span>
         )}
         {rolling && (

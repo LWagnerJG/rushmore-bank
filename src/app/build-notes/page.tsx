@@ -17,7 +17,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Better Rushmore topics (basic &amp; fillable) → {RULES.productionUrl}
+        Polish ship — dice declutter, spectator, vibes, settings, rematch → {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -54,88 +54,48 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>Topic bank</strong>: pruned niche / clever-but-unfillable
-            prompts; added basic party fillers (colors, letter starts, everyday
-            lists). Bank still ~{TOPIC_COUNT} with anti-repeat{" "}
-            <code>seenTopicIds</code> / <code>pickRandomTopics</code>. PartyKit
-            redeploy needed so the server ships the new bank.
+            <strong>Dice declutter</strong>: quieter safe/pot chrome on the turn
+            strip (S/P numbers), clearer Your pot vs Your safe hierarchy, faint{" "}
+            <code>TAP</code> on the dice as the primary CTA; Bank stays secondary.
           </li>
           <li>
-            <strong>Name cutoff</strong>: player rail / draft headers / dice turn
-            chips use 2-line clamp + full-name <code>title</code> tooltips so long
-            nicknames stay readable on phones instead of ugly mid-word cuts.
+            <strong>BEAN BUSTER linger</strong>: ~2s hold + fade before the next
+            seat (<code>diceBustHoldMs</code>) so the bust moment feels intentional.
           </li>
           <li>
-            <strong>Reconnect + auto-rejoin</strong>: PartySocket backoff tightened;
-            visibility / online / pageshow forces a prompt reconnect. Room membership
-            remembered in session+local storage — returning from another app auto-rejoins
-            the same seat (id reclaim) without hunting for Rejoin. Host{" "}
-            <code>CODE · AB12</code> share affordance kept. Soft-disconnect grace (~8s)
-            still holds the seat; reclaim cancels it immediately on matching connect.
+            <strong>Spectator mode</strong>: when banked/out, calm Spectator status
+            (“Watching X roll”) — no dead Bank CTAs.
           </li>
           <li>
-            <strong>Dice vs Bank hierarchy</strong>: tap-the-dice is the primary action
-            (bigger armed tray, <code>TAP TO ROLL</code>, stronger first-roll pulse).
-            Bank is demoted to a quiet outline secondary control — still reachable in
-            the 15s window, no longer the fat-finger coral CTA. Scramble settle honesty
-            + BEAN BUSTER clarity preserved.
+            <strong>How to play removed</strong>: dropped from home;{" "}
+            <code>/how-to-play</code> redirects home.
           </li>
           <li>
-            <strong>Pot vs safe</strong>: your pot (at risk) vs safe always labeled on
-            the dice panel; during wager/dice the player rail and turn strip show each
-            seat&apos;s safe + pot at a glance.
+            <strong>Beans logo = settings</strong>: tap the bean for Sound FX
+            on/off (localStorage) + copyable room code for everyone. Always-on CODE
+            chip demoted.
           </li>
           <li>
-            <strong>Min wager 1</strong>: cannot lock in 0 when you have beans
-            (UI clamp + server validation). Timeout defaults to 1 when max ≥ 1.
-            Empty balance (E+B=0) skips dice cleanly — no infinite roll loop.
+            <strong>Sound FX + haptics</strong>: roll / settle / bank / bust SFX
+            respect mute; Vibration API haptics stay best-effort.
           </li>
           <li>
-            <strong>Leave / host / rejoin</strong>: lobby leave shrinks
-            headcount. Mid-game soft-disconnect keeps the seat (~8s grace for
-            app switch), promotes host, skips draft/vote/wager/dice waits, and
-            supports rejoin (same id or nickname reclaim). Host gets a tiny
-            in-game <code>CODE · AB12</code> (tap to copy).
+            <strong>Rematch</strong>: after final results, Rematch keeps room +
+            players and starts a fresh run (no re-entering codes).
           </li>
           <li>
-            <strong>Draft board fit</strong>: at 2–5 players the Rushmore board
-            shares phone width with no horizontal scroll; 6–10 may densify /
-            scroll. Denser cells + active column tint kept.
+            <strong>Topic vibes</strong>: Basic / Spicy / Niche filter in lobby
+            (and host topic screen) wired into shortlist + reroll.
           </li>
           <li>
-            <strong>Top rail up-seat</strong>: current picker chip lights up
-            (yellow ring / fill) during draft — not only “You”. You-first
-            leaderboard sort kept. Rail track padding keeps the yellow ring +
-            glow fully visible (no top/left clip on the You chip) while scroll /
-            name clamp still work.
+            <strong>PWA polish</strong>: richer manifest (maskable icon, categories);
+            friendlier <code>Reconnecting…</code> copy (never says PartyKit).
           </li>
           <li>
-            <strong>Redo gated</strong>: regular players see none. Host gets a
-            tiny ↻; admin unlock shows a discrete lowercase redo link. No more
-            big all-caps REDO under every cell.
+            Preserved: scramble settle honesty, min wager 1, leave/rejoin, 60s draft,
+            vote auto-start, fillable topics, Beans branding, admin, bots.
           </li>
-          <li>
-            <strong>Rosters density</strong>: review board shrinks by player
-            count (2-col dense for large groups).
-          </li>
-          <li>
-            <strong>Vote flow</strong>: review auto-starts voting after{" "}
-            {RULES.reviewSeconds}s (host “Start voting now” demoted); window{" "}
-            {RULES.humanVoteSeconds}s or until all voted; clear{" "}
-            <code>N/M voted</code>.
-          </li>
-          <li>
-            Clocks: draft {RULES.pickClockSeconds}s +{" "}
-            {RULES.pickGraceSeconds}s grace; review {RULES.reviewSeconds}s;
-            vote {RULES.humanVoteSeconds}s; wager {RULES.wagerTimeoutSeconds}
-            s; dice idle bank {RULES.diceIdleBankSeconds}s; topic still no
-            timer.
-          </li>
-          <li>
-            Preserved: Stash, topic bank (~{TOPIC_COUNT}), dice polish, Beans
-            branding, admin PIN, bots.
-          </li>
-        </ul>
+</ul>
       </section>
     </main>
   );

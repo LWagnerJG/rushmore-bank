@@ -11,6 +11,9 @@ export type TopicScope =
   | "entertainment"
   | "custom";
 
+/** Party vibes filter — curated shortlist feel (Basic / Spicy / Niche). */
+export type TopicVibe = "basic" | "spicy" | "niche";
+
 export interface Topic {
   id: string;
   text: string;
@@ -6878,17 +6881,83 @@ export function getTopicById(id: string): Topic | undefined {
  * When the exclude set leaves fewer than `count` topics, falls back to the full
  * bank minus only hard-excludes (`hardExcludeIds`), so rerolls never stall.
  */
+
+/** Keyword heuristic — keeps the bank tag-free while vibes feel curated. */
+export function inferTopicVibe(topic: Topic): TopicVibe {
+  const hay = `${topic.id} ${topic.text} ${topic.scopeBoundary}`.toLowerCase();
+  const spicyBits = [
+    "ex",
+    "dating",
+    "flirt",
+    "hookup",
+    "sex",
+    "sexy",
+    "nsfw",
+    "dirty",
+    "scandal",
+    "roast",
+    "embarrass",
+    "drunk",
+    "hangover",
+    "walk of shame",
+    "one-night",
+    "thirst",
+    "rizz",
+    "situationship",
+    "toxic",
+  ];
+  const nicheBits = [
+    "obscure",
+    "underrated",
+    "deep cut",
+    "cult",
+    "letterboxd",
+    "criterion",
+    "anime",
+    "manga",
+    "k-pop",
+    "kpop",
+    "indie",
+    "b-side",
+    "wikipedia",
+    "trivia",
+    "hyper-specific",
+    "niche",
+    "regional",
+    "academic",
+    "phd",
+    "subreddit",
+  ];
+  if (spicyBits.some((b) => hay.includes(b))) return "spicy";
+  if (nicheBits.some((b) => hay.includes(b))) return "niche";
+  return "basic";
+}
+
+export function topicsMatchingVibe(
+  vibe: TopicVibe | "all",
+  pool: Topic[] = TOPICS,
+): Topic[] {
+  if (vibe === "all") return pool;
+  return pool.filter((t) => inferTopicVibe(t) === vibe);
+}
+
 export function pickRandomTopics(
   count: number,
   excludeIds: string[],
   rng: () => number = Math.random,
   hardExcludeIds: string[] = [],
+  vibe: TopicVibe | "all" = "all",
 ): Topic[] {
   const exclude = new Set(excludeIds);
   const hard = new Set(hardExcludeIds);
-  let pool = TOPICS.filter((t) => !exclude.has(t.id));
+  const vibePool = topicsMatchingVibe(vibe, TOPICS);
+  let pool = vibePool.filter((t) => !exclude.has(t.id));
 
   if (pool.length < count) {
+    pool = vibePool.filter((t) => !hard.has(t.id));
+  }
+  if (pool.length < count && vibe !== "all") {
+    // Soft fallback — prefer vibe, but never stall the shortlist.
     pool = TOPICS.filter((t) => !hard.has(t.id));
   }
 

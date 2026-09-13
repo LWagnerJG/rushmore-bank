@@ -1,6 +1,9 @@
 /**
  * Lightweight WebAudio dice SFX. Fail soft; never throw into gameplay.
+ * Respects Settings → Sound FX mute (localStorage).
  */
+
+import { isSfxMuted } from "@/lib/sound-prefs";
 
 let sharedCtx: AudioContext | null = null;
 
@@ -58,6 +61,7 @@ function tone(
 
 /** Soft rumble when a roll commits. */
 export function playRollStart(ctx: AudioContext | null) {
+  if (isSfxMuted()) return;
   if (!ctx || ctx.state !== "running") return;
   const t = ctx.currentTime;
   tone(ctx, {
@@ -80,6 +84,7 @@ export function playRollStart(ctx: AudioContext | null) {
 
 /** Brief tick while tumbling (throttled by caller). */
 export function playRollTick(ctx: AudioContext | null) {
+  if (isSfxMuted()) return;
   if (!ctx || ctx.state !== "running") return;
   const t = ctx.currentTime;
   tone(ctx, {
@@ -97,6 +102,7 @@ export function playSettle(
   ctx: AudioContext | null,
   opts?: { busted?: boolean },
 ) {
+  if (isSfxMuted()) return;
   if (!ctx || ctx.state !== "running") return;
   const t = ctx.currentTime;
   if (opts?.busted) {
@@ -137,6 +143,7 @@ export function playSettle(
 }
 
 export function playBankChime(ctx: AudioContext | null) {
+  if (isSfxMuted()) return;
   if (!ctx || ctx.state !== "running") return;
   const t = ctx.currentTime;
   tone(ctx, {

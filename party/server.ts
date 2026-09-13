@@ -24,6 +24,7 @@ import {
 import {
   pickRandomTopics,
   type TopicScope,
+  type TopicVibe,
 } from "../src/shared/topics";
 import {
   animSeedFrom,
@@ -814,6 +815,9 @@ export default class QuarryServer implements Party.Server {
         if (typeof partial.partyMode === "boolean") {
           this.state.settings.partyMode = partial.partyMode;
         }
+        if (partial.topicVibe === "all" || partial.topicVibe === "basic" || partial.topicVibe === "spicy" || partial.topicVibe === "niche") {
+          this.state.settings.topicVibe = partial.topicVibe;
+        }
         return;
       }
       throw new Error("Settings locked during play");
@@ -889,11 +893,12 @@ export default class QuarryServer implements Party.Server {
     const softExclude = [
       ...new Set([...this.state.usedTopicIds, ...this.state.seenTopicIds]),
     ];
-    let pool = pickRandomTopics(count * 3, softExclude);
+    const vibe = this.state.settings.topicVibe ?? "all";
+    let pool = pickRandomTopics(count * 3, softExclude, Math.random, [], vibe);
     if (pool.length < count) {
       // Soft history exhausted — keep locked topics out, reshuffle the rest.
       this.state.seenTopicIds = [...this.state.usedTopicIds];
-      pool = pickRandomTopics(count * 3, this.state.usedTopicIds);
+      pool = pickRandomTopics(count * 3, this.state.usedTopicIds, Math.random, [], vibe);
     }
     const mix = this.state.settings.scopeMix.filter((s) => s !== "custom");
     if (mix.length > 0) {
@@ -1833,10 +1838,14 @@ export default class QuarryServer implements Party.Server {
     const busted = this.state.lastDice?.busted === true;
     this.revealCommittedDice();
 
+    const holdMs = busted
+      ? RULES.diceBustHoldMs
+      : RULES.diceSettleHoldMs;
+
     if (this.state.diceActiveIds.length === 0) {
-      // Brief beat so BEAN BUSTER faces land before leaving the table.
+      // Linger so BEAN BUSTER faces land before leaving the table.
       bump(this.state);
-      await this.setAlarmAt(Date.now() + RULES.diceSettleHoldMs, {
+      await this.setAlarmAt(Date.now() + holdMs, {
         kind: "dice_settle_hold",
         revision: this.state.phaseRevision,
         meta: "round_end",
@@ -1844,9 +1853,9 @@ export default class QuarryServer implements Party.Server {
       return;
     }
 
-    // Hold authoritative faces on screen — then READY or next seat.
+    // Hold authoritative faces — longer on bust so the moment can fade.
     bump(this.state);
-    await this.setAlarmAt(Date.now() + RULES.diceSettleHoldMs, {
+    await this.setAlarmAt(Date.now() + holdMs, {
       kind: "dice_settle_hold",
       revision: this.state.phaseRevision,
       meta: busted ? "bust" : "continue",

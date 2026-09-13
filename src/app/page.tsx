@@ -140,12 +140,6 @@ export default function HomePage() {
 
         <nav className="flex flex-wrap justify-center gap-5 text-sm font-semibold">
           <Link
-            className="text-[var(--coral)] underline-offset-2 hover:underline"
-            href="/how-to-play"
-          >
-            How to play
-          </Link>
-          <Link
             className="text-[var(--muted)] underline-offset-2 hover:underline"
             href="/build-notes"
           >

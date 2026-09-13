@@ -126,6 +126,46 @@ export function LobbyPanel({
 
       {you.isHost ? (
         <section className="space-y-3">
+          <div className="panel space-y-2">
+            <p className="text-xs font-extrabold uppercase tracking-wide text-[var(--muted)]">
+              Topic vibes
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {(
+                [
+                  ["all", "All"],
+                  ["basic", "Basic"],
+                  ["spicy", "Spicy"],
+                  ["niche", "Niche"],
+                ] as const
+              ).map(([value, label]) => {
+                const on = (state.settings.topicVibe ?? "all") === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    className={
+                      "rounded-full px-3 py-1.5 text-sm font-extrabold " +
+                      (on
+                        ? "bg-[var(--text)] text-[var(--bg)]"
+                        : "bg-[rgba(35,72,62,0.08)] text-[var(--text)]")
+                    }
+                    onClick={() =>
+                      send({
+                        type: "update_settings",
+                        settings: { topicVibe: value },
+                      })
+                    }
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-xs font-semibold text-[var(--muted)]">
+              Filters the topic bank for this room’s shortlists &amp; rerolls.
+            </p>
+          </div>
           <PartyModeSwitch
             on={partyOn}
             onChange={(next) =>

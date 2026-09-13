@@ -54,6 +54,7 @@ function baseState(): PublicRoomState {
     settings: {
       topicCountOverride: null,
       scopeMix: [],
+      topicVibe: "all",
       partyMode: false,
     },
     createdAt: Date.now(),
@@ -196,6 +197,7 @@ function scenarioState(scenario: Scenario): PublicRoomState {
       s.settings = {
         topicCountOverride: null,
         scopeMix: [],
+        topicVibe: "all",
         partyMode: true,
       };
       s.ledger = [

@@ -4,7 +4,7 @@
  */
 
 import { RULES } from "./rules";
-import type { TopicScope } from "./topics";
+import type { TopicScope, TopicVibe } from "./topics";
 
 export type Phase =
   | "LOBBY"
@@ -140,6 +140,8 @@ export interface HostSettings {
   topicCountOverride: number | null;
   /** Preferred scope mix weights — empty = all */
   scopeMix: TopicScope[];
+  /** Vibes filter for topic shortlist — all = no filter */
+  topicVibe: TopicVibe | "all";
   partyMode: boolean;
 }
 
@@ -400,6 +402,7 @@ export function emptyHostSettings(): HostSettings {
   return {
     topicCountOverride: null,
     scopeMix: [],
+    topicVibe: "all",
     partyMode: RULES.partyModeDefault,
   };
 }

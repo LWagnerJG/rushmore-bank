@@ -6,6 +6,7 @@ import { useGameRoom } from "@/hooks/useGameRoom";
 import { phaseLabel, type Phase } from "@/shared/types";
 import { RULES } from "@/shared/rules";
 import { BrandMark } from "@/components/BrandMark";
+import { SettingsSheet } from "@/components/SettingsSheet";
 import {
   adoptPlayerIdForRejoin,
   getLastPlayerIdForRejoin,
@@ -119,6 +120,7 @@ export function RoomClient({
 
   const phase: Phase | null = state?.phase ?? null;
   const partyOn = state?.settings.partyMode === true;
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const drafting = phase === "DRAFT" || phase === "CORRECTION";
 
   useEffect(() => {
@@ -162,7 +164,7 @@ export function RoomClient({
     if (presetName.trim()) {
       return (
         <main className="app-shell app-shell-lock mx-auto flex max-w-md flex-col gap-4 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))]">
-          <BrandMark />
+          <BrandMark onLogoTap={() => setSettingsOpen(true)} />
           <h1 className="font-[family-name:var(--font-display)] text-2xl font-extrabold">
             Room {code}
           </h1>
@@ -172,7 +174,7 @@ export function RoomClient({
           {error && <p className="text-sm text-[var(--coral)]">{error}</p>}
           {!connected && (
             <p className="text-sm font-semibold text-[var(--muted)]">
-              Connection lost — retrying
+              Reconnecting…
             </p>
           )}
           <Link href="/" className="text-sm font-semibold text-[var(--coral)]">
@@ -184,7 +186,7 @@ export function RoomClient({
 
     return (
       <main className="app-shell app-shell-lock mx-auto flex max-w-md flex-col gap-4 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))]">
-        <BrandMark />
+        <BrandMark onLogoTap={() => setSettingsOpen(true)} />
         <h1 className="font-[family-name:var(--font-display)] text-2xl font-extrabold">
           Room {code}
         </h1>
@@ -229,7 +231,7 @@ export function RoomClient({
         {error && <p className="text-sm text-[var(--coral)]">{error}</p>}
         {!connected && (
           <p className="text-sm font-semibold text-[var(--muted)]">
-            Connection lost — retrying
+            Reconnecting…
           </p>
         )}
         <Link href="/" className="text-sm font-semibold text-[var(--coral)]">
@@ -251,20 +253,7 @@ export function RoomClient({
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <BrandMark />
-            {you.isHost && phase !== "LOBBY" && (
-              <button
-                type="button"
-                className="mt-0.5 block text-[0.6rem] font-bold uppercase tracking-[0.16em] text-[var(--muted)]"
-                aria-label={`Copy room code ${code}`}
-                title="Copy room code"
-                onClick={() => {
-                  void navigator.clipboard.writeText(code);
-                }}
-              >
-                Code · {code}
-              </button>
-            )}
+            <BrandMark onLogoTap={() => setSettingsOpen(true)} />
           </div>
           {drafting && state ? (
             <div className="flex shrink-0 items-center gap-1 pt-0.5">
@@ -349,7 +338,7 @@ export function RoomClient({
 
       {!connected && (
         <p className="mb-2 text-sm font-semibold text-[var(--muted)]">
-          Connection lost — retrying
+          Reconnecting…
         </p>
       )}
       {error && (
@@ -366,6 +355,11 @@ export function RoomClient({
       )}
 
       <div className="animate-rise flex-1">{body}</div>
+      <SettingsSheet
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        roomCode={code}
+      />
       <AdminPanel
         send={send}
         currentPhase={phase}

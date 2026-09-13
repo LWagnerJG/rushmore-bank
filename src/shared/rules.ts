@@ -71,6 +71,8 @@ export const RULES = {
   diceAnimMs: 2400,
   /** Hold SETTLED faces on screen before next READY / seat advance (kills settle-then-jump) */
   diceSettleHoldMs: 1100,
+  /** Extra linger after BEAN BUSTER before next seat (intentional beat + fade) */
+  diceBustHoldMs: 2000,
   /** AI judging HTTP timeout */
   judgeTimeoutMs: 20000,
 

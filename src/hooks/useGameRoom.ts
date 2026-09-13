@@ -27,7 +27,7 @@ function friendlyPlayerError(raw: string | null | undefined): string | null {
       text,
     )
   ) {
-    return "Connection lost — retrying";
+    return "Reconnecting…";
   }
   if (/parse|server message|bad message/i.test(text)) {
     return "Something went wrong — try again";
@@ -116,7 +116,7 @@ export function useGameRoom(
       // Partysocket auto-reconnects — show soft status via `connected`, not a hard error.
     },
     onError() {
-      setErrorRaw("Connection lost — retrying");
+      setErrorRaw("Reconnecting…");
     },
     onMessage(event) {
       try {

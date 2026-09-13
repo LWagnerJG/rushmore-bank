@@ -57,6 +57,38 @@ export function TopicPanel({
         </p>
       </header>
 
+      {you.isHost ? (
+        <div className="topic-vibe-row" role="group" aria-label="Topic vibes">
+          {(
+            [
+              ["all", "All"],
+              ["basic", "Basic"],
+              ["spicy", "Spicy"],
+              ["niche", "Niche"],
+            ] as const
+          ).map(([value, label]) => {
+            const on = (state.settings.topicVibe ?? "all") === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                className={"topic-vibe-chip" + (on ? " topic-vibe-chip-on" : "")}
+                onClick={() =>
+                  send({
+                    type: "update_settings",
+                    settings: { topicVibe: value },
+                  })
+                }
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+
+
+
       <div
         className={`topic-choices ${refreshing ? "topic-refresh" : ""}`}
         aria-live="polite"

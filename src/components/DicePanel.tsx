@@ -5,6 +5,7 @@ import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
 import { DiceScene } from "@/components/dice/DiceScene";
 import { classifyPullOut } from "@/shared/engine/banking";
 import { haptic } from "@/lib/haptics";
+import { RULES } from "@/shared/rules";
 import { ensureDiceAudio, playBankChime } from "@/lib/dice-sfx";
 
 function useSecondsLeft(until: number | null) {
@@ -131,13 +132,19 @@ function TurnStrip({ seats }: { seats: SeatInfo[] }) {
           </span>
           <span className="dice-turn-chip-meta">
             <span className="dice-turn-chip-badge">{BADGE[seat.kind]}</span>
-            <span className="dice-turn-chip-split tabular-nums">
+            <span className="dice-turn-chip-split tabular-nums" aria-label={`${seat.safe} safe${seat.kind === "banked" || seat.kind === "busted" ? "" : `, ${seat.pot} pot`}`}>
               {seat.kind === "banked" || seat.kind === "busted" ? (
-                <span className="dice-turn-chip-safe">{seat.safe} safe</span>
+                <span className="dice-turn-chip-safe">
+                  <span className="dice-turn-chip-num">{seat.safe}</span>
+                </span>
               ) : (
                 <>
-                  <span className="dice-turn-chip-safe">{seat.safe} safe</span>
-                  <span className="dice-turn-chip-pot">pot {seat.pot}</span>
+                  <span className="dice-turn-chip-safe">
+                    <span className="dice-turn-chip-num">{seat.safe}</span>
+                  </span>
+                  <span className="dice-turn-chip-pot">
+                    <span className="dice-turn-chip-num">{seat.pot}</span>
+                  </span>
                 </>
               )}
             </span>
@@ -256,10 +263,7 @@ export function DicePanel({
     if (!last?.revealed || !last.rollId) return;
     if (revealSeen.current === last.rollId) return;
     revealSeen.current = last.rollId;
-    const hold = Math.min(
-      last.busted ? 1100 : 900,
-      /* stay inside server settle hold */ 1100,
-    );
+    const hold = last.busted ? RULES.diceBustHoldMs : 900;
     const on = window.setTimeout(() => setHeroReveal(true), 0);
     const off = window.setTimeout(() => setHeroReveal(false), hold);
     return () => {
@@ -338,7 +342,7 @@ export function DicePanel({
 
   return (
     <div
-      className={`dice-layout ${heroReveal && settling ? "dice-hero-mode" : ""}`}
+      className={`dice-layout ${heroReveal && settling ? "dice-hero-mode" : ""} ${bustMoment ? "dice-bust-linger" : ""} ${!active && you.role === "player" ? "dice-spectator" : ""}`}
     >
       {/* Zone 1 — turn strip (fixed) */}
       <section
@@ -440,29 +444,37 @@ export function DicePanel({
           className={`dice-zone dice-zone-actions ${drama && !myTurn ? "dice-action-dim" : ""}`}
           aria-label="Pot and Bank"
         >
-                    <div className="dice-pot-row">
+          <div className="dice-pot-row">
             <div className="dice-pot-stack">
-              <p className="dice-pot-label">
-                {active ? "Your pot · at risk" : "Your beans"}
-              </p>
+              <p className="dice-pot-label">{active ? "Your pot" : "Your beans"}</p>
               <p className="dice-pot-value tabular-nums">
                 {active ? pot : you.stones}
               </p>
+              {active ? (
+                <p className="dice-pot-hint">at risk</p>
+              ) : (
+                <p className="dice-pot-hint">banked</p>
+              )}
             </div>
             <div
               className={`dice-pot-safe ${active ? "" : "dice-pot-safe-muted"}`}
             >
-              <p className="dice-pot-label">Safe</p>
+              <p className="dice-pot-label">Your safe</p>
               <p className="dice-pot-safe-value tabular-nums">
                 <strong>{safeBeans}</strong>
               </p>
             </div>
           </div>
 
-          {/* Fixed-height CTA slot — Bank / ghost / out note; never collapses */}
+          {/* Fixed-height CTA slot — Bank / ghost / spectator; never collapses */}
           <div className="dice-cta-slot">
             {!active ? (
-              <p className="dice-watch-note">You’re out — watch the round.</p>
+              <div className="dice-spectator-status" role="status">
+                <p className="dice-spectator-kicker">Spectator</p>
+                <p className="dice-watch-note">
+                  {roller?.name ? `Watching ${roller.name} roll` : "Watching this round"}
+                </p>
+              </div>
             ) : myTurn ? (
               <button
                 type="button"
