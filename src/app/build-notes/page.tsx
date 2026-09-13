@@ -17,7 +17,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Polish + reconnect + dice hierarchy → {RULES.productionUrl}
+        PlayerRail up-seat ring clip fix → {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -97,7 +97,9 @@ export default function BuildNotesPage() {
           <li>
             <strong>Top rail up-seat</strong>: current picker chip lights up
             (yellow ring / fill) during draft — not only “You”. You-first
-            leaderboard sort kept.
+            leaderboard sort kept. Rail track padding keeps the yellow ring +
+            glow fully visible (no top/left clip on the You chip) while scroll /
+            name clamp still work.
           </li>
           <li>
             <strong>Redo gated</strong>: regular players see none. Host gets a

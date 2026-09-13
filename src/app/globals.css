@@ -1038,7 +1038,10 @@ html.party-on .panel {
   -webkit-overflow-scrolling: touch;
   scroll-snap-type: x proximity;
   scrollbar-width: none;
-  padding-bottom: 0.15rem;
+  /* Inset chips so up-seat yellow ring + glow aren't clipped by overflow
+     (first chip left/top were flat; bottom/right already showed). */
+  padding: 0.4rem 0.35rem 0.5rem;
+  scroll-padding-inline: 0.35rem;
 }
 
 .player-rail-track::-webkit-scrollbar {
