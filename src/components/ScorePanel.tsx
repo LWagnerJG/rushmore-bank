@@ -73,7 +73,7 @@ export function ScorePanel({
       </div>
 
       <div className={`roster-board-grid roster-board-grid-${density}`}>
-        {sorted.map((s) => {
+        {scored.map((s) => {
           const p = state.players.find((x) => x.id === s.playerId);
           const picks = state.picks.filter((pk) => pk.playerId === s.playerId);
           const why =
