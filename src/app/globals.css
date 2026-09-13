@@ -1091,15 +1091,19 @@ html.party-on .panel {
   gap: 0.4rem;
   width: 100%;
   max-height: none;
-  /* Allow up-seat ring/glow — only scroll sideways when needed */
+  /*
+   * Horizontal scroll when many players. Note: overflow-y cannot stay
+   * `visible` while overflow-x is anything else — CSS computes it to
+   * `auto`, which clips. So pad the scrollport enough that the up-seat
+   * ring (≤3px) + glow (≤0 8px 20px) + lift/scale paint fully inside.
+   */
   overflow-x: auto;
-  overflow-y: visible;
+  overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   scroll-snap-type: x proximity;
   scrollbar-width: none;
-  /* Inset chips so up-seat yellow ring + glow aren't clipped */
-  padding: 0.55rem 0.4rem 0.65rem;
-  scroll-padding-inline: 0.4rem;
+  padding: 0.75rem 0.55rem 2rem;
+  scroll-padding-inline: 0.55rem;
 }
 
 .player-rail-track::-webkit-scrollbar {
@@ -1109,7 +1113,7 @@ html.party-on .panel {
 /* Few players — breathe: wider name gutters so labels aren't cramped */
 .player-rail-few .player-rail-track {
   gap: 0.65rem;
-  padding-inline: 0.15rem;
+  /* Keep track padding — shrinking inline inset re-clips the You ring. */
 }
 
 .player-rail-few .player-chip {
@@ -1128,7 +1132,8 @@ html.party-on .panel {
 
 /* Fit everyone without scroll when the row can breathe */
 .player-rail-fit .player-rail-track {
-  overflow-x: hidden;
+  /* No x-scroll needed → real overflow:visible so ring/glow never clip */
+  overflow: visible;
   scroll-snap-type: none;
 }
 
@@ -1194,7 +1199,7 @@ html.party-on .player-rail-many::after {
 @container player-rail (min-width: 22.5rem) {
   .player-rail[data-count="6"].player-rail-many .player-rail-track,
   .player-rail[data-count="7"].player-rail-many .player-rail-track {
-    overflow-x: hidden;
+    overflow: visible;
     scroll-snap-type: none;
   }
 

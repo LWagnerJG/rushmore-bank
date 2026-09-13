@@ -17,7 +17,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Party Mode + vibes + draft/dice polish → {RULES.productionUrl}
+        PlayerRail up-seat ring fully visible → {RULES.productionUrl}
       </p>
       <p className="text-sm text-[var(--muted)]">
         Public handoff — no secrets, credentials, or private session data.
@@ -67,7 +67,9 @@ export default function BuildNotesPage() {
           <li>
             <strong>Draft polish</strong>: removed redundant “Type your answer”
             under Your turn; stash + draft board get stronger panel contrast on
-            cream.
+            cream. Up-seat You-chip gold ring + glow no longer clipped on the
+            rail (fit mode uses real <code>overflow: visible</code>; scroll mode
+            pads the track enough for the full ring/glow).
           </li>
           <li>
             <strong>Dice TAP</strong>: TAP sits on top of the dice and blinks
