@@ -124,8 +124,13 @@ export function AddToHomeScreen() {
 
       {nudgeOpen && !deferred ? (
         <p id={nudgeId} className="a2hs-nudge" role="status">
-          <ShareGlyph /> {nudgeText}{" "}
-          <button type="button" className="a2hs-nudge-dismiss" onClick={dismissNudge}>
+          {ios ? <ShareGlyph /> : null}
+          {nudgeText}{" "}
+          <button
+            type="button"
+            className="a2hs-nudge-dismiss"
+            onClick={dismissNudge}
+          >
             OK
           </button>
         </p>

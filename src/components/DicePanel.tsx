@@ -456,19 +456,19 @@ export function DicePanel({
                   <p className="dice-pot-value tabular-nums">
                     {active ? pot : you.stones}
                   </p>
-                  {active ? (
-                    <p className="dice-pot-hint">at risk</p>
-                  ) : (
-                    <p className="dice-pot-hint">banked</p>
-                  )}
+                  <p className="dice-pot-hint">
+                    {active ? "at risk" : "banked"}
+                  </p>
                 </div>
                 <div
-                  className={`dice-pot-safe ${active ? "" : "dice-pot-safe-muted"}`}
+                  className={
+                    "dice-pot-stack dice-pot-stack-end" +
+                    (active ? "" : " dice-pot-safe-muted")
+                  }
                 >
                   <p className="dice-pot-label">Your safe</p>
-                  <p className="dice-pot-safe-value tabular-nums">
-                    <strong>{safeBeans}</strong>
-                  </p>
+                  <p className="dice-pot-value tabular-nums">{safeBeans}</p>
+                  <p className="dice-pot-hint">banked</p>
                 </div>
               </div>
 
@@ -496,7 +496,14 @@ export function DicePanel({
                     disabled={!canBank || busy || settling}
                     onClick={() => openBankConfirm()}
                   >
-                    {pot === 0 ? "Bank" : `Bank ${pot}`}
+                    <span className="dice-bank-cta-main">
+                      {pot === 0 ? "Bank" : `Bank ${pot}`}
+                    </span>
+                    {pot > 0 ? (
+                      <span className="dice-bank-cta-hint">
+                        → total {safeBeans + pot}
+                      </span>
+                    ) : null}
                   </button>
                 ) : (
                   <div
