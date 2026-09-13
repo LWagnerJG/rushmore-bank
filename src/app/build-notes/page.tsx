@@ -16,7 +16,7 @@ export default function BuildNotesPage() {
         Build notes
       </h1>
       <p className="rounded-xl bg-[rgba(167,215,194,0.45)] px-3 py-2 text-sm font-extrabold">
-        Block pull-to-refresh (Safari socket-safe) → {RULES.productionUrl}
+        PWA icon cache-bust v2 → {RULES.productionUrl}
       </p>
 
       <section className="panel space-y-2 text-sm">
@@ -44,9 +44,15 @@ export default function BuildNotesPage() {
         <h2 className="font-extrabold">What shipped</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>No pull-to-refresh</strong> on home/room shells: overscroll
-            locked + touch guard so Safari doesn’t reload and kill the PartyKit
-            socket. Intentional in-panel scrolling still works.
+            <strong>PWA icon cache-bust</strong>: manifest + icon/apple-touch
+            URLs use <code>?v=2</code> so browsers fetch the epic icon after Add
+            to Home. Bump <code>ICON_V</code> in <code>layout.tsx</code> when
+            art changes again.
+          </li>
+          <li>
+            <strong>iOS limit</strong>: home-screen icons are still sticky —
+            if an old mark remains after install, remove the icon and Add to
+            Home Screen again. Android usually picks up the new asset sooner.
           </li>
         </ul>
       </section>
