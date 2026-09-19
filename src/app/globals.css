@@ -156,35 +156,25 @@ html.party-on body::before {
 }
 
 /*
- * Sticky room chrome: keep overflow visible so the player-rail up-seat
- * ring/glow isn't clipped. Put backdrop-filter on ::before — applying blur
- * on the sticky element itself can make browsers clip descendants.
+ * Room chrome: keep overflow visible so the player-rail up-seat ring/glow
+ * isn't clipped. Use an opaque cream fill — no backdrop-filter.
  *
- * position: relative is required so ::before { position: absolute; inset: 0 }
- * is correctly contained to the header, not the nearest positioned ancestor
- * (body/html). Without it, ::before may cover the full viewport on iPad Safari.
+ * History: a ::before frost (blur 8px + 0.96 alpha) looked soft/frosted on
+ * iPhone Safari / installed PWA because chrome pads into the status-bar
+ * band (black-translucent + viewport-fit:cover + safe-area-inset-top). The
+ * blur bought nothing: chrome is a flex sibling above .room-phase-scroll,
+ * not sticky over scrolling content.
  */
 .room-chrome {
   position: relative;
   overflow: visible;
   isolation: isolate;
-  background: transparent;
+  background: var(--bg);
 }
 
-.room-chrome::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background: rgba(245, 240, 231, 0.96);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
-
-.room-chrome-party::before,
-html.party-on .room-chrome::before {
-  background: rgba(255, 248, 236, 0.96);
+.room-chrome-party,
+html.party-on .room-chrome {
+  background: #fff8ec;
 }
 
 .field {
