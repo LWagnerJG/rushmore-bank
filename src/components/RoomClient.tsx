@@ -186,7 +186,7 @@ export function RoomClient({
     if (presetName.trim()) {
       return (
         <main className="app-shell app-shell-lock mx-auto flex max-w-md flex-col gap-4 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))]">
-          <BrandMark onLogoTap={handleLogoTap} />
+          <BrandMark shimmer={false} onLogoTap={handleLogoTap} />
           <h1 className="font-[family-name:var(--font-display)] text-2xl font-extrabold">
             Room {code}
           </h1>
@@ -208,7 +208,7 @@ export function RoomClient({
 
     return (
       <main className="app-shell app-shell-lock mx-auto flex max-w-md flex-col gap-4 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))]">
-        <BrandMark onLogoTap={handleLogoTap} />
+        <BrandMark shimmer={false} onLogoTap={handleLogoTap} />
         <h1 className="font-[family-name:var(--font-display)] text-2xl font-extrabold">
           Room {code}
         </h1>
@@ -282,7 +282,7 @@ export function RoomClient({
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <BrandMark onLogoTap={handleLogoTap} />
+            <BrandMark shimmer={false} onLogoTap={handleLogoTap} />
           </div>
           {drafting && state ? (
             <div className="flex shrink-0 items-center gap-1 pt-0.5">
