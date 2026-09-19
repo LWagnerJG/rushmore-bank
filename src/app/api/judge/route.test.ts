@@ -107,7 +107,7 @@ describe("/api/judge Gemini preference", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const calledUrl = String(fetchMock.mock.calls[0][0]);
     expect(calledUrl).toContain("generativelanguage.googleapis.com");
-    expect(calledUrl).toContain("gemini-2.5-flash");
+    expect(calledUrl).toContain("gemini-3.6-flash");
     expect(calledUrl).not.toContain("api.openai.com");
   });
 
@@ -179,9 +179,9 @@ describe("/api/judge Gemini preference", () => {
     expect(data.limitation).toBeUndefined();
     expect(fetchMock.mock.calls.length).toBeGreaterThanOrEqual(4);
     const urls = fetchMock.mock.calls.map((c) => String(c[0]));
-    // Primary model is now gemini-2.5-flash; fallback is gemini-2.0-flash.
-    expect(urls.some((u) => u.includes("gemini-2.5-flash"))).toBe(true);
-    expect(urls.some((u) => u.includes("gemini-2.0-flash"))).toBe(true);
+    // Primary is gemini-3.6-flash; fallback is gemini-flash-latest.
+    expect(urls.some((u) => u.includes("gemini-3.6-flash"))).toBe(true);
+    expect(urls.some((u) => u.includes("gemini-flash-latest"))).toBe(true);
   });
 
   it("never surfaces HTTP codes on Gemini failure", async () => {

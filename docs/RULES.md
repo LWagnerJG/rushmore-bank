@@ -50,7 +50,7 @@ earned = 20 + ai_award(0–40) + 5 × human_votes
 ```
 
 - One private human vote for another’s full roster (no self-vote). Show counts, not voters (`N/M voted`). Vote window **45s** or until everyone has voted.
-- AI: Gemini-first (`gemini-3.5-flash` with retry/backoff + flash model fallback); OpenAI fallback; uniform neutral if no key. Player-facing notice never includes HTTP codes.
+- AI: Gemini-first (`gemini-3.6-flash` with retry/backoff + `gemini-flash-latest` fallback); OpenAI fallback; uniform neutral if no key. Player-facing notice never includes HTTP codes.
 - Prompt version: `quarry-judge-v1` (locked in `RULES.aiPromptVersion`).
 - Everyone earns beans (even 0 votes). Start balance **0**.
 

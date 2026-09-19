@@ -4,10 +4,14 @@ import { heuristicJudgeUniform } from "@/shared/engine/judge";
 
 export const runtime = "nodejs";
 
-/** Primary + fallback Gemini flash models when the primary is overloaded. */
+/**
+ * Primary + fallback Gemini flash models when the primary is overloaded.
+ * Prefer stable 3.6 flash; gemini-2.0-flash is shut down (404) and older
+ * 2.5 ids may redirect callers to 3.6. gemini-flash-latest tracks current flash.
+ */
 const GEMINI_MODELS = [
-  "gemini-2.5-flash",
-  "gemini-2.0-flash",
+  "gemini-3.6-flash",
+  "gemini-flash-latest",
 ] as const;
 
 /** Short backoff between retries on 429 / 503 / 5xx (ms). */
@@ -200,8 +204,8 @@ async function callGeminiOnce(
 }
 
 /**
- * Prefer gemini-3.5-flash; on 429/503/5xx retry with short backoff, then try
- * another flash model. Never surfaces HTTP codes to callers.
+ * Prefer gemini-3.6-flash; on 429/503/5xx retry with short backoff, then try
+ * gemini-flash-latest. Never surfaces HTTP codes or model names to callers.
  */
 async function callGemini(
   key: string,
