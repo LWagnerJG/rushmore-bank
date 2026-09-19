@@ -3,6 +3,7 @@
 import { useEffect, useRef, type RefObject } from "react";
 import type { Player, PublicRoomState } from "@/shared/types";
 import { currentUpPlayerId } from "@/shared/engine/up-seat";
+import { FitName } from "@/components/FitName";
 
 /** You first, then beans descending (seat as stable tiebreak). */
 export function sortLeaderboard(
@@ -161,13 +162,17 @@ function PlayerChip({
       title={tip}
     >
       <div className="player-chip-name">
-        {up && (
-          <span className="player-chip-up-dot" aria-hidden="true">
-            ●
+        {(up || (player.isHost && !up)) && (
+          <span className="player-chip-name-leading" aria-hidden="true">
+            {up && (
+              <span className="player-chip-up-dot">
+                ●
+              </span>
+            )}
+            {player.isHost && !up && <span title="Host">★</span>}
           </span>
         )}
-        {player.isHost && !up && <span title="Host">★</span>}
-        <span className="player-chip-name-text">{label}</span>
+        <FitName className="player-chip-name-text" text={label} title={tip} />
       </div>
       {showPotSplit ? (
         <div

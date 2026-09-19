@@ -9,6 +9,7 @@ import {
   turnIndexForSeatPick,
 } from "@/shared/engine/snake";
 import { readAdminUnlocked } from "@/lib/admin-session";
+import { FitName } from "@/components/FitName";
 
 function densityFor(count: number): "fit" | "snug" | "dense" {
   // 2–5: share the phone width with no sideways scroll.
@@ -167,12 +168,11 @@ export function DraftBoard({
                       .filter(Boolean)
                       .join(" ")}
                   >
-                    <span
+                    <FitName
                       className="draft-board-name"
+                      text={player?.name ?? ""}
                       title={player?.name ?? undefined}
-                    >
-                      {player?.name}
-                    </span>
+                    />
                     {pid === youId && (
                       <span className="draft-board-you-label block font-semibold uppercase tracking-wide text-[var(--muted)]">
                         You
