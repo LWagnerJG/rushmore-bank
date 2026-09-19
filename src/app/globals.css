@@ -377,6 +377,12 @@ html.party-on .btn-primary {
   animation: shimmer 12s ease-in-out infinite alternate;
 }
 
+/* Pause brand shimmer when the tab is hidden (phones in background). */
+html.brand-shimmer-paused .brand-shimmer,
+html.brand-shimmer-paused.party-on .brand-shimmer {
+  animation-play-state: paused;
+}
+
 html.party-on .brand-shimmer {
   background: linear-gradient(
     100deg,
@@ -2604,7 +2610,10 @@ html.party-on .status-pill-ready {
   width: 138px;
   height: 138px;
   transform-origin: 50% 55%;
-  will-change: transform, filter;
+}
+.bean-pip-die-tumbling,
+.bean-pip-die-scrambling {
+  will-change: transform;
 }
 .bean-pip-die-svg {
   width: 100%;
@@ -2719,6 +2728,18 @@ html.dice-your-turn::after {
     inset 0 0 48px 16px rgba(126, 185, 150, 0.22);
   animation: dice-glow-breathe 2.4s ease-in-out infinite;
 }
+
+/* Phones: lighter perimeter glow — full multi-blur was a compositor tax. */
+@media (pointer: coarse) {
+  html.dice-your-turn::after {
+    box-shadow:
+      inset 0 0 0 2px rgba(126, 185, 150, 0.55),
+      inset 0 0 14px 4px rgba(167, 215, 194, 0.28);
+    animation: none;
+    opacity: 0.9;
+  }
+}
+
 @keyframes dice-glow-breathe {
   0%,
   100% {
@@ -3321,6 +3342,51 @@ html.party-on .draft-board-table thead th.is-you {
   gap: 0.15rem;
   min-width: 0;
 }
+
+/* Host-only AI judge health — quiet cream/green/coral cue */
+.host-ai-chip {
+  flex-shrink: 0;
+  min-height: 1.75rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  border: 1px solid rgba(35, 72, 62, 0.12);
+}
+.host-ai-chip-ok {
+  background: rgba(167, 215, 194, 0.45);
+  color: var(--text);
+}
+.host-ai-chip-fallback {
+  background: rgba(231, 111, 78, 0.16);
+  color: var(--text);
+}
+.host-ai-chip-pending {
+  background: rgba(244, 201, 91, 0.28);
+  color: var(--muted);
+}
+.host-ai-dot {
+  display: inline-block;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  flex-shrink: 0;
+  margin-top: 0.55rem;
+  opacity: 0.85;
+}
+.host-ai-dot-ok {
+  background: #5a9e7a;
+}
+.host-ai-dot-fallback {
+  background: #e76f4e;
+}
+.host-ai-dot-pending {
+  background: #c9a84a;
+  opacity: 0.55;
+}
+
 .settings-toggle {
   position: relative;
   width: 2.75rem;

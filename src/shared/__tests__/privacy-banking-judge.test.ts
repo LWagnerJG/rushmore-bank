@@ -218,6 +218,72 @@ describe("ballot privacy projection", () => {
     expect(JSON.stringify(forP1)).not.toMatch(/"humanVotes"/);
   });
 
+  it("projects hostAiJudge only to the host from real lastJudgeOutcome", () => {
+    const state = emptyRoomState("HOST");
+    state.players = [
+      {
+        id: "host",
+        name: "Host",
+        stones: 0,
+        connected: true,
+        isHost: true,
+        role: "player",
+        seat: 0,
+        joinedAt: 1,
+      },
+      {
+        id: "guest",
+        name: "Guest",
+        stones: 0,
+        connected: true,
+        isHost: false,
+        role: "player",
+        seat: 1,
+        joinedAt: 2,
+      },
+    ];
+    state.lastJudgeOutcome = "ok";
+    state.judgeStatus = "idle";
+
+    const forHost = projectPublicState(state, "host");
+    const forGuest = projectPublicState(state, "guest");
+    expect(forHost.hostAiJudge).toBe("ok");
+    expect(forGuest.hostAiJudge).toBeUndefined();
+    expect(JSON.stringify(forGuest)).not.toMatch(/hostAiJudge/);
+    expect(JSON.stringify(forHost)).not.toMatch(/lastJudgeOutcome/);
+
+    state.judgeStatus = "pending";
+    expect(projectPublicState(state, "host").hostAiJudge).toBe("pending");
+
+    state.judgeStatus = "failed";
+    state.lastJudgeOutcome = "fallback";
+    expect(projectPublicState(state, "host").hostAiJudge).toBe("fallback");
+  });
+
+  it("omits ledger / usedTopicIds from public projection", () => {
+    const state = emptyRoomState("LEAN");
+    state.usedTopicIds = ["t1", "t2"];
+    state.ledger = [
+      {
+        id: "L1",
+        at: 1,
+        playerId: "p1",
+        kind: "bust",
+        amount: -10,
+        balanceAfter: 0,
+        note: "x",
+        topicRound: 1,
+      },
+    ];
+    state.bustedPlayerIdsThisRound = ["p1"];
+    const pub = projectPublicState(state, "p1");
+    expect(pub.bustedPlayerIdsThisRound).toEqual(["p1"]);
+    expect(Object.prototype.hasOwnProperty.call(pub, "ledger")).toBe(false);
+    expect(Object.prototype.hasOwnProperty.call(pub, "usedTopicIds")).toBe(
+      false,
+    );
+  });
+
   it("hides dice faces until settle / reveal", () => {
     const state = emptyRoomState("ABCD");
     state.phase = "DICE";

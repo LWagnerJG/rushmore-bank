@@ -7,6 +7,7 @@ import { phaseLabel, type Phase } from "@/shared/types";
 import { RULES } from "@/shared/rules";
 import { BrandMark } from "@/components/BrandMark";
 import { SettingsSheet } from "@/components/SettingsSheet";
+import { HostAiJudgeCue } from "@/components/HostAiJudgeCue";
 import { DiagPanel } from "@/components/DiagPanel";
 import {
   adoptPlayerIdForRejoin,
@@ -281,8 +282,11 @@ export function RoomClient({
         }
       >
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
+          <div className="min-w-0 flex items-center gap-2">
             <BrandMark shimmer={false} onLogoTap={handleLogoTap} />
+            {you?.isHost ? (
+              <HostAiJudgeCue health={state?.hostAiJudge} variant="dot" />
+            ) : null}
           </div>
           {drafting && state ? (
             <div className="flex shrink-0 items-center gap-1 pt-0.5">
@@ -437,6 +441,7 @@ export function RoomClient({
         roomCode={code}
         isHost={you?.isHost ?? false}
         partyOn={partyOn}
+        hostAiJudge={you?.isHost ? state?.hostAiJudge : undefined}
         onPartyChange={
           you?.isHost
             ? (next) =>

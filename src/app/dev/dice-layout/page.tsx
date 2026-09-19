@@ -60,7 +60,6 @@ function baseState(): PublicRoomState {
     createdAt: Date.now(),
     topicRound: 1,
     configuredTopicRounds: 3,
-    usedTopicIds: [],
     topicOptions: [],
     topicVoteCounts: {},
     myTopicVote: null,
@@ -78,7 +77,6 @@ function baseState(): PublicRoomState {
     draftOrder: [],
     picks: [],
     takenNormalized: [],
-    draftOptions: [],
     draftOptionsStatus: "idle",
     pickDeadlineAt: null,
     pickPaused: false,
@@ -114,8 +112,7 @@ function baseState(): PublicRoomState {
     partyPrompt: null,
     partyBustRedoUsedIds: [],
     diceIdlePauseRemainingMs: null,
-    ledger: [],
-    checkpoint: null,
+    bustedPlayerIdsThisRound: [],
     phaseDeadlineAt: null,
     hostLastSeenAt: Date.now(),
     gameOver: false,
@@ -203,18 +200,7 @@ function scenarioState(scenario: Scenario): PublicRoomState {
         topicVibe: "all",
         partyMode: true,
       };
-      s.ledger = [
-        {
-          id: "l1",
-          at: Date.now(),
-          playerId: YOU_ID,
-          kind: "bust",
-          amount: -15,
-          balanceAfter: 30,
-          note: "BEAN BUSTER",
-          topicRound: 1,
-        },
-      ];
+      s.bustedPlayerIdsThisRound = [YOU_ID];
       break;
     case "next_seat":
       s.diceTurnSeat = 1;
@@ -223,18 +209,7 @@ function scenarioState(scenario: Scenario): PublicRoomState {
       s.pots[YOU_ID] = 0;
       s.lastDice = null; // server cleared
       s.diceIdleDeadlineAt = Date.now() + 15000;
-      s.ledger = [
-        {
-          id: "l1",
-          at: Date.now(),
-          playerId: YOU_ID,
-          kind: "bust",
-          amount: -15,
-          balanceAfter: 30,
-          note: "BEAN BUSTER",
-          topicRound: 1,
-        },
-      ];
+      s.bustedPlayerIdsThisRound = [YOU_ID];
       break;
   }
   return s;

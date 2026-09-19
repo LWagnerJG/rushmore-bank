@@ -279,12 +279,7 @@ export function DicePanel({
   const seats: SeatInfo[] = state.seatOrder.map((pid) => {
     const player = state.players.find((p) => p.id === pid);
     const inRound = state.diceActiveIds.includes(pid);
-    const bust = state.ledger.some(
-      (e) =>
-        e.topicRound === state.topicRound &&
-        e.playerId === pid &&
-        e.kind === "bust",
-    );
+    const bust = state.bustedPlayerIdsThisRound.includes(pid);
     const kind = seatKind(pid, rollerId, nextId, inRound, bust);
     return {
       pid,

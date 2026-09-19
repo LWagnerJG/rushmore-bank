@@ -33,6 +33,19 @@ export function NoPullToRefresh() {
     return () => window.removeEventListener("resize", syncAppH);
   }, []);
 
+  // Pause continuous brand shimmer while the tab is backgrounded.
+  useEffect(() => {
+    const sync = () => {
+      document.documentElement.classList.toggle(
+        "brand-shimmer-paused",
+        document.visibilityState === "hidden",
+      );
+    };
+    sync();
+    document.addEventListener("visibilitychange", sync);
+    return () => document.removeEventListener("visibilitychange", sync);
+  }, []);
+
   useEffect(() => {
     let startY = 0;
 

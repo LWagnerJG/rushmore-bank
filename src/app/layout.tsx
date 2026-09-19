@@ -6,6 +6,7 @@ import "./globals.css";
 const nunito = Nunito({
   variable: "--font-body",
   subsets: ["latin"],
+  weight: ["400", "600", "700", "800"],
 });
 
 const sora = Sora({
@@ -24,7 +25,7 @@ const description =
 const CREAM = "#F5F0E7";
 
 /** Bump when shipping a new epic home-screen icon (cache-bust query). */
-const ICON_V = "2";
+const ICON_V = "3";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
