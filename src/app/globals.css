@@ -156,35 +156,25 @@ html.party-on body::before {
 }
 
 /*
- * Sticky room chrome: keep overflow visible so the player-rail up-seat
- * ring/glow isn't clipped. Put backdrop-filter on ::before — applying blur
- * on the sticky element itself can make browsers clip descendants.
+ * Room chrome: keep overflow visible so the player-rail up-seat ring/glow
+ * isn't clipped. Use an opaque cream fill — no backdrop-filter.
  *
- * position: relative is required so ::before { position: absolute; inset: 0 }
- * is correctly contained to the header, not the nearest positioned ancestor
- * (body/html). Without it, ::before may cover the full viewport on iPad Safari.
+ * History: a ::before frost (blur 8px + 0.96 alpha) looked soft/frosted on
+ * iPhone Safari / installed PWA because chrome pads into the status-bar
+ * band (black-translucent + viewport-fit:cover + safe-area-inset-top). The
+ * blur bought nothing: chrome is a flex sibling above .room-phase-scroll,
+ * not sticky over scrolling content.
  */
 .room-chrome {
   position: relative;
   overflow: visible;
   isolation: isolate;
-  background: transparent;
+  background: var(--bg);
 }
 
-.room-chrome::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background: rgba(245, 240, 231, 0.96);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
-
-.room-chrome-party::before,
-html.party-on .room-chrome::before {
-  background: rgba(255, 248, 236, 0.96);
+.room-chrome-party,
+html.party-on .room-chrome {
+  background: #fff8ec;
 }
 
 .field {
@@ -1667,12 +1657,26 @@ html.party-on .panel {
 }
 
 .player-chip-name {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 0.15rem;
+  justify-content: center;
   font-size: 0.68rem;
   font-weight: 800;
   min-width: 0;
+  width: 100%;
+}
+
+.player-chip-name-leading {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.1rem;
+  pointer-events: none;
+  z-index: 1;
 }
 
 .player-chip-compact .player-chip-name {
@@ -1680,16 +1684,18 @@ html.party-on .panel {
 }
 
 .player-chip-name-text {
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  overflow-wrap: anywhere;
-  word-break: break-word;
-  white-space: normal;
+  /* FitName root — full tile width, centered shrink-to-fit */
+  width: 100%;
+  min-width: 0;
+  font-weight: inherit;
+  font-size: inherit;
   line-height: 1.15;
-  max-width: 100%;
+}
+
+/* Keep shrink text clear of leading ● / ★ without shifting center */
+.player-chip-name:has(.player-chip-name-leading) .player-chip-name-text {
+  padding-inline: 0.7rem;
+  box-sizing: border-box;
 }
 
 .player-chip-score {
@@ -1822,11 +1828,6 @@ html.party-on .panel {
   margin-inline: 0.05rem;
 }
 
-.player-rail-few .player-chip-name-text {
-  -webkit-line-clamp: 1;
-  line-clamp: 1;
-}
-
 .player-rail-few .player-chip-stones {
   font-size: 1.4rem;
 }
@@ -1928,11 +1929,6 @@ html.party-on .panel {
 .player-rail-few.player-rail-fit.player-rail-pot-split .player-chip-pot-split {
   min-width: 0;
   max-width: none;
-}
-
-.player-rail-fit .player-chip-name-text {
-  /* Keep 2-line clamp from base; fit mode still ellipsizes via line-clamp. */
-  overflow: hidden;
 }
 
 .player-rail-many::after {
@@ -2961,23 +2957,48 @@ html.dice-your-turn::after {
   text-align: left;
 }
 
-.draft-board-name {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
+/*
+ * Shared one-line shrink-to-fit name (draft header + player chips).
+ * No hyphenation; FitName.js scales font / tracking to fit the tile.
+ */
+.fit-name {
+  display: block;
+  width: 100%;
+  min-width: 0;
   overflow: hidden;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  text-align: center;
+  box-sizing: border-box;
+  padding-inline: 0.08rem;
+}
+
+.fit-name-text {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+  text-align: center;
+  hyphens: none;
+  -webkit-hyphens: none;
+  word-break: keep-all;
+  overflow-wrap: normal;
+  line-height: 1.15;
+}
+
+.draft-board-name {
+  display: block;
+  width: 100%;
+  max-width: 100%;
   font-weight: 800;
   line-height: 1.15;
-  max-width: 100%;
 }
 
 .draft-board-table thead th {
   position: sticky;
   top: 0;
   z-index: 2;
+  text-align: center;
   backdrop-filter: blur(8px);
   background: rgba(245, 240, 231, 0.92);
 }
@@ -3013,6 +3034,7 @@ html.party-on .draft-board-table thead th.is-you {
 .draft-board-density-fit .draft-board-you-label,
 .draft-board-density-cozy .draft-board-you-label {
   font-size: 0.55rem;
+  text-align: center;
 }
 
 .draft-board-density-fit th,
@@ -3064,6 +3086,7 @@ html.party-on .draft-board-table thead th.is-you {
 
 .draft-board-density-snug .draft-board-you-label {
   font-size: 0.52rem;
+  text-align: center;
 }
 
 .draft-board-density-dense th {
@@ -3080,6 +3103,7 @@ html.party-on .draft-board-table thead th.is-you {
 
 .draft-board-density-dense .draft-board-you-label {
   font-size: 0.48rem;
+  text-align: center;
 }
 
 .draft-board-on-clock {

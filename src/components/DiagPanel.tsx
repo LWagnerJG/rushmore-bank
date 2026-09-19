@@ -28,7 +28,7 @@ interface DiagData {
   phaseScrollScrollTop: number;
   /** Computed opacity of the first .animate-rise element (detects stuck anim). */
   animRiseOpacity: string;
-  /** Computed visibility of the room chrome ::before via a workaround. */
+  /** Computed position of .room-chrome (sticky vs relative). */
   chromePosType: string;
 }
 
