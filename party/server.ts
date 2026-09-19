@@ -18,6 +18,7 @@ import {
 } from "../src/shared/types";
 import {
   RULES,
+  canHostSetTopicRounds,
   topicRoundsForPlayerCount,
   topicShortlistCount,
 } from "../src/shared/rules";
@@ -734,6 +735,9 @@ export default class QuarryServer implements Party.Server {
       case "update_settings":
         this.handleSettings(id, msg.settings);
         return;
+      case "set_topic_rounds":
+        this.handleSetTopicRounds(id, msg.rounds);
+        return;
       case "start":
         await this.handleStart(id);
         return;
@@ -941,6 +945,22 @@ export default class QuarryServer implements Party.Server {
     }
     this.state.settings = { ...this.state.settings, ...partial };
     this.state.settings.topicVibe = migrateTopicVibe(this.state.settings.topicVibe);
+  }
+
+  /** Host sets 3–6 rounds on the first topic screen only. */
+  handleSetTopicRounds(id: string, rounds: number) {
+    if (!this.requireHost(id)) throw new Error("Host only");
+    const n = Math.floor(Number(rounds));
+    if (
+      !canHostSetTopicRounds({
+        phase: this.state.phase,
+        topicRound: this.state.topicRound,
+        rounds: n,
+      })
+    ) {
+      throw new Error("Rounds locked");
+    }
+    this.state.configuredTopicRounds = n;
   }
 
   async handleStart(id: string) {

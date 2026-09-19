@@ -27,11 +27,14 @@ export const RULES = {
   topicShortlistSize: 4,
   /**
    * Topic rounds *played* (not choices offered):
-   * 3 rounds with 2–5 players; 2 rounds with 6–10.
+   * Default 3 rounds with 2–5 players; 2 rounds with 6–10.
+   * Host may override to 3–6 on the first topic screen.
    */
   topicRoundsSmallMaxPlayers: 5,
   topicRoundsSmall: 3,
   topicRoundsLarge: 2,
+  /** Host-selectable round counts on first TOPIC_SELECTION. */
+  topicRoundsHostOptions: [3, 4, 5, 6] as const,
   /** Topic vote — no timer; advances when every connected player has voted */
   topicVoteSeconds: 0,
   /** Soft target session length */
@@ -112,4 +115,27 @@ export function topicRoundsForPlayerCount(playerCount: number): number {
     return RULES.topicRoundsSmall;
   }
   return RULES.topicRoundsLarge;
+}
+
+export type HostTopicRounds = (typeof RULES.topicRoundsHostOptions)[number];
+
+/** True when `n` is one of the host-selectable round counts (3–6). */
+export function isHostSelectableTopicRounds(n: number): n is HostTopicRounds {
+  return (RULES.topicRoundsHostOptions as readonly number[]).includes(n);
+}
+
+/**
+ * Host may change configured rounds only on the first topic screen,
+ * before any round has completed.
+ */
+export function canHostSetTopicRounds(input: {
+  phase: string;
+  topicRound: number;
+  rounds: number;
+}): boolean {
+  return (
+    input.phase === "TOPIC_SELECTION" &&
+    input.topicRound === 0 &&
+    isHostSelectableTopicRounds(input.rounds)
+  );
 }

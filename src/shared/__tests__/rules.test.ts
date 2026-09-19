@@ -3,7 +3,12 @@ import { snakeDraftOrder, totalDraftPicks } from "../engine/snake";
 import { applyDiceRoll, rollNetBeansAdded } from "../engine/dice";
 import { applyWager, maxWager, wagerFromPreset } from "../engine/wager";
 import { aiAwardFromScores, computeEarnedStones } from "../engine/scoring";
-import { RULES } from "../rules";
+import {
+  RULES,
+  canHostSetTopicRounds,
+  isHostSelectableTopicRounds,
+  topicRoundsForPlayerCount,
+} from "../rules";
 import { TOPIC_COUNT } from "../topics";
 
 describe("topics", () => {
@@ -13,6 +18,28 @@ describe("topics", () => {
 
   it("always offers exactly 4 topic choices", () => {
     expect(RULES.topicShortlistSize).toBe(4);
+  });
+
+  it("exposes host-selectable round options 3–6", () => {
+    expect([...RULES.topicRoundsHostOptions]).toEqual([3, 4, 5, 6]);
+    expect(isHostSelectableTopicRounds(4)).toBe(true);
+    expect(isHostSelectableTopicRounds(2)).toBe(false);
+    expect(
+      canHostSetTopicRounds({
+        phase: "TOPIC_SELECTION",
+        topicRound: 0,
+        rounds: 6,
+      }),
+    ).toBe(true);
+    expect(
+      canHostSetTopicRounds({
+        phase: "TOPIC_SELECTION",
+        topicRound: 1,
+        rounds: 6,
+      }),
+    ).toBe(false);
+    expect(topicRoundsForPlayerCount(3)).toBe(3);
+    expect(topicRoundsForPlayerCount(9)).toBe(2);
   });
 });
 

@@ -164,7 +164,10 @@ export interface RoomState {
   createdAt: number;
   /** Topic rounds completed */
   topicRound: number;
-  /** Rounds to play this game (set at start from player count) */
+  /**
+   * Rounds to play this game. Default from player count at start;
+   * host may set 3–6 on the first topic screen.
+   */
   configuredTopicRounds: number;
   usedTopicIds: string[];
   /**
@@ -324,6 +327,8 @@ export interface PublicRoomState {
 export type ClientMessage =
   | { type: "join"; name: string; role?: PlayerRole; actionId?: string }
   | { type: "update_settings"; settings: Partial<HostSettings>; actionId?: string }
+  /** Host-only: set total topic rounds (3–6) on the first topic screen. */
+  | { type: "set_topic_rounds"; rounds: number; actionId?: string }
   | { type: "start"; actionId?: string }
   | { type: "spin_topics"; actionId?: string }
   | { type: "vote_topic"; topicId: string; actionId?: string }

@@ -29,7 +29,7 @@ LOBBY → TOPIC_SELECTION → DRAFT (+ CORRECTION) → REVIEW
 - **No topic timer** — players pick calmly; advances when every connected player has voted (or host locks a custom topic). Ties → server random among tied.
 - No locked-topic repeat in a game; shortlist/reroll also soft-avoids already-shown bank topics until the pool cycles.
 - Scope boundary shown before draft.
-- Topic rounds played: **3** with 2–5 players; **2** with 6–10.
+- Topic rounds played: default **3** with 2–5 players; **2** with 6–10. On the first topic screen the host may set **3–6** rounds for everyone.
 
 ## Draft
 
