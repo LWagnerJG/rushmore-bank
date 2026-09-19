@@ -159,16 +159,19 @@ html.party-on body::before {
  * Room chrome: keep overflow visible so the player-rail up-seat ring/glow
  * isn't clipped. Use an opaque cream fill — no backdrop-filter.
  *
- * History: a ::before frost (blur 8px + 0.96 alpha) looked soft/frosted on
- * iPhone Safari / installed PWA because chrome pads into the status-bar
- * band (black-translucent + viewport-fit:cover + safe-area-inset-top). The
- * blur bought nothing: chrome is a flex sibling above .room-phase-scroll,
- * not sticky over scrolling content.
+ * History:
+ * 1) A ::before frost (blur 8px + 0.96 alpha) frosted the iOS status-bar
+ *    band under black-translucent. Removed in #87.
+ * 2) Leftover `isolation: isolate` (only needed to contain that ::before)
+ *    plus animated `.brand-shimmer` (`background-clip: text`) still made
+ *    iPhone Safari/PWA rasterize the *entire* chrome stacking context soft
+ *    — bean icon, solid BANK readout, and phase line all looked Gaussian
+ *    while the native status bar stayed crisp. Drop isolation; room
+ *    BrandMark uses solid ink (no shimmer).
  */
 .room-chrome {
   position: relative;
   overflow: visible;
-  isolation: isolate;
   background: var(--bg);
 }
 
@@ -354,6 +357,11 @@ html.party-on .btn-primary {
   }
 }
 
+/*
+ * Home hero only. Do not put this on room chrome — animated clipped-text
+ * gradients promote a composited layer that iOS can upscale soft (and used
+ * to soft-blur sibling chrome when paired with isolation:isolate).
+ */
 .brand-shimmer {
   background: linear-gradient(
     100deg,

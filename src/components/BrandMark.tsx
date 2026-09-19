@@ -1,8 +1,16 @@
 export function BrandMark({
   large = false,
+  /**
+   * Gradient clipped-text shimmer. Off in room chrome — animated
+   * `background-clip: text` inside an isolated stacking context makes iOS
+   * Safari/PWA rasterize the whole header band soft (icon + BANK + phase
+   * line), while the native status bar stays crisp.
+   */
+  shimmer = true,
   onLogoTap,
 }: {
   large?: boolean;
+  shimmer?: boolean;
   /** Fired when the bean icon is tapped (not the wordmark). */
   onLogoTap?: () => void;
 }) {
@@ -52,7 +60,8 @@ export function BrandMark({
       </button>
       <span
         className={
-          "font-[family-name:var(--font-display)] font-extrabold tracking-tight brand-shimmer " +
+          "font-[family-name:var(--font-display)] font-extrabold tracking-tight " +
+          (shimmer ? "brand-shimmer " : "text-[var(--text)] ") +
           (large ? "text-6xl" : "text-2xl")
         }
       >
