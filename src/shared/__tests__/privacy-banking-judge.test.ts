@@ -26,6 +26,8 @@ import {
 import { emptyRoomState } from "../types";
 import {
   RULES,
+  canHostSetTopicRounds,
+  isHostSelectableTopicRounds,
   topicRoundsForPlayerCount,
   topicShortlistCount,
 } from "../rules";
@@ -433,7 +435,7 @@ describe("synchronized dice animation", () => {
 });
 
 describe("session length: choices vs rounds", () => {
-  it("always offers 4 topic choices; rounds still scale with player count", () => {
+  it("always offers 4 topic choices; default rounds still scale with player count", () => {
     expect(topicShortlistCount(2)).toBe(4);
     expect(topicShortlistCount(4)).toBe(4);
     expect(topicShortlistCount(8)).toBe(4);
@@ -442,6 +444,42 @@ describe("session length: choices vs rounds", () => {
     expect(topicRoundsForPlayerCount(4)).toBe(3);
     expect(topicRoundsForPlayerCount(8)).toBe(2);
     expect(topicShortlistCount(8)).not.toBe(topicRoundsForPlayerCount(8));
+  });
+
+  it("host may pick 3–6 rounds on the first topic screen only", () => {
+    expect([...RULES.topicRoundsHostOptions]).toEqual([3, 4, 5, 6]);
+    expect(isHostSelectableTopicRounds(3)).toBe(true);
+    expect(isHostSelectableTopicRounds(6)).toBe(true);
+    expect(isHostSelectableTopicRounds(2)).toBe(false);
+    expect(isHostSelectableTopicRounds(7)).toBe(false);
+    expect(
+      canHostSetTopicRounds({
+        phase: "TOPIC_SELECTION",
+        topicRound: 0,
+        rounds: 5,
+      }),
+    ).toBe(true);
+    expect(
+      canHostSetTopicRounds({
+        phase: "TOPIC_SELECTION",
+        topicRound: 1,
+        rounds: 5,
+      }),
+    ).toBe(false);
+    expect(
+      canHostSetTopicRounds({
+        phase: "DRAFT",
+        topicRound: 0,
+        rounds: 4,
+      }),
+    ).toBe(false);
+    expect(
+      canHostSetTopicRounds({
+        phase: "TOPIC_SELECTION",
+        topicRound: 0,
+        rounds: 2,
+      }),
+    ).toBe(false);
   });
 
   it("draft / phase clocks match party phone pace", () => {

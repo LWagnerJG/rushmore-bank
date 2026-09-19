@@ -25,7 +25,7 @@ npm run dev
 | Variable | Required | Description |
 |---|---|---|
 | `NEXT_PUBLIC_PARTYKIT_HOST` | No | Override PartyKit host (no protocol) |
-| `GEMINI_API_KEY` / `GOOGLE_GENERATIVE_AI_API_KEY` | No | Preferred AI judge (Gemini 3.5 Flash) |
+| `GEMINI_API_KEY` / `GOOGLE_GENERATIVE_AI_API_KEY` | No | Preferred AI judge (Gemini 3.6 Flash) |
 | `OPENAI_API_KEY` | No | Optional AI judge fallback |
 | `JUDGE_SECRET` | No | Shared secret so only PartyKit can call paid `/api/judge` |
 

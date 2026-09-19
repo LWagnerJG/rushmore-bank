@@ -29,7 +29,7 @@ LOBBY → TOPIC_SELECTION → DRAFT (+ CORRECTION) → REVIEW
 - **No topic timer** — players pick calmly; advances when every connected player has voted (or host locks a custom topic). Ties → server random among tied.
 - No locked-topic repeat in a game; shortlist/reroll also soft-avoids already-shown bank topics until the pool cycles.
 - Scope boundary shown before draft.
-- Topic rounds played: **3** with 2–5 players; **2** with 6–10.
+- Topic rounds played: default **3** with 2–5 players; **2** with 6–10. On the first topic screen the host may set **3–6** rounds for everyone.
 
 ## Draft
 
@@ -50,7 +50,7 @@ earned = 20 + ai_award(0–40) + 5 × human_votes
 ```
 
 - One private human vote for another’s full roster (no self-vote). Show counts, not voters (`N/M voted`). Vote window **45s** or until everyone has voted.
-- AI: Gemini-first (`gemini-3.5-flash` with retry/backoff + flash model fallback); OpenAI fallback; uniform neutral if no key. Player-facing notice never includes HTTP codes.
+- AI: Gemini-first (`gemini-3.6-flash` with retry/backoff + `gemini-flash-latest` fallback); OpenAI fallback; uniform neutral if no key. Player-facing notice never includes HTTP codes.
 - Prompt version: `quarry-judge-v1` (locked in `RULES.aiPromptVersion`).
 - Everyone earns beans (even 0 votes). Start balance **0**.
 

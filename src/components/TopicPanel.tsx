@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
 import type { TopicScope } from "@/shared/topics";
+import { RULES } from "@/shared/rules";
 
 export function TopicPanel({
   state,
@@ -20,6 +21,8 @@ export function TopicPanel({
   const [customOpen, setCustomOpen] = useState(false);
   const myVote = state.myTopicVote;
   const seenKey = useRef<string | null>(null);
+  const firstTopicScreen = state.topicRound === 0;
+  const canPickRounds = you.isHost && firstTopicScreen;
 
   // Animate only on reroll (options change after first paint) — never on land.
   useEffect(() => {
@@ -70,6 +73,34 @@ export function TopicPanel({
           Four from the bank — vote or write your own
         </p>
       </header>
+
+      {canPickRounds ? (
+        <div
+          className="topic-rounds-row"
+          role="group"
+          aria-label="Number of rounds"
+        >
+          <span className="topic-rounds-label">Rounds</span>
+          <div className="topic-rounds-chips">
+            {RULES.topicRoundsHostOptions.map((n) => {
+              const on = state.configuredTopicRounds === n;
+              return (
+                <button
+                  key={n}
+                  type="button"
+                  className={
+                    "topic-rounds-chip" + (on ? " topic-rounds-chip-on" : "")
+                  }
+                  aria-pressed={on}
+                  onClick={() => send({ type: "set_topic_rounds", rounds: n })}
+                >
+                  {n}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
 
       {you.isHost ? (
         <div className="topic-vibe-row" role="group" aria-label="Topic vibes">
