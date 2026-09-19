@@ -42,6 +42,7 @@ import {
   neutralJudgments,
   newRollId,
   projectPublicState,
+  projectPublicStateShared,
   roll2d6,
   rosterFull,
   remapDraftAfterSeatGrowth,
@@ -93,6 +94,9 @@ function migrateState(raw: RoomState): RoomState {
     judgeStatus: raw.judgeStatus ?? "idle",
     judgeJobId: raw.judgeJobId ?? null,
     judgeNotice: raw.judgeNotice ?? null,
+    lastJudgeOutcome:
+      (raw as RoomState & { lastJudgeOutcome?: RoomState["lastJudgeOutcome"] })
+        .lastJudgeOutcome ?? null,
     topicVotes: raw.topicVotes ?? {},
     usedTopicIds: raw.usedTopicIds ?? [],
     seenTopicIds: Array.isArray(
@@ -112,6 +116,12 @@ function migrateState(raw: RoomState): RoomState {
       (raw as RoomState & { partyBustRedoUsedIds?: string[] }).partyBustRedoUsedIds,
     )
       ? (raw as RoomState).partyBustRedoUsedIds
+      : [],
+    bustedPlayerIdsThisRound: Array.isArray(
+      (raw as RoomState & { bustedPlayerIdsThisRound?: string[] })
+        .bustedPlayerIdsThisRound,
+    )
+      ? (raw as RoomState).bustedPlayerIdsThisRound
       : [],
     diceIdlePauseRemainingMs:
       (raw as RoomState & { diceIdlePauseRemainingMs?: number | null })
@@ -324,10 +334,27 @@ export default class QuarryServer implements Party.Server {
   }
 
   broadcastState() {
+    // Project shared fields once; overlay recipient-private fields per conn.
+    const shared = projectPublicStateShared(this.state);
     for (const conn of this.room.getConnections()) {
+      const recipient = this.state.players.find((p) => p.id === conn.id);
+      const state: PublicRoomState = {
+        ...shared,
+        myTopicVote: this.state.topicVotes[conn.id] ?? null,
+        myHumanVote: this.state.humanVotes[conn.id] ?? null,
+        myBankBeansReady: !!this.state.bankBeansReady?.[conn.id],
+        ...(recipient?.isHost
+          ? {
+              hostAiJudge:
+                this.state.judgeStatus === "pending"
+                  ? ("pending" as const)
+                  : this.state.lastJudgeOutcome,
+            }
+          : {}),
+      };
       this.send(conn, {
         type: "state",
-        state: this.publicStateFor(conn.id),
+        state,
         youId: conn.id,
       });
     }
@@ -682,8 +709,19 @@ export default class QuarryServer implements Party.Server {
     }
 
     try {
+      // Host heartbeat only touches in-memory last-seen — skip persist +
+      // N-way broadcast that was waking every phone every ~8s.
+      if (msg.type === "host_heartbeat") {
+        await this.handle(msg, sender.id, sender);
+        return;
+      }
       if (this.seenAction(msg.actionId)) {
-        this.broadcastState();
+        // Echo current state to the sender only (dedupe), not the whole room.
+        this.send(sender, {
+          type: "state",
+          state: this.publicStateFor(sender.id),
+          youId: sender.id,
+        });
         return;
       }
       await this.handle(msg, sender.id, sender);
@@ -1554,6 +1592,7 @@ export default class QuarryServer implements Party.Server {
       this.state.scores = mapped;
       this.state.judgeStatus = "ready";
       this.state.judgeNotice = null;
+      this.state.lastJudgeOutcome = "ok";
       await this.persist();
       this.broadcastState();
       await this.maybeFinalizeAfterJudge();
@@ -1575,6 +1614,7 @@ export default class QuarryServer implements Party.Server {
     const rosters = buildAnonymousRosters(this.state.seatOrder, picksByPlayer);
     this.state.scores = neutralJudgments(rosters);
     this.state.judgeStatus = "failed";
+    this.state.lastJudgeOutcome = "fallback";
     // Never show raw HTTP / model errors to players.
     this.state.judgeNotice = sanitizeJudgeNotice(notice);
     void this.persist().then(() => this.broadcastState());
@@ -1636,6 +1676,7 @@ export default class QuarryServer implements Party.Server {
       );
       this.state.judgeStatus = "failed";
       this.state.judgeNotice = RULES.aiFallbackLabel;
+      this.state.lastJudgeOutcome = "fallback";
     }
 
     const votes =
@@ -1780,6 +1821,7 @@ export default class QuarryServer implements Party.Server {
     this.state.diceLapsCompleted = 0;
     this.state.lastDice = null;
     this.state.partyBustRedoUsedIds = [];
+    this.state.bustedPlayerIdsThisRound = [];
     this.state.diceIdlePauseRemainingMs = null;
     this.state.partyPrompt = null;
     const first = this.state.seatOrder.find((id) =>
@@ -1952,6 +1994,12 @@ export default class QuarryServer implements Party.Server {
 
     if (dice.busted) {
       this.state.diceActiveIds = this.state.diceActiveIds.filter((x) => x !== id);
+      if (!this.state.bustedPlayerIdsThisRound.includes(id)) {
+        this.state.bustedPlayerIdsThisRound = [
+          ...this.state.bustedPlayerIdsThisRound,
+          id,
+        ];
+      }
       ledgerPush(this.state, {
         playerId: id,
         kind: "bust",
@@ -2189,6 +2237,8 @@ export default class QuarryServer implements Party.Server {
           ...this.state.partyBustRedoUsedIds,
           bustedId,
         ];
+        this.state.bustedPlayerIdsThisRound =
+          this.state.bustedPlayerIdsThisRound.filter((x) => x !== bustedId);
         ledgerPush(this.state, {
           playerId: bustedId,
           kind: "adjust",
@@ -2908,6 +2958,7 @@ export default class QuarryServer implements Party.Server {
     this.state.scoresLocked = true;
     this.state.judgeStatus = "ready";
     this.state.judgeNotice = null;
+    this.state.lastJudgeOutcome = "ok";
   }
   adminSeedVoteWhys() {
     if (this.state.scores.length > 0) return;

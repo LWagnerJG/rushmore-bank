@@ -3,6 +3,7 @@
  */
 import type {
   DiceBroadcast,
+  HostAiJudgeHealth,
   PublicDiceBroadcast,
   PublicRoomState,
   RoomState,
@@ -45,18 +46,22 @@ function stripDiceForPublic(
   };
 }
 
+function hostAiJudgeHealth(state: RoomState): HostAiJudgeHealth {
+  if (state.judgeStatus === "pending") return "pending";
+  return state.lastJudgeOutcome;
+}
+
 /**
- * Project authoritative RoomState to a recipient-safe PublicRoomState.
- * - Ballots: progress + own vote only (never voter→choice maps)
- * - Dice: hide faces / outcome text until settle (pots applied server-side only after settle)
- * - Private Stash (draft queue) never lives on RoomState
- * - draftOptionsJobId stays server-only
+ * Shared fields identical for every recipient. Clone + overlay private
+ * fields in `projectPublicState` so broadcast stays O(shared + N overlays).
  */
-export function projectPublicState(
+export function projectPublicStateShared(
   state: RoomState,
-  recipientId: string,
   now = Date.now(),
-): PublicRoomState {
+): Omit<
+  PublicRoomState,
+  "myTopicVote" | "myHumanVote" | "myBankBeansReady" | "hostAiJudge"
+> {
   const topicVoteCounts: Record<string, number> = {};
   for (const tid of Object.values(state.topicVotes)) {
     topicVoteCounts[tid] = (topicVoteCounts[tid] ?? 0) + 1;
@@ -104,10 +109,10 @@ export function projectPublicState(
     createdAt: state.createdAt,
     topicRound: state.topicRound,
     configuredTopicRounds: state.configuredTopicRounds,
-    usedTopicIds: [...state.usedTopicIds],
+    // usedTopicIds / draftOptions / full ledger / checkpoint stay server-side —
+    // they were unused by the UI and dominated late-game WS payloads.
     topicOptions: state.topicOptions.map((t) => ({ ...t })),
     topicVoteCounts,
-    myTopicVote: state.topicVotes[recipientId] ?? null,
     selectedTopic: state.selectedTopic ? { ...state.selectedTopic } : null,
     topicRerollsUsed: state.topicRerollsUsed,
     seenTopicCount: Array.isArray(state.seenTopicIds)
@@ -119,7 +124,6 @@ export function projectPublicState(
     draftOrder: [...state.draftOrder],
     picks: state.picks.map((p) => ({ ...p })),
     takenNormalized: [...state.takenNormalized],
-    draftOptions: [...state.draftOptions],
     draftOptionsStatus: state.draftOptionsStatus,
     pickDeadlineAt: state.pickDeadlineAt,
     pickPaused: state.pickPaused,
@@ -129,7 +133,6 @@ export function projectPublicState(
     correctionPickIndex: state.correctionPickIndex,
     humanVotesCast,
     humanVotesNeeded,
-    myHumanVote: state.humanVotes[recipientId] ?? null,
     scores,
     scoresLocked: state.scoresLocked,
     judgeStatus: state.judgeStatus,
@@ -137,7 +140,6 @@ export function projectPublicState(
     rushmoreWhy,
     bankBeansReadyCast: bankCast,
     bankBeansReadyNeeded: bankNeeded,
-    myBankBeansReady: !!state.bankBeansReady?.[recipientId],
     earnedThisRound: { ...state.earnedThisRound },
     wagers: { ...state.wagers },
     wagerDeadlineAt: state.wagerDeadlineAt,
@@ -162,17 +164,40 @@ export function projectPublicState(
       : null,
     partyBustRedoUsedIds: [...state.partyBustRedoUsedIds],
     diceIdlePauseRemainingMs: state.diceIdlePauseRemainingMs,
-    ledger: state.ledger.map((e) => ({ ...e })),
-    checkpoint: state.checkpoint
-      ? {
-          stones: { ...state.checkpoint.stones },
-          topicRound: state.checkpoint.topicRound,
-        }
-      : null,
+    bustedPlayerIdsThisRound: [...(state.bustedPlayerIdsThisRound ?? [])],
     phaseDeadlineAt: state.phaseDeadlineAt,
     hostLastSeenAt: state.hostLastSeenAt,
     gameOver: state.gameOver,
     notice: state.notice,
+  };
+}
+
+/**
+ * Project authoritative RoomState to a recipient-safe PublicRoomState.
+ * - Ballots: progress + own vote only (never voter→choice maps)
+ * - Dice: hide faces / outcome text until settle (pots applied server-side only after settle)
+ * - Private Stash (draft queue) never lives on RoomState
+ * - draftOptionsJobId / ledger / usedTopicIds stay server-only
+ * - hostAiJudge only for the current host
+ */
+export function projectPublicState(
+  state: RoomState,
+  recipientId: string,
+  now = Date.now(),
+): PublicRoomState {
+  const shared = projectPublicStateShared(state, now);
+  const recipient = state.players.find((p) => p.id === recipientId);
+  const hostOnly: { hostAiJudge?: HostAiJudgeHealth } = {};
+  if (recipient?.isHost) {
+    hostOnly.hostAiJudge = hostAiJudgeHealth(state);
+  }
+
+  return {
+    ...shared,
+    myTopicVote: state.topicVotes[recipientId] ?? null,
+    myHumanVote: state.humanVotes[recipientId] ?? null,
+    myBankBeansReady: !!state.bankBeansReady?.[recipientId],
+    ...hostOnly,
   };
 }
 
@@ -185,6 +210,9 @@ export function publicStateLeaksBallots(
     Object.prototype.hasOwnProperty.call(pub, "humanVotes") ||
     Object.prototype.hasOwnProperty.call(pub, "processedActionIds") ||
     Object.prototype.hasOwnProperty.call(pub, "judgeJobId") ||
-    Object.prototype.hasOwnProperty.call(pub, "draftOptionsJobId")
+    Object.prototype.hasOwnProperty.call(pub, "draftOptionsJobId") ||
+    Object.prototype.hasOwnProperty.call(pub, "lastJudgeOutcome") ||
+    Object.prototype.hasOwnProperty.call(pub, "ledger") ||
+    Object.prototype.hasOwnProperty.call(pub, "usedTopicIds")
   );
 }

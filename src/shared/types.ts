@@ -30,6 +30,17 @@ export type PlayerRole = "player" | "spectator";
 
 export type JudgeStatus = "idle" | "pending" | "ready" | "failed";
 
+/** Last completed judge job outcome — survives idle reset between rounds. */
+export type LastJudgeOutcome = "ok" | "fallback";
+
+/**
+ * Host-only AI health cue (never projected to non-hosts).
+ * - ok / fallback: last completed job
+ * - pending: a job is in flight
+ * - null: no completed job yet this game
+ */
+export type HostAiJudgeHealth = LastJudgeOutcome | "pending" | null;
+
 export interface Player {
   id: string;
   name: string;
@@ -209,6 +220,11 @@ export interface RoomState {
   judgeStatus: JudgeStatus;
   judgeJobId: string | null;
   judgeNotice: string | null;
+  /**
+   * Last completed judge outcome for this game. Not cleared when
+   * judgeStatus returns to idle between rounds — host health cue.
+   */
+  lastJudgeOutcome: LastJudgeOutcome | null;
   /** Players who tapped “Ready to wager” on SCORE_REVEAL */
   bankBeansReady: Record<string, true>;
   earnedThisRound: Record<string, number>;
@@ -231,7 +247,10 @@ export interface RoomState {
   partyBustRedoUsedIds: string[];
   /** Remaining idle-bank ms while Bank confirm modal is open (null = not paused). */
   diceIdlePauseRemainingMs: number | null;
+  /** Server-only audit trail — never broadcast (use bustedPlayerIdsThisRound). */
   ledger: LedgerEntry[];
+  /** Player ids busted this dice phase (public; replaces full ledger fanout). */
+  bustedPlayerIdsThisRound: string[];
   checkpoint: {
     stones: Record<string, number>;
     topicRound: number;
@@ -257,7 +276,6 @@ export interface PublicRoomState {
   createdAt: number;
   topicRound: number;
   configuredTopicRounds: number;
-  usedTopicIds: string[];
   topicOptions: TopicOption[];
   topicVoteCounts: Record<string, number>;
   myTopicVote: string | null;
@@ -271,7 +289,6 @@ export interface PublicRoomState {
   draftOrder: number[];
   picks: DraftPick[];
   takenNormalized: string[];
-  draftOptions: string[];
   draftOptionsStatus: "idle" | "pending" | "ready" | "unavailable";
   pickDeadlineAt: number | null;
   pickPaused: boolean;
@@ -287,6 +304,11 @@ export interface PublicRoomState {
   scoresLocked: boolean;
   judgeStatus: JudgeStatus;
   judgeNotice: string | null;
+  /**
+   * Host-only. Real last-job signal (+ pending while a job runs).
+   * Omitted / null for non-hosts — never leak a dedicated health channel.
+   */
+  hostAiJudge?: HostAiJudgeHealth;
   /**
    * AI roster rationales — available during vote once the judge returns,
    * and on score reveal. Never includes award numbers during vote.
@@ -313,11 +335,8 @@ export interface PublicRoomState {
   partyPrompt: PartyPrompt | null;
   partyBustRedoUsedIds: string[];
   diceIdlePauseRemainingMs: number | null;
-  ledger: LedgerEntry[];
-  checkpoint: {
-    stones: Record<string, number>;
-    topicRound: number;
-  } | null;
+  /** Ids busted this dice phase (replaces broadcasting the full ledger). */
+  bustedPlayerIdsThisRound: string[];
   phaseDeadlineAt: number | null;
   hostLastSeenAt: number;
   gameOver: boolean;
@@ -467,6 +486,7 @@ export function emptyRoomState(code: string): RoomState {
     judgeStatus: "idle",
     judgeJobId: null,
     judgeNotice: null,
+    lastJudgeOutcome: null,
     bankBeansReady: {},
     earnedThisRound: {},
     wagers: {},
@@ -486,6 +506,7 @@ export function emptyRoomState(code: string): RoomState {
     partyBustRedoUsedIds: [],
     diceIdlePauseRemainingMs: null,
     ledger: [],
+    bustedPlayerIdsThisRound: [],
     checkpoint: null,
     phaseDeadlineAt: null,
     hostLastSeenAt: Date.now(),

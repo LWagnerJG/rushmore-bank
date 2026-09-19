@@ -6,6 +6,8 @@ import {
   setSfxMuted,
   subscribeSfxMuted,
 } from "@/lib/sound-prefs";
+import type { HostAiJudgeHealth } from "@/shared/types";
+import { HostAiJudgeCue } from "./HostAiJudgeCue";
 
 export function SettingsSheet({
   open,
@@ -14,6 +16,7 @@ export function SettingsSheet({
   isHost = false,
   partyOn = false,
   onPartyChange,
+  hostAiJudge,
 }: {
   open: boolean;
   onClose: () => void;
@@ -21,6 +24,8 @@ export function SettingsSheet({
   isHost?: boolean;
   partyOn?: boolean;
   onPartyChange?: (next: boolean) => void;
+  /** Host-only AI health from PartyKit — never pass for non-hosts. */
+  hostAiJudge?: HostAiJudgeHealth;
 }) {
   const [muted, setMuted] = useState(() =>
     typeof window !== "undefined" ? isSfxMuted() : false,
@@ -147,6 +152,8 @@ export function SettingsSheet({
             </button>
           </label>
         ) : null}
+
+        {isHost ? <HostAiJudgeCue health={hostAiJudge} /> : null}
       </div>
     </div>
   );

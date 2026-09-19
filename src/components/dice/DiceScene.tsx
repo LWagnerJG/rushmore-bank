@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import type { PublicDiceBroadcast } from "@/shared/types";
 import { resolveDicePresentPhase } from "@/shared/engine/dice-present";
 import { DIE_PIPS } from "@/shared/engine/dice-geometry";
@@ -16,6 +16,34 @@ import {
 } from "@/lib/dice-sfx";
 import { haptic } from "@/lib/haptics";
 
+/** Paint pip circles into an SVG without React re-render (scramble path). */
+function paintPips(svg: SVGSVGElement | null, face: number | null) {
+  if (!svg) return;
+  const existing = svg.querySelectorAll(".bean-pip-die-pip");
+  existing.forEach((n) => n.remove());
+  const body = svg.querySelector(".bean-pip-die-body");
+  if (face == null) {
+    svg.parentElement?.classList.add("bean-pip-die-blank");
+    return;
+  }
+  svg.parentElement?.classList.remove("bean-pip-die-blank");
+  const pips = DIE_PIPS[face] ?? [];
+  const ns = "http://www.w3.org/2000/svg";
+  for (const pip of pips) {
+    const col = pip % 3;
+    const row = Math.floor(pip / 3);
+    const c = document.createElementNS(ns, "circle");
+    c.setAttribute("class", "bean-pip-die-pip");
+    c.setAttribute("cx", String(22 + col * 18));
+    c.setAttribute("cy", String(22 + row * 18));
+    c.setAttribute("r", "7");
+    svg.appendChild(c);
+  }
+  if (body) {
+    /* keep body as first child */
+  }
+}
+
 /**
  * Flat 2D pip die — calculator-clear layout, Beans cream/ink palette.
  *
@@ -29,6 +57,7 @@ function PipDie({
   scrambling,
   settled,
   settlePunch,
+  svgRef,
 }: {
   face: number | null;
   index: 0 | 1;
@@ -36,6 +65,7 @@ function PipDie({
   scrambling: boolean;
   settled: boolean;
   settlePunch: boolean;
+  svgRef?: RefObject<SVGSVGElement | null>;
 }) {
   const pips = face != null ? DIE_PIPS[face] ?? [] : [];
   const className = [
@@ -60,7 +90,7 @@ function PipDie({
       data-scrambling={scrambling ? "1" : "0"}
       aria-hidden="true"
     >
-      <svg viewBox="0 0 80 80" className="bean-pip-die-svg">
+      <svg ref={svgRef} viewBox="0 0 80 80" className="bean-pip-die-svg">
         <rect
           x="3"
           y="3"
@@ -69,7 +99,9 @@ function PipDie({
           rx="12"
           className="bean-pip-die-body"
         />
-        {face != null &&
+        {/* During scramble, pips are painted via DOM; React paints auth faces. */}
+        {!scrambling &&
+          face != null &&
           pips.map((pip) => {
             const col = pip % 3;
             const row = Math.floor(pip / 3);
@@ -117,8 +149,9 @@ export function DiceScene({
   const rollStarted = useRef<string | null>(null);
   const lastTick = useRef(0);
   const settleRollId = useRef<string | null>(null);
+  const svg0 = useRef<SVGSVGElement | null>(null);
+  const svg1 = useRef<SVGSVGElement | null>(null);
   const [punch, setPunch] = useState(false);
-  const [scrambleTick, setScrambleTick] = useState(0);
 
   const phase = useMemo(
     () => resolveDicePresentPhase(broadcast),
@@ -137,35 +170,26 @@ export function DiceScene({
   const total =
     revealed && authD1 != null && authD2 != null ? authD1 + authD2 : null;
 
-  // Scramble ticks only while tumbling — stops dead on settle (no coast).
+  // Scramble via DOM paints — avoid ~10Hz React setState during tumble.
   useEffect(() => {
-    if (!rolling || reducedMotion) {
-      setScrambleTick(0);
-      return;
-    }
-    setScrambleTick(0);
+    if (!rolling || reducedMotion) return;
     const started = performance.now();
-    const id = window.setInterval(() => {
-      setScrambleTick(
-        Math.max(1, Math.floor((performance.now() - started) / SCRAMBLE_TICK_MS)),
+    const tick = () => {
+      const n = Math.max(
+        1,
+        Math.floor((performance.now() - started) / SCRAMBLE_TICK_MS),
       );
-    }, SCRAMBLE_TICK_MS);
+      paintPips(svg0.current, scrambleFaceAt(scrambleSeed, 0, n));
+      paintPips(svg1.current, scrambleFaceAt(scrambleSeed, 1, n));
+    };
+    tick();
+    const id = window.setInterval(tick, SCRAMBLE_TICK_MS);
     return () => window.clearInterval(id);
-  }, [rolling, rollId, reducedMotion]);
+  }, [rolling, rollId, reducedMotion, scrambleSeed]);
 
-  const scrambleD1 =
-    rolling && !reducedMotion
-      ? scrambleFaceAt(scrambleSeed, 0, scrambleTick)
-      : null;
-  const scrambleD2 =
-    rolling && !reducedMotion
-      ? scrambleFaceAt(scrambleSeed, 1, scrambleTick)
-      : null;
-
-  // Paint: scramble during tumble; auth faces the instant we settle.
-  // Reduced-motion tumble stays blank (no fake settled face).
-  const paintD1 = rolling ? scrambleD1 : authD1;
-  const paintD2 = rolling ? scrambleD2 : authD2;
+  // Paint: blank during tumble (DOM scramble fills pips); auth faces on settle.
+  const paintD1 = rolling ? null : authD1;
+  const paintD2 = rolling ? null : authD2;
 
   // Settle punch / haptics once per rollId.
   useEffect(() => {
@@ -185,7 +209,7 @@ export function DiceScene({
     };
   }, [revealed, rollId, authD1, authD2, reducedMotion, busted]);
 
-  // Tumble SFX.
+  // Tumble SFX — setInterval instead of perpetual rAF.
   useEffect(() => {
     if (phase.kind !== "tumbling" || !rollId || reducedMotion) return;
 
@@ -197,17 +221,14 @@ export function DiceScene({
       });
     }
 
-    let frame = 0;
-    const tick = () => {
+    const id = window.setInterval(() => {
       const now = Date.now();
       if (now - lastTick.current > 150) {
         lastTick.current = now;
         playRollTick(audio.current);
       }
-      frame = requestAnimationFrame(tick);
-    };
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
+    }, 150);
+    return () => window.clearInterval(id);
   }, [phase.kind, rollId, reducedMotion]);
 
   useEffect(() => {
@@ -271,6 +292,7 @@ export function DiceScene({
             scrambling={rolling}
             settled={!rolling && paintD1 != null}
             settlePunch={punch && revealed}
+            svgRef={svg0}
           />
           <PipDie
             face={paintD2}
@@ -279,6 +301,7 @@ export function DiceScene({
             scrambling={rolling}
             settled={!rolling && paintD2 != null}
             settlePunch={punch && revealed}
+            svgRef={svg1}
           />
         </div>
         {canRoll && (

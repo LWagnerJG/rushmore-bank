@@ -27,7 +27,7 @@ export {
   clampInt,
 } from "./scoring";
 export { rollD6, roll2d6, mulberry32, hashSeed } from "./rng";
-export { projectPublicState, publicStateLeaksBallots } from "./public-state";
+export { projectPublicState, projectPublicStateShared, publicStateLeaksBallots } from "./public-state";
 export {
   bankPotIntoProtected,
   classifyPullOut,
