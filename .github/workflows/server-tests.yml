@@ -1,10 +1,10 @@
-name: Server deadline regression tests
+name: Server & shared regression tests
 
 on:
   pull_request:
     paths:
       - "party/**"
-      - "src/shared/**"
+      - "src/**"
       - "package.json"
       - "package-lock.json"
       - "vitest.config.ts"
@@ -13,7 +13,7 @@ on:
     branches: [main]
     paths:
       - "party/**"
-      - "src/shared/**"
+      - "src/**"
       - "package.json"
       - "package-lock.json"
       - "vitest.config.ts"
@@ -33,5 +33,5 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm test -- src/shared/__tests__/server-alarms.test.ts
+      - run: npm test
       - run: npx tsc --noEmit

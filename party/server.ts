@@ -43,6 +43,7 @@ import {
   newRollId,
   projectPublicState,
   projectPublicStateShared,
+  hostAiJudgeHealth,
   roll2d6,
   rosterFull,
   remapDraftAfterSeatGrowth,
@@ -430,12 +431,7 @@ export default class QuarryServer implements Party.Server {
         myHumanVote: this.state.humanVotes[conn.id] ?? null,
         myBankBeansReady: !!this.state.bankBeansReady?.[conn.id],
         ...(recipient?.isHost
-          ? {
-              hostAiJudge:
-                this.state.judgeStatus === "pending"
-                  ? ("pending" as const)
-                  : this.state.lastJudgeOutcome,
-            }
+          ? { hostAiJudge: hostAiJudgeHealth(this.state) }
           : {}),
       };
       this.send(conn, {
@@ -1020,6 +1016,11 @@ export default class QuarryServer implements Party.Server {
     if (isFirst) this.state.hostLastSeenAt = Date.now();
   }
 
+  /**
+   * Lobby-only: drop a duplicate / accidental seat from the player list.
+   * Not a ban — the same person may rejoin with a fresh seat (new connection id).
+   * No membership blacklist.
+   */
   handleRemovePlayer(hostId: string, targetId: string) {
     if (!this.requireHost(hostId)) throw new Error("Host only");
     if (this.state.rosterLocked) throw new Error("Game already started");
@@ -1034,7 +1035,7 @@ export default class QuarryServer implements Party.Server {
       if (conn.id === targetId) {
         this.send(conn, {
           type: "error",
-          message: "You were removed from the lobby by the host.",
+          message: "You were removed from the lobby by the host. You can rejoin with a fresh seat.",
         });
       }
     }

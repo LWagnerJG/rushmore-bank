@@ -84,14 +84,14 @@ export function AdminPanel({
       {!open ? (
         <button
           type="button"
-          className="rounded-full border border-[rgba(35,72,62,0.16)] bg-white/90 px-3 py-2 text-[0.65rem] font-extrabold uppercase tracking-wide text-[var(--muted)] shadow-sm backdrop-blur"
+          className="rounded-full border border-[rgba(35,72,62,0.16)] bg-[#fff8ec] px-3 py-2 text-[0.65rem] font-extrabold uppercase tracking-wide text-[var(--muted)] shadow-sm"
           onClick={() => setOpen(true)}
           aria-label="Open admin panel"
         >
           Admin
         </button>
       ) : (
-        <div className="w-[min(92vw,20rem)] space-y-2 rounded-2xl border border-[rgba(35,72,62,0.14)] bg-[rgba(255,255,255,0.96)] p-3 shadow-lg backdrop-blur">
+        <div className="w-[min(92vw,20rem)] space-y-2 rounded-2xl border border-[rgba(35,72,62,0.14)] bg-[#fff8ec] p-3 shadow-lg">
           <div className="flex items-center justify-between gap-2">
             <p className="text-[0.7rem] font-extrabold uppercase tracking-wide text-[var(--muted)]">
               Debug · {currentPhase ? phaseLabel(currentPhase) : "…"}

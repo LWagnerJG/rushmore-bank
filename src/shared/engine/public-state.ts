@@ -46,9 +46,10 @@ function stripDiceForPublic(
   };
 }
 
-function hostAiJudgeHealth(state: RoomState): HostAiJudgeHealth {
+/** Host-only cue — always a concrete value (never null/blank). */
+export function hostAiJudgeHealth(state: RoomState): HostAiJudgeHealth {
   if (state.judgeStatus === "pending") return "pending";
-  return state.lastJudgeOutcome;
+  return state.lastJudgeOutcome ?? "ready";
 }
 
 /**

@@ -2,39 +2,47 @@ import type { HostAiJudgeHealth } from "@/shared/types";
 
 /**
  * Host-only discreet AI judge health cue.
- * Wired to PartyKit `hostAiJudge` (last real judge job + pending).
+ * Wired to PartyKit `hostAiJudge` (last real judge job + pending + ready).
+ * Always renders for hosts — never blank before round 1.
  */
 export function HostAiJudgeCue({
   health,
   variant = "chip",
 }: {
-  health: HostAiJudgeHealth | undefined;
-  /** chip = settings row; dot = chrome accent */
-  variant?: "chip" | "dot";
+  /** Concrete host cue; treat missing as ready so chrome never goes blank. */
+  health: HostAiJudgeHealth | undefined | null;
+  /** chip = settings row; chrome = compact text next to Beans logo */
+  variant?: "chip" | "chrome";
 }) {
-  if (health == null) return null;
+  const status: HostAiJudgeHealth = health ?? "ready";
 
   const label =
-    health === "ok"
+    status === "ok"
       ? "AI ok"
-      : health === "fallback"
+      : status === "fallback"
         ? "AI off"
-        : "AI…";
+        : status === "pending"
+          ? "AI…"
+          : "AI ready";
   const title =
-    health === "ok"
+    status === "ok"
       ? "AI judging worked on the last round"
-      : health === "fallback"
+      : status === "fallback"
         ? "AI judging unavailable — using neutral awards"
-        : "AI judging in progress";
+        : status === "pending"
+          ? "AI judging in progress"
+          : "AI judge ready";
 
-  if (variant === "dot") {
+  if (variant === "chrome") {
     return (
       <span
-        className={`host-ai-dot host-ai-dot-${health}`}
+        className={`host-ai-chrome host-ai-chrome-${status}`}
         title={title}
         aria-label={title}
         role="status"
-      />
+      >
+        {label}
+      </span>
     );
   }
 
@@ -43,14 +51,16 @@ export function HostAiJudgeCue({
       <span className="settings-row-label">
         <span className="font-extrabold">AI judge</span>
         <span className="text-xs text-[var(--muted)]">
-          {health === "ok"
+          {status === "ok"
             ? "Last round scored by AI"
-            : health === "fallback"
+            : status === "fallback"
               ? "Falling back to neutral awards"
-              : "Checking this round…"}
+              : status === "pending"
+                ? "Checking this round…"
+                : "Ready before the first round"}
         </span>
       </span>
-      <span className={`host-ai-chip host-ai-chip-${health}`}>{label}</span>
+      <span className={`host-ai-chip host-ai-chip-${status}`}>{label}</span>
     </div>
   );
 }

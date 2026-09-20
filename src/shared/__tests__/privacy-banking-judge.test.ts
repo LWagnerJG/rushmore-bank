@@ -260,6 +260,25 @@ describe("ballot privacy projection", () => {
     expect(projectPublicState(state, "host").hostAiJudge).toBe("fallback");
   });
 
+  it("projects ready for hosts before any judge job (never blank)", () => {
+    const state = emptyRoomState("READY");
+    state.players = [
+      {
+        id: "host",
+        name: "Host",
+        stones: 0,
+        connected: true,
+        isHost: true,
+        role: "player",
+        seat: 0,
+        joinedAt: 1,
+      },
+    ];
+    state.lastJudgeOutcome = null;
+    state.judgeStatus = "idle";
+    expect(projectPublicState(state, "host").hostAiJudge).toBe("ready");
+  });
+
   it("omits ledger / usedTopicIds from public projection", () => {
     const state = emptyRoomState("LEAN");
     state.usedTopicIds = ["t1", "t2"];

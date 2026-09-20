@@ -62,6 +62,21 @@ describe("sortDraftBoardPlayers", () => {
       sortDraftBoardPlayers(players, ["a", "b", "you"]).map((x) => x.id),
     ).toEqual(["a", "b", "you"]);
   });
+
+  it("rotates with starterOffset so first drafter is leftmost", () => {
+    const players = [
+      p({ id: "a", name: "Ada", stones: 9, seat: 0 }),
+      p({ id: "b", name: "Bea", stones: 1, seat: 1 }),
+      p({ id: "c", name: "Cal", stones: 5, seat: 2 }),
+    ];
+    // Offset 1 → columns [b, c, a] — not score order, not raw seatOrder.
+    expect(
+      sortDraftBoardPlayers(players, ["a", "b", "c"], 1).map((x) => x.id),
+    ).toEqual(["b", "c", "a"]);
+    expect(
+      sortDraftBoardPlayers(players, ["a", "b", "c"], 2).map((x) => x.id),
+    ).toEqual(["c", "a", "b"]);
+  });
 });
 
 describe("currentUpPlayerId", () => {

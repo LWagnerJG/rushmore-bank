@@ -37,9 +37,12 @@ export type LastJudgeOutcome = "ok" | "fallback";
  * Host-only AI health cue (never projected to non-hosts).
  * - ok / fallback: last completed job
  * - pending: a job is in flight
- * - null: no completed job yet this game
+ * - ready: quiet default before any judge job this game
+ *
+ * Projection always sends one of these for hosts — never blank/undefined.
+ * Server `lastJudgeOutcome` may still be null until the first completed job.
  */
-export type HostAiJudgeHealth = LastJudgeOutcome | "pending" | null;
+export type HostAiJudgeHealth = LastJudgeOutcome | "pending" | "ready";
 
 export interface Player {
   id: string;

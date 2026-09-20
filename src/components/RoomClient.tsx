@@ -275,135 +275,155 @@ export function RoomClient({
     >
       <header
         className={
-          "room-chrome shrink-0 -mx-4 mb-3 border-b px-4 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] " +
+          "room-chrome shrink-0 -mx-4 mb-3 border-b " +
           (partyOn
             ? "room-chrome-party border-[rgba(255,107,74,0.18)]"
             : "border-[rgba(35,72,62,0.08)]")
         }
       >
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex items-center gap-2">
-            <BrandMark shimmer={false} onLogoTap={handleLogoTap} />
-            {you?.isHost ? (
-              <HostAiJudgeCue health={state?.hostAiJudge} variant="dot" />
-            ) : null}
-          </div>
-          {drafting && state ? (
-            <div className="flex shrink-0 items-center gap-1 pt-0.5">
-              {you.isHost && (
-                <>
-                  <button
-                    type="button"
-                    className="rounded-md px-1.5 py-1 text-[0.65rem] font-extrabold uppercase tracking-wide text-[var(--muted)]"
-                    aria-label={
-                      state.pickPaused ? "Resume pick clock" : "Pause pick clock"
-                    }
-                    title={state.pickPaused ? "Resume" : "Pause"}
-                    onClick={() =>
-                      send({
-                        type: state.pickPaused ? "host_resume" : "host_pause",
-                      })
-                    }
-                  >
-                    {state.pickPaused ? "Resume" : "Pause"}
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded-md px-1.5 py-1 text-[0.65rem] font-extrabold tabular-nums text-[var(--muted)]"
-                    aria-label={`Add ${RULES.hostExtendSeconds} seconds`}
-                    title={`+${RULES.hostExtendSeconds}s`}
-                    onClick={() => send({ type: "host_extend" })}
-                  >
-                    +{RULES.hostExtendSeconds}s
-                  </button>
-                </>
-              )}
-              <DraftBannerClock
-                until={state.pickDeadlineAt}
-                paused={state.pickPaused}
-              />
+        {/*
+          Safe-area spacer is a SEPARATE opaque strip from the brand/BANK row.
+          Putting pt-safe-area on the same stacking context as BrandMark made
+          iOS black-translucent soft-rasterize the whole chrome band (icon +
+          wordmark + BANK) while the native status bar stayed crisp. Admin
+          notice below stays outside that under-status paint path.
+        */}
+        <div className="room-chrome-safe" aria-hidden="true" />
+        <div className="room-chrome-body px-4 pb-2 pt-1">
+          <div className="room-chrome-top flex items-start justify-between gap-3">
+            <div className="min-w-0 flex items-center gap-2">
+              <BrandMark shimmer={false} onLogoTap={handleLogoTap} />
+              {you?.isHost ? (
+                <HostAiJudgeCue
+                  health={state?.hostAiJudge}
+                  variant="chrome"
+                />
+              ) : null}
             </div>
-          ) : phase === "SCORE_REVEAL" ? (
-            // Rail already shows totals (+earned) — drop Scores/beans chrome.
-            // Keep Party badge alone when party mode is on.
-            partyOn ? (
-              <div className="flex shrink-0 items-center justify-end pt-0.5">
-                <span className="rounded-full bg-[rgba(255,107,74,0.25)] px-2 py-0.5 text-[0.65rem] font-extrabold text-[var(--text)]">
-                  Party
-                </span>
+            {drafting && state ? (
+              <div className="flex shrink-0 items-center gap-1 pt-0.5">
+                {you.isHost && (
+                  <>
+                    <button
+                      type="button"
+                      className="rounded-md px-1.5 py-1 text-[0.65rem] font-extrabold uppercase tracking-wide text-[var(--muted)]"
+                      aria-label={
+                        state.pickPaused ? "Resume pick clock" : "Pause pick clock"
+                      }
+                      title={state.pickPaused ? "Resume" : "Pause"}
+                      onClick={() =>
+                        send({
+                          type: state.pickPaused ? "host_resume" : "host_pause",
+                        })
+                      }
+                    >
+                      {state.pickPaused ? "Resume" : "Pause"}
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-md px-1.5 py-1 text-[0.65rem] font-extrabold tabular-nums text-[var(--muted)]"
+                      aria-label={`Add ${RULES.hostExtendSeconds} seconds`}
+                      title={`+${RULES.hostExtendSeconds}s`}
+                      onClick={() => send({ type: "host_extend" })}
+                    >
+                      +{RULES.hostExtendSeconds}s
+                    </button>
+                  </>
+                )}
+                <DraftBannerClock
+                  until={state.pickDeadlineAt}
+                  paused={state.pickPaused}
+                />
               </div>
-            ) : null
-          ) : (
-            <div className="text-right text-xs font-bold uppercase tracking-wide text-[var(--muted)]">
-              <div className="flex items-center justify-end gap-1.5">
-                {partyOn && (
-                  <span className="rounded-full bg-[rgba(255,107,74,0.25)] px-2 py-0.5 text-[0.65rem] font-extrabold normal-case tracking-normal text-[var(--text)]">
+            ) : phase === "SCORE_REVEAL" ? (
+              // Rail already shows totals (+earned) — drop Scores/beans chrome.
+              // Keep Party badge alone when party mode is on.
+              partyOn ? (
+                <div className="flex shrink-0 items-center justify-end pt-0.5">
+                  <span className="rounded-full bg-[rgba(255,107,74,0.25)] px-2 py-0.5 text-[0.65rem] font-extrabold text-[var(--text)]">
                     Party
                   </span>
-                )}
-                <span>{phase ? phaseLabel(phase) : "…"}</span>
+                </div>
+              ) : null
+            ) : (
+              <div className="text-right text-xs font-bold uppercase tracking-wide text-[var(--muted)]">
+                <div className="flex items-center justify-end gap-1.5">
+                  {partyOn && (
+                    <span className="rounded-full bg-[rgba(255,107,74,0.25)] px-2 py-0.5 text-[0.65rem] font-extrabold normal-case tracking-normal text-[var(--text)]">
+                      Party
+                    </span>
+                  )}
+                  <span>{phase ? phaseLabel(phase) : "…"}</span>
+                </div>
+                {/* Soft balance chrome — Bank action lives in the dice CTA */}
+                <div
+                  className={
+                    phase === "DICE"
+                      ? "mt-0.5 text-[0.7rem] font-semibold normal-case tracking-normal tabular-nums text-[var(--muted)]"
+                      : "font-[family-name:var(--font-display)] text-sm font-extrabold tabular-nums normal-case tracking-normal text-[var(--text)]"
+                  }
+                >
+                  {you.stones} {RULES.currencyName}
+                </div>
               </div>
-              {/* Soft balance chrome — Bank action lives in the dice CTA */}
-              <div
-                className={
-                  phase === "DICE"
-                    ? "mt-0.5 text-[0.7rem] font-semibold normal-case tracking-normal tabular-nums text-[var(--muted)]"
-                    : "font-[family-name:var(--font-display)] text-sm font-extrabold tabular-nums normal-case tracking-normal text-[var(--text)]"
-                }
-              >
+            )}
+          </div>
+          {drafting && state?.selectedTopic && (
+            <h1 className="mt-1.5 font-[family-name:var(--font-display)] text-[1.35rem] font-extrabold leading-snug tracking-tight text-[var(--text)]">
+              {state.selectedTopic.text}
+            </h1>
+          )}
+          {drafting && (
+            <div className="mt-1 flex items-center justify-between gap-2 text-[0.7rem] font-bold tracking-wide text-[var(--muted)]">
+              <span className="uppercase">
+                {state &&
+                state.topicRound === state.configuredTopicRounds - 1
+                  ? `Final round · ${phase ? phaseLabel(phase) : "Draft"}`
+                  : phase
+                    ? phaseLabel(phase)
+                    : "Draft"}
+              </span>
+              <span className="normal-case tabular-nums text-[var(--text)]">
                 {you.stones} {RULES.currencyName}
-              </div>
+              </span>
             </div>
           )}
+          {state?.notice && (
+            <p className="mt-1 text-xs font-semibold text-[var(--coral)]">
+              {state.notice}
+            </p>
+          )}
         </div>
-        {drafting && state?.selectedTopic && (
-          <h1 className="mt-1.5 font-[family-name:var(--font-display)] text-[1.35rem] font-extrabold leading-snug tracking-tight text-[var(--text)]">
-            {state.selectedTopic.text}
-          </h1>
-        )}
-        {drafting && (
-          <div className="mt-1 flex items-center justify-between gap-2 text-[0.7rem] font-bold tracking-wide text-[var(--muted)]">
-            <span className="uppercase">
-              {state &&
-              state.topicRound === state.configuredTopicRounds - 1
-                ? `Final round · ${phase ? phaseLabel(phase) : "Draft"}`
-                : phase
-                  ? phaseLabel(phase)
-                  : "Draft"}
-            </span>
-            <span className="normal-case tabular-nums text-[var(--text)]">
-              {you.stones} {RULES.currencyName}
-            </span>
-          </div>
-        )}
-        {state && phase !== "LOBBY" && phase !== "DICE" && (
-          <PlayerRail state={state} youId={youId} />
-        )}
-        {/* Under the player rail — scoreboard context, not buried in header */}
-        {phase === "SCORE_REVEAL" && you.role === "player" && state ? (
-          <div className="ready-wager-row">
-            <div className="ready-wager-meta" aria-live="polite">
-              {state.bankBeansReadyCast}/{state.bankBeansReadyNeeded} ready
-            </div>
-            <button
-              type="button"
-              className={
-                "ready-wager-cta " +
-                (state.myBankBeansReady ? "ready-wager-cta-done" : "pulse-soft")
-              }
-              disabled={state.myBankBeansReady}
-              onClick={() => send({ type: "bank_the_beans" })}
-            >
-              {state.myBankBeansReady ? "Ready" : "Ready to wager"}
-            </button>
-          </div>
-        ) : null}
-        {state?.notice && (
-          <p className="mt-1 text-xs font-semibold text-[var(--coral)]">
-            {state.notice}
-          </p>
-        )}
       </header>
+
+      {/*
+        PlayerRail sits OUTSIDE .room-chrome so up-seat glow/transform never
+        forces overflow:visible (or an expanded compositing layer) on the
+        brand/BANK row — a remaining soft-rasterize path on iPhone after #88.
+      */}
+      {state && phase !== "LOBBY" && phase !== "DICE" && (
+        <div className="room-rail-slot -mx-4 mb-2 px-4">
+          <PlayerRail state={state} youId={youId} />
+        </div>
+      )}
+      {phase === "SCORE_REVEAL" && you.role === "player" && state ? (
+        <div className="ready-wager-row -mx-4 mb-2 px-4">
+          <div className="ready-wager-meta" aria-live="polite">
+            {state.bankBeansReadyCast}/{state.bankBeansReadyNeeded} ready
+          </div>
+          <button
+            type="button"
+            className={
+              "ready-wager-cta " +
+              (state.myBankBeansReady ? "ready-wager-cta-done" : "pulse-soft")
+            }
+            disabled={state.myBankBeansReady}
+            onClick={() => send({ type: "bank_the_beans" })}
+          >
+            {state.myBankBeansReady ? "Ready" : "Ready to wager"}
+          </button>
+        </div>
+      ) : null}
 
       <div className="room-phase-scroll min-h-0 flex-1">
         {!connected && (
@@ -424,12 +444,14 @@ export function RoomClient({
           </p>
         )}
         <div
+          key={phase ?? "none"}
           className={
             // shrink-0: never let flex crush lobby panels against the cream band.
             // Safe-area lives on the scroll content (not a dead shell padding strip).
+            // key=phase re-runs a short enter (no perpetual shimmer/rAF).
             phase === "SCORE_REVEAL"
-              ? "flex min-h-full flex-col pb-[max(0.75rem,env(safe-area-inset-bottom))]"
-              : "animate-rise shrink-0 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+              ? "phase-panel flex min-h-full flex-col pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+              : "phase-panel phase-enter shrink-0 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
           }
         >
           {body}
