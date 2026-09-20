@@ -3434,6 +3434,12 @@ html.party-on .draft-board-table thead th.is-you {
   color: var(--muted);
 }
 
+.host-ai-chip-unknown,
+.host-ai-chrome-unknown {
+  background: var(--bg);
+  color: var(--text);
+}
+
 /* Compact chrome chip beside Beans logo — readable on phone, not a tiny dot */
 .host-ai-chrome {
   flex-shrink: 0;

@@ -48,7 +48,11 @@ function stripDiceForPublic(
 
 /** Host-only cue — always a concrete value (never null/blank). */
 export function hostAiJudgeHealth(state: RoomState): HostAiJudgeHealth {
-  if (state.judgeStatus === "pending") return "pending";
+  if (
+    state.phase === "VOTING_AND_JUDGING" &&
+    !state.scoresLocked &&
+    state.judgeStatus === "pending"
+  ) return "pending";
   return state.lastJudgeOutcome ?? "ready";
 }
 

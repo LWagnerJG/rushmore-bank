@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type * as Party from "partykit/server";
 import QuarryServer from "../../../party/server";
 
-function lobbyServer() {
+function lobbyServer(connections: Party.Connection[] = []) {
   const room = {
     id: "LOBBY",
     storage: {
@@ -19,7 +19,7 @@ function lobbyServer() {
       async setAlarm() {},
       async deleteAlarm() {},
     },
-    getConnections: () => [],
+    getConnections: () => connections,
   } as unknown as Party.Room;
   const server = new QuarryServer(room);
   server.state.players = [
@@ -67,5 +67,21 @@ describe("host remove_player (duplicates only)", () => {
       /already started/i,
     );
     expect(server.state.players).toHaveLength(2);
+  });
+
+  it("tells only the removed client to clear its membership", () => {
+    const sent: Record<string, unknown[]> = { host: [], dup: [] };
+    const connections = ["host", "dup"].map((id) => ({
+      id, send: (message: string) => sent[id].push(JSON.parse(message)),
+    })) as unknown as Party.Connection[];
+    const server = lobbyServer(connections);
+    server.handleRemovePlayer("host", "dup");
+    expect(sent.host).toEqual([]);
+    expect(sent.dup).toEqual([{
+      type: "error", code: "REMOVED_FROM_LOBBY",
+      message: "You were removed from the lobby. Tap Join game to return.",
+    }]);
+    server.handleJoin("dup", "Luke", "player");
+    expect(server.state.players.map((p) => p.id)).toEqual(["host", "dup"]);
   });
 });

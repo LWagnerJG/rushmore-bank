@@ -1018,8 +1018,7 @@ export default class QuarryServer implements Party.Server {
 
   /**
    * Lobby-only: drop a duplicate / accidental seat from the player list.
-   * Not a ban — the same person may rejoin with a fresh seat (new connection id).
-   * No membership blacklist.
+   * The client clears its saved membership. A deliberate join is still allowed.
    */
   handleRemovePlayer(hostId: string, targetId: string) {
     if (!this.requireHost(hostId)) throw new Error("Host only");
@@ -1027,6 +1026,7 @@ export default class QuarryServer implements Party.Server {
     if (targetId === hostId) throw new Error("Host cannot remove themselves");
     const target = this.state.players.find((p) => p.id === targetId);
     if (!target) throw new Error("Player not found");
+    this.clearLeaveTimer(targetId);
     this.state.players = this.state.players.filter((p) => p.id !== targetId);
     this.state.notice = `${target.name} was removed from the lobby`;
     bump(this.state);
@@ -1035,7 +1035,8 @@ export default class QuarryServer implements Party.Server {
       if (conn.id === targetId) {
         this.send(conn, {
           type: "error",
-          message: "You were removed from the lobby by the host. You can rejoin with a fresh seat.",
+          code: "REMOVED_FROM_LOBBY",
+          message: "You were removed from the lobby. Tap Join game to return.",
         });
       }
     }

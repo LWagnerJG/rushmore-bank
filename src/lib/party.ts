@@ -94,6 +94,47 @@ function roomSessionKey(roomCode: string): string {
   return `quarry:room-session:${roomCode.toUpperCase()}`;
 }
 
+function roomRemovalKey(roomCode: string): string {
+  return `quarry:room-removed:${roomCode.toUpperCase()}`;
+}
+
+/** A removed tab waits for a deliberate join, including after a reload. */
+export function wasRemovedFromRoom(roomCode: string): boolean {
+  return typeof window !== "undefined" &&
+    window.sessionStorage.getItem(roomRemovalKey(roomCode)) === "1";
+}
+
+export function allowRoomRejoin(roomCode: string) {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.removeItem(roomRemovalKey(roomCode));
+}
+
+/** Forget this seat without clearing another tab's saved membership. */
+export function markRoomRemoved(roomCode: string, playerId: string) {
+  if (typeof window === "undefined") return;
+  const code = roomCode.toUpperCase();
+  window.sessionStorage.setItem(roomRemovalKey(code), "1");
+  for (const storage of [window.sessionStorage, window.localStorage]) {
+    const key = roomSessionKey(code);
+    const raw = storage.getItem(key);
+    if (raw) {
+      try {
+        if ((JSON.parse(raw) as RoomSession).playerId === playerId) {
+          storage.removeItem(key);
+        }
+      } catch {
+        storage.removeItem(key);
+      }
+    }
+    for (const key of [
+      sessionPidKey(code), lastPidKey(code),
+      `quarry:pid:${code}`, `rushmore-bank:pid:${code}`,
+    ]) {
+      if (storage.getItem(key) === playerId) storage.removeItem(key);
+    }
+  }
+}
+
 /** Persist membership so brief leaves / app switches can auto-rejoin promptly. */
 export function rememberRoomSession(session: RoomSession) {
   if (typeof window === "undefined") return;
@@ -111,6 +152,7 @@ export function recallRoomSession(
   maxAgeMs = 2 * 60 * 60 * 1000,
 ): RoomSession | null {
   if (typeof window === "undefined") return null;
+  if (wasRemovedFromRoom(roomCode)) return null;
   const key = roomSessionKey(roomCode);
   const raw =
     window.sessionStorage.getItem(key) ?? window.localStorage.getItem(key);

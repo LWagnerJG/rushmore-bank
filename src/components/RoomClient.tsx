@@ -14,6 +14,7 @@ import {
   getLastPlayerIdForRejoin,
   recallDisplayName,
   recallRoomSession,
+  wasRemovedFromRoom,
 } from "@/lib/party";
 import { LobbyPanel } from "@/components/LobbyPanel";
 import { TopicPanel } from "@/components/TopicPanel";
@@ -79,6 +80,7 @@ export function RoomClient({
     setError,
     connected,
     joined,
+    removed,
     join,
     send,
     defaultName,
@@ -101,6 +103,7 @@ export function RoomClient({
 
   useEffect(() => {
     if (autoJoinAttempted.current) return;
+    if (removed || wasRemovedFromRoom(code)) return;
     const clean = (presetName.trim() || sessionResume?.name || "").trim();
     if (!connected || joined || !clean) return;
     autoJoinAttempted.current = true;
@@ -113,6 +116,8 @@ export function RoomClient({
   }, [
     connected,
     joined,
+    removed,
+    code,
     presetName,
     preferSpectate,
     join,
@@ -184,7 +189,7 @@ export function RoomClient({
   }, [state, you, youId, send]);
 
   if (!joined || !you) {
-    if (presetName.trim()) {
+    if (presetName.trim() && !removed) {
       return (
         <main className="app-shell app-shell-lock mx-auto flex max-w-md flex-col gap-4 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))]">
           <BrandMark shimmer={false} onLogoTap={handleLogoTap} />
@@ -214,7 +219,9 @@ export function RoomClient({
           Room {code}
         </h1>
         <p className="text-sm text-[var(--muted)]">
-          {connected ? "Connected — enter a nickname" : "Connecting…"}
+          {removed
+            ? "The host removed this seat. You can join again below."
+            : connected ? "Connected — enter a nickname" : "Connecting…"}
         </p>
         <input
           className="field"
@@ -242,7 +249,7 @@ export function RoomClient({
         >
           Watch only
         </button>
-        {rejoinId && (
+        {rejoinId && !removed && (
           <button
             type="button"
             className="btn-secondary text-sm"
@@ -291,7 +298,7 @@ export function RoomClient({
         <div className="room-chrome-safe" aria-hidden="true" />
         <div className="room-chrome-body px-4 pb-2 pt-1">
           <div className="room-chrome-top flex items-start justify-between gap-3">
-            <div className="min-w-0 flex items-center gap-2">
+            <div className="min-w-0 flex flex-wrap items-center gap-2">
               <BrandMark shimmer={false} onLogoTap={handleLogoTap} />
               {you?.isHost ? (
                 <HostAiJudgeCue

@@ -8,13 +8,16 @@ import type {
   ServerMessage,
 } from "@/shared/types";
 import {
+  allowRoomRejoin,
   getPartyHost,
   getStablePlayerId,
+  markRoomRemoved,
   newActionId,
   recallDisplayName,
   recallRoomSession,
   rememberDisplayName,
   rememberRoomSession,
+  wasRemovedFromRoom,
 } from "@/lib/party";
 
 /** Map infra / transport failures to player-safe copy. Never mention PartyKit. */
@@ -50,6 +53,8 @@ export function useGameRoom(
   const [error, setErrorRaw] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
   const [joined, setJoined] = useState(false);
+  const [removed, setRemoved] = useState(false);
+  const removedRef = useRef(wasRemovedFromRoom(code));
   const playerId = useMemo(() => getStablePlayerId(code), [code]);
   const pendingJoin = useRef<{
     name: string;
@@ -69,6 +74,11 @@ export function useGameRoom(
   // localStorage alone (that made tab B join as Luke when ?name=Brynna).
   // If no preset, restore a fresh room session so app-switch returns auto-rejoin.
   useEffect(() => {
+    if (removedRef.current || wasRemovedFromRoom(code)) {
+      removedRef.current = true;
+      setRemoved(true);
+      return;
+    }
     if (preferredName) {
       pendingJoin.current = {
         name: preferredName,
@@ -98,6 +108,7 @@ export function useGameRoom(
     onOpen() {
       setConnected(true);
       setErrorRaw(null);
+      if (removedRef.current) return;
       const resume = pendingJoin.current ?? membershipRef.current;
       if (resume) {
         pendingJoin.current = resume;
@@ -124,6 +135,7 @@ export function useGameRoom(
         if (msg.type === "state" || msg.type === "joined") {
           setState(msg.state);
           setYouId(msg.youId);
+          if (removedRef.current) return;
           const me = msg.state.players.find((p) => p.id === msg.youId);
           if (me) {
             setJoined(true);
@@ -139,6 +151,19 @@ export function useGameRoom(
             });
           }
         } else if (msg.type === "error") {
+          // The text check also works with servers deployed before the code field.
+          if (
+            msg.code === "REMOVED_FROM_LOBBY" ||
+            /^You were removed from the lobby\b/.test(msg.message)
+          ) {
+            removedRef.current = true;
+            pendingJoin.current = null;
+            membershipRef.current = null;
+            setRemoved(true);
+            setJoined(false);
+            setState(null);
+            markRoomRemoved(code, playerId);
+          }
           setError(msg.message);
         }
       } catch {
@@ -203,6 +228,9 @@ export function useGameRoom(
         setErrorRaw("Enter a nickname");
         return;
       }
+      allowRoomRejoin(code);
+      removedRef.current = false;
+      setRemoved(false);
       rememberDisplayName(clean);
       pendingJoin.current = { name: clean, role };
       membershipRef.current = { name: clean, role };
@@ -225,12 +253,12 @@ export function useGameRoom(
   // Host heartbeat for failover
   useEffect(() => {
     const you = state?.players.find((p) => p.id === youId);
-    if (!you?.isHost || !connected) return;
+    if (!you?.isHost || !connected || removed) return;
     const t = setInterval(() => {
       send({ type: "host_heartbeat" });
     }, 8000);
     return () => clearInterval(t);
-  }, [state?.players, youId, connected, send]);
+  }, [state?.players, youId, connected, removed, send]);
 
   const you = state?.players.find((p) => p.id === youId) ?? null;
 
@@ -242,6 +270,7 @@ export function useGameRoom(
     setError,
     connected,
     joined,
+    removed,
     join,
     send,
     defaultName: recallDisplayName(),

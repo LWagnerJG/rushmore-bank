@@ -389,7 +389,7 @@ export type ClientMessage =
 
 export type ServerMessage =
   | { type: "state"; state: PublicRoomState; youId: string }
-  | { type: "error"; message: string }
+  | { type: "error"; message: string; code?: "REMOVED_FROM_LOBBY" }
   | { type: "joined"; youId: string; state: PublicRoomState };
 
 export function phaseLabel(phase: Phase): string {

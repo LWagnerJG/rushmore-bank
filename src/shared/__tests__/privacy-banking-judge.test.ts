@@ -252,8 +252,15 @@ describe("ballot privacy projection", () => {
     expect(JSON.stringify(forGuest)).not.toMatch(/hostAiJudge/);
     expect(JSON.stringify(forHost)).not.toMatch(/lastJudgeOutcome/);
 
+    state.phase = "VOTING_AND_JUDGING";
     state.judgeStatus = "pending";
     expect(projectPublicState(state, "host").hostAiJudge).toBe("pending");
+
+    state.phase = "SCORE_REVEAL";
+    expect(projectPublicState(state, "host").hostAiJudge).toBe("ok");
+    state.phase = "VOTING_AND_JUDGING";
+    state.scoresLocked = true;
+    expect(projectPublicState(state, "host").hostAiJudge).toBe("ok");
 
     state.judgeStatus = "failed";
     state.lastJudgeOutcome = "fallback";
