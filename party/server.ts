@@ -43,6 +43,7 @@ import {
   newRollId,
   projectPublicState,
   projectPublicStateShared,
+  hostAiJudgeHealth,
   roll2d6,
   rosterFull,
   remapDraftAfterSeatGrowth,
@@ -171,6 +172,9 @@ interface AlarmPayload {
   kind: AlarmKind;
   revision: number;
   meta?: string;
+  /** Optional only for alarms persisted before deadline ownership was added. */
+  deadlineAt?: number;
+  context?: string | null;
 }
 
 function seatedPlayers(state: RoomState): Player[] {
@@ -258,7 +262,31 @@ export default class QuarryServer implements Party.Server {
         p.role === "spectator" ? p : { ...p, connected: false },
       );
     }
-    if (alarm) this.alarmPayload = alarm;
+    if (alarm) {
+      this.alarmPayload = alarm;
+      if (alarm.deadlineAt === undefined || alarm.context === undefined) {
+        // Upgrade live rooms using their authoritative deadline, even if a
+        // disconnect already changed the old payload's phaseRevision.
+        const owner = this.alarmOwner(alarm.kind);
+        if (owner) {
+          const when = owner.deadlineAt ?? (await this.room.storage.getAlarm()) ?? Date.now();
+          await this.setAlarmAt(when, alarm);
+        } else if (
+          this.state.phase === "DICE" &&
+          this.state.diceSubphase === "COMMITTED" &&
+          this.state.lastDice &&
+          !this.state.lastDice.revealed
+        ) {
+          // Preserve legacy recovery when the old payload predates the roll.
+          await this.setAlarmAt(this.state.lastDice.animSettleAt, {
+            kind: "dice_anim",
+            revision: this.state.phaseRevision,
+          });
+        } else {
+          await this.clearAlarm();
+        }
+      }
+    }
     // Old PREP rooms: ensure draft clocks exist after migration.
     if (
       wasPrep &&
@@ -274,12 +302,71 @@ export default class QuarryServer implements Party.Server {
     await this.room.storage.put("state", this.state);
     if (this.alarmPayload) {
       await this.room.storage.put("alarm", this.alarmPayload);
+    } else {
+      // A consumed alarm must not reappear after the room restarts.
+      await this.room.storage.delete("alarm");
     }
   }
 
+  /** Room revisions also track presence. Only the timed phase/turn owns a clock. */
+  private alarmOwner(kind: AlarmKind): { context: string; deadlineAt: number | null } | null {
+    const s = this.state;
+    let deadlineAt: number | null;
+    let turn: unknown[] = [];
+    switch (kind) {
+      case "phase":
+        if (s.phase !== "REVIEW" && s.phase !== "VOTING_AND_JUDGING") return null;
+        deadlineAt = s.phaseDeadlineAt;
+        break;
+      case "pick":
+        if ((s.phase !== "DRAFT" && s.phase !== "CORRECTION") || s.pickPaused) return null;
+        deadlineAt = s.pickDeadlineAt;
+        turn = [s.draftCursor, s.draftOrder[s.draftCursor], s.correctionTargetPickId];
+        break;
+      case "wager":
+        if (s.phase !== "WAGER_SELECTION") return null;
+        deadlineAt = s.wagerDeadlineAt;
+        break;
+      case "dice_decision":
+        if (s.phase !== "DICE" || s.diceSubphase !== "COOLDOWN") return null;
+        deadlineAt = s.diceDecisionDeadlineAt;
+        turn = [s.diceTurnSeat];
+        break;
+      case "dice_idle":
+        if (s.phase !== "DICE" || s.diceSubphase !== "READY" || s.diceIdlePauseRemainingMs !== null) return null;
+        deadlineAt = s.diceIdleDeadlineAt;
+        turn = [s.diceTurnSeat];
+        break;
+      case "dice_anim":
+        if (s.phase !== "DICE" || s.diceSubphase !== "COMMITTED" || !s.lastDice || s.lastDice.revealed) return null;
+        deadlineAt = s.lastDice.animSettleAt;
+        turn = [s.lastDice.rollId];
+        break;
+      case "dice_settle_hold":
+        if (s.phase !== "DICE" || s.diceSubphase !== "SETTLED" || !s.lastDice?.revealed) return null;
+        // The hold's due time lives in the alarm, not RoomState.
+        deadlineAt = null;
+        turn = [s.lastDice.rollId];
+        break;
+      case "host_check":
+        deadlineAt = null;
+        turn = [s.hostLastSeenAt];
+        break;
+    }
+    if (deadlineAt === null && kind !== "dice_settle_hold" && kind !== "host_check") return null;
+    return {
+      context: JSON.stringify([kind, s.phase, s.topicRound, deadlineAt, ...turn]),
+      deadlineAt,
+    };
+  }
+
   async setAlarmAt(when: number, payload: AlarmPayload) {
-    this.alarmPayload = payload;
-    await this.room.storage.put("alarm", payload);
+    this.alarmPayload = {
+      ...payload,
+      deadlineAt: when,
+      context: this.alarmOwner(payload.kind)?.context ?? null,
+    };
+    await this.room.storage.put("alarm", this.alarmPayload);
     await this.room.storage.setAlarm(when);
   }
 
@@ -344,12 +431,7 @@ export default class QuarryServer implements Party.Server {
         myHumanVote: this.state.humanVotes[conn.id] ?? null,
         myBankBeansReady: !!this.state.bankBeansReady?.[conn.id],
         ...(recipient?.isHost
-          ? {
-              hostAiJudge:
-                this.state.judgeStatus === "pending"
-                  ? ("pending" as const)
-                  : this.state.lastJudgeOutcome,
-            }
+          ? { hostAiJudge: hostAiJudgeHealth(this.state) }
           : {}),
       };
       this.send(conn, {
@@ -647,9 +729,7 @@ export default class QuarryServer implements Party.Server {
 
   async onAlarm() {
     const payload = this.alarmPayload;
-    this.alarmPayload = null;
     if (!payload) return;
-    if (payload.revision !== this.state.phaseRevision) return;
 
     // Recover stuck COMMITTED rolls if the settle alarm was lost.
     if (
@@ -661,6 +741,7 @@ export default class QuarryServer implements Party.Server {
       payload.kind !== "dice_anim" &&
       payload.kind !== "dice_settle_hold"
     ) {
+      this.alarmPayload = null;
       await this.afterDiceAnim();
       await this.persist();
       this.broadcastState();
@@ -668,6 +749,17 @@ export default class QuarryServer implements Party.Server {
       return;
     }
 
+    if (!payload.context || payload.context !== this.alarmOwner(payload.kind)?.context) {
+      await this.clearAlarm();
+      return;
+    }
+    if (payload.deadlineAt !== undefined && Date.now() < payload.deadlineAt) {
+      // A duplicate/old delivery may arrive after a replacement clock was set.
+      // Keep the new deadline; do not consume it or advance that turn early.
+      await this.room.storage.setAlarm(payload.deadlineAt);
+      return;
+    }
+    this.alarmPayload = null;
     switch (payload.kind) {
       case "phase":
         await this.onPhaseTimeout();
@@ -924,6 +1016,11 @@ export default class QuarryServer implements Party.Server {
     if (isFirst) this.state.hostLastSeenAt = Date.now();
   }
 
+  /**
+   * Lobby-only: drop a duplicate / accidental seat from the player list.
+   * Not a ban — the same person may rejoin with a fresh seat (new connection id).
+   * No membership blacklist.
+   */
   handleRemovePlayer(hostId: string, targetId: string) {
     if (!this.requireHost(hostId)) throw new Error("Host only");
     if (this.state.rosterLocked) throw new Error("Game already started");
@@ -938,7 +1035,7 @@ export default class QuarryServer implements Party.Server {
       if (conn.id === targetId) {
         this.send(conn, {
           type: "error",
-          message: "You were removed from the lobby by the host.",
+          message: "You were removed from the lobby by the host. You can rejoin with a fresh seat.",
         });
       }
     }

@@ -4,7 +4,8 @@ export function BrandMark({
    * Gradient clipped-text shimmer. Off in room chrome — animated
    * `background-clip: text` inside an isolated stacking context makes iOS
    * Safari/PWA rasterize the whole header band soft (icon + BANK + phase
-   * line), while the native status bar stays crisp.
+   * line), while the native status bar stays crisp. Room chrome also keeps
+   * the SVG at integer CSS px with no transform/filter ancestors.
    */
   shimmer = true,
   onLogoTap,
@@ -33,6 +34,8 @@ export function BrandMark({
           width={large ? 72 : 36}
           height={large ? 72 : 36}
           aria-hidden="true"
+          style={{ display: "block" }}
+          shapeRendering="geometricPrecision"
         >
           <path
             d="M85 13C109 15 122 39 112 60C106 73 92 71 89 85C85 110 61 123 38 111C11 97 10 61 25 38C40 17 63 10 85 13Z"

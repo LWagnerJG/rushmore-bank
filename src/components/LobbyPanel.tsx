@@ -122,7 +122,11 @@ export function LobbyPanel({
                     className="rounded-md px-1.5 py-0.5 text-xs font-bold text-[var(--muted)] hover:bg-[rgba(231,111,78,0.12)] hover:text-[var(--coral)]"
                     aria-label={`Remove ${p.name}`}
                     onClick={() => {
-                      if (window.confirm(`Remove ${p.name} from the lobby?`)) {
+                      if (
+                        window.confirm(
+                          `Remove ${p.name} from the lobby? They can rejoin with a fresh seat.`,
+                        )
+                      ) {
                         send({ type: "remove_player", playerId: p.id });
                       }
                     }}

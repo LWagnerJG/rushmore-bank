@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, type RefObject } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import type { Player, PublicRoomState } from "@/shared/types";
 import { currentUpPlayerId } from "@/shared/engine/up-seat";
+import { draftBoardSeats } from "@/shared/engine/snake";
 import { FitName } from "@/components/FitName";
 
 /** You first, then beans descending (seat as stable tiebreak). */
@@ -18,18 +19,25 @@ export function sortLeaderboard(
   });
 }
 
-/** Match the draft board's left-to-right columns while drafting. */
+/**
+ * Match draft board left→right columns: seatOrder rotated by starterOffset
+ * (first drafter leftmost). Stable through snake reversals — not score-sorted.
+ */
 export function sortDraftBoardPlayers(
   players: Player[],
   seatOrder: string[],
+  starterOffset: number = 0,
 ): Player[] {
-  const seatByPlayerId = new Map(seatOrder.map((id, seat) => [id, seat]));
+  const columnIds = draftBoardSeats(seatOrder.length, starterOffset).map(
+    (seat) => seatOrder[seat]!,
+  );
+  const orderIndex = new Map(columnIds.map((id, i) => [id, i]));
   return players
     .map((player, index) => ({ player, index }))
     .sort((a, b) => {
-      const aSeat = seatByPlayerId.get(a.player.id) ?? a.player.seat ?? 99;
-      const bSeat = seatByPlayerId.get(b.player.id) ?? b.player.seat ?? 99;
-      return aSeat - bSeat || a.index - b.index;
+      const aOrd = orderIndex.get(a.player.id) ?? 99;
+      const bOrd = orderIndex.get(b.player.id) ?? 99;
+      return aOrd - bOrd || a.index - b.index;
     })
     .map(({ player }) => player);
 }
@@ -44,7 +52,11 @@ export function PlayerRail({
   const playerList = state.players.filter((p) => p.role === "player");
   const players =
     state.phase === "DRAFT" || state.phase === "CORRECTION"
-      ? sortDraftBoardPlayers(playerList, state.seatOrder)
+      ? sortDraftBoardPlayers(
+          playerList,
+          state.seatOrder,
+          state.starterOffset ?? 0,
+        )
       : sortLeaderboard(playerList, youId);
   const upId = currentUpPlayerId(state);
   const showEarned =
@@ -144,6 +156,23 @@ function PlayerChip({
   const tip = up
     ? `${player.name} · on the clock`
     : player.name;
+  const [land, setLand] = useState(false);
+  const prevStones = useRef(player.stones);
+  const prevEarned = useRef(earned);
+
+  useEffect(() => {
+    const stonesChanged = prevStones.current !== player.stones;
+    const earnedLanded =
+      earned != null &&
+      earned > 0 &&
+      prevEarned.current !== earned;
+    prevStones.current = player.stones;
+    prevEarned.current = earned;
+    if (!stonesChanged && !earnedLanded) return;
+    setLand(true);
+    const t = window.setTimeout(() => setLand(false), 340);
+    return () => window.clearTimeout(t);
+  }, [player.stones, earned]);
 
   return (
     <div
@@ -194,7 +223,7 @@ function PlayerChip({
           </span>
         </div>
       ) : (
-        <div className="player-chip-score">
+        <div className={`player-chip-score${land ? " score-land" : ""}`}>
           <span className="player-chip-stones tabular-nums">{player.stones}</span>
           {earned != null && earned > 0 ? (
             <span
