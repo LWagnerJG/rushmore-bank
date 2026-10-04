@@ -12,11 +12,13 @@ import { RULES } from "../rules";
 
 function stripDiceForPublic(
   dice: DiceBroadcast | null,
-  now: number,
+  _now?: number,
 ): PublicDiceBroadcast | null {
   if (!dice) return null;
-  const settled = dice.revealed || now >= dice.animSettleAt;
-  if (!settled) {
+  // Faces / bust / potAfter only after the server applies the roll (revealed).
+  // Never clock-reveal early — that desynced tray faces from SETTLED + pots and
+  // let sticky readouts attribute BEAN BUSTER to the previous roll's total.
+  if (!dice.revealed) {
     return {
       rollId: dice.rollId,
       rollerId: dice.rollerId,

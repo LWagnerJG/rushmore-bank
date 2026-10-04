@@ -337,6 +337,70 @@ describe("ballot privacy projection", () => {
     expect(pub.lastDice?.potAfter).toBeUndefined();
   });
 
+  it("does not clock-reveal faces before server sets revealed (atomic with pot)", () => {
+    const state = emptyRoomState("LATE");
+    state.phase = "DICE";
+    state.diceSubphase = "COMMITTED";
+    const now = Date.now();
+    state.lastDice = {
+      rollId: "roll-late",
+      rollerId: "p1",
+      d1: 3,
+      d2: 4,
+      personalRollNumber: 2,
+      potBefore: 40,
+      potAfter: 0,
+      busted: true,
+      note: "BEAN BUSTER — pot wiped.",
+      animStartedAt: now - 3000,
+      animSettleAt: now - 100, // anim window already elapsed
+      animSeed: 99,
+      outcomeKind: "bust",
+      revealed: false, // server has not applied pot yet
+    };
+    const pub = projectPublicState(state, "p1", now);
+    expect(pub.diceSubphase).toBe("COMMITTED");
+    expect(pub.lastDice?.revealed).toBe(false);
+    expect(pub.lastDice?.d1).toBeUndefined();
+    expect(pub.lastDice?.d2).toBeUndefined();
+    expect(pub.lastDice?.busted).toBeUndefined();
+    expect(pub.lastDice?.potAfter).toBeUndefined();
+    expect(pub.lastDice?.note).toBeUndefined();
+  });
+
+  it("exposes faces only after server reveal — matching d1/d2/busted", () => {
+    const state = emptyRoomState("SHOW");
+    state.phase = "DICE";
+    state.diceSubphase = "SETTLED";
+    state.pots = { p1: 0 };
+    state.lastDice = {
+      rollId: "roll-show",
+      rollerId: "p1",
+      d1: 5,
+      d2: 2,
+      personalRollNumber: 1,
+      potBefore: 10,
+      potAfter: 0,
+      busted: true,
+      note: "BEAN BUSTER — pot wiped.",
+      animStartedAt: 1,
+      animSettleAt: 2,
+      animSeed: 1,
+      outcomeKind: "bust",
+      revealed: true,
+    };
+    const pub = projectPublicState(state, "p1");
+    expect(pub.lastDice).toMatchObject({
+      revealed: true,
+      rollId: "roll-show",
+      d1: 5,
+      d2: 2,
+      busted: true,
+      potAfter: 0,
+    });
+    expect((pub.lastDice!.d1 ?? 0) + (pub.lastDice!.d2 ?? 0)).toBe(7);
+  });
+
   it("exposes rushmore why during vote without locking scores", () => {
     const state = emptyRoomState("WHY1");
     state.phase = "VOTING_AND_JUDGING";
