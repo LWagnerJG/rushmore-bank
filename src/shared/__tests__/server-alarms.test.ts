@@ -166,6 +166,20 @@ describe("authoritative deadlines across reconnects", () => {
     assert.equal(g.server.state.ledger.length, entries);
   });
 
+  it("one tap equals one roll — rejects a second roll while COMMITTED", async () => {
+    const g = game();
+    await dice(g.server);
+    await g.server.handleRoll("A");
+    assert.equal(g.server.state.diceSubphase, "COMMITTED");
+    const first = structuredClone(g.server.state.lastDice!);
+    const count = g.server.state.personalRollCounts.A;
+    await assert.rejects(() => g.server.handleRoll("A"), /Not ready to roll/);
+    assert.equal(g.server.state.personalRollCounts.A, count);
+    assert.equal(g.server.state.lastDice!.rollId, first.rollId);
+    assert.equal(g.server.state.lastDice!.d1, first.d1);
+    assert.equal(g.server.state.lastDice!.d2, first.d2);
+  });
+
   it("reaches final-round results once when the last pot auto-banks", async () => {
     const g = game();
     g.server.state.topicRound = 2;

@@ -56,10 +56,14 @@ export {
 export {
   authoritativeFaces,
   displayFaces,
+  liveReadoutRoll,
   resolveDicePresentPhase,
+  resolveDiceReadout,
   tumbleDisplayProgress,
   TUMBLE_DISPLAY_CAP,
   type DicePresentPhase,
+  type DiceReadout,
+  type DiceReadoutRoll,
 } from "./dice-present";
 export {
   playerPickCount,
