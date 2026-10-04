@@ -187,6 +187,16 @@ function connectedPlayers(state: RoomState): Player[] {
   return seatedPlayers(state).filter((p) => p.connected);
 }
 
+/** Seated players who still count for vote/wager quorums (incl. soft-disconnect grace). */
+function quorumPlayers(
+  state: RoomState,
+  leaveTimers: Map<string, ReturnType<typeof setTimeout>>,
+): Player[] {
+  return seatedPlayers(state).filter(
+    (p) => p.connected || leaveTimers.has(p.id),
+  );
+}
+
 function bump(state: RoomState) {
   state.phaseRevision += 1;
 }
@@ -749,7 +759,12 @@ export default class QuarryServer implements Party.Server {
     const p = this.state.players.find((x) => x.id === conn.id);
     if (!p) return;
     p.connected = false;
-    this.ensureHost();
+    // Lobby: reassign host immediately. Mid-game: keep the host through
+    // disconnect grace so an app-switch doesn't steal pause/extend/correct.
+    // handlePlayerLeave (after grace) / checkHostFailover promote if needed.
+    if (!this.state.rosterLocked) {
+      this.ensureHost();
+    }
     bump(this.state);
     void this.persist().then(() => this.broadcastState());
 
@@ -764,6 +779,12 @@ export default class QuarryServer implements Party.Server {
       });
     }, delay);
     this.leaveTimers.set(conn.id, timer);
+  }
+
+  /** Human-vote quorum: connected seats + soft-disconnect grace (leaveTimers). */
+  humanVoteNeededCount(): number {
+    if (this.state.seatOrder.length === 2) return 0;
+    return quorumPlayers(this.state, this.leaveTimers).length;
   }
 
   async onAlarm() {
@@ -1760,7 +1781,7 @@ export default class QuarryServer implements Party.Server {
   async maybeFinalizeAfterJudge() {
     if (this.state.scoresLocked) return;
     if (this.state.scores.length === 0) return;
-    const needed = seatedPlayers(this.state).filter((p) => p.connected).length;
+    const needed = this.humanVoteNeededCount();
     const votesIn = Object.keys(this.state.humanVotes).length;
     if (
       this.state.seatOrder.length === 2 ||
@@ -1787,7 +1808,7 @@ export default class QuarryServer implements Party.Server {
     }
     // One effective ballot per eligible player (overwrite allowed = last write wins)
     this.state.humanVotes[id] = targetPlayerId;
-    const needed = seatedPlayers(this.state).filter((p) => p.connected).length;
+    const needed = this.humanVoteNeededCount();
     if (
       Object.keys(this.state.humanVotes).length >= needed &&
       needed > 0 &&

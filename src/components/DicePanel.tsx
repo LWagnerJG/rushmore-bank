@@ -169,6 +169,13 @@ export function DicePanel({
   const active = state.diceActiveIds.includes(youId);
   const rolling = state.diceSubphase === "COMMITTED";
   const settling = state.diceSubphase === "SETTLED";
+  const [busy, setBusy] = useState(false);
+  const turnHaptic = useRef<string | null>(null);
+  const revealSeen = useRef<string | null>(null);
+  const [heroReveal, setHeroReveal] = useState(false);
+  /** Prior revealed non-secret roll — fills the total gap while the next tumble runs. */
+  const [stickyRoll, setStickyRoll] = useState<DiceReadoutRoll | null>(null);
+  const [bankConfirm, setBankConfirm] = useState(false);
   const canBank =
     you.role === "player" &&
     classifyPullOut({
@@ -183,15 +190,9 @@ export function DicePanel({
     myTurn &&
     active &&
     you.role === "player" &&
-    state.diceSubphase === "READY";
+    state.diceSubphase === "READY" &&
+    !bankConfirm;
   const glowOn = myTurn && active && you.role === "player" && !settling;
-  const [busy, setBusy] = useState(false);
-  const turnHaptic = useRef<string | null>(null);
-  const revealSeen = useRef<string | null>(null);
-  const [heroReveal, setHeroReveal] = useState(false);
-  /** Prior revealed non-secret roll — fills the total gap while the next tumble runs. */
-  const [stickyRoll, setStickyRoll] = useState<DiceReadoutRoll | null>(null);
-  const [bankConfirm, setBankConfirm] = useState(false);
 
   useEffect(() => {
     if (!busy) return;
