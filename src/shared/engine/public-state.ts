@@ -94,13 +94,15 @@ export function projectPublicStateShared(
     }
   }
 
+  // Match server advance: only connected seated players block "Ready to wager".
   const bankNeeded = state.seatOrder.filter((pid) => {
     const p = state.players.find((x) => x.id === pid);
-    return p && p.role === "player";
+    return p && p.role === "player" && p.connected;
   }).length;
-  const bankCast = Object.keys(state.bankBeansReady ?? {}).filter((pid) =>
-    state.seatOrder.includes(pid),
-  ).length;
+  const bankCast = Object.keys(state.bankBeansReady ?? {}).filter((pid) => {
+    const p = state.players.find((x) => x.id === pid);
+    return !!p?.connected && state.seatOrder.includes(pid);
+  }).length;
 
   return {
     code: state.code,
