@@ -607,6 +607,16 @@ export default class QuarryServer implements Party.Server {
       await this.beginRoundResults();
       return;
     }
+    // Bust-redo targeting the leaver — accept the bust so the table is not stuck.
+    const prompt = this.state.partyPrompt;
+    if (
+      prompt &&
+      !prompt.resolved &&
+      prompt.kind === "bust_redo" &&
+      prompt.targetPlayerIds.includes(leftId)
+    ) {
+      this.state.partyPrompt = null;
+    }
     // Mid-roll for the leaver — drop stuck COMMITTED so the table can move.
     if (
       this.state.lastDice?.rollerId === leftId &&
@@ -627,6 +637,16 @@ export default class QuarryServer implements Party.Server {
     if (connectedActive.length === 0) {
       await this.clearAlarm();
       await this.beginRoundResults();
+      return;
+    }
+    // Still holding a bust-redo for someone else — don't advance seats underneath it.
+    if (
+      this.state.partyPrompt &&
+      !this.state.partyPrompt.resolved &&
+      this.state.partyPrompt.kind === "bust_redo"
+    ) {
+      await this.clearAlarm();
+      bump(this.state);
       return;
     }
     await this.clearAlarm();
@@ -671,6 +691,25 @@ export default class QuarryServer implements Party.Server {
     this.state.diceActiveIds = this.state.diceActiveIds.map((id) =>
       id === oldId ? newId : id,
     );
+    this.state.bustedPlayerIdsThisRound = this.state.bustedPlayerIdsThisRound.map(
+      (id) => (id === oldId ? newId : id),
+    );
+    this.state.partyBustRedoUsedIds = this.state.partyBustRedoUsedIds.map((id) =>
+      id === oldId ? newId : id,
+    );
+    if (this.state.partyPrompt) {
+      this.state.partyPrompt = {
+        ...this.state.partyPrompt,
+        targetPlayerIds: this.state.partyPrompt.targetPlayerIds.map((id) =>
+          id === oldId ? newId : id,
+        ),
+        acknowledgedPlayerIds: this.state.partyPrompt.acknowledgedPlayerIds
+          ? this.state.partyPrompt.acknowledgedPlayerIds.map((id) =>
+              id === oldId ? newId : id,
+            )
+          : undefined,
+      };
+    }
     this.state.picks = this.state.picks.map((pk) =>
       pk.playerId === oldId ? { ...pk, playerId: newId } : pk,
     );
@@ -1522,6 +1561,9 @@ export default class QuarryServer implements Party.Server {
     if (this.state.phase === "CORRECTION") {
       throw new Error("Finish the current redo first");
     }
+    if (this.state.scoresLocked) {
+      throw new Error("Scores locked — finish the round");
+    }
     const pick = this.state.picks.find((p) => p.turnIndex === turnIndex);
     if (!pick) throw new Error("Pick not found");
 
@@ -1534,10 +1576,6 @@ export default class QuarryServer implements Party.Server {
       this.state.picks,
       normalizePick,
     );
-
-    if (this.state.scoresLocked) {
-      throw new Error("Scores locked — finish the round");
-    }
 
     if (
       priorPhase === "VOTING_AND_JUDGING" ||
@@ -1953,6 +1991,8 @@ export default class QuarryServer implements Party.Server {
       return pl?.connected;
     });
     if (!pid || connectedActive.length === 0) {
+      // Bank every remaining active pot (incl. disconnected) before results.
+      this.bankRemainingDicePots("Auto-bank (no connected rollers)");
       await this.beginRoundResults();
       return;
     }
@@ -2048,8 +2088,9 @@ export default class QuarryServer implements Party.Server {
       return;
     }
 
-    // Atomic: mark committed — blocks late Pull Out for this roller
+    // Atomic: mark committed — blocks late Pull Out / bank-confirm for this roller
     this.state.diceSubphase = "COMMITTED";
+    this.state.diceIdlePauseRemainingMs = null;
     await this.clearAlarm();
 
     const rollNum = (this.state.personalRollCounts[id] ?? 0) + 1;
@@ -2198,6 +2239,7 @@ export default class QuarryServer implements Party.Server {
     const p = this.state.players.find((x) => x.id === id);
     if (!p) throw new Error("Player missing");
     p.stones = result.stonesAfter;
+    this.state.protectedStones[id] = result.stonesAfter;
     this.state.pots[id] = 0;
     this.state.diceActiveIds = this.state.diceActiveIds.filter((x) => x !== id);
     ledgerPush(this.state, {
@@ -2208,6 +2250,17 @@ export default class QuarryServer implements Party.Server {
       note,
       topicRound: this.state.topicRound,
     });
+  }
+
+  /** Bank every still-active dice pot (safe before leaving the dice phase). */
+  bankRemainingDicePots(note: string) {
+    for (const id of [...this.state.diceActiveIds]) {
+      try {
+        this.bankPlayer(id, note);
+      } catch {
+        /* seat missing — ignore */
+      }
+    }
   }
 
   async handlePullOut(id: string) {
@@ -2252,6 +2305,8 @@ export default class QuarryServer implements Party.Server {
     if (this.state.lastDice && !this.state.lastDice.revealed) {
       this.revealCommittedDice();
     }
+    // Never leave orphan pots sitting when the table empties of connected rollers.
+    this.bankRemainingDicePots("Auto-bank (round end)");
     this.state.phase = "ROUND_RESULTS";
     this.state.diceSubphase = "SETTLED";
     this.state.topicRound += 1;
@@ -2297,6 +2352,11 @@ export default class QuarryServer implements Party.Server {
 
   async handleBankConfirmCancel(id: string) {
     if (this.state.phase !== "DICE") return;
+    // Never restore idle over a live roll anim / settle — that stuck phones on "Rolling…".
+    if (this.state.diceSubphase !== "READY") {
+      this.state.diceIdlePauseRemainingMs = null;
+      return;
+    }
     if (this.currentDicePlayerId() !== id && !this.requireHost(id)) return;
     const remaining = this.state.diceIdlePauseRemainingMs;
     if (remaining == null) return;
