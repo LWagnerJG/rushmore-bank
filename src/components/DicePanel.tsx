@@ -222,7 +222,28 @@ export function DicePanel({
   );
   const last = state.lastDice;
   const liveRoll = liveReadoutRoll(last);
-  const readout = resolveDiceReadout(state.diceSubphase, last, stickyRoll);
+
+  // Sticky prior roll for tumble gaps — adjust during render so SETTLED never
+  // paints a stale sticky bust/total for one frame (React-approved pattern).
+  if (!last) {
+    if (stickyRoll !== null) setStickyRoll(null);
+  } else if (
+    liveRoll &&
+    (stickyRoll?.rollId !== liveRoll.rollId ||
+      stickyRoll.d1 !== liveRoll.d1 ||
+      stickyRoll.d2 !== liveRoll.d2 ||
+      stickyRoll.busted !== liveRoll.busted ||
+      stickyRoll.gain !== liveRoll.gain)
+  ) {
+    setStickyRoll(liveRoll);
+  }
+
+  const stickyForReadout = !last ? null : liveRoll ?? stickyRoll;
+  const readout = resolveDiceReadout(
+    state.diceSubphase,
+    last,
+    stickyForReadout,
+  );
   const lastName =
     state.players.find(
       (p) => p.id === (readout.rollerId ?? last?.rollerId),
@@ -235,16 +256,6 @@ export function DicePanel({
   const partyPrompt = state.partyPrompt;
   const canResolveParty =
     partyPrompt?.targetPlayerIds.includes(youId) || you.isHost;
-
-  // Sticky prior roll for tumble gaps only. Clear when server nulls lastDice
-  // (next seat). Bust/total during SETTLED always come from liveRoll via readout.
-  useEffect(() => {
-    if (!last) {
-      setStickyRoll(null);
-      return;
-    }
-    if (liveRoll) setStickyRoll(liveRoll);
-  }, [last, liveRoll]);
 
   // BEAN BUSTER / settle pop only while SETTLED. Server clears lastDice on the
   // next seat — never extend a client timer past the settle beat.
@@ -313,6 +324,8 @@ export function DicePanel({
   // Honest 15s idle bank window — freeze while Bank confirm modal is open.
   const timerUntil = bankConfirm
     ? (state.diceIdlePauseRemainingMs != null
+        // Pause clock is reconstructed from remaining ms at open time.
+        // eslint-disable-next-line react-hooks/purity -- intentional freeze anchor
         ? Date.now() + state.diceIdlePauseRemainingMs
         : null)
     : state.diceSubphase === "READY"

@@ -181,21 +181,23 @@ export function DiceScene({
   // (that made a seven look like a ten / wrong total on phones).
   useEffect(() => {
     if (!rolling || reducedMotion) return;
+    const die0 = svg0.current;
+    const die1 = svg1.current;
     const started = performance.now();
     const tick = () => {
       const n = Math.max(
         1,
         Math.floor((performance.now() - started) / SCRAMBLE_TICK_MS),
       );
-      paintPips(svg0.current, scrambleFaceAt(scrambleSeed, 0, n));
-      paintPips(svg1.current, scrambleFaceAt(scrambleSeed, 1, n));
+      paintPips(die0, scrambleFaceAt(scrambleSeed, 0, n));
+      paintPips(die1, scrambleFaceAt(scrambleSeed, 1, n));
     };
     tick();
     const id = window.setInterval(tick, SCRAMBLE_TICK_MS);
     return () => {
       window.clearInterval(id);
-      clearScramblePips(svg0.current);
-      clearScramblePips(svg1.current);
+      clearScramblePips(die0);
+      clearScramblePips(die1);
     };
   }, [rolling, rollId, reducedMotion, scrambleSeed]);
 
