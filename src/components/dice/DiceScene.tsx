@@ -1,13 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { PublicDiceBroadcast } from "@/shared/types";
 import { resolveDicePresentPhase } from "@/shared/engine/dice-present";
-import { DIE_PIPS } from "@/shared/engine/dice-geometry";
 import {
-  scrambleFaceAt,
-  SCRAMBLE_TICK_MS,
-} from "@/shared/engine/dice-scramble";
+  DIE_PIP_CLASS,
+  diePaintModel,
+  resolveTrayPaint,
+  scramblePaintPair,
+  type DieFace,
+} from "@/shared/engine/die-face";
+import { SCRAMBLE_TICK_MS } from "@/shared/engine/dice-scramble";
 import {
   ensureDiceAudio,
   playRollStart,
@@ -16,45 +19,11 @@ import {
 } from "@/lib/dice-sfx";
 import { haptic } from "@/lib/haptics";
 
-/** Scramble-only pip class — never leave these in the SVG after settle. */
-const SCRAMBLE_PIP = "bean-pip-die-pip bean-pip-die-pip-scramble";
-
-/** Paint pip circles into an SVG without React re-render (scramble path). */
-function paintPips(svg: SVGSVGElement | null, face: number | null) {
-  if (!svg) return;
-  // Only touch scramble-painted pips — React auth pips use bean-pip-die-pip alone.
-  svg.querySelectorAll(".bean-pip-die-pip-scramble").forEach((n) => n.remove());
-  if (face == null) {
-    svg.parentElement?.classList.add("bean-pip-die-blank");
-    return;
-  }
-  svg.parentElement?.classList.remove("bean-pip-die-blank");
-  const pips = DIE_PIPS[face] ?? [];
-  const ns = "http://www.w3.org/2000/svg";
-  for (const pip of pips) {
-    const col = pip % 3;
-    const row = Math.floor(pip / 3);
-    const c = document.createElementNS(ns, "circle");
-    c.setAttribute("class", SCRAMBLE_PIP);
-    c.setAttribute("cx", String(22 + col * 18));
-    c.setAttribute("cy", String(22 + row * 18));
-    c.setAttribute("r", "7");
-    svg.appendChild(c);
-  }
-}
-
-/** Hard-cut: wipe scramble DOM pips so only React auth faces remain. */
-function clearScramblePips(svg: SVGSVGElement | null) {
-  if (!svg) return;
-  svg.querySelectorAll(".bean-pip-die-pip-scramble").forEach((n) => n.remove());
-  svg.parentElement?.classList.remove("bean-pip-die-blank");
-}
-
 /**
- * Flat 2D pip die — calculator-clear layout, Beans cream/ink palette.
+ * Flat 2D pip die — one validated face (1–6) or blank.
  *
- * `face` during tumble is a scramble value (anticipation only).
- * `settled` is true ONLY for authoritative idle/settled faces.
+ * Pips are derived purely from `normalizeDieFace(face)` each render.
+ * React replaces the circle children — never appends / never stacks.
  */
 function PipDie({
   face,
@@ -63,17 +32,15 @@ function PipDie({
   scrambling,
   settled,
   settlePunch,
-  svgRef,
 }: {
-  face: number | null;
+  face: DieFace | null;
   index: 0 | 1;
   tumbling: boolean;
   scrambling: boolean;
   settled: boolean;
   settlePunch: boolean;
-  svgRef?: RefObject<SVGSVGElement | null>;
 }) {
-  const pips = face != null ? DIE_PIPS[face] ?? [] : [];
+  const paint = diePaintModel(face);
   const className = [
     "bean-pip-die",
     `bean-pip-die-${index}`,
@@ -81,7 +48,7 @@ function PipDie({
     settlePunch ? "bean-pip-die-settle" : "",
     settled ? "bean-pip-die-known" : "",
     scrambling ? "bean-pip-die-scrambling" : "",
-    face == null ? "bean-pip-die-blank" : "",
+    paint.face == null ? "bean-pip-die-blank" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -90,13 +57,14 @@ function PipDie({
     <div
       className={className}
       data-die-index={index}
-      data-face={face ?? ""}
+      data-face={paint.face ?? ""}
+      data-pip-count={paint.pipCount}
       data-tumbling={tumbling ? "1" : "0"}
       data-settled={settled ? "1" : "0"}
       data-scrambling={scrambling ? "1" : "0"}
       aria-hidden="true"
     >
-      <svg ref={svgRef} viewBox="0 0 80 80" className="bean-pip-die-svg">
+      <svg viewBox="0 0 80 80" className="bean-pip-die-svg">
         <rect
           x="3"
           y="3"
@@ -105,22 +73,21 @@ function PipDie({
           rx="12"
           className="bean-pip-die-body"
         />
-        {/* During scramble, pips are painted via DOM; React paints auth faces. */}
-        {!scrambling &&
-          face != null &&
-          pips.map((pip) => {
-            const col = pip % 3;
-            const row = Math.floor(pip / 3);
-            return (
-              <circle
-                key={`${face}-${pip}`}
-                className="bean-pip-die-pip"
-                cx={22 + col * 18}
-                cy={22 + row * 18}
-                r="7"
-              />
-            );
-          })}
+        {/* Replace-only: map from one validated face. Keys force full remount on face change. */}
+        {paint.pipSlots.map((pip) => {
+          const col = pip % 3;
+          const row = Math.floor(pip / 3);
+          return (
+            <circle
+              key={`${paint.face}-${pip}`}
+              className={DIE_PIP_CLASS}
+              cx={22 + col * 18}
+              cy={22 + row * 18}
+              r="7"
+              data-pip-slot={pip}
+            />
+          );
+        })}
       </svg>
     </div>
   );
@@ -130,9 +97,10 @@ function PipDie({
  * Beautiful 2D dice tray with scramble anticipation.
  *
  * Presentation contract (hard invariant):
- * - During tumble: rapidly changing scramble faces (never tray d1/d2).
- * - The first frame that looks settled paints server d1/d2 exactly once.
- * - No coast from scramble → fake rest → jump. Hard cut on settle.
+ * - Settled faces only from server authoritative d1/d2 for the current rollId.
+ * - Scramble faces go through the same 1–6 validated renderer (no DOM pip stack).
+ * - Pip count always equals the face value (1–6) or 0 when blank.
+ * - Hard cut scramble → auth (no coast, no morph, no late jump).
  */
 export function DiceScene({
   broadcast,
@@ -155,9 +123,10 @@ export function DiceScene({
   const rollStarted = useRef<string | null>(null);
   const lastTick = useRef(0);
   const settleRollId = useRef<string | null>(null);
-  const svg0 = useRef<SVGSVGElement | null>(null);
-  const svg1 = useRef<SVGSVGElement | null>(null);
   const [punch, setPunch] = useState(false);
+  const [scramble, setScramble] = useState<{ d1: DieFace; d2: DieFace } | null>(
+    null,
+  );
 
   const phase = useMemo(
     () => resolveDicePresentPhase(broadcast),
@@ -168,42 +137,32 @@ export function DiceScene({
   const rollId = phase.kind === "idle" ? null : phase.rollId;
   const scrambleSeed = phase.kind === "tumbling" ? phase.seed : 0;
 
-  // Authoritative faces only when idle/settled — never invent during tumble.
-  const authD1 =
-    phase.kind === "settled" || phase.kind === "idle" ? phase.d1 : null;
-  const authD2 =
-    phase.kind === "settled" || phase.kind === "idle" ? phase.d2 : null;
-  const total =
-    revealed && authD1 != null && authD2 != null ? authD1 + authD2 : null;
-
-  // Scramble via DOM paints — avoid ~10Hz React setState during tumble.
-  // Cleanup MUST strip scramble pips so settle never stacks scramble + auth faces
-  // (that made a seven look like a ten / wrong total on phones).
+  // Scramble via React state + validated faces — never imperative SVG appends.
+  // When not tumbling, tray ignores scramble (no sync setState clear → no cascade).
   useEffect(() => {
     if (!rolling || reducedMotion) return;
-    const die0 = svg0.current;
-    const die1 = svg1.current;
     const started = performance.now();
     const tick = () => {
       const n = Math.max(
         1,
         Math.floor((performance.now() - started) / SCRAMBLE_TICK_MS),
       );
-      paintPips(die0, scrambleFaceAt(scrambleSeed, 0, n));
-      paintPips(die1, scrambleFaceAt(scrambleSeed, 1, n));
+      setScramble(scramblePaintPair(scrambleSeed, n));
     };
     tick();
     const id = window.setInterval(tick, SCRAMBLE_TICK_MS);
-    return () => {
-      window.clearInterval(id);
-      clearScramblePips(die0);
-      clearScramblePips(die1);
-    };
+    return () => window.clearInterval(id);
   }, [rolling, rollId, reducedMotion, scrambleSeed]);
 
-  // Paint: blank during tumble (DOM scramble fills pips); auth faces on settle.
-  const paintD1 = rolling ? null : authD1;
-  const paintD2 = rolling ? null : authD2;
+  const tray = resolveTrayPaint(
+    phase,
+    rolling && !reducedMotion ? scramble : null,
+  );
+  const authD1 = tray.authD1;
+  const authD2 = tray.authD2;
+  const total = tray.total;
+  const paintD1 = tray.paintD1;
+  const paintD2 = tray.paintD2;
 
   // Settle punch / haptics once per rollId.
   useEffect(() => {
@@ -296,26 +255,26 @@ export function DiceScene({
         data-dice-phase={phase.kind}
         data-dice-d1={authD1 ?? ""}
         data-dice-d2={authD2 ?? ""}
-        data-dice-scrambling={rolling ? "1" : "0"}
+        data-dice-total={total ?? ""}
+        data-dice-scrambling={tray.scrambling ? "1" : "0"}
+        data-dice-roll-id={tray.rollId ?? ""}
       >
         <div className="bean-dice-pair" role="img" aria-hidden="true">
           <PipDie
             face={paintD1}
             index={0}
             tumbling={rolling && !reducedMotion}
-            scrambling={rolling}
-            settled={!rolling && paintD1 != null}
+            scrambling={tray.scrambling}
+            settled={!tray.scrambling && paintD1 != null}
             settlePunch={punch && revealed}
-            svgRef={svg0}
           />
           <PipDie
             face={paintD2}
             index={1}
             tumbling={rolling && !reducedMotion}
-            scrambling={rolling}
-            settled={!rolling && paintD2 != null}
+            scrambling={tray.scrambling}
+            settled={!tray.scrambling && paintD2 != null}
             settlePunch={punch && revealed}
-            svgRef={svg1}
           />
         </div>
         {canRoll && (

@@ -33,5 +33,9 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # Full suite (includes die-face pip invariants — blocks merge on failure).
       - run: npm test
+      # Explicit die pip / face clamp gate (never paint 0 or 7+ pips on a face).
+      - name: Die face pip invariants
+        run: npx vitest run src/shared/__tests__/die-face.test.ts
       - run: npx tsc --noEmit
