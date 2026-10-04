@@ -5,6 +5,7 @@
  * - Scramble values are cosmetic anticipation — never authoritative.
  * - Settled paint uses server d1/d2 exclusively (see dice-present).
  * - Clients must hard-cut from scramble → auth faces (no coast/lerp).
+ * - Paint path must still run values through normalizeDieFace (see die-face).
  */
 
 import { mulberry32 } from "./rng";

@@ -73,4 +73,19 @@ export {
   clampRostersToCap,
 } from "./draft-picks";
 export { DIE_PIPS, projectDie, type DieProjection } from "./dice-geometry";
+export {
+  normalizeDieFace,
+  pipsForDieFace,
+  diePipCount,
+  diePaintModel,
+  replaceDieFacePips,
+  resolveTrayPaint,
+  scramblePaintPair,
+  assertLegalDiePaint,
+  assertLegalTrayPaint,
+  DIE_PIP_CLASS,
+  type DieFace,
+  type DiePaintModel,
+  type TrayPaintModel,
+} from "./die-face";
 export { currentUpPlayerId } from "./up-seat";
