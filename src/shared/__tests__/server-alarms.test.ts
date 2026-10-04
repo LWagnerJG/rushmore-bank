@@ -256,4 +256,19 @@ describe("authoritative deadlines across reconnects", () => {
     assert.equal(restarted.state.diceSubphase, "SETTLED");
     assert.equal(restarted.state.lastDice!.revealed, true);
   });
+
+  it("one roll message commits exactly once (no double-roll / replay)", async () => {
+    const g = game();
+    await dice(g.server);
+    assert.equal(g.server.state.diceSubphase, "READY");
+    await g.server.handleRoll("A");
+    const first = structuredClone(g.server.state.lastDice!);
+    assert.equal(g.server.state.diceSubphase, "COMMITTED");
+    assert.equal(g.server.state.personalRollCounts.A, 1);
+    await assert.rejects(() => g.server.handleRoll("A"), /Not ready to roll/);
+    assert.equal(g.server.state.lastDice!.rollId, first.rollId);
+    assert.equal(g.server.state.lastDice!.d1, first.d1);
+    assert.equal(g.server.state.lastDice!.d2, first.d2);
+    assert.equal(g.server.state.personalRollCounts.A, 1);
+  });
 });

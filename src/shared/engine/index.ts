@@ -57,10 +57,20 @@ export {
   authoritativeFaces,
   displayFaces,
   resolveDicePresentPhase,
+  resolveDiceReadout,
+  isBeanBusterReadout,
   tumbleDisplayProgress,
   TUMBLE_DISPLAY_CAP,
   type DicePresentPhase,
+  type DiceReadout,
 } from "./dice-present";
+export {
+  scrambleFaceAt,
+  scrambleTickCount,
+  clearDiePips,
+  SCRAMBLE_TICK_MS,
+  DIE_PIP_CLASS,
+} from "./dice-scramble";
 export {
   playerPickCount,
   rosterFull,

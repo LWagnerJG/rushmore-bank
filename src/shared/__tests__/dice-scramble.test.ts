@@ -3,6 +3,8 @@
  */
 import { describe, expect, it } from "vitest";
 import {
+  clearDiePips,
+  DIE_PIP_CLASS,
   scrambleFaceAt,
   scrambleTickCount,
   SCRAMBLE_TICK_MS,
@@ -82,5 +84,28 @@ describe("scramble then settle invariant", () => {
     expect(RULES.pickClockSeconds).toBe(60);
     expect(RULES.pickGraceSeconds).toBe(5);
     expect(RULES.diceDecisionCountdownSeconds).toBe(0);
+  });
+
+  it("clearDiePips removes scramble nodes so auth faces cannot merge with leftovers", () => {
+    const remaining = new Set(["a", "b", "body"]);
+    const root = {
+      querySelectorAll(sel: string) {
+        if (sel !== `.${DIE_PIP_CLASS}`) return { forEach() {} };
+        const pips = [
+          { remove: () => remaining.delete("a") },
+          { remove: () => remaining.delete("b") },
+        ];
+        return {
+          forEach(fn: (n: { remove: () => void }) => void) {
+            pips.forEach(fn);
+          },
+        };
+      },
+    } as unknown as ParentNode;
+    clearDiePips(null);
+    clearDiePips(root);
+    expect(remaining.has("a")).toBe(false);
+    expect(remaining.has("b")).toBe(false);
+    expect(remaining.has("body")).toBe(true);
   });
 });

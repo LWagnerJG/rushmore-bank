@@ -5,6 +5,8 @@ import type { PublicDiceBroadcast } from "@/shared/types";
 import { resolveDicePresentPhase } from "@/shared/engine/dice-present";
 import { DIE_PIPS } from "@/shared/engine/dice-geometry";
 import {
+  clearDiePips,
+  DIE_PIP_CLASS,
   scrambleFaceAt,
   SCRAMBLE_TICK_MS,
 } from "@/shared/engine/dice-scramble";
@@ -19,9 +21,7 @@ import { haptic } from "@/lib/haptics";
 /** Paint pip circles into an SVG without React re-render (scramble path). */
 function paintPips(svg: SVGSVGElement | null, face: number | null) {
   if (!svg) return;
-  const existing = svg.querySelectorAll(".bean-pip-die-pip");
-  existing.forEach((n) => n.remove());
-  const body = svg.querySelector(".bean-pip-die-body");
+  clearDiePips(svg);
   if (face == null) {
     svg.parentElement?.classList.add("bean-pip-die-blank");
     return;
@@ -33,14 +33,11 @@ function paintPips(svg: SVGSVGElement | null, face: number | null) {
     const col = pip % 3;
     const row = Math.floor(pip / 3);
     const c = document.createElementNS(ns, "circle");
-    c.setAttribute("class", "bean-pip-die-pip");
+    c.setAttribute("class", DIE_PIP_CLASS);
     c.setAttribute("cx", String(22 + col * 18));
     c.setAttribute("cy", String(22 + row * 18));
     c.setAttribute("r", "7");
     svg.appendChild(c);
-  }
-  if (body) {
-    /* keep body as first child */
   }
 }
 
@@ -108,7 +105,7 @@ function PipDie({
             return (
               <circle
                 key={`${face}-${pip}`}
-                className="bean-pip-die-pip"
+                className={DIE_PIP_CLASS}
                 cx={22 + col * 18}
                 cy={22 + row * 18}
                 r="7"
@@ -171,20 +168,28 @@ export function DiceScene({
     revealed && authD1 != null && authD2 != null ? authD1 + authD2 : null;
 
   // Scramble via DOM paints — avoid ~10Hz React setState during tumble.
+  // Cleanup MUST clear scramble pips so React auth faces are exclusive
+  // (leftover scramble + auth circles read as the wrong total, e.g. a "10" bust).
   useEffect(() => {
     if (!rolling || reducedMotion) return;
+    const die0 = svg0.current;
+    const die1 = svg1.current;
     const started = performance.now();
     const tick = () => {
       const n = Math.max(
         1,
         Math.floor((performance.now() - started) / SCRAMBLE_TICK_MS),
       );
-      paintPips(svg0.current, scrambleFaceAt(scrambleSeed, 0, n));
-      paintPips(svg1.current, scrambleFaceAt(scrambleSeed, 1, n));
+      paintPips(die0, scrambleFaceAt(scrambleSeed, 0, n));
+      paintPips(die1, scrambleFaceAt(scrambleSeed, 1, n));
     };
     tick();
     const id = window.setInterval(tick, SCRAMBLE_TICK_MS);
-    return () => window.clearInterval(id);
+    return () => {
+      window.clearInterval(id);
+      clearDiePips(die0);
+      clearDiePips(die1);
+    };
   }, [rolling, rollId, reducedMotion, scrambleSeed]);
 
   // Paint: blank during tumble (DOM scramble fills pips); auth faces on settle.

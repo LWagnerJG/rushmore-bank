@@ -7,8 +7,11 @@
  * - Settled faces come only from authoritative server d1/d2 after reveal.
  * - The first frame that looks "settled" must equal those server faces.
  * - Hard cut scramble → auth (no coast, no morph, no late jump).
+ * - BANK readout / BEAN BUSTER must match the same revealed rollId faces
+ *   on the first paint (no sticky lag from the prior roll).
  */
 import type { PublicDiceBroadcast } from "../types";
+import { rollNetBeansAdded } from "./dice";
 
 export type DicePresentPhase =
   | { kind: "idle"; d1: number; d2: number }
@@ -26,6 +29,18 @@ export type DicePresentPhase =
       d2: number;
       busted: boolean;
     };
+
+/** Sticky / live BANK readout for one revealed (or prior) roll. */
+export type DiceReadout = {
+  rollId: string;
+  d1: number;
+  d2: number;
+  /** Net beans added to the pot (doubles = pot delta, not face sum). */
+  gain: number;
+  name: string;
+  busted: boolean;
+  note?: string;
+};
 
 /** Authoritative faces only — undefined while still secret. */
 export function authoritativeFaces(
@@ -80,6 +95,41 @@ export function resolveDicePresentPhase(
     startedAt: broadcast.animStartedAt,
     settleAt: broadcast.animSettleAt,
   };
+}
+
+/**
+ * Synchronous BANK readout for this paint.
+ *
+ * Revealed lastDice wins immediately (avoids one-frame sticky lag where a
+ * prior +10 sat next to a fresh BEAN BUSTER). While tumbling, keep `sticky`
+ * so the total never blanks mid-scramble. Null lastDice clears.
+ */
+export function resolveDiceReadout(
+  last: PublicDiceBroadcast | null | undefined,
+  rollerName: string,
+  sticky: DiceReadout | null,
+): DiceReadout | null {
+  if (!last) return null;
+  const faces = authoritativeFaces(last);
+  if (faces) {
+    const potAfter = last.potAfter ?? last.potBefore;
+    return {
+      rollId: last.rollId,
+      d1: faces.d1,
+      d2: faces.d2,
+      gain: rollNetBeansAdded(last.potBefore, potAfter, last.busted),
+      name: rollerName,
+      busted: !!last.busted,
+      note: last.note,
+    };
+  }
+  return sticky;
+}
+
+/** BEAN BUSTER chrome only for the revealed roll whose faces sum to 7. */
+export function isBeanBusterReadout(readout: DiceReadout | null): boolean {
+  if (!readout?.busted) return false;
+  return readout.d1 + readout.d2 === 7;
 }
 
 /** @deprecated Kept for older tests; 2D tray no longer uses progress caps. */

@@ -26,6 +26,19 @@ export function scrambleFaceAt(
 /** Tick cadence for visible face flips (~10–11 Hz — readable anticipation). */
 export const SCRAMBLE_TICK_MS = 95;
 
+/** Class used by DOM scramble paints and React auth pips — must stay in sync. */
+export const DIE_PIP_CLASS = "bean-pip-die-pip";
+
+/**
+ * Remove every pip node under a die SVG.
+ * Call when leaving scramble so React auth faces are the only pips
+ * (leftover scramble circles + auth circles = wrong face / fake total).
+ */
+export function clearDiePips(svg: ParentNode | null | undefined): void {
+  if (!svg) return;
+  svg.querySelectorAll(`.${DIE_PIP_CLASS}`).forEach((n) => n.remove());
+}
+
 /**
  * How many scramble ticks fit in a tumble window.
  * Used by tests — presentation stops scramble the instant phase is settled.

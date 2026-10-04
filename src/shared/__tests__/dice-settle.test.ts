@@ -95,4 +95,27 @@ describe("authoritative settle contract", () => {
       }
     }
   });
+
+  it("tray auth faces for a rollId always equal server d1/d2 (phone sync)", () => {
+    const rollId = "roll-sync-77";
+    const settled = tumblingBroadcast({
+      rollId,
+      revealed: true,
+      d1: 2,
+      d2: 5,
+      potAfter: 17,
+      note: "+7",
+      outcomeKind: "add_sum",
+      busted: false,
+    });
+    const phase = resolveDicePresentPhase(settled);
+    expect(phase).toMatchObject({
+      kind: "settled",
+      rollId,
+      d1: 2,
+      d2: 5,
+      busted: false,
+    });
+    expect(displayFaces(settled)).toEqual({ d1: 2, d2: 5 });
+  });
 });

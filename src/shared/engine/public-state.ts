@@ -12,11 +12,12 @@ import { RULES } from "../rules";
 
 function stripDiceForPublic(
   dice: DiceBroadcast | null,
-  now: number,
 ): PublicDiceBroadcast | null {
   if (!dice) return null;
-  const settled = dice.revealed || now >= dice.animSettleAt;
-  if (!settled) {
+  // Faces / bust only after the server reveal flag. Never wall-clock:
+  // `now >= animSettleAt` while still COMMITTED leaked outcomes before
+  // pots / diceSubphase caught up (phones saw a bust next to a stale total).
+  if (!dice.revealed) {
     return {
       rollId: dice.rollId,
       rollerId: dice.rollerId,
@@ -62,7 +63,6 @@ export function hostAiJudgeHealth(state: RoomState): HostAiJudgeHealth {
  */
 export function projectPublicStateShared(
   state: RoomState,
-  now = Date.now(),
 ): Omit<
   PublicRoomState,
   "myTopicVote" | "myHumanVote" | "myBankBeansReady" | "hostAiJudge"
@@ -154,7 +154,7 @@ export function projectPublicStateShared(
     personalRollCounts: { ...state.personalRollCounts },
     pots: { ...state.pots },
     protectedStones: { ...state.protectedStones },
-    lastDice: stripDiceForPublic(state.lastDice, now),
+    lastDice: stripDiceForPublic(state.lastDice),
     diceDecisionDeadlineAt: state.diceDecisionDeadlineAt,
     diceIdleDeadlineAt: state.diceIdleDeadlineAt,
     diceRoundStartedAt: state.diceRoundStartedAt,
@@ -188,9 +188,10 @@ export function projectPublicStateShared(
 export function projectPublicState(
   state: RoomState,
   recipientId: string,
-  now = Date.now(),
+  _now = Date.now(),
 ): PublicRoomState {
-  const shared = projectPublicStateShared(state, now);
+  void _now; // kept for call-site compat; faces no longer clock-gated
+  const shared = projectPublicStateShared(state);
   const recipient = state.players.find((p) => p.id === recipientId);
   const hostOnly: { hostAiJudge?: HostAiJudgeHealth } = {};
   if (recipient?.isHost) {

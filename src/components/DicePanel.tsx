@@ -4,7 +4,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
 import { DiceScene } from "@/components/dice/DiceScene";
 import { classifyPullOut } from "@/shared/engine/banking";
-import { rollNetBeansAdded } from "@/shared/engine/dice";
+import {
+  isBeanBusterReadout,
+  resolveDiceReadout,
+  type DiceReadout,
+} from "@/shared/engine/dice-present";
 import { haptic } from "@/lib/haptics";
 import { RULES } from "@/shared/rules";
 import { ensureDiceAudio, playBankChime } from "@/lib/dice-sfx";
@@ -86,17 +90,6 @@ type SeatInfo = {
   pot: number;
   safe: number;
   you: boolean;
-};
-
-type StickyRoll = {
-  rollId: string;
-  d1: number;
-  d2: number;
-  /** Net beans added to the pot (doubles = pot delta, not face sum). */
-  gain: number;
-  name: string;
-  busted: boolean;
-  note?: string;
 };
 
 /**
@@ -196,8 +189,8 @@ export function DicePanel({
   const turnHaptic = useRef<string | null>(null);
   const revealSeen = useRef<string | null>(null);
   const [heroReveal, setHeroReveal] = useState(false);
-  /** Keep last revealed faces across scramble so the total never blanks. */
-  const [stickyRoll, setStickyRoll] = useState<StickyRoll | null>(null);
+  /** Prior revealed readout — kept only while the next roll is still tumbling. */
+  const [stickyRoll, setStickyRoll] = useState<DiceReadout | null>(null);
   const [bankConfirm, setBankConfirm] = useState(false);
 
   useEffect(() => {
@@ -239,25 +232,16 @@ export function DicePanel({
   const canResolveParty =
     partyPrompt?.targetPlayerIds.includes(youId) || you.isHost;
 
-  // Sticky last-roll readout: update on reveal; clear when server nulls lastDice
-  // (next seat) so BEAN BUSTER never lingers.
+  // Revealed lastDice wins this frame (sync) — sticky is only for tumble blanks.
+  const displayRoll = resolveDiceReadout(last, lastName, stickyRoll);
+
   useEffect(() => {
     if (!last) {
       setStickyRoll(null);
       return;
     }
-    if (last.revealed && last.d1 != null && last.d2 != null) {
-      const potAfter = last.potAfter ?? last.potBefore;
-      setStickyRoll({
-        rollId: last.rollId,
-        d1: last.d1,
-        d2: last.d2,
-        gain: rollNetBeansAdded(last.potBefore, potAfter, last.busted),
-        name: lastName,
-        busted: !!last.busted,
-        note: last.note,
-      });
-    }
+    const live = resolveDiceReadout(last, lastName, null);
+    if (live) setStickyRoll(live);
   }, [last, lastName]);
 
   // BEAN BUSTER / settle pop only while SETTLED. Server clears lastDice on the
@@ -335,7 +319,12 @@ export function DicePanel({
   const timerLabel = myTurn ? "Your roll" : "Decision";
   const timerLive = timerUntil != null && !rolling && !settling;
 
-  const bustMoment = settling && !!stickyRoll?.busted;
+  // Bust chrome only for THIS settled rollId, faces summing to 7.
+  const bustMoment =
+    settling &&
+    !!last?.revealed &&
+    displayRoll?.rollId === last.rollId &&
+    isBeanBusterReadout(displayRoll);
   const statusLine = rolling
     ? "Rolling…"
     : bustMoment
@@ -350,9 +339,9 @@ export function DicePanel({
 
   // Fresh settle uses live faces; otherwise sticky keeps the prior total through
   // scramble / READY so the readout never blanks mid-turn.
-  const showBust = bustMoment && stickyRoll != null;
+  const showBust = bustMoment && displayRoll != null;
   const showTotal =
-    !showBust && stickyRoll != null && !stickyRoll.busted;
+    !showBust && displayRoll != null && !displayRoll.busted;
   const resultFresh = settling && !!last?.revealed;
   const resultStale = showTotal && rolling;
   const drama = (heroReveal && settling) || rolling || settling;
@@ -386,7 +375,7 @@ export function DicePanel({
               </h2>
               <p className="dice-up-status" aria-live="polite">
                 {bustMoment
-                  ? `${stickyRoll?.name ?? lastName} · pot wiped`
+                  ? `${displayRoll?.name ?? lastName} · pot wiped`
                   : statusLine}
               </p>
             </div>
@@ -430,14 +419,14 @@ export function DicePanel({
             role="status"
             aria-live="assertive"
           >
-            {showBust && stickyRoll ? (
+            {showBust && displayRoll ? (
               <>
                 <p className="dice-result-bust-title">BEAN BUSTER</p>
                 <p className="dice-result-note">Pot gone</p>
               </>
-            ) : showTotal && stickyRoll ? (
+            ) : showTotal && displayRoll ? (
               <p className="dice-result-gain tabular-nums">
-                +{stickyRoll.gain} {RULES.currencyName}
+                +{displayRoll.gain} {RULES.currencyName}
               </p>
             ) : (
               <p className="dice-result-gain dice-result-idle tabular-nums">—</p>

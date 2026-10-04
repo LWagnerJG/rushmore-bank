@@ -337,6 +337,38 @@ describe("ballot privacy projection", () => {
     expect(pub.lastDice?.potAfter).toBeUndefined();
   });
 
+  it("does not clock-leak faces/bust while still COMMITTED past animSettleAt", () => {
+    const state = emptyRoomState("LATE1");
+    state.phase = "DICE";
+    state.diceSubphase = "COMMITTED";
+    state.pots = { p1: 40 };
+    const started = Date.now() - 10_000;
+    state.lastDice = {
+      rollId: "roll-late",
+      rollerId: "p1",
+      d1: 3,
+      d2: 4,
+      personalRollNumber: 2,
+      potBefore: 40,
+      potAfter: 0,
+      busted: true,
+      note: "BEAN BUSTER — pot wiped.",
+      animStartedAt: started,
+      animSettleAt: started + 2200,
+      animSeed: 7,
+      outcomeKind: "bust",
+      revealed: false,
+    };
+    const pub = projectPublicState(state, "p2", Date.now());
+    expect(pub.diceSubphase).toBe("COMMITTED");
+    expect(pub.lastDice?.revealed).toBe(false);
+    expect(pub.lastDice?.d1).toBeUndefined();
+    expect(pub.lastDice?.d2).toBeUndefined();
+    expect(pub.lastDice?.busted).toBeUndefined();
+    // Pot stays until revealCommittedDice — public must not imply a bust yet.
+    expect(pub.pots.p1).toBe(40);
+  });
+
   it("exposes rushmore why during vote without locking scores", () => {
     const state = emptyRoomState("WHY1");
     state.phase = "VOTING_AND_JUDGING";
