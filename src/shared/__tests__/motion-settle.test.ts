@@ -15,6 +15,15 @@ const homeSrc = readFileSync(
   "utf8",
 );
 
+const brandSrc = readFileSync(
+  resolve(__dirname, "../../components/BrandMark.tsx"),
+  "utf8",
+);
+const cueSrc = readFileSync(
+  resolve(__dirname, "../../components/HostAiJudgeCue.tsx"),
+  "utf8",
+);
+
 describe("MotionSettle wiring", () => {
   it("swaps to motion-settled after animationend", () => {
     expect(settleSrc).toMatch(/motion-settled/);
@@ -30,5 +39,17 @@ describe("MotionSettle wiring", () => {
   it("home shell uses MotionSettle for animate-rise", () => {
     expect(homeSrc).toMatch(/MotionSettle/);
     expect(homeSrc).toMatch(/motionClass="animate-rise"/);
+  });
+
+  it("room chrome BrandMark keeps shimmer off and solid wordmark path", () => {
+    expect(roomSrc).toMatch(/BrandMark\s+shimmer=\{false\}/);
+    expect(brandSrc).toMatch(/text-\[var\(--text\)\]/);
+    expect(brandSrc).toMatch(/shapeRendering="auto"/);
+  });
+
+  it("chrome AI cue stays a static chip (no pulse class)", () => {
+    expect(cueSrc).toMatch(/host-ai-chrome/);
+    expect(cueSrc).not.toMatch(/pulse-soft|animate-/);
+    expect(roomSrc).toMatch(/variant="chrome"/);
   });
 });
