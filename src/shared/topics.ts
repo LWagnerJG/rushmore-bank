@@ -1,5 +1,5 @@
 /**
- * Quarry — curated Mount Rushmore-style topic bank (~1290).
+ * Quarry — curated Mount Rushmore-style topic bank (~1288).
  * Prefer basic, drunk-phone-party prompts that yield 4 distinct answers fast.
  * Selection: shuffle + exclude used/seen ids within a room session (see pickRandomTopics).
  * Used (locked) topic ids are hard-excluded so a room never repeats a topic mid-game.
