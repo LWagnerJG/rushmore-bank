@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AddToHomeScreen } from "@/components/AddToHomeScreen";
 import { BrandMark } from "@/components/BrandMark";
+import { DiagPanel } from "@/components/DiagPanel";
 import { normalizeRoomCode, randomRoomCode } from "@/shared/types";
 import { RULES } from "@/shared/rules";
 import { ADMIN_UNLOCK_KEY } from "@/lib/admin-session";
@@ -30,6 +31,10 @@ export default function HomePage() {
   });
   const taps = useRef(0);
   const tapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [diagOpen, setDiagOpen] = useState(() =>
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("diag") === "1",
+  );
 
   // Prefill last nickname on mount so returning players skip the name step.
   useEffect(() => {
@@ -123,7 +128,7 @@ export default function HomePage() {
   }
 
   return (
-    <main className="app-shell app-shell-lock mx-auto flex max-w-md flex-col px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))]">
+    <main className="app-shell app-shell-lock mx-auto flex max-w-md flex-col px-4 pb-[max(1.25rem,env(safe-area-inset-bottom),2.1rem)] pt-[max(1.5rem,env(safe-area-inset-top))]">
       <div className="animate-rise flex min-h-0 flex-1 flex-col justify-center gap-6">
         <header className="space-y-2 text-center">
           <div className="flex justify-center">
@@ -243,6 +248,7 @@ onChange={(e) => {
 
       {/* Outside animate-rise so fixed/absolute children aren’t transform-clipped */}
       <AddToHomeScreen />
+      {diagOpen && <DiagPanel onClose={() => setDiagOpen(false)} />}
     </main>
   );
 }

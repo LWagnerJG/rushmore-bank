@@ -153,6 +153,7 @@ export function LobbyPanel({
           <div className="lobby-start-slot">
             <button
               type="button"
+              data-diag="lobby-start"
               className={
                 "btn-primary w-full text-lg " + (canStart ? "pulse-soft" : "")
               }
