@@ -10,6 +10,7 @@ import { SettingsSheet } from "@/components/SettingsSheet";
 import { HostAiJudgeCue } from "@/components/HostAiJudgeCue";
 import { DiagPanel } from "@/components/DiagPanel";
 import { FinalRoundCue } from "@/components/FinalRoundCue";
+import { MotionSettle } from "@/components/MotionSettle";
 import {
   adoptPlayerIdForRejoin,
   getLastPlayerIdForRejoin,
@@ -479,21 +480,21 @@ export function RoomClient({
             </button>
           </p>
         )}
-        <div
-          key={phase ?? "none"}
-          className={
-            // shrink-0: never let flex crush lobby panels against the cream band.
-            // Safe-area lives on the scroll content (not a dead shell padding strip).
-            // key=phase re-runs a short enter (no perpetual shimmer/rAF).
-            // Extra bottom inset so Start / primary CTAs clear the iPhone home
-            // indicator even when env(safe-area-inset-bottom) reports 0 briefly.
-            phase === "SCORE_REVEAL"
-              ? "phase-panel flex min-h-full flex-col pb-[max(1.25rem,env(safe-area-inset-bottom),2.1rem)]"
-              : "phase-panel phase-enter shrink-0 pb-[max(1.25rem,env(safe-area-inset-bottom),2.1rem)]"
-          }
-        >
-          {body}
-        </div>
+        {phase === "SCORE_REVEAL" ? (
+          <div className="phase-panel flex min-h-full flex-col pb-[max(1.25rem,env(safe-area-inset-bottom),2.1rem)]">
+            {body}
+          </div>
+        ) : (
+          // key=phase remounts MotionSettle so enter runs once, then
+          // .motion-settled strips transform/will-change (iOS soft-raster fix).
+          <MotionSettle
+            key={phase ?? "none"}
+            motionClass="phase-enter"
+            className="phase-panel shrink-0 pb-[max(1.25rem,env(safe-area-inset-bottom),2.1rem)]"
+          >
+            {body}
+          </MotionSettle>
+        )}
       </div>
       <SettingsSheet
         open={settingsOpen}

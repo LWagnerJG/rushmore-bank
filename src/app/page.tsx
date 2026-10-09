@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AddToHomeScreen } from "@/components/AddToHomeScreen";
 import { BrandMark } from "@/components/BrandMark";
 import { DiagPanel } from "@/components/DiagPanel";
+import { MotionSettle } from "@/components/MotionSettle";
 import { normalizeRoomCode, randomRoomCode } from "@/shared/types";
 import { RULES } from "@/shared/rules";
 import { ADMIN_UNLOCK_KEY } from "@/lib/admin-session";
@@ -132,7 +133,10 @@ export default function HomePage() {
       {/* Solid safe-area — no gradient bleed / fade under the status bar */}
       <div className="app-safe-top" aria-hidden="true" />
       <div className="app-shell-scroll flex min-h-0 flex-1 flex-col px-4 pb-[max(1.25rem,env(safe-area-inset-bottom),2.1rem)] pt-4">
-        <div className="animate-rise flex min-h-0 flex-1 flex-col justify-center gap-6">
+        <MotionSettle
+          motionClass="animate-rise"
+          className="flex min-h-0 flex-1 flex-col justify-center gap-6"
+        >
           <header className="space-y-2 text-center">
             <div className="flex justify-center">
               <BrandMark large onLogoTap={onLogoTap} />
@@ -181,7 +185,11 @@ export default function HomePage() {
             </button>
           </section>
         ) : (
-          <section className="home-play-stack space-y-4 animate-rise">
+          <MotionSettle
+            motionClass="animate-rise"
+            as="section"
+            className="home-play-stack space-y-4"
+          >
             <div className="home-playing-as">
               <p className="text-[0.65rem] font-extrabold uppercase tracking-[0.12em] text-[var(--muted)]">
                 Playing as
@@ -239,7 +247,7 @@ export default function HomePage() {
                 </p>
               )}
             </div>
-          </section>
+          </MotionSettle>
         )}
 
         {adminUnlocked && (
@@ -247,10 +255,10 @@ export default function HomePage() {
             Admin unlocked · open a room
           </p>
         )}
-        </div>
+        </MotionSettle>
       </div>
 
-      {/* Outside animate-rise so fixed/absolute children aren’t transform-clipped */}
+      {/* Outside MotionSettle so fixed/absolute children aren’t transform-clipped */}
       <AddToHomeScreen />
       {diagOpen && <DiagPanel onClose={() => setDiagOpen(false)} />}
     </main>

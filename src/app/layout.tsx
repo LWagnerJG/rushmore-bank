@@ -126,7 +126,9 @@ export default function RootLayout({
     // Avoid Tailwind h-full (height:100%) on html/body — it fights --app-h /
     // 100dvh locking and can leave iPad Safari one frame short (faded clip).
     <html lang="en" className={`${nunito.variable} ${sora.variable}`}>
-      <body className="font-[family-name:var(--font-body)] antialiased">
+      {/* Avoid Tailwind `antialiased` (-webkit-font-smoothing:antialiased) on the
+          root — on composited iOS layers it softens ink further. Subpixel/auto. */}
+      <body className="font-[family-name:var(--font-body)]">
         <NoPullToRefresh />
         <StaleClientGuard />
         {children}

@@ -6,6 +6,9 @@ import { FINAL_ROUND_CUE_MS } from "@/shared/final-round-cue";
 /**
  * Short, tasteful full-viewport beat before the last topic round.
  * Phone-first motion; auto-dismisses. Respects prefers-reduced-motion via CSS.
+ *
+ * Must unmount (return null) when done — never leave a fixed full-viewport
+ * veil at opacity:0, which iOS WebKit can keep as a soft composited layer.
  */
 export function FinalRoundCue({
   active,
