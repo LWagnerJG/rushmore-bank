@@ -1242,15 +1242,18 @@ export class QuarryServer extends Server<Env> {
       this.state.seenTopicIds = [];
     }
     // Soft-exclude locked + already-shown topics so rerolls feel fresh.
+    // Hard-exclude locked (used) topics so a room never replays a topic mid-game,
+    // even after soft history is exhausted (big rooms / 6 rounds / vibe filters).
+    const used = this.state.usedTopicIds;
     const softExclude = [
-      ...new Set([...this.state.usedTopicIds, ...this.state.seenTopicIds]),
+      ...new Set([...used, ...this.state.seenTopicIds]),
     ];
     const vibe = this.state.settings.topicVibe ?? "all";
-    let pool = pickRandomTopics(count * 3, softExclude, Math.random, [], vibe);
+    let pool = pickRandomTopics(count * 3, softExclude, Math.random, used, vibe);
     if (pool.length < count) {
       // Soft history exhausted — keep locked topics out, reshuffle the rest.
-      this.state.seenTopicIds = [...this.state.usedTopicIds];
-      pool = pickRandomTopics(count * 3, this.state.usedTopicIds, Math.random, [], vibe);
+      this.state.seenTopicIds = [...used];
+      pool = pickRandomTopics(count * 3, used, Math.random, used, vibe);
     }
     const mix = this.state.settings.scopeMix.filter((s) => s !== "custom");
     if (mix.length > 0) {
