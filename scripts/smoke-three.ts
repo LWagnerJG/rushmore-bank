@@ -1,10 +1,13 @@
 /**
- * Programmatic 3-player smoke against local PartyKit.
+ * Programmatic 3-player smoke against local PartyServer (wrangler dev).
  * Usage: npx tsx scripts/smoke-three.ts
  */
 import PartySocket from "partysocket";
 
-const HOST = process.env.PARTY_HOST || "127.0.0.1:1999";
+const HOST =
+  process.env.PARTY_HOST ||
+  process.env.NEXT_PUBLIC_PARTYKIT_HOST ||
+  "127.0.0.1:8787";
 const CODE = (process.env.ROOM || "SMOK").toUpperCase();
 
 type Msg = { type: string; [k: string]: unknown };

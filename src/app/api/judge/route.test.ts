@@ -16,7 +16,7 @@ function partyRequest(body: unknown = sampleBody): NextRequest {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      "x-quarry-judge": "partykit",
+      "x-quarry-judge": "partyserver",
     },
     body: JSON.stringify(body),
   });

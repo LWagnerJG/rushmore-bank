@@ -1,27 +1,15 @@
 import assert from "node:assert/strict";
-import type * as Party from "partykit/server";
+import type { Connection } from "partyserver";
 import { afterEach, beforeEach, describe, it, vi } from "vitest";
-import QuarryServer from "../../../party/server";
+import { QuarryServer } from "../../../party/server";
+import { createTestServer } from "../../../test/party-server-harness";
 import { RULES } from "../rules";
 
 const START = 1_800_000_000_000;
 
 function game() {
-  const saved = new Map<string, unknown>();
-  let deadline: number | null = null;
-  const room = {
-    id: "TEST",
-    storage: {
-      async get(key: string) { return structuredClone(saved.get(key)); },
-      async put(key: string, value: unknown) { saved.set(key, structuredClone(value)); },
-      async delete(key: string) { return saved.delete(key); },
-      async getAlarm() { return deadline; },
-      async setAlarm(at: number) { deadline = at; },
-      async deleteAlarm() { deadline = null; },
-    },
-    getConnections: () => [],
-  } as unknown as Party.Room;
-  const server = new QuarryServer(room);
+  const harness = createTestServer("TEST");
+  const { server } = harness;
   server.state.players = ["A", "B", "C"].map((id, seat) => ({
     id, name: id, seat, connected: true, isHost: seat === 0,
     role: "player", stones: 20, joinedAt: START,
@@ -31,21 +19,20 @@ function game() {
   server.state.configuredTopicRounds = 3;
   server.state.earnedThisRound = { A: 20, B: 20, C: 20 };
   return {
-    room, server, saved,
-    deadline: () => deadline,
+    ...harness,
     async fire(target = server) {
-      assert.notEqual(deadline, null, "expected a scheduled deadline");
-      vi.setSystemTime(deadline!);
+      assert.notEqual(harness.deadline(), null, "expected a scheduled deadline");
+      vi.setSystemTime(harness.deadline()!);
       // Storage consumes the physical alarm before invoking onAlarm.
-      deadline = null;
+      harness.setDeadline(null);
       await target.onAlarm();
     },
   };
 }
 
 async function reconnect(server: QuarryServer, id = "B") {
-  const conn = { id, send() {} } as unknown as Party.Connection;
-  server.onClose(conn);
+  const conn = { id, send() {} } as unknown as Connection;
+  server.onClose(conn, 1000, "", true);
   server.onConnect(conn);
   await server.persist();
 }
@@ -235,7 +222,10 @@ describe("authoritative deadlines across reconnects", () => {
     const g = game();
     await g.server.beginDraft();
     await reconnect(g.server);
-    const restarted = new QuarryServer(g.room);
+    const restarted = createTestServer("TEST", {
+      saved: g.saved,
+      deadlineRef: g.deadlineRef,
+    }).server;
     await restarted.onStart();
     await reconnect(restarted, "A");
     await g.fire(restarted);
@@ -250,7 +240,10 @@ describe("authoritative deadlines across reconnects", () => {
     await reconnect(g.server);
     // Old deployed rooms have no turn identity or deadline in the payload.
     g.saved.set("alarm", { kind: "pick", revision });
-    const restarted = new QuarryServer(g.room);
+    const restarted = createTestServer("TEST", {
+      saved: g.saved,
+      deadlineRef: g.deadlineRef,
+    }).server;
     await restarted.onStart();
     await reconnect(restarted, "A");
     await g.fire(restarted);
@@ -263,7 +256,10 @@ describe("authoritative deadlines across reconnects", () => {
     await g.server.handleRoll("A");
     await g.server.persist();
     g.saved.set("alarm", { kind: "dice_idle", revision: g.server.state.phaseRevision });
-    const restarted = new QuarryServer(g.room);
+    const restarted = createTestServer("TEST", {
+      saved: g.saved,
+      deadlineRef: g.deadlineRef,
+    }).server;
     await restarted.onStart();
     await reconnect(restarted, "A");
     await g.fire(restarted);

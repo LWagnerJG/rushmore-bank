@@ -1,7 +1,15 @@
-/** Deployed PartyKit host — used when NEXT_PUBLIC_PARTYKIT_HOST is unset. */
-export const DEFAULT_PARTYKIT_HOST = "rushmore-bank.lwagnerjg.partykit.dev";
+/**
+ * Default PartyServer host (no protocol) when NEXT_PUBLIC_PARTYKIT_HOST is unset.
+ *
+ * After `npx wrangler deploy` of worker `beans-party`, replace the placeholder
+ * subdomain with your Cloudflare account workers.dev subdomain, e.g.
+ * `beans-party.myaccount.workers.dev`. Prefer setting NEXT_PUBLIC_PARTYKIT_HOST
+ * on Vercel so this default is only a local/fallback hint.
+ */
+export const DEFAULT_PARTYKIT_HOST =
+  "beans-party.YOUR_SUBDOMAIN.workers.dev";
 
-/** PartyKit host for browser clients. */
+/** PartyServer (or local wrangler) host for browser clients. */
 export function getPartyHost(): string {
   return process.env.NEXT_PUBLIC_PARTYKIT_HOST || DEFAULT_PARTYKIT_HOST;
 }

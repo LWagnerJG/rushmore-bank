@@ -1,0 +1,35 @@
+name: Deploy PartyServer
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "party/**"
+      - "wrangler.jsonc"
+      - "src/shared/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/deploy-partyserver.yml"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Deploy PartyServer (wrangler)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "Skipping deploy: CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID secrets are not set."
+            echo "Add both as GitHub Actions secrets, then re-run this workflow (or run npx wrangler deploy locally)."
+            exit 0
+          fi
+          npx wrangler deploy

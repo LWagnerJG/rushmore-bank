@@ -3,40 +3,15 @@
  * cancel vs roll anim, seat reclaim id remaps, bust-redo leave recovery.
  */
 import assert from "node:assert/strict";
-import type * as Party from "partykit/server";
 import { afterEach, beforeEach, describe, it, vi } from "vitest";
-import QuarryServer from "../../../party/server";
+import { QuarryServer } from "../../../party/server";
+import { createTestServer } from "../../../test/party-server-harness";
 
 const START = 1_800_000_000_000;
 
 function game() {
-  const saved = new Map<string, unknown>();
-  let deadline: number | null = null;
-  const room = {
-    id: "ROBU",
-    storage: {
-      async get(key: string) {
-        return structuredClone(saved.get(key));
-      },
-      async put(key: string, value: unknown) {
-        saved.set(key, structuredClone(value));
-      },
-      async delete(key: string) {
-        return saved.delete(key);
-      },
-      async getAlarm() {
-        return deadline;
-      },
-      async setAlarm(at: number) {
-        deadline = at;
-      },
-      async deleteAlarm() {
-        deadline = null;
-      },
-    },
-    getConnections: () => [],
-  } as unknown as Party.Room;
-  const server = new QuarryServer(room);
+  const harness = createTestServer("ROBU");
+  const { server } = harness;
   server.state.players = ["A", "B", "C"].map((id, seat) => ({
     id,
     name: id,
@@ -51,11 +26,11 @@ function game() {
   server.state.rosterLocked = true;
   return {
     server,
-    deadline: () => deadline,
+    deadline: harness.deadline,
     async fire() {
-      assert.notEqual(deadline, null);
-      vi.setSystemTime(deadline!);
-      deadline = null;
+      assert.notEqual(harness.deadline(), null);
+      vi.setSystemTime(harness.deadline()!);
+      harness.setDeadline(null);
       await server.onAlarm();
     },
   };

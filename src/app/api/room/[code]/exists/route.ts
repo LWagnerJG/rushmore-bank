@@ -1,16 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getPartyHost } from "@/lib/party";
 import { normalizeRoomCode } from "@/shared/types";
-
-const PARTYKIT_HOST =
-  process.env.NEXT_PUBLIC_PARTYKIT_HOST ||
-  "rushmore-bank.lwagnerjg.partykit.dev";
 
 /**
  * GET /api/room/[code]/exists
  *
- * Proxies a GET to the PartyKit room's onRequest handler and returns
- * { exists: boolean }. If the PartyKit server hasn't been redeployed yet
- * (pre-onRequest), the request will fail and we return { exists: true } so
+ * Proxies a GET to the PartyServer room's onRequest handler and returns
+ * { exists: boolean }. If the request fails we return { exists: true } so
  * the join is allowed (safe fallback — existing behaviour preserved).
  */
 export async function GET(
@@ -23,8 +19,14 @@ export async function GET(
     return NextResponse.json({ exists: false }, { status: 200 });
   }
 
+  const host = getPartyHost();
+  const scheme =
+    host.startsWith("127.0.0.1") || host.startsWith("localhost")
+      ? "http"
+      : "https";
+
   try {
-    const url = `https://${PARTYKIT_HOST}/parties/main/${code}`;
+    const url = `${scheme}://${host}/parties/main/${code}`;
     const res = await fetch(url, {
       method: "GET",
       headers: { Accept: "application/json" },

@@ -73,14 +73,16 @@ function authorize(req: NextRequest): "ok" | "fallback_only" | "deny" {
   const hasKey = hasPaidJudgeKey();
   const header = req.headers.get("authorization") || "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : "";
-  const fromParty = req.headers.get("x-quarry-judge") === "partykit";
+  const judgeMark = req.headers.get("x-quarry-judge");
+  const fromParty =
+    judgeMark === "partyserver" || judgeMark === "partykit";
 
   if (secret) {
     return token === secret ? "ok" : "deny";
   }
   // No JUDGE_SECRET: never burn paid AI credits from anonymous callers.
   if (hasKey && !fromParty) return "deny";
-  if (hasKey && fromParty) return "ok"; // local/dev PartyKit without secret
+  if (hasKey && fromParty) return "ok"; // local/dev PartyServer without secret
   return "fallback_only";
 }
 

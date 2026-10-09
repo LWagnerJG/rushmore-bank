@@ -5,6 +5,8 @@ on:
     paths:
       - "party/**"
       - "src/**"
+      - "test/**"
+      - "wrangler.jsonc"
       - "package.json"
       - "package-lock.json"
       - "vitest.config.ts"
@@ -14,6 +16,8 @@ on:
     paths:
       - "party/**"
       - "src/**"
+      - "test/**"
+      - "wrangler.jsonc"
       - "package.json"
       - "package-lock.json"
       - "vitest.config.ts"
