@@ -9,7 +9,7 @@
  */
 
 /* Bump when shipping compositor/CSS fixes so installed PWAs drop old bundles. */
-const CACHE = "beans-shell-v3";
+const CACHE = "beans-shell-v4";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();

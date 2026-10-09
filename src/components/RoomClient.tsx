@@ -312,10 +312,10 @@ export function RoomClient({
     >
       <header
         className={
+          // Solid border colors only — rgba borders inside overflow/composite
+          // roots contributed to soft header rasterization on iPhone.
           "room-chrome shrink-0 -mx-4 mb-3 border-b " +
-          (partyOn
-            ? "room-chrome-party border-[rgba(255,107,74,0.18)]"
-            : "border-[rgba(35,72,62,0.08)]")
+          (partyOn ? "room-chrome-party" : "")
         }
       >
         {/*
@@ -377,16 +377,14 @@ export function RoomClient({
               // Keep Party badge alone when party mode is on.
               partyOn ? (
                 <div className="flex shrink-0 items-center justify-end pt-0.5">
-                  <span className="rounded-full bg-[rgba(255,107,74,0.25)] px-2 py-0.5 text-[0.65rem] font-extrabold text-[var(--text)]">
-                    Party
-                  </span>
+                  <span className="room-chrome-pill">Party</span>
                 </div>
               ) : null
             ) : (
               <div className="text-right text-xs font-bold uppercase tracking-wide text-[var(--muted)]">
                 <div className="flex items-center justify-end gap-1.5">
                   {partyOn && (
-                    <span className="rounded-full bg-[rgba(255,107,74,0.25)] px-2 py-0.5 text-[0.65rem] font-extrabold normal-case tracking-normal text-[var(--text)]">
+                    <span className="room-chrome-pill normal-case tracking-normal">
                       Party
                     </span>
                   )}

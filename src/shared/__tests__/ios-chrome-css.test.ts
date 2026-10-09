@@ -21,9 +21,33 @@ describe("iOS chrome + keyboard CSS contracts", () => {
     expect(css).toMatch(
       /\.room-chrome-safe,\s*\n?\s*\.app-safe-top|\.room-chrome-safe,\s*\.app-safe-top/,
     );
-    // Solid cream — not a translucent frost fill
+    // Solid cream — not a translucent frost fill (hex or --bg)
     expect(css).toMatch(
-      /\.room-chrome-safe,\s*\n?[\s\S]*?background:\s*var\(--bg\)/,
+      /\.room-chrome-safe,\s*\n?[\s\S]*?background:\s*(?:var\(--bg\)|#f5f0e7)/,
+    );
+  });
+
+  it("keeps room-chrome fully static (no soft compositing traps)", () => {
+    const chrome = css.match(/\.room-chrome\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
+    const decls = chrome.replace(/\/\*[\s\S]*?\*\//g, "");
+    expect(decls).toMatch(/overflow:\s*visible/);
+    expect(decls).not.toMatch(/overflow:\s*hidden/);
+    expect(decls).toMatch(/will-change:\s*auto/);
+    // Universal lock on chrome descendants
+    expect(css).toMatch(
+      /\.room-chrome,\s*\n?\s*\.room-chrome \*\s*\{[\s\S]*?animation:\s*none\s*!important/,
+    );
+    expect(css).toMatch(
+      /\.room-chrome,\s*\n?\s*\.room-chrome \*\s*\{[\s\S]*?background-clip:\s*border-box\s*!important/,
+    );
+    // AI chrome chip uses solid hex fills, not rgba alphas
+    const ready =
+      css.match(/\.host-ai-chrome-ready\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
+    expect(ready.replace(/\/\*[\s\S]*?\*\//g, "")).toMatch(
+      /background:\s*#[0-9a-fA-F]{3,8}/,
+    );
+    expect(ready.replace(/\/\*[\s\S]*?\*\//g, "")).not.toMatch(
+      /background:\s*rgba\(/,
     );
   });
 

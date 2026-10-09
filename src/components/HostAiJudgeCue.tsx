@@ -5,6 +5,10 @@ import { hostAiCue } from "@/shared/host-ai-cue";
  * Host-only discreet AI judge health cue.
  * Wired to PartyKit `hostAiJudge` (last real judge job + pending + ready).
  * Always renders for hosts — never blank before round 1.
+ *
+ * Chrome variant is intentionally static (no pulse / opacity animation) —
+ * an infinite transform/opacity animation next to BrandMark kept the whole
+ * .room-chrome band soft-rasterized on iPhone after #105.
  */
 export function HostAiJudgeCue({
   health,
@@ -12,7 +16,7 @@ export function HostAiJudgeCue({
 }: {
   /** Missing status stays unknown until the server reports it. */
   health: HostAiJudgeHealth | undefined | null;
-  /** chip = settings row; chrome = compact text next to Beans logo */
+  /** chip = settings row; chrome = compact static text next to Beans logo */
   variant?: "chip" | "chrome";
 }) {
   const { status, label, detail } = hostAiCue(health);

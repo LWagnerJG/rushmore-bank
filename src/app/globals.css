@@ -162,31 +162,32 @@ html.party-on body::before {
 }
 
 /*
- * Room chrome: opaque cream only — no backdrop-filter, isolation, filter,
- * transform, or overflow:visible compositing traps.
+ * Room chrome: fully static paint band — logo, AI cue, LOBBY/beans.
  *
- * History (matched to Luke's iPhone screenshot: status bar crisp, Beans +
- * BANK soft, Admin notice sharper):
- * 1) #87 — removed ::before frost (backdrop-filter blur over safe-area).
- * 2) #88 — dropped leftover isolation:isolate + room brand-shimmer
- *    (background-clip:text), which soft-rasterized the whole stacking context.
- * 3) Still soft after #88 because (a) pt-safe-area lived on the SAME element
- *    as BrandMark/BANK under black-translucent, so the under-status band and
- *    sharp text shared one paint path; (b) PlayerRail up-seat transform/
- *    filter glow required overflow:visible on .room-chrome, expanding that
- *    soft layer. Fix: opaque .room-chrome-safe spacer + sharp .room-chrome-body
- *    below the notch; rail moved outside chrome.
- * 4) Any top fade/mask/blur overlay is forbidden — safe-area is a solid spacer
- *    (also used on home/join). Content must start below it, never under it.
+ * After #105 the phase panel (room code) went crisp, but Luke's iPhone still
+ * showed a soft header while EXGL stayed sharp. That means the trap is local
+ * to header.room-chrome (or a child that promotes the whole band):
+ * 1) overflow:hidden on the header created a compositing root.
+ * 2) Translucent rgba fills on .host-ai-chrome / Party pills inside that root
+ *    soft-rasterized siblings (SVG + wordmark + LOBBY) at low device scale.
+ * 3) Any shimmer / infinite opacity|transform animation in the header would
+ *    keep the band promoted forever — forbidden here.
+ *
+ * Contract: solid backgrounds, plain ink text, no animation/transform/
+ * will-change/filter/backdrop/mask/mix-blend/background-clip:text in chrome.
  */
 .room-chrome {
   position: relative;
-  overflow: hidden;
-  background: var(--bg);
-  /* No transform / filter / will-change — those soft-rasterize the band on iOS */
+  /* visible — overflow:hidden was promoting a soft layer for the whole band */
+  overflow: visible;
+  background: #f5f0e7;
+  border-color: #d9e0dc;
   transform: none;
   filter: none;
   will-change: auto;
+  isolation: auto;
+  contain: none;
+  opacity: 1;
 }
 
 /* Explicitly kill any frost/fade pseudo overlay on chrome (past ::before). */
@@ -201,6 +202,36 @@ html.party-on body::before {
 }
 
 /*
+ * Hard static lock for every chrome descendant — iOS must not keep a
+ * composited layer on the header after #105 settled the phase panel.
+ */
+.room-chrome,
+.room-chrome * {
+  animation: none !important;
+  transition: none !important;
+  transform: none !important;
+  will-change: auto !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  mask-image: none !important;
+  -webkit-mask-image: none !important;
+  mix-blend-mode: normal !important;
+  text-shadow: none !important;
+  -webkit-text-stroke: 0 !important;
+  /* Kill gradient / clipped-text shimmer even if BrandMark shimmer sneaks in */
+  -webkit-background-clip: border-box !important;
+  background-clip: border-box !important;
+}
+
+.room-chrome .brand-shimmer,
+.room-chrome [class*="brand-shimmer"] {
+  color: var(--text) !important;
+  background-image: none !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+/*
  * Solid safe-area spacer under the notch / Dynamic Island.
  * Used by room chrome AND home/join shells so the body::before gradient
  * never reads as a top blur/fade cutting into brand or phase content.
@@ -210,9 +241,8 @@ html.party-on body::before {
   height: env(safe-area-inset-top, 0px);
   min-height: 0.5rem;
   flex-shrink: 0;
-  background: var(--bg);
+  background: #f5f0e7;
   pointer-events: none;
-  /* No blur / transparency — solid paint only */
   opacity: 1;
   filter: none;
   backdrop-filter: none;
@@ -223,12 +253,14 @@ html.party-on body::before {
 
 .room-chrome-body {
   position: relative;
-  background: var(--bg);
+  background: #f5f0e7;
+  overflow: visible;
 }
 
 .room-chrome-top {
-  /* Keep logo + BANK on a simple flex — no transform/filter ancestors */
+  /* Keep logo + LOBBY on a simple flex — no transform/filter ancestors */
   position: relative;
+  overflow: visible;
 }
 
 .room-chrome-party,
@@ -237,6 +269,24 @@ html.party-on .room-chrome-safe,
 html.party-on .room-chrome-body,
 html.party-on .app-safe-top {
   background: #fff8ec;
+}
+
+html.party-on .room-chrome {
+  border-color: #f0c4b0;
+}
+
+/* Solid chrome meta pills — no rgba translucent fills in the header band */
+.room-chrome-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 0.45rem;
+  padding: 0.12rem 0.45rem;
+  font-size: 0.65rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--text);
+  background: #f0c4b0;
+  border: 1px solid #e8a88e;
 }
 
 .room-rail-slot {
@@ -3528,13 +3578,17 @@ html.party-on .draft-board-table thead th.is-you {
   color: var(--muted);
 }
 
-.host-ai-chip-unknown,
-.host-ai-chrome-unknown {
+.host-ai-chip-unknown {
   background: var(--bg);
   color: var(--text);
 }
 
-/* Compact chrome chip beside Beans logo — readable on phone, not a tiny dot */
+/*
+ * Compact chrome chip beside Beans logo.
+ * SOLID fills only — rgba alphas inside .room-chrome soft-rasterized the
+ * whole header (logo + wordmark + LOBBY) on iPhone after #105.
+ * Never animate this chip (no pulse/opacity/transform).
+ */
 .host-ai-chrome {
   flex-shrink: 0;
   display: inline-flex;
@@ -3546,25 +3600,40 @@ html.party-on .draft-board-table thead th.is-you {
   font-weight: 800;
   letter-spacing: 0.01em;
   line-height: 1;
-  border: 1px solid rgba(35, 72, 62, 0.12);
+  border: 1px solid #c5d9cf;
   white-space: nowrap;
+  color: var(--text);
+  background: #d8ebe2;
+  opacity: 1;
+  animation: none !important;
+  transform: none !important;
+  will-change: auto !important;
+  filter: none !important;
 }
 .host-ai-chrome-ok {
-  background: rgba(167, 215, 194, 0.5);
+  background: #cfe8db;
   color: var(--text);
+  border-color: #a7d7c2;
 }
 .host-ai-chrome-fallback {
-  background: rgba(231, 111, 78, 0.18);
+  background: #f3d0c4;
   color: var(--text);
+  border-color: #e8a88e;
 }
 .host-ai-chrome-pending {
-  background: rgba(244, 201, 91, 0.32);
-  color: var(--muted);
+  background: #f6e4b0;
+  color: var(--text);
+  border-color: #e2c86a;
 }
 .host-ai-chrome-ready {
-  background: rgba(167, 215, 194, 0.42);
+  background: #d8ebe2;
   color: var(--text);
-  border-color: rgba(35, 72, 62, 0.16);
+  border-color: #b7d7c8;
+}
+.host-ai-chrome-unknown {
+  background: #f5f0e7;
+  color: var(--text);
+  border-color: #d9e0dc;
 }
 
 .settings-toggle {
