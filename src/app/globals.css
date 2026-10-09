@@ -290,7 +290,7 @@ html.party-on .btn-primary {
 
 @keyframes rise {
   from {
-    opacity: 0;
+    opacity: 0.01;
     transform: translateY(10px);
   }
   to {
@@ -302,19 +302,18 @@ html.party-on .btn-primary {
 
 .animate-rise {
   /*
-   * fill-mode: forwards — keep final opacity:1/transform:none after the rise.
-   * The `to` keyframe uses `transform: none` (same as no transform) so there
-   * is no stacking-context side-effect after the animation ends. Without
-   * fill-mode, interrupted animations (orientation change, app-switch) can
-   * leave content stuck at the `from` opacity:0 on Safari/iPad.
+   * Base opacity:1 so an interrupted/cancelled animation on iPad Safari
+   * never leaves the home/room shell stuck invisible. Keyframes still fade
+   * up while the animation runs; fill-mode keeps the settled transform:none.
    */
+  opacity: 1;
   animation: rise 380ms ease-out forwards;
 }
 
 /* Phase body enter — short, once per phase change (keyed in RoomClient). */
 @keyframes phase-enter {
   from {
-    opacity: 0;
+    opacity: 0.01;
     transform: translateY(8px);
   }
   to {
@@ -324,7 +323,10 @@ html.party-on .btn-primary {
 }
 
 .phase-enter {
-  animation: phase-enter 280ms ease-out both;
+  /* Same base opacity:1 + forwards (not both) — `both` applied the from-keyframe
+   * before start and could stick at ~0 after orientation flips on iPad. */
+  opacity: 1;
+  animation: phase-enter 280ms ease-out forwards;
 }
 
 @keyframes score-land {
@@ -2504,12 +2506,29 @@ html.party-on .status-pill-ready {
   .dice-timer-urgent,
   .wager-timer-urgent {
     animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
   }
 
   .party-switch-knob,
   .panel,
   body {
     transition: none !important;
+  }
+}
+
+/*
+ * iPad / large coarse-pointer viewports: skip opacity enter animations.
+ * Orientation changes mid-animation were leaving .animate-rise / .phase-enter
+ * stuck near opacity 0 (content looks "faded" or blank). Height still uses
+ * --app-h from visualViewport (see NoPullToRefresh).
+ */
+@media (min-width: 768px) and (pointer: coarse) {
+  .animate-rise,
+  .phase-enter {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
 
@@ -3090,20 +3109,20 @@ html.dice-your-turn::after {
   top: 0;
   z-index: 2;
   text-align: center;
-  backdrop-filter: blur(8px);
-  background: rgba(245, 240, 231, 0.92);
+  /* Solid fill — backdrop-filter blur soft-rasterizes sibling chrome on iPad */
+  background: #f5f0e7;
 }
 
 .draft-board-table thead th.is-you {
-  background: rgba(167, 215, 194, 0.92);
+  background: #d8ebe2;
 }
 
 html.party-on .draft-board-table thead th {
-  background: rgba(255, 248, 236, 0.94);
+  background: #fff8ec;
 }
 
 html.party-on .draft-board-table thead th.is-you {
-  background: rgba(126, 217, 184, 0.88);
+  background: #b8e6d2;
 }
 
 .draft-board-table th,

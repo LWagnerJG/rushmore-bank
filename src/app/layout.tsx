@@ -118,8 +118,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${nunito.variable} ${sora.variable} h-full`}>
-      <body className="h-full font-[family-name:var(--font-body)] antialiased">
+    // Avoid Tailwind h-full (height:100%) on html/body — it fights --app-h /
+    // 100dvh locking and can leave iPad Safari one frame short (faded clip).
+    <html lang="en" className={`${nunito.variable} ${sora.variable}`}>
+      <body className="font-[family-name:var(--font-body)] antialiased">
         <NoPullToRefresh />
         {children}
       </body>
