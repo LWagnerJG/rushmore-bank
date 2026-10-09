@@ -1,0 +1,27 @@
+name: Judge health smoke
+
+on:
+  schedule:
+    # ~9:00 AM America/New_York year-round (UTC-4 / UTC-5).
+    # 13:00 UTC ≈ 9am EDT; 14:00 UTC ≈ 9am EST.
+    - cron: "0 13 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: POST /api/judge smoke
+        env:
+          JUDGE_SECRET: ${{ secrets.JUDGE_SECRET }}
+          # Optional repo variable; script defaults to https://beans-game.vercel.app
+          JUDGE_URL: ${{ vars.JUDGE_URL }}
+        run: node scripts/judge-smoke.mjs

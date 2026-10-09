@@ -93,6 +93,17 @@ function migrateState(raw: RoomState): RoomState {
     lastJudgeOutcome:
       (raw as RoomState & { lastJudgeOutcome?: RoomState["lastJudgeOutcome"] })
         .lastJudgeOutcome ?? null,
+    lastJudgeFallbackReason:
+      (raw as RoomState & {
+        lastJudgeFallbackReason?: RoomState["lastJudgeFallbackReason"];
+      }).lastJudgeFallbackReason ?? null,
+    lastJudgeModel:
+      (raw as RoomState & { lastJudgeModel?: RoomState["lastJudgeModel"] })
+        .lastJudgeModel ?? null,
+    lastJudgeLatencyMs:
+      (raw as RoomState & {
+        lastJudgeLatencyMs?: RoomState["lastJudgeLatencyMs"];
+      }).lastJudgeLatencyMs ?? null,
     topicVotes: raw.topicVotes ?? {},
     usedTopicIds: raw.usedTopicIds ?? [],
     seenTopicIds: Array.isArray(
@@ -1676,7 +1687,9 @@ export class QuarryServer extends Server<Env> {
   async runJudgingJob(jobId: string) {
     const topic = this.state.selectedTopic;
     if (!topic) {
-      this.applyJudgeFallback(jobId, "No topic — neutral award.");
+      this.applyJudgeFallback(jobId, "No topic — neutral award.", {
+        fallbackReason: "invalid_output",
+      });
       return;
     }
     const picksByPlayer: Record<string, string[]> = {};
@@ -1724,7 +1737,9 @@ export class QuarryServer extends Server<Env> {
       if (this.state.phase !== "VOTING_AND_JUDGING") return;
 
       if (!res.ok) {
-        this.applyJudgeFallback(jobId, RULES.aiFallbackLabel);
+        this.applyJudgeFallback(jobId, RULES.aiFallbackLabel, {
+          fallbackReason: "provider_error",
+        });
         return;
       }
       const data = (await res.json()) as {
@@ -1737,19 +1752,30 @@ export class QuarryServer extends Server<Env> {
           explanation: string;
         }>;
         fallback?: boolean;
+        fallbackReason?: RoomState["lastJudgeFallbackReason"];
         limitation?: string;
+        model?: string | null;
+        latencyMs?: number | null;
       };
 
       if (this.state.judgeJobId !== jobId || this.state.scoresLocked) return;
 
       if (data.fallback || !data.judgments) {
-        this.applyJudgeFallback(jobId, RULES.aiFallbackLabel);
+        this.applyJudgeFallback(jobId, RULES.aiFallbackLabel, {
+          fallbackReason: data.fallbackReason ?? "provider_error",
+          model: data.model ?? null,
+          latencyMs: data.latencyMs ?? null,
+        });
         return;
       }
 
       const mapped = validateAndMapJudgments(rosters, data.judgments);
       if (!mapped) {
-        this.applyJudgeFallback(jobId, RULES.aiFallbackLabel);
+        this.applyJudgeFallback(jobId, RULES.aiFallbackLabel, {
+          fallbackReason: "invalid_output",
+          model: data.model ?? null,
+          latencyMs: data.latencyMs ?? null,
+        });
         return;
       }
 
@@ -1757,16 +1783,33 @@ export class QuarryServer extends Server<Env> {
       this.state.judgeStatus = "ready";
       this.state.judgeNotice = null;
       this.state.lastJudgeOutcome = "ok";
+      this.state.lastJudgeFallbackReason = null;
+      this.state.lastJudgeModel = data.model ?? null;
+      this.state.lastJudgeLatencyMs =
+        typeof data.latencyMs === "number" ? data.latencyMs : null;
       await this.persist();
       this.broadcastState();
       await this.maybeFinalizeAfterJudge();
-    } catch {
+    } catch (err) {
       if (this.state.judgeJobId !== jobId || this.state.scoresLocked) return;
-      this.applyJudgeFallback(jobId, RULES.aiFallbackLabel);
+      const timedOut =
+        err instanceof Error &&
+        (err.name === "AbortError" || /aborted/i.test(err.message));
+      this.applyJudgeFallback(jobId, RULES.aiFallbackLabel, {
+        fallbackReason: timedOut ? "timeout" : "provider_error",
+      });
     }
   }
 
-  applyJudgeFallback(jobId: string, notice: string) {
+  applyJudgeFallback(
+    jobId: string,
+    notice: string,
+    meta?: {
+      fallbackReason?: RoomState["lastJudgeFallbackReason"];
+      model?: string | null;
+      latencyMs?: number | null;
+    },
+  ) {
     if (this.state.judgeJobId !== jobId || this.state.scoresLocked) return;
     if (this.state.phase !== "VOTING_AND_JUDGING") return;
     const picksByPlayer: Record<string, string[]> = {};
@@ -1779,6 +1822,10 @@ export class QuarryServer extends Server<Env> {
     this.state.scores = neutralJudgments(rosters);
     this.state.judgeStatus = "failed";
     this.state.lastJudgeOutcome = "fallback";
+    this.state.lastJudgeFallbackReason = meta?.fallbackReason ?? "provider_error";
+    this.state.lastJudgeModel = meta?.model ?? null;
+    this.state.lastJudgeLatencyMs =
+      typeof meta?.latencyMs === "number" ? meta.latencyMs : null;
     // Never show raw HTTP / model errors to players.
     this.state.judgeNotice = sanitizeJudgeNotice(notice);
     void this.persist().then(() => this.broadcastState());
@@ -1841,6 +1888,8 @@ export class QuarryServer extends Server<Env> {
       this.state.judgeStatus = "failed";
       this.state.judgeNotice = RULES.aiFallbackLabel;
       this.state.lastJudgeOutcome = "fallback";
+      this.state.lastJudgeFallbackReason =
+        this.state.lastJudgeFallbackReason ?? "provider_error";
     }
 
     const votes =
@@ -3145,6 +3194,9 @@ export class QuarryServer extends Server<Env> {
     this.state.judgeStatus = "ready";
     this.state.judgeNotice = null;
     this.state.lastJudgeOutcome = "ok";
+    this.state.lastJudgeFallbackReason = null;
+    this.state.lastJudgeModel = "admin";
+    this.state.lastJudgeLatencyMs = null;
   }
   adminSeedVoteWhys() {
     if (this.state.scores.length > 0) return;

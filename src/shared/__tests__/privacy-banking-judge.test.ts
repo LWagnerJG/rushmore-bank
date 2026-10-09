@@ -247,24 +247,32 @@ describe("ballot privacy projection", () => {
 
     const forHost = projectPublicState(state, "host");
     const forGuest = projectPublicState(state, "guest");
-    expect(forHost.hostAiJudge).toBe("ok");
+    expect(forHost.hostAiJudge?.status).toBe("ok");
     expect(forGuest.hostAiJudge).toBeUndefined();
     expect(JSON.stringify(forGuest)).not.toMatch(/hostAiJudge/);
     expect(JSON.stringify(forHost)).not.toMatch(/lastJudgeOutcome/);
 
     state.phase = "VOTING_AND_JUDGING";
     state.judgeStatus = "pending";
-    expect(projectPublicState(state, "host").hostAiJudge).toBe("pending");
+    expect(projectPublicState(state, "host").hostAiJudge?.status).toBe(
+      "pending",
+    );
 
     state.phase = "SCORE_REVEAL";
-    expect(projectPublicState(state, "host").hostAiJudge).toBe("ok");
+    expect(projectPublicState(state, "host").hostAiJudge?.status).toBe("ok");
     state.phase = "VOTING_AND_JUDGING";
     state.scoresLocked = true;
-    expect(projectPublicState(state, "host").hostAiJudge).toBe("ok");
+    expect(projectPublicState(state, "host").hostAiJudge?.status).toBe("ok");
 
     state.judgeStatus = "failed";
     state.lastJudgeOutcome = "fallback";
-    expect(projectPublicState(state, "host").hostAiJudge).toBe("fallback");
+    state.lastJudgeFallbackReason = "timeout";
+    expect(projectPublicState(state, "host").hostAiJudge?.status).toBe(
+      "fallback",
+    );
+    expect(projectPublicState(state, "host").hostAiJudge?.fallbackReason).toBe(
+      "timeout",
+    );
   });
 
   it("projects ready for hosts before any judge job (never blank)", () => {
@@ -283,7 +291,7 @@ describe("ballot privacy projection", () => {
     ];
     state.lastJudgeOutcome = null;
     state.judgeStatus = "idle";
-    expect(projectPublicState(state, "host").hostAiJudge).toBe("ready");
+    expect(projectPublicState(state, "host").hostAiJudge?.status).toBe("ready");
   });
 
   it("omits ledger / usedTopicIds from public projection", () => {
