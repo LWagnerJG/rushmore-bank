@@ -9,6 +9,7 @@ import { BrandMark } from "@/components/BrandMark";
 import { SettingsSheet } from "@/components/SettingsSheet";
 import { HostAiJudgeCue } from "@/components/HostAiJudgeCue";
 import { DiagPanel } from "@/components/DiagPanel";
+import { FinalRoundCue } from "@/components/FinalRoundCue";
 import {
   adoptPlayerIdForRejoin,
   getLastPlayerIdForRejoin,
@@ -27,6 +28,7 @@ import { DicePanel } from "@/components/DicePanel";
 import { ResultsPanel } from "@/components/ResultsPanel";
 import { PlayerRail } from "@/components/PlayerRail";
 import { AdminPanel } from "@/components/AdminPanel";
+import { shouldFireFinalRoundCue } from "@/shared/final-round-cue";
 
 function DraftBannerClock({
   until,
@@ -132,6 +134,9 @@ export function RoomClient({
     typeof window !== "undefined" &&
     new URLSearchParams(window.location.search).get("diag") === "1",
   );
+  const [finalCueActive, setFinalCueActive] = useState(false);
+  const prevPhaseRef = useRef<Phase | null | undefined>(undefined);
+  const finalCueShownKeyRef = useRef<string | null>(null);
   const logoTapRef = useRef(0);
   const logoTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -157,6 +162,22 @@ export function RoomClient({
     else root.classList.remove("party-on");
     return () => root.classList.remove("party-on");
   }, [partyOn]);
+
+  useEffect(() => {
+    if (!state) return;
+    const key = `${state.configuredTopicRounds}:${state.topicRound}`;
+    const fire = shouldFireFinalRoundCue({
+      phase: state.phase,
+      topicRound: state.topicRound,
+      configuredTopicRounds: state.configuredTopicRounds,
+      prevPhase: prevPhaseRef.current,
+    });
+    prevPhaseRef.current = state.phase;
+    if (!fire) return;
+    if (finalCueShownKeyRef.current === key) return;
+    finalCueShownKeyRef.current = key;
+    setFinalCueActive(true);
+  }, [state]);
 
   const body = useMemo(() => {
     if (!state || !you) return null;
@@ -489,6 +510,10 @@ export function RoomClient({
         }
       />
       {diagOpen && <DiagPanel onClose={() => setDiagOpen(false)} />}
+      <FinalRoundCue
+        active={finalCueActive}
+        onDone={() => setFinalCueActive(false)}
+      />
     </main>
   );
 }
