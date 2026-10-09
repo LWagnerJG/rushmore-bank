@@ -3974,6 +3974,8 @@ html.party-on .draft-board-table thead th.is-you {
   margin-top: 12px;
   color: #a7d7c2;
   font-size: 10px;
+}
+
 /* —— Stale client reload banner —— */
 .stale-client-banner {
   position: fixed;
