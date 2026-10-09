@@ -8,10 +8,34 @@ describe("host AI status copy", () => {
   });
 
   it("distinguishes untested, pending, successful, and fallback judging", () => {
-    expect(hostAiCue("ready").label).toBe("AI waiting");
-    expect(hostAiCue("pending").label).toBe("Judging…");
-    expect(hostAiCue("ok").label).toBe("AI ok");
-    expect(hostAiCue("fallback").label).toBe("AI off");
-    expect(hostAiCue("fallback").detail).toMatch(/neutral awards/);
+    expect(hostAiCue({ status: "ready" }).label).toBe("AI waiting");
+    expect(hostAiCue({ status: "pending" }).label).toBe("Judging…");
+    expect(hostAiCue({ status: "ok" }).label).toBe("AI ok");
+    expect(hostAiCue({ status: "fallback" }).label).toBe("AI off");
+    expect(hostAiCue({ status: "fallback" }).detail).toMatch(/neutral awards/);
+  });
+
+  it("surfaces fallbackReason / model / latency only in host detail", () => {
+    expect(
+      hostAiCue({
+        status: "fallback",
+        fallbackReason: "timeout",
+        latencyMs: 14012,
+      }).detail,
+    ).toMatch(/timeout/);
+    expect(
+      hostAiCue({
+        status: "ok",
+        model: "gemini-3.5-flash-lite",
+        latencyMs: 2100,
+      }).detail,
+    ).toMatch(/gemini-3\.5-flash-lite/);
+    expect(
+      hostAiCue({
+        status: "ok",
+        model: "gemini-3.5-flash-lite",
+        latencyMs: 2100,
+      }).detail,
+    ).toMatch(/2100ms/);
   });
 });

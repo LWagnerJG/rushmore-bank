@@ -51,8 +51,26 @@ export function hostAiJudgeHealth(state: RoomState): HostAiJudgeHealth {
     state.phase === "VOTING_AND_JUDGING" &&
     !state.scoresLocked &&
     state.judgeStatus === "pending"
-  ) return "pending";
-  return state.lastJudgeOutcome ?? "ready";
+  ) {
+    return { status: "pending" };
+  }
+  const status = state.lastJudgeOutcome ?? "ready";
+  if (status === "fallback") {
+    return {
+      status,
+      fallbackReason: state.lastJudgeFallbackReason ?? null,
+      model: state.lastJudgeModel ?? null,
+      latencyMs: state.lastJudgeLatencyMs ?? null,
+    };
+  }
+  if (status === "ok") {
+    return {
+      status,
+      model: state.lastJudgeModel ?? null,
+      latencyMs: state.lastJudgeLatencyMs ?? null,
+    };
+  }
+  return { status: "ready" };
 }
 
 /**
@@ -219,6 +237,9 @@ export function publicStateLeaksBallots(
     Object.prototype.hasOwnProperty.call(pub, "judgeJobId") ||
     Object.prototype.hasOwnProperty.call(pub, "draftOptionsJobId") ||
     Object.prototype.hasOwnProperty.call(pub, "lastJudgeOutcome") ||
+    Object.prototype.hasOwnProperty.call(pub, "lastJudgeFallbackReason") ||
+    Object.prototype.hasOwnProperty.call(pub, "lastJudgeModel") ||
+    Object.prototype.hasOwnProperty.call(pub, "lastJudgeLatencyMs") ||
     Object.prototype.hasOwnProperty.call(pub, "ledger") ||
     Object.prototype.hasOwnProperty.call(pub, "usedTopicIds")
   );

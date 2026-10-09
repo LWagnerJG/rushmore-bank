@@ -13,6 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "smoke:three": "tsx scripts/smoke-three.ts",
+    "smoke:judge": "node scripts/judge-smoke.mjs",
     "dev:next": "next dev --turbopack",
     "dev:party": "wrangler dev",
     "deploy:party": "wrangler deploy",

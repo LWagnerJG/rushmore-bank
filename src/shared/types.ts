@@ -33,16 +33,30 @@ export type JudgeStatus = "idle" | "pending" | "ready" | "failed";
 /** Last completed judge job outcome — survives idle reset between rounds. */
 export type LastJudgeOutcome = "ok" | "fallback";
 
+/** Safe judge fallback taxonomy — host cue only (never player-facing). */
+export type JudgeFallbackReason =
+  | "timeout"
+  | "rate_limited"
+  | "provider_error"
+  | "invalid_output"
+  | "no_key";
+
 /**
  * Host-only AI health cue (never projected to non-hosts).
  * - ok / fallback: last completed job
  * - pending: a job is in flight
  * - ready: quiet default before any judge job this game
  *
- * Projection always sends one of these for hosts — never blank/undefined.
+ * Projection always sends a concrete object for hosts — never blank/undefined.
  * Server `lastJudgeOutcome` may still be null until the first completed job.
+ * fallbackReason / model / latencyMs are host-debug only.
  */
-export type HostAiJudgeHealth = LastJudgeOutcome | "pending" | "ready";
+export type HostAiJudgeHealth = {
+  status: LastJudgeOutcome | "pending" | "ready";
+  fallbackReason?: JudgeFallbackReason | null;
+  model?: string | null;
+  latencyMs?: number | null;
+};
 
 export interface Player {
   id: string;
@@ -228,6 +242,10 @@ export interface RoomState {
    * judgeStatus returns to idle between rounds — host health cue.
    */
   lastJudgeOutcome: LastJudgeOutcome | null;
+  /** Host-only meta from last judge response (never player-facing). */
+  lastJudgeFallbackReason: JudgeFallbackReason | null;
+  lastJudgeModel: string | null;
+  lastJudgeLatencyMs: number | null;
   /** Players who tapped “Ready to wager” on SCORE_REVEAL */
   bankBeansReady: Record<string, true>;
   earnedThisRound: Record<string, number>;
@@ -490,6 +508,9 @@ export function emptyRoomState(code: string): RoomState {
     judgeJobId: null,
     judgeNotice: null,
     lastJudgeOutcome: null,
+    lastJudgeFallbackReason: null,
+    lastJudgeModel: null,
+    lastJudgeLatencyMs: null,
     bankBeansReady: {},
     earnedThisRound: {},
     wagers: {},
