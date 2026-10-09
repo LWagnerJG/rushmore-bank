@@ -8,7 +8,8 @@
  * - skipWaiting + clients.claim on activate; wipe old cache buckets
  */
 
-const CACHE = "beans-shell-v2";
+/* Bump when shipping compositor/CSS fixes so installed PWAs drop old bundles. */
+const CACHE = "beans-shell-v3";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
