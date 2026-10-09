@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Nunito, Sora } from "next/font/google";
 import { NoPullToRefresh } from "@/components/NoPullToRefresh";
+import { StaleClientGuard } from "@/components/StaleClientGuard";
 import "./globals.css";
 
 const nunito = Nunito({
@@ -123,6 +124,7 @@ export default function RootLayout({
     <html lang="en" className={`${nunito.variable} ${sora.variable}`}>
       <body className="font-[family-name:var(--font-body)] antialiased">
         <NoPullToRefresh />
+        <StaleClientGuard />
         {children}
       </body>
     </html>
