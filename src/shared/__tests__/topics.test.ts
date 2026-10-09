@@ -11,8 +11,8 @@ import { emptyRoomState } from "../types";
 import { projectPublicState } from "../engine/public-state";
 
 describe("topic bank", () => {
-  it("ships a huge curated pool (~1000)", () => {
-    expect(TOPIC_COUNT).toBeGreaterThanOrEqual(800);
+  it("ships a huge curated pool (~1000+)", () => {
+    expect(TOPIC_COUNT).toBeGreaterThanOrEqual(1200);
     expect(TOPIC_COUNT).toBe(TOPICS.length);
   });
 
@@ -51,6 +51,14 @@ describe("topic bank", () => {
     expect(counts.everyday).toBeGreaterThanOrEqual(250);
     expect(counts.entertainment).toBeGreaterThanOrEqual(250);
   });
+
+  it("rejects vague / ambiguous prompts that are hard to draft as fours", () => {
+    const banned =
+      /^(best things about (summer|fall|winter|spring)|things that are (overrated|underrated)|school subjects|bad habits|good habits|phone apps|card games|best types of vacations)$/i;
+    for (const t of TOPICS) {
+      expect(banned.test(t.text)).toBe(false);
+    }
+  });
 });
 
 describe("pickRandomTopics anti-repeat", () => {
@@ -73,6 +81,38 @@ describe("pickRandomTopics anti-repeat", () => {
     for (const t of picked) {
       expect(hard).not.toContain(t.id);
     }
+  });
+
+  it("never returns hard-excluded (used) topics even after soft history resets", () => {
+    const used = TOPICS.slice(0, 6).map((t) => t.id);
+    const soft = TOPICS.map((t) => t.id); // exhaust soft pool
+    const picked = pickRandomTopics(4, soft, () => 0.11, used);
+    expect(picked).toHaveLength(4);
+    for (const t of picked) {
+      expect(used).not.toContain(t.id);
+    }
+  });
+
+  it("supports 6 topic rounds under animals vibe without repeating used ids", () => {
+    const used: string[] = [];
+    let seen: string[] = [];
+    for (let round = 0; round < 6; round++) {
+      const soft = [...new Set([...used, ...seen])];
+      let pool = pickRandomTopics(4, soft, () => 0.29 + round * 0.01, used, "animals");
+      if (pool.length < 4) {
+        seen = [...used];
+        pool = pickRandomTopics(4, used, () => 0.29 + round * 0.01, used, "animals");
+      }
+      expect(pool.length).toBe(4);
+      for (const t of pool) {
+        expect(used).not.toContain(t.id);
+      }
+      used.push(pool[0]!.id);
+      for (const t of pool) {
+        if (!seen.includes(t.id)) seen.push(t.id);
+      }
+    }
+    expect(new Set(used).size).toBe(6);
   });
 
   it("reroll-style depletion yields unique shortlists until nearly empty", () => {
@@ -109,8 +149,8 @@ describe("topic vibes", () => {
       counts[v]++;
     }
     expect(counts.sports).toBeGreaterThanOrEqual(150);
-    expect(counts.animals).toBeGreaterThanOrEqual(15);
-    expect(counts.geography).toBeGreaterThanOrEqual(15);
+    expect(counts.animals).toBeGreaterThanOrEqual(70);
+    expect(counts.geography).toBeGreaterThanOrEqual(50);
     expect(counts.basic).toBeGreaterThanOrEqual(400);
     expect(topicsMatchingVibe("sports").every((t) => inferTopicVibe(t) === "sports")).toBe(
       true,

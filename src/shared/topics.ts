@@ -1,7 +1,8 @@
 /**
- * Quarry — curated Mount Rushmore-style topic bank (~1140).
+ * Quarry — curated Mount Rushmore-style topic bank (~1288).
  * Prefer basic, drunk-phone-party prompts that yield 4 distinct answers fast.
  * Selection: shuffle + exclude used/seen ids within a room session (see pickRandomTopics).
+ * Used (locked) topic ids are hard-excluded so a room never repeats a topic mid-game.
  */
 
 export type TopicScope =
@@ -401,12 +402,7 @@ export const TOPICS: Topic[] = [
     scope: "everyday",
     scopeBoundary: "Dog breeds only. Individual famous dogs don't count.",
   },
-  {
-    id: "best-vacation-types",
-    text: "Best types of vacations",
-    scope: "everyday",
-    scopeBoundary: "Vacation styles (beach, city, camping…) — not specific destinations.",
-  },
+
   {
     id: "best-household-hacks",
     text: "Best household life hacks",
@@ -455,18 +451,8 @@ export const TOPICS: Topic[] = [
     scope: "everyday",
     scopeBoundary: "Mild, believable excuses. Mean or harmful ones don't count.",
   },
-  {
-    id: "best-things-about-summer",
-    text: "Best things about summer",
-    scope: "everyday",
-    scopeBoundary: "Summer vibes, activities, foods, or feelings. Other seasons don't count.",
-  },
-  {
-    id: "best-things-about-fall",
-    text: "Best things about fall",
-    scope: "everyday",
-    scopeBoundary: "Fall vibes, activities, foods, or feelings. Other seasons don't count.",
-  },
+
+
   {
     id: "best-ways-to-spend-a-bonus",
     text: "Best ways to spend a surprise bonus",
@@ -2177,12 +2163,7 @@ export const TOPICS: Topic[] = [
     scope: "everyday",
     scopeBoundary: "Places known for big festivals or events worth traveling for.",
   },
-  {
-    id: "best-honeymoon-destination-styles",
-    text: "Best honeymoon destination styles",
-    scope: "everyday",
-    scopeBoundary: "Honeymoon trip styles or destination types — keep it tasteful.",
-  },
+
   {
     id: "best-phone-accessories",
     text: "Best phone accessories",
@@ -2351,12 +2332,7 @@ export const TOPICS: Topic[] = [
     scope: "everyday",
     scopeBoundary: "Features that make a cat tree great. Whole furniture brands alone less ideal.",
   },
-  {
-    id: "best-reasons-to-get-a-second-pet",
-    text: "Best reasons to get a second pet",
-    scope: "everyday",
-    scopeBoundary: "Reasons people add another pet. Reasons to never get pets don't count.",
-  },
+
   {
     id: "best-sneaker-brands",
     text: "Best sneaker brands",
@@ -2435,12 +2411,7 @@ export const TOPICS: Topic[] = [
     scope: "everyday",
     scopeBoundary: "Phone case brands or lines. DIY tape wraps don't count.",
   },
-  {
-    id: "best-things-to-collect-if-money-were-no-object",
-    text: "Best things to collect if money were no object",
-    scope: "everyday",
-    scopeBoundary: "Collection hobbies with unlimited budget. Harmful collections don't count.",
-  },
+
   {
     id: "best-smells-that-mean-home",
     text: "Best smells that mean home",
@@ -2561,18 +2532,8 @@ export const TOPICS: Topic[] = [
     scope: "everyday",
     scopeBoundary: "Puzzle formats like jigsaw or crossword. Video game puzzles less ideal.",
   },
-  {
-    id: "best-things-about-winter",
-    text: "Best things about winter",
-    scope: "everyday",
-    scopeBoundary: "Winter vibes, activities, or feelings. Other seasons don't count.",
-  },
-  {
-    id: "best-things-about-spring",
-    text: "Best things about spring",
-    scope: "everyday",
-    scopeBoundary: "Spring vibes, activities, or feelings. Other seasons don't count.",
-  },
+
+
   {
     id: "best-summer-night-activities",
     text: "Best summer night activities",
@@ -2627,12 +2588,7 @@ export const TOPICS: Topic[] = [
     scope: "everyday",
     scopeBoundary: "Activities that shine on sunny days. Storm chasing doesn't count.",
   },
-  {
-    id: "best-city-park-activities",
-    text: "Best city park activities",
-    scope: "everyday",
-    scopeBoundary: "Things to do in a city park. Remote wilderness less ideal.",
-  },
+
   {
     id: "best-places-to-watch-a-sunset",
     text: "Best places to watch a sunset",
@@ -3545,12 +3501,7 @@ export const TOPICS: Topic[] = [
     scope: "entertainment",
     scopeBoundary: "Named cars, ships, or craft from fiction across media.",
   },
-  {
-    id: "best-fictional-pets",
-    text: "Best fictional pets",
-    scope: "entertainment",
-    scopeBoundary: "Pets from books, film, TV, or games.",
-  },
+
   {
     id: "best-fictional-bands",
     text: "Best fictional bands",
@@ -4229,12 +4180,7 @@ export const TOPICS: Topic[] = [
     scope: "food",
     scopeBoundary: "Cooking aromas strongly associated with comfort/home — not perfume.",
   },
-  {
-    id: "best-things-invented-by-accident",
-    text: "Best things invented by accident",
-    scope: "everyday",
-    scopeBoundary: "Real inventions/discoveries with accidental origin stories.",
-  },
+
   {
     id: "best-thrift-store-finds-categories",
     text: "Best thrift-store finds categories",
@@ -4619,18 +4565,8 @@ export const TOPICS: Topic[] = [
     scope: "everyday",
     scopeBoundary: "Water, waffle, wolf — common W words.",
   },
-  {
-    id: "pets-people-have",
-    text: "Pets people have",
-    scope: "everyday",
-    scopeBoundary: "Common household pets.",
-  },
-  {
-    id: "places-to-go-on-vacation",
-    text: "Places to go on vacation",
-    scope: "everyday",
-    scopeBoundary: "Cities, countries, or vacation types.",
-  },
+
+
   {
     id: "places-in-a-mall",
     text: "Places in a mall",
@@ -4643,42 +4579,17 @@ export const TOPICS: Topic[] = [
     scope: "everyday",
     scopeBoundary: "Common rooms and spaces at home.",
   },
-  {
-    id: "school-subjects",
-    text: "School subjects",
-    scope: "everyday",
-    scopeBoundary: "Classes and school topics.",
-  },
-  {
-    id: "bad-habits",
-    text: "Bad habits",
-    scope: "everyday",
-    scopeBoundary: "Annoying or unhealthy habits.",
-  },
-  {
-    id: "good-habits",
-    text: "Good habits",
-    scope: "everyday",
-    scopeBoundary: "Healthy or productive habits.",
-  },
-  {
-    id: "phone-apps",
-    text: "Phone apps",
-    scope: "everyday",
-    scopeBoundary: "Apps people actually use.",
-  },
+
+
+
+
   {
     id: "social-media-apps",
     text: "Social media apps",
     scope: "everyday",
     scopeBoundary: "Social platforms — past or present.",
   },
-  {
-    id: "card-games",
-    text: "Card games",
-    scope: "everyday",
-    scopeBoundary: "Playing-card or casual card games.",
-  },
+
   {
     id: "outdoor-activities",
     text: "Outdoor activities",
@@ -4961,18 +4872,8 @@ export const TOPICS: Topic[] = [
     scope: "everyday",
     scopeBoundary: "Everyday delays and time-sucks.",
   },
-  {
-    id: "things-that-are-overrated",
-    text: "Things that are overrated",
-    scope: "everyday",
-    scopeBoundary: "Common things people call overrated.",
-  },
-  {
-    id: "things-that-are-underrated",
-    text: "Things that are underrated",
-    scope: "everyday",
-    scopeBoundary: "Common things people call underrated.",
-  },
+
+
   {
     id: "things-that-belong-at-a-party",
     text: "Things that belong at a party",
@@ -5327,12 +5228,7 @@ export const TOPICS: Topic[] = [
     scope: "everyday",
     scopeBoundary: "Adulting performances and polite faves.",
   },
-  {
-    id: "kids-stuff-adults-still-love",
-    text: "Kids stuff adults still love",
-    scope: "everyday",
-    scopeBoundary: "Kid stuff that still slaps as a grown-up.",
-  },
+
   {
     id: "things-in-a-fridge",
     text: "Things in a fridge",
@@ -6895,12 +6791,7 @@ export const TOPICS: Topic[] = [
     scope: "everyday",
     scopeBoundary: "Creatures that don't get enough appreciation or attention.",
   },
-  {
-    id: "scariest-ocean-creatures",
-    text: "Scariest ocean creatures",
-    scope: "everyday",
-    scopeBoundary: "Real sea life that would terrify most people. No fictional creatures.",
-  },
+
   {
     id: "most-colorful-animals",
     text: "Most colorful animals",
@@ -7158,18 +7049,6 @@ export const TOPICS: Topic[] = [
     text: "Best dog types by personality",
     scope: "everyday",
     scopeBoundary: "Any dog breed or mix — based on personality or traits.",
-  },
-  {
-    id: "cats-vs-dogs-categories",
-    text: "Reasons cats make better pets",
-    scope: "everyday",
-    scopeBoundary: "Arguments for why cats win as pets. No 'dogs are better' picks.",
-  },
-  {
-    id: "reasons-dogs-better",
-    text: "Reasons dogs make better pets",
-    scope: "everyday",
-    scopeBoundary: "Arguments for why dogs win as pets.",
   },
   {
     id: "animals-in-pop-culture",
@@ -7472,7 +7351,436 @@ export const TOPICS: Topic[] = [
     text: "Best camping destinations",
     scope: "everyday",
     scopeBoundary: "Real places — national parks, remote wilderness, glamping spots.",
-  }
+  },
+  // ── Quality pass additions (party-fillable, distinct fours) ───────────────
+  {
+    id: "best-candy-bars",
+    text: "Best candy bars",
+    scope: "food",
+    scopeBoundary: "Chocolate or candy bars you buy at a checkout. Loose candy doesn't count.",
+  },
+  {
+    id: "best-talk-show-hosts",
+    text: "Best talk show hosts",
+    scope: "entertainment",
+    scopeBoundary: "Late-night, daytime, or interview hosts — TV or long-running podcasts.",
+  },
+  {
+    id: "best-muppets",
+    text: "Best Muppets",
+    scope: "entertainment",
+    scopeBoundary: "Muppets / Sesame Street characters in the Jim Henson universe.",
+  },
+  {
+    id: "best-board-game-classics",
+    text: "Best classic board games",
+    scope: "entertainment",
+    scopeBoundary: "Widely known tabletop games. Video games don't count.",
+  },
+  {
+    id: "best-sitcom-theme-songs",
+    text: "Best sitcom theme songs",
+    scope: "entertainment",
+    scopeBoundary: "Opening themes from TV sitcoms. Movie scores don't count.",
+  },
+  {
+    id: "best-tv-game-shows",
+    text: "Best TV game shows",
+    scope: "entertainment",
+    scopeBoundary: "Competition or quiz shows with contestants. Reality dating shows don't count.",
+  },
+  {
+    id: "best-cartoon-characters",
+    text: "Best cartoon characters",
+    scope: "entertainment",
+    scopeBoundary: "Animated characters from TV or film. Live-action mascots don't count.",
+  },
+  {
+    id: "best-superhero-movies",
+    text: "Best superhero movies",
+    scope: "entertainment",
+    scopeBoundary: "Feature films centered on comic-book or superhero characters.",
+  },
+  {
+    id: "best-disney-animated-films",
+    text: "Best Disney animated films",
+    scope: "entertainment",
+    scopeBoundary: "Walt Disney Animation / classic Disney features. Pixar is separate.",
+  },
+  {
+    id: "best-musical-artists-live",
+    text: "Best artists to see live",
+    scope: "entertainment",
+    scopeBoundary: "Musicians or bands known for great concerts. Actors don't count.",
+  },
+  {
+    id: "best-nfl-teams-all-time",
+    text: "Best NFL franchises of all time",
+    scope: "sports",
+    scopeBoundary: "NFL teams as franchises — dynasties and legacy, not one season.",
+  },
+  {
+    id: "best-march-madness-moments",
+    text: "Best March Madness moments",
+    scope: "sports",
+    scopeBoundary: "NCAA tournament moments, upsets, or buzzer-beaters.",
+  },
+  {
+    id: "best-sports-announcers",
+    text: "Best sports announcers",
+    scope: "sports",
+    scopeBoundary: "Play-by-play or color commentators. Athletes who never called games don't count.",
+  },
+  {
+    id: "best-hockey-rivalries",
+    text: "Best hockey rivalries",
+    scope: "sports",
+    scopeBoundary: "NHL or major hockey rivalries — teams or players.",
+  },
+  {
+    id: "best-fantasy-football-draft-steals",
+    text: "Best fantasy football draft steals of all time",
+    scope: "sports",
+    scopeBoundary: "Players who vastly outperformed draft position in fantasy.",
+  },
+  {
+    id: "best-olympic-host-cities",
+    text: "Best Olympic host cities",
+    scope: "sports",
+    scopeBoundary: "Cities that hosted Summer or Winter Olympics.",
+  },
+  {
+    id: "best-comfort-foods-rainy-day",
+    text: "Best rainy-day comfort foods",
+    scope: "food",
+    scopeBoundary: "Foods you crave when it's cold or raining. Drinks alone don't count.",
+  },
+  {
+    id: "best-sandwich-shops-chains",
+    text: "Best sandwich chains",
+    scope: "food",
+    scopeBoundary: "National or widely known sandwich chains. One-off delis don't count.",
+  },
+  {
+    id: "best-chip-dips",
+    text: "Best dips for chips",
+    scope: "food",
+    scopeBoundary: "Dips meant for tortilla, potato, or pita chips.",
+  },
+  {
+    id: "best-grocery-store-snacks",
+    text: "Best grocery store snacks",
+    scope: "food",
+    scopeBoundary: "Packaged snacks from a supermarket aisle. Fresh produce doesn't count.",
+  },
+  {
+    id: "best-late-night-foods",
+    text: "Best late-night foods",
+    scope: "food",
+    scopeBoundary: "What you eat after 11pm. Full sit-down dinners don't count.",
+  },
+  {
+    id: "best-bbq-styles",
+    text: "Best regional BBQ styles",
+    scope: "food",
+    scopeBoundary: "Regional BBQ traditions (Texas, Carolina, Kansas City, etc.).",
+  },
+  {
+    id: "best-ice-cream-brands",
+    text: "Best ice cream brands",
+    scope: "food",
+    scopeBoundary: "Packaged or scoop-shop brands. Soft-serve machines as a category don't count.",
+  },
+  {
+    id: "best-housewarming-gifts",
+    text: "Best housewarming gifts",
+    scope: "everyday",
+    scopeBoundary: "Gifts for someone who just moved. Cash alone is too vague — name a gift.",
+  },
+  {
+    id: "best-road-trip-games",
+    text: "Best road trip car games",
+    scope: "everyday",
+    scopeBoundary: "Games you play in the car. Phone apps only if they're classic car games.",
+  },
+  {
+    id: "best-airport-time-killers",
+    text: "Best ways to kill time at the gate",
+    scope: "everyday",
+    scopeBoundary: "Airport layover activities. Leaving security doesn't count.",
+  },
+  {
+    id: "best-sunday-rituals",
+    text: "Best Sunday rituals",
+    scope: "everyday",
+    scopeBoundary: "Recurring Sunday habits — food, sports, rest, chores done right.",
+  },
+  {
+    id: "best-birthday-traditions",
+    text: "Best birthday traditions",
+    scope: "everyday",
+    scopeBoundary: "Traditions around celebrating a birthday. Generic 'party' is too vague.",
+  },
+  {
+    id: "best-dorm-room-essentials",
+    text: "Best dorm room essentials",
+    scope: "everyday",
+    scopeBoundary: "Must-haves for a college dorm. Luxury cars don't count.",
+  },
+  {
+    id: "best-camping-gear",
+    text: "Best camping gear essentials",
+    scope: "everyday",
+    scopeBoundary: "Gear you'd pack for a real camping trip.",
+  },
+  {
+    id: "best-kitchen-gadgets",
+    text: "Best kitchen gadgets",
+    scope: "everyday",
+    scopeBoundary: "Small appliances or tools — not full-size ovens or fridges.",
+  },
+  {
+    id: "best-life-hacks-actually-work",
+    text: "Life hacks that actually work",
+    scope: "everyday",
+    scopeBoundary: "Practical tips with a clear payoff. Vague motivation quotes don't count.",
+  },
+  {
+    id: "best-group-chat-features",
+    text: "Best group chat features",
+    scope: "everyday",
+    scopeBoundary: "Features in iMessage, WhatsApp, Discord, Slack, etc.",
+  },
+  {
+    id: "best-weather-days",
+    text: "Best kinds of weather days",
+    scope: "everyday",
+    scopeBoundary: "Specific weather vibes (crisp fall morning, warm night rain). Seasons alone don't count.",
+  },
+  {
+    id: "best-childhood-recess-games",
+    text: "Best recess games from childhood",
+    scope: "everyday",
+    scopeBoundary: "Playground or recess games. Console games don't count.",
+  },
+  {
+    id: "best-excuse-to-leave-a-party",
+    text: "Best excuses to leave a party early",
+    scope: "everyday",
+    scopeBoundary: "Believable or funny exit lines. Just ghosting is one answer max.",
+  },
+  {
+    id: "best-couple-costumes",
+    text: "Best couple Halloween costumes",
+    scope: "everyday",
+    scopeBoundary: "Two-person costume concepts. Solo costumes don't count.",
+  },
+  {
+    id: "cutest-animals-overall",
+    text: "Cutest animals",
+    scope: "everyday",
+    scopeBoundary: "Any real animal species known for being adorable.",
+  },
+  {
+    id: "best-zoo-animals-for-kids",
+    text: "Best zoo animals for kids",
+    scope: "everyday",
+    scopeBoundary: "Animals that wow kids at a zoo. Mythical creatures don't count.",
+  },
+  {
+    id: "best-animals-in-childrens-books",
+    text: "Best animals in children's books",
+    scope: "everyday",
+    scopeBoundary: "Animal characters from kids' books. Movies-only characters don't count.",
+  },
+  {
+    id: "scariest-sea-creatures",
+    text: "Scariest sea creatures",
+    scope: "everyday",
+    scopeBoundary: "Real ocean animals that freak people out. Fiction monsters don't count.",
+  },
+  {
+    id: "best-animals-that-fly",
+    text: "Best animals that fly",
+    scope: "everyday",
+    scopeBoundary: "Birds, bats, or insects that truly fly. Flying squirrels gliding is a stretch.",
+  },
+  {
+    id: "best-desert-animals",
+    text: "Best desert animals",
+    scope: "everyday",
+    scopeBoundary: "Animals adapted to deserts. Ocean life doesn't count.",
+  },
+  {
+    id: "best-arctic-animals",
+    text: "Best Arctic animals",
+    scope: "everyday",
+    scopeBoundary: "Animals of the Arctic or Antarctic cold regions.",
+  },
+  {
+    id: "best-animals-in-sports-mascots",
+    text: "Best animal sports mascots",
+    scope: "everyday",
+    scopeBoundary: "Pro or college mascots that are animals.",
+  },
+  {
+    id: "best-dinosaur-species",
+    text: "Best dinosaur species",
+    scope: "everyday",
+    scopeBoundary: "Named dinosaur species. Mammals don't count.",
+  },
+  {
+    id: "best-animals-to-spot-on-safari",
+    text: "Best animals to spot on safari",
+    scope: "everyday",
+    scopeBoundary: "Wildlife you'd hope to see on an African or similar safari.",
+  },
+  {
+    id: "best-pet-dog-names-classic",
+    text: "Classic dog names",
+    scope: "everyday",
+    scopeBoundary: "Timeless dog names. Human celebrity surnames only if commonly used for dogs.",
+  },
+  {
+    id: "best-animals-with-shells",
+    text: "Best animals with shells",
+    scope: "everyday",
+    scopeBoundary: "Creatures with hard shells or carapaces.",
+  },
+  {
+    id: "best-jungle-animals",
+    text: "Best jungle animals",
+    scope: "everyday",
+    scopeBoundary: "Animals associated with tropical jungles or rainforests.",
+  },
+  {
+    id: "funniest-looking-animals",
+    text: "Funniest-looking animals",
+    scope: "everyday",
+    scopeBoundary: "Real animals with goofy looks. Photoshop memes don't count.",
+  },
+  {
+    id: "best-animals-in-superstitions",
+    text: "Best animals in superstitions",
+    scope: "everyday",
+    scopeBoundary: "Animals tied to luck, omens, or folklore beliefs.",
+  },
+  // Geography boost
+  {
+    id: "best-us-state-capitals-to-visit",
+    text: "Best U.S. state capitals to visit",
+    scope: "everyday",
+    scopeBoundary: "Official U.S. state capital cities only.",
+  },
+  {
+    id: "best-european-beach-towns",
+    text: "Best European beach towns",
+    scope: "everyday",
+    scopeBoundary: "Coastal towns in Europe — not inland cities.",
+  },
+  {
+    id: "best-asian-street-food-cities",
+    text: "Best Asian cities for street food",
+    scope: "everyday",
+    scopeBoundary: "Cities in Asia famous for street food scenes.",
+  },
+  {
+    id: "best-canadian-cities",
+    text: "Best Canadian cities",
+    scope: "everyday",
+    scopeBoundary: "Cities in Canada. U.S. cities don't count.",
+  },
+  {
+    id: "best-australian-cities",
+    text: "Best Australian cities",
+    scope: "everyday",
+    scopeBoundary: "Cities in Australia.",
+  },
+  {
+    id: "best-world-capitals-for-first-timers",
+    text: "Best world capitals for first-time visitors",
+    scope: "everyday",
+    scopeBoundary: "National capital cities that are great first trips.",
+  },
+  {
+    id: "best-desert-destinations",
+    text: "Best desert travel destinations",
+    scope: "everyday",
+    scopeBoundary: "Real desert regions or towns worth visiting.",
+  },
+  {
+    id: "best-lake-towns",
+    text: "Best lake towns",
+    scope: "everyday",
+    scopeBoundary: "Towns known for a great lake setting.",
+  },
+  {
+    id: "best-train-journey-routes",
+    text: "Best scenic train journeys",
+    scope: "everyday",
+    scopeBoundary: "Named train routes or corridors famous for views.",
+  },
+  {
+    id: "best-border-towns-worth-visiting",
+    text: "Best border towns worth visiting",
+    scope: "everyday",
+    scopeBoundary: "Towns near an international border with a distinct identity.",
+  },
+  {
+    id: "best-mediterranean-islands",
+    text: "Best Mediterranean islands",
+    scope: "everyday",
+    scopeBoundary: "Islands in the Mediterranean Sea.",
+  },
+  {
+    id: "best-south-pacific-islands",
+    text: "Best South Pacific islands",
+    scope: "everyday",
+    scopeBoundary: "Islands in the South Pacific. Caribbean islands don't count.",
+  },
+  {
+    id: "best-cities-for-museums",
+    text: "Best cities for museums",
+    scope: "everyday",
+    scopeBoundary: "Cities with world-class museum scenes.",
+  },
+  {
+    id: "best-places-for-fall-foliage",
+    text: "Best places for fall foliage",
+    scope: "everyday",
+    scopeBoundary: "Regions or towns famous for autumn colors.",
+  },
+  {
+    id: "best-hot-springs-destinations",
+    text: "Best hot springs destinations",
+    scope: "everyday",
+    scopeBoundary: "Places known for natural hot springs.",
+  },
+  {
+    id: "best-wine-country-regions",
+    text: "Best wine country regions",
+    scope: "everyday",
+    scopeBoundary: "Named wine regions (Napa, Bordeaux, Tuscany…). Single vineyards don't count.",
+  },
+  {
+    id: "best-cities-for-public-transit",
+    text: "Best cities for public transit",
+    scope: "everyday",
+    scopeBoundary: "Cities where trains/buses/metros make getting around easy.",
+  },
+  {
+    id: "best-small-towns-usa",
+    text: "Best small towns in the U.S.",
+    scope: "everyday",
+    scopeBoundary: "Small U.S. towns — not major metros.",
+  },
+  {
+    id: "best-carnival-festival-cities",
+    text: "Best cities for big street festivals",
+    scope: "everyday",
+    scopeBoundary: "Cities famous for carnivals, Mardi Gras-style, or huge street fests.",
+  },
+
 ];
 
 export const TOPIC_COUNT = TOPICS.length;
@@ -7555,6 +7863,10 @@ export function inferTopicVibe(topic: Topic): TopicVibe {
     "pets",
     "zoo",
     "wildlife",
+    "creature",
+    "creatures",
+    "dinosaur",
+    "dinosaurs",
     "bird",
     "birds",
     "fish",
