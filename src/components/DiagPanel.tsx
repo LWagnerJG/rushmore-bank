@@ -1,104 +1,38 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import {
+  collectDiagSnapshot,
+  isStartButtonCutOff,
+  type DiagSnapshot,
+} from "@/shared/diag-measure";
 
-interface DiagData {
-  buildSha: string;
-  standalone: boolean;
-  userAgent: string;
-  isIpad: boolean;
-  innerHeight: number;
-  innerWidth: number;
-  visualViewportH: number;
-  visualViewportW: number;
-  visualViewportOffset: number;
-  dvhPx: number;
-  appHVar: string;
-  safeTop: string;
-  safeRight: string;
-  safeBottom: string;
-  safeLeft: string;
-  htmlRect: DOMRect | null;
-  bodyRect: DOMRect | null;
-  appShellRect: DOMRect | null;
-  roomChromeRect: DOMRect | null;
-  phaseScrollRect: DOMRect | null;
-  phaseScrollClientH: number;
-  phaseScrollScrollH: number;
-  phaseScrollScrollTop: number;
-  /** Computed opacity of the first .animate-rise element (detects stuck anim). */
-  animRiseOpacity: string;
-  /** Computed position of .room-chrome (sticky vs relative). */
-  chromePosType: string;
-}
-
-function measure(): DiagData {
-  const cs = getComputedStyle(document.documentElement);
-  const dvhEl = document.createElement("div");
-  dvhEl.style.cssText =
-    "position:fixed;top:0;left:0;height:100dvh;width:0;pointer-events:none;visibility:hidden;";
-  document.body.appendChild(dvhEl);
-  const dvhPx = dvhEl.getBoundingClientRect().height;
-  dvhEl.remove();
-
-  const phaseScroll = document.querySelector(".room-phase-scroll");
-  const appShell = document.querySelector(".app-shell");
-  const roomChrome = document.querySelector(".room-chrome");
-  const animRise = document.querySelector(".animate-rise");
-  const ua = navigator.userAgent;
-  const isIpad =
-    /iPad/.test(ua) ||
-    (navigator.maxTouchPoints > 1 && /Macintosh/.test(ua));
-
-  return {
-    buildSha: process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA?.slice(0, 8) ?? "local",
-    standalone:
-      "standalone" in window.navigator &&
-      (window.navigator as { standalone?: boolean }).standalone === true,
-    userAgent: ua.slice(0, 80),
-    isIpad,
-    innerHeight: window.innerHeight,
-    innerWidth: window.innerWidth,
-    visualViewportH: window.visualViewport?.height ?? -1,
-    visualViewportW: window.visualViewport?.width ?? -1,
-    visualViewportOffset: window.visualViewport?.offsetTop ?? -1,
-    dvhPx,
-    appHVar: cs.getPropertyValue("--app-h").trim() || "(not set)",
-    safeTop: cs.getPropertyValue("--sat").trim() ||
-      cs.getPropertyValue("env(safe-area-inset-top)").trim() || "?",
-    safeRight: cs.getPropertyValue("--sar").trim() || "?",
-    safeBottom: cs.getPropertyValue("--sab").trim() ||
-      cs.getPropertyValue("env(safe-area-inset-bottom)").trim() || "?",
-    safeLeft: cs.getPropertyValue("--sal").trim() || "?",
-    htmlRect: document.documentElement.getBoundingClientRect(),
-    bodyRect: document.body.getBoundingClientRect(),
-    appShellRect: appShell?.getBoundingClientRect() ?? null,
-    roomChromeRect: roomChrome?.getBoundingClientRect() ?? null,
-    phaseScrollRect: phaseScroll?.getBoundingClientRect() ?? null,
-    phaseScrollClientH: (phaseScroll as HTMLElement | null)?.clientHeight ?? -1,
-    phaseScrollScrollH: (phaseScroll as HTMLElement | null)?.scrollHeight ?? -1,
-    phaseScrollScrollTop: (phaseScroll as HTMLElement | null)?.scrollTop ?? -1,
-    animRiseOpacity: animRise
-      ? getComputedStyle(animRise as HTMLElement).opacity
-      : "(not present)",
-    chromePosType: roomChrome
-      ? getComputedStyle(roomChrome as HTMLElement).position
-      : "(not present)",
-  };
-}
-
-function fmtRect(r: DOMRect | null): string {
+function fmtRect(
+  r: { x: number; y: number; width: number; height: number; bottom: number } | null,
+): string {
   if (!r) return "(not found)";
-  return `x:${r.x.toFixed(0)} y:${r.y.toFixed(0)} w:${r.width.toFixed(0)} h:${r.height.toFixed(0)}`;
+  return `x:${r.x.toFixed(0)} y:${r.y.toFixed(0)} w:${r.width.toFixed(0)} h:${r.height.toFixed(0)} bot:${r.bottom.toFixed(0)}`;
+}
+
+function readBuildSha(): string {
+  return process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA?.slice(0, 8) ?? "local";
 }
 
 export function DiagPanel({ onClose }: { onClose: () => void }) {
-  const [data, setData] = useState<DiagData | null>(null);
+  const [data, setData] = useState<DiagSnapshot | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    setData(measure());
-    intervalRef.current = setInterval(() => setData(measure()), 1000);
+    const tick = () =>
+      setData(
+        collectDiagSnapshot({
+          win: window,
+          doc: document,
+          buildSha: readBuildSha(),
+        }),
+      );
+    tick();
+    intervalRef.current = setInterval(tick, 1000);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
@@ -106,75 +40,68 @@ export function DiagPanel({ onClose }: { onClose: () => void }) {
 
   if (!data) return null;
 
+  const cutOff = isStartButtonCutOff(data);
+
   const rows: [string, string][] = [
     ["SHA", data.buildSha],
     ["standalone", String(data.standalone)],
-    ["iPad?", String(data.isIpad)],
-    ["UA", data.userAgent],
+    ["display-mode:standalone", String(data.displayModeStandalone)],
     ["innerH", `${data.innerHeight}px`],
     ["innerW", `${data.innerWidth}px`],
     ["vvH", `${data.visualViewportH.toFixed(1)}px`],
     ["vvW", `${data.visualViewportW.toFixed(1)}px`],
-    ["vvOffset", `${data.visualViewportOffset.toFixed(1)}px`],
+    ["vvOffsetTop", `${data.visualViewportOffsetTop.toFixed(1)}px`],
+    ["vvOffsetLeft", `${data.visualViewportOffsetLeft.toFixed(1)}px`],
     ["100dvh", `${data.dvhPx.toFixed(1)}px`],
     ["--app-h", data.appHVar],
-    ["safe-top", data.safeTop],
-    ["safe-bottom", data.safeBottom],
-    ["safe-left", data.safeLeft],
-    ["safe-right", data.safeRight],
+    ["safe-top (probe)", data.safeTop],
+    ["safe-right (probe)", data.safeRight],
+    ["safe-bottom (probe)", data.safeBottom],
+    ["safe-left (probe)", data.safeLeft],
     ["html bbox", fmtRect(data.htmlRect)],
     ["body bbox", fmtRect(data.bodyRect)],
     [".app-shell bbox", fmtRect(data.appShellRect)],
-    [".room-chrome bbox", fmtRect(data.roomChromeRect)],
     [".phase-scroll bbox", fmtRect(data.phaseScrollRect)],
+    ["Start btn bbox", fmtRect(data.startBtnRect)],
+    [
+      "Start bottom gap",
+      data.startBottomGap == null
+        ? "(n/a)"
+        : `${data.startBottomGap.toFixed(1)}px${cutOff ? " CUTOFF" : ""}`,
+    ],
     ["phase clientH", `${data.phaseScrollClientH}px`],
     ["phase scrollH", `${data.phaseScrollScrollH}px`],
     ["phase scrollTop", `${data.phaseScrollScrollTop.toFixed(0)}px`],
-    [".animate-rise opacity", data.animRiseOpacity],
-    [".room-chrome position", data.chromePosType],
   ];
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 9999,
-        background: "rgba(0,0,0,0.85)",
-        color: "#f5f0e7",
-        fontFamily: "monospace",
-        fontSize: 11,
-        overflowY: "auto",
-        padding: "env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)",
-      }}
-    >
-      <div style={{ padding: "12px 16px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
-          <strong style={{ fontSize: 14 }}>Beans Diagnostics</strong>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{ background: "none", border: "1px solid #f5f0e7", color: "#f5f0e7", padding: "2px 10px", borderRadius: 4, cursor: "pointer" }}
-          >
-            ✕ Close
+    <div className="diag-panel" role="dialog" aria-label="Beans diagnostics">
+      <div className="diag-panel-inner">
+        <div className="diag-panel-head">
+          <strong>Beans Diagnostics</strong>
+          <button type="button" className="diag-panel-close" onClick={onClose}>
+            Close
           </button>
         </div>
-        <table style={{ borderCollapse: "collapse", width: "100%" }}>
+        {cutOff && (
+          <p className="diag-panel-warn" role="status">
+            Start button sits below the visual viewport — scroll or check
+            --app-h / safe-bottom.
+          </p>
+        )}
+        <table className="diag-panel-table">
           <tbody>
             {rows.map(([label, value]) => (
-              <tr key={label} style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-                <td style={{ padding: "4px 8px 4px 0", color: "#a7d7c2", whiteSpace: "nowrap" }}>
-                  {label}
-                </td>
-                <td style={{ padding: "4px 0", wordBreak: "break-all" }}>
-                  {value}
-                </td>
+              <tr key={label}>
+                <td>{label}</td>
+                <td>{value}</td>
               </tr>
             ))}
           </tbody>
         </table>
-        <p style={{ marginTop: 12, color: "#a7d7c2", fontSize: 10 }}>
-          Updates every 1s. Trigger: ?diag=1 or 5 quick logo taps.
+        <p className="diag-panel-foot">
+          Updates every 1s. Open with ?diag=1 (works in the installed PWA) or 5
+          quick logo taps. Safe-area via hidden env() padding probe.
         </p>
       </div>
     </div>

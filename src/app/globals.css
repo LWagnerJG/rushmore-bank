@@ -3899,3 +3899,79 @@ html.party-on .draft-board-table thead th.is-you {
   }
 }
 
+/* —— Opt-in device diagnostics (?diag=1) —— */
+.diag-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.88);
+  color: #f5f0e7;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  overflow-y: auto;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px)
+    env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+}
+
+.diag-panel-inner {
+  padding: 12px 16px 24px;
+}
+
+.diag-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  gap: 12px;
+}
+
+.diag-panel-head strong {
+  font-size: 14px;
+}
+
+.diag-panel-close {
+  background: none;
+  border: 1px solid #f5f0e7;
+  color: #f5f0e7;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  min-height: 36px;
+}
+
+.diag-panel-warn {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: rgba(231, 111, 78, 0.25);
+  color: #ffe2d8;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.diag-panel-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.diag-panel-table td {
+  padding: 4px 8px 4px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  vertical-align: top;
+}
+
+.diag-panel-table td:first-child {
+  color: #a7d7c2;
+  white-space: nowrap;
+  width: 1%;
+}
+
+.diag-panel-table td:last-child {
+  word-break: break-all;
+}
+
+.diag-panel-foot {
+  margin-top: 12px;
+  color: #a7d7c2;
+  font-size: 10px;
+}

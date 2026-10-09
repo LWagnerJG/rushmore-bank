@@ -477,9 +477,11 @@ export function RoomClient({
             // shrink-0: never let flex crush lobby panels against the cream band.
             // Safe-area lives on the scroll content (not a dead shell padding strip).
             // key=phase re-runs a short enter (no perpetual shimmer/rAF).
+            // Extra bottom inset so Start / primary CTAs clear the iPhone home
+            // indicator even when env(safe-area-inset-bottom) reports 0 briefly.
             phase === "SCORE_REVEAL"
-              ? "phase-panel flex min-h-full flex-col pb-[max(0.75rem,env(safe-area-inset-bottom))]"
-              : "phase-panel phase-enter shrink-0 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+              ? "phase-panel flex min-h-full flex-col pb-[max(1.25rem,env(safe-area-inset-bottom),2.1rem)]"
+              : "phase-panel phase-enter shrink-0 pb-[max(1.25rem,env(safe-area-inset-bottom),2.1rem)]"
           }
         >
           {body}
