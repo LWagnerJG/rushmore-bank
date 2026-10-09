@@ -128,16 +128,19 @@ export default function HomePage() {
   }
 
   return (
-    <main className="app-shell app-shell-lock mx-auto flex max-w-md flex-col px-4 pb-[max(1.25rem,env(safe-area-inset-bottom),2.1rem)] pt-[max(1.5rem,env(safe-area-inset-top))]">
-      <div className="animate-rise flex min-h-0 flex-1 flex-col justify-center gap-6">
-        <header className="space-y-2 text-center">
-          <div className="flex justify-center">
-            <BrandMark large onLogoTap={onLogoTap} />
-          </div>
-          <p className="font-[family-name:var(--font-display)] text-lg font-bold text-[var(--text)]">
-            {RULES.tagline}
-          </p>
-        </header>
+    <main className="app-shell app-shell-lock mx-auto flex max-w-md flex-col pt-0">
+      {/* Solid safe-area — no gradient bleed / fade under the status bar */}
+      <div className="app-safe-top" aria-hidden="true" />
+      <div className="app-shell-scroll flex min-h-0 flex-1 flex-col px-4 pb-[max(1.25rem,env(safe-area-inset-bottom),2.1rem)] pt-4">
+        <div className="animate-rise flex min-h-0 flex-1 flex-col justify-center gap-6">
+          <header className="space-y-2 text-center">
+            <div className="flex justify-center">
+              <BrandMark large onLogoTap={onLogoTap} />
+            </div>
+            <p className="font-[family-name:var(--font-display)] text-lg font-bold text-[var(--text)]">
+              {RULES.tagline}
+            </p>
+          </header>
 
         {!canPlay ? (
           <section className="home-card home-card-step space-y-4">
@@ -215,7 +218,7 @@ export default function HomePage() {
                   value={code}
                   maxLength={4}
                   aria-label="Room code"
-onChange={(e) => {
+                  onChange={(e) => {
                     setCode(e.target.value.toUpperCase());
                     setJoinError(null);
                   }}
@@ -244,6 +247,7 @@ onChange={(e) => {
             Admin unlocked · open a room
           </p>
         )}
+        </div>
       </div>
 
       {/* Outside animate-rise so fixed/absolute children aren’t transform-clipped */}

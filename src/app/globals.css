@@ -170,6 +170,8 @@ html.party-on body::before {
  *    filter glow required overflow:visible on .room-chrome, expanding that
  *    soft layer. Fix: opaque .room-chrome-safe spacer + sharp .room-chrome-body
  *    below the notch; rail moved outside chrome.
+ * 4) Any top fade/mask/blur overlay is forbidden — safe-area is a solid spacer
+ *    (also used on home/join). Content must start below it, never under it.
  */
 .room-chrome {
   position: relative;
@@ -180,12 +182,36 @@ html.party-on body::before {
   text-rendering: geometricPrecision;
 }
 
-.room-chrome-safe {
-  /* Separate strip under the notch — not a padding on the brand row */
+/* Explicitly kill any frost/fade pseudo overlay on chrome (past ::before). */
+.room-chrome::before,
+.room-chrome::after {
+  content: none !important;
+  display: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  mask-image: none !important;
+  -webkit-mask-image: none !important;
+}
+
+/*
+ * Solid safe-area spacer under the notch / Dynamic Island.
+ * Used by room chrome AND home/join shells so the body::before gradient
+ * never reads as a top blur/fade cutting into brand or phase content.
+ */
+.room-chrome-safe,
+.app-safe-top {
   height: env(safe-area-inset-top, 0px);
   min-height: 0.5rem;
+  flex-shrink: 0;
   background: var(--bg);
   pointer-events: none;
+  /* No blur / transparency — solid paint only */
+  opacity: 1;
+  filter: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  mask-image: none;
+  -webkit-mask-image: none;
 }
 
 .room-chrome-body {
@@ -201,7 +227,8 @@ html.party-on body::before {
 .room-chrome-party,
 html.party-on .room-chrome,
 html.party-on .room-chrome-safe,
-html.party-on .room-chrome-body {
+html.party-on .room-chrome-body,
+html.party-on .app-safe-top {
   background: #fff8ec;
 }
 
@@ -211,12 +238,28 @@ html.party-on .room-chrome-body {
   position: relative;
 }
 
+/*
+ * iOS Safari zooms the page when a focused input/select/textarea is <16px.
+ * That zoom + our locked --app-h shell is the “whole screen jumps” bug.
+ * Force a 16px floor on every text-entry control (including .field + selects).
+ */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(
+    [type="file"]
+  ):not([type="button"]):not([type="submit"]):not([type="reset"]):not(
+    [type="hidden"]
+  ):not([type="image"]):not([type="color"]),
+textarea,
+select,
+.field {
+  font-size: max(16px, 1rem);
+}
+
 .field {
   border-radius: 0.85rem;
   border: 1.5px solid rgba(35, 72, 62, 0.18);
   background: rgba(255, 255, 255, 0.72);
   padding: 0.85rem 1rem;
-  font-size: 1rem;
+  font-size: max(16px, 1rem);
   color: var(--text);
   outline: none;
 }

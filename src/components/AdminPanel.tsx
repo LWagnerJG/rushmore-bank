@@ -108,7 +108,7 @@ export function AdminPanel({
           <label className="block text-xs font-bold text-[var(--text)]">
             Jump phase
             <select
-              className="field mt-1 w-full !py-2 text-sm"
+              className="field mt-1 w-full !py-2"
               value={currentPhase ?? "LOBBY"}
               onChange={(e) =>
                 send({
@@ -132,7 +132,7 @@ export function AdminPanel({
                 Add bots
                 <input
                   ref={inputRef}
-                  className="field mt-1 w-full !py-2 text-sm tabular-nums"
+                  className="field mt-1 w-full !py-2 tabular-nums"
                   type="text"
                   inputMode="numeric"
                   pattern="[0-9]*"

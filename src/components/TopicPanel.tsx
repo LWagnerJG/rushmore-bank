@@ -186,7 +186,7 @@ export function TopicPanel({
                 />
                 <div className="topic-custom-row">
                   <select
-                    className="field flex-1 !py-2 text-sm"
+                    className="field flex-1 !py-2"
                     value={scope}
                     aria-label="Topic scope"
                     onChange={(e) => setScope(e.target.value as TopicScope)}
