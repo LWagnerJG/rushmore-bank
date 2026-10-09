@@ -1,4 +1,4 @@
-# Testing record — Quarry
+# Testing record — Quarry / Beans
 
 ## Pure rules (`npm test`)
 
@@ -8,21 +8,39 @@
 - Dice: any seven busts (incl. first roll); doubles double pot; add-sum / bust
 - Topic bank ≥ 120
 - Pull-out banking + settlement lap helpers
+- Authoritative deadline identity across reconnects / server restart (PartyServer)
 
-**Result (this branch):** 13 tests passed.
+**Result:** run `npm test` on this branch (CI: Server & shared regression tests).
+
+## PartyServer deploy
+
+Realtime rooms run on **PartyServer** (Cloudflare Workers + SQLite Durable Objects), not hosted PartyKit.
+
+| Step | Command / action |
+|---|---|
+| Login | `npx wrangler login` |
+| Put judge secret | `npx wrangler secret put JUDGE_SECRET` |
+| Deploy worker `beans-party` | `npx wrangler deploy` |
+| Dry-run build check | `npx wrangler deploy --dry-run` |
+| Point Next at new host | Vercel env `NEXT_PUBLIC_PARTYKIT_HOST=<worker>.<subdomain>.workers.dev` |
+| Code default host | `DEFAULT_PARTYKIT_HOST` in `src/lib/party.ts` (placeholder until cutover) |
+
+GitHub Actions: `.github/workflows/deploy-partyserver.yml` deploys on pushes that touch `party/**` when `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` are set; otherwise the job **skips gracefully**.
+
+Room data is short-lived — **no** PartyKit storage export/import.
 
 ## Programmatic multiplayer smoke (`npx tsx scripts/smoke-three.ts`)
 
-Against local PartyKit `127.0.0.1:1999`:
+Against local PartyServer (`wrangler dev`, default `127.0.0.1:8787`):
 
 | Step | Result |
 |---|---|
-| 3 sockets join one room | Pass |
+| 3 sockets join one room | Pass (when local stack up) |
 | Topic vote → Draft (12 Lock Ins) | Pass |
 | Review → Vote → AI fallback scores | Pass (45 each = 20+20+5) |
 | Wager → Dice → Pull Out → ROUND_RESULTS | Pass |
 
-Room `SMK3` measured ~19s for one compressed topic (host skip review; pull-out path).
+Set `NEXT_PUBLIC_PARTYKIT_HOST=127.0.0.1:8787` for local smokes.
 
 ## Multi-context browser smoke (local)
 
@@ -38,8 +56,8 @@ Room `SMK3` measured ~19s for one compressed topic (host skip review; pull-out p
 | Check | Result |
 |---|---|
 | https://beans-game.vercel.app loads (roundacats alias OK) | After merge/deploy |
-| PartyKit protocol matches this branch | **Blocked** — GitHub Actions `Deploy PartyKit` fails: missing `PARTYKIT_TOKEN` / `PARTYKIT_LOGIN` secrets. Run `npx partykit token generate`, add both repo secrets, then re-run the workflow (or `npx partykit deploy` locally). |
-| 2 sessions join one room | After PartyKit redeploy |
+| PartyServer worker matches this branch | After `wrangler deploy` + `NEXT_PUBLIC_PARTYKIT_HOST` on Vercel |
+| 2 sessions join one room | After cutover |
 | Beans PWA name + dog/sunglasses icons / OG | Branding assets in `public/` + manifest |
 
 ## Timing notes
@@ -48,13 +66,13 @@ Room `SMK3` measured ~19s for one compressed topic (host skip review; pull-out p
 - Target session: 25–30 minutes (design), not hard-enforced
 - Host failover window: 20s
 - Draft pick **60s** + **5s** grace; review skim **0s** (straight into vote+judge); vote **45s** or until all voted; wager **45s**; dice no pre-roll countdown; idle bank **15s**; topic **no** timer
-- PartyKit redeploy still **blocked** on missing `PARTYKIT_TOKEN` / `PARTYKIT_LOGIN` — server timers (review/vote) won’t update in prod until secrets are set and the workflow is re-run (or `npx partykit deploy` locally).
 
 ## AI
 
 - Preferred: Gemini 3.6 Flash via `GEMINI_API_KEY` (or `GOOGLE_GENERATIVE_AI_API_KEY`) structured JSON at `/api/judge`
 - Optional fallback: OpenAI `gpt-4o-mini` when Gemini unset but `OPENAI_API_KEY` present
 - Without either key: fallback award 20 + label — stated plainly
+- PartyServer calls `/api/judge` with `Authorization: Bearer $JUDGE_SECRET` and `X-Quarry-Judge: partyserver`
 
 ## Room session auto-rejoin
 

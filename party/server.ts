@@ -1,8 +1,9 @@
 /**
- * Beans — authoritative PartyKit room server.
+ * Beans — authoritative PartyServer room (Cloudflare Durable Object).
  * Durable state + storage alarms for deadlines (survive host tab sleep).
+ * Deploy with: npx wrangler deploy  (see wrangler.jsonc)
  */
-import type * as Party from "partykit/server";
+import { routePartykitRequest, Server, type Connection } from "partyserver";
 import {
   emptyRoomState,
   normalizePick,
@@ -58,12 +59,6 @@ import {
   botWagerAmount,
   chooseBotPick,
 } from "../src/shared/bot-picks";
-function roomEnv(room: Party.Room): Record<string, string | undefined> {
-  return (
-    (room as unknown as { env?: Record<string, string | undefined> }).env ?? {}
-  );
-}
-
 /** Strip HTTP codes / secrets from judge notices before players see them. */
 function sanitizeJudgeNotice(notice: string): string {
   if (!notice) return RULES.aiFallbackLabel;
@@ -250,27 +245,32 @@ function hashStr(s: string): number {
  * Client forces a snappy reconnect on visibility/online; matching id cancels this timer in onConnect. */
 const DISCONNECT_GRACE_MS = 8_000;
 
-export default class QuarryServer implements Party.Server {
-  state: RoomState;
+export type Env = {
+  Main: DurableObjectNamespace<QuarryServer>;
+  JUDGE_URL?: string;
+  JUDGE_SECRET?: string;
+  NEXT_PUBLIC_APP_URL?: string;
+};
+
+export class QuarryServer extends Server<Env> {
+  state: RoomState = emptyRoomState("ROOM");
   private alarmPayload: AlarmPayload | null = null;
   /** In-memory delayed bot taps (room stays warm while host playtests). */
   private botTimers = new Map<string, ReturnType<typeof setTimeout>>();
   /** Soft-disconnect grace — cancelled if the same id reconnects. */
   private leaveTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
-  constructor(readonly room: Party.Room) {
-    this.state = emptyRoomState(room.id.toUpperCase());
-  }
-
   async onStart() {
-    const saved = await this.room.storage.get<RoomState>("state");
-    const alarm = await this.room.storage.get<AlarmPayload>("alarm");
+    const saved = await this.ctx.storage.get<RoomState>("state");
+    const alarm = await this.ctx.storage.get<AlarmPayload>("alarm");
     const wasPrep = saved ? (saved.phase as string) === "PREP" : false;
     if (saved) {
       this.state = migrateState(saved);
       this.state.players = this.state.players.map((p) =>
         p.role === "spectator" ? p : { ...p, connected: false },
       );
+    } else {
+      this.state = emptyRoomState(this.name.toUpperCase());
     }
     if (alarm) {
       this.alarmPayload = alarm;
@@ -279,7 +279,7 @@ export default class QuarryServer implements Party.Server {
         // disconnect already changed the old payload's phaseRevision.
         const owner = this.alarmOwner(alarm.kind);
         if (owner) {
-          const when = owner.deadlineAt ?? (await this.room.storage.getAlarm()) ?? Date.now();
+          const when = owner.deadlineAt ?? (await this.ctx.storage.getAlarm()) ?? Date.now();
           await this.setAlarmAt(when, alarm);
         } else if (
           this.state.phase === "DICE" &&
@@ -309,12 +309,12 @@ export default class QuarryServer implements Party.Server {
   }
 
   async persist() {
-    await this.room.storage.put("state", this.state);
+    await this.ctx.storage.put("state", this.state);
     if (this.alarmPayload) {
-      await this.room.storage.put("alarm", this.alarmPayload);
+      await this.ctx.storage.put("alarm", this.alarmPayload);
     } else {
       // A consumed alarm must not reappear after the room restarts.
-      await this.room.storage.delete("alarm");
+      await this.ctx.storage.delete("alarm");
     }
   }
 
@@ -376,21 +376,21 @@ export default class QuarryServer implements Party.Server {
       deadlineAt: when,
       context: this.alarmOwner(payload.kind)?.context ?? null,
     };
-    await this.room.storage.put("alarm", this.alarmPayload);
-    await this.room.storage.setAlarm(when);
+    await this.ctx.storage.put("alarm", this.alarmPayload);
+    await this.ctx.storage.setAlarm(when);
   }
 
   async clearAlarm() {
     this.alarmPayload = null;
-    await this.room.storage.delete("alarm");
+    await this.ctx.storage.delete("alarm");
     try {
-      await this.room.storage.deleteAlarm();
+      await this.ctx.storage.deleteAlarm();
     } catch {
       /* ignore */
     }
   }
 
-  send(conn: Party.Connection, msg: ServerMessage) {
+  send(conn: Connection, msg: ServerMessage) {
     conn.send(JSON.stringify(msg));
   }
 
@@ -399,7 +399,7 @@ export default class QuarryServer implements Party.Server {
    * check whether a room is active (has at least one player) before joining.
    * Returns JSON: { exists: boolean, phase: string, playerCount: number }.
    */
-  async onRequest(req: Party.Request): Promise<Response> {
+  async onRequest(req: Request): Promise<Response> {
     const headers = {
       "Content-Type": "application/json",
       "Access-Control-Allow-Origin": "*",
@@ -433,7 +433,7 @@ export default class QuarryServer implements Party.Server {
   broadcastState() {
     // Project shared fields once; overlay recipient-private fields per conn.
     const shared = projectPublicStateShared(this.state);
-    for (const conn of this.room.getConnections()) {
+    for (const conn of this.getConnections()) {
       const recipient = this.state.players.find((p) => p.id === conn.id);
       const state: PublicRoomState = {
         ...shared,
@@ -738,7 +738,7 @@ export default class QuarryServer implements Party.Server {
     return true;
   }
 
-  onConnect(conn: Party.Connection) {
+  onConnect(conn: Connection) {
     const playerId = conn.id;
     this.clearLeaveTimer(playerId);
     const existing = this.state.players.find((p) => p.id === playerId);
@@ -755,7 +755,10 @@ export default class QuarryServer implements Party.Server {
     }
   }
 
-  onClose(conn: Party.Connection) {
+  onClose(conn: Connection, _code?: number, _reason?: string, _wasClean?: boolean) {
+    void _code;
+    void _reason;
+    void _wasClean;
     const p = this.state.players.find((x) => x.id === conn.id);
     if (!p) return;
     p.connected = false;
@@ -816,7 +819,7 @@ export default class QuarryServer implements Party.Server {
     if (payload.deadlineAt !== undefined && Date.now() < payload.deadlineAt) {
       // A duplicate/old delivery may arrive after a replacement clock was set.
       // Keep the new deadline; do not consume it or advance that turn early.
-      await this.room.storage.setAlarm(payload.deadlineAt);
+      await this.ctx.storage.setAlarm(payload.deadlineAt);
       return;
     }
     this.alarmPayload = null;
@@ -851,7 +854,11 @@ export default class QuarryServer implements Party.Server {
     this.nudgeBots();
   }
 
-  async onMessage(message: string, sender: Party.Connection) {
+  async onMessage(sender: Connection, message: string | ArrayBuffer | ArrayBufferView) {
+    if (typeof message !== "string") {
+      this.send(sender, { type: "error", message: "Bad message" });
+      return;
+    }
     let msg: ClientMessage;
     try {
       msg = JSON.parse(message) as ClientMessage;
@@ -886,7 +893,7 @@ export default class QuarryServer implements Party.Server {
       const safe =
         !text ||
         text.length > 120 ||
-        /partykit|stack|TypeError|at\s+\S+|ECONN|JUDGE_SECRET|API_KEY/i.test(
+        /partykit|partyserver|stack|TypeError|at\s+\S+|ECONN|JUDGE_SECRET|API_KEY/i.test(
           text,
         )
           ? "Something went wrong — try again"
@@ -902,7 +909,7 @@ export default class QuarryServer implements Party.Server {
   async handle(
     msg: ClientMessage,
     playerId: string,
-    sender?: Party.Connection,
+    sender?: Connection,
   ) {
     const id = playerId;
 
@@ -1091,7 +1098,7 @@ export default class QuarryServer implements Party.Server {
     this.state.notice = `${target.name} was removed from the lobby`;
     bump(this.state);
     // Notify the removed connection if still open.
-    for (const conn of this.room.getConnections()) {
+    for (const conn of this.getConnections()) {
       if (conn.id === targetId) {
         this.send(conn, {
           type: "error",
@@ -1686,7 +1693,7 @@ export default class QuarryServer implements Party.Server {
       rosters,
     );
 
-    const env = roomEnv(this.room);
+    const env = this.env;
     const judgeBase =
       env.JUDGE_URL?.replace(/\/$/, "") ||
       env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
@@ -1705,7 +1712,7 @@ export default class QuarryServer implements Party.Server {
           ...(env.JUDGE_SECRET
             ? { Authorization: `Bearer ${env.JUDGE_SECRET}` }
             : {}),
-          "X-Quarry-Judge": "partykit",
+          "X-Quarry-Judge": "partyserver",
         },
         body: JSON.stringify(payload),
         signal: controller.signal,
@@ -3231,4 +3238,11 @@ export default class QuarryServer implements Party.Server {
   }
 }
 
-QuarryServer satisfies Party.Worker;
+export default {
+  async fetch(request: Request, env: Env): Promise<Response> {
+    return (
+      (await routePartykitRequest(request, env)) ||
+      new Response("Not Found", { status: 404 })
+    );
+  },
+} satisfies ExportedHandler<Env>;

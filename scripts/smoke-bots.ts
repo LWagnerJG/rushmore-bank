@@ -3,7 +3,10 @@
  */
 import PartySocket from "partysocket";
 
-const HOST = process.env.PARTYKIT_HOST ?? "127.0.0.1:1999";
+const HOST =
+  process.env.NEXT_PUBLIC_PARTYKIT_HOST ??
+  process.env.PARTYKIT_HOST ??
+  "127.0.0.1:8787";
 const CODE = `BOT${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 const ADMIN_PIN = "8989";
 

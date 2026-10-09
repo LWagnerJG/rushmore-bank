@@ -1,27 +1,9 @@
 import { describe, expect, it } from "vitest";
-import type * as Party from "partykit/server";
-import QuarryServer from "../../../party/server";
+import type { Connection } from "partyserver";
+import { createTestServer } from "../../../test/party-server-harness";
 
-function lobbyServer(connections: Party.Connection[] = []) {
-  const room = {
-    id: "LOBBY",
-    storage: {
-      async get() {
-        return undefined;
-      },
-      async put() {},
-      async delete() {
-        return true;
-      },
-      async getAlarm() {
-        return null;
-      },
-      async setAlarm() {},
-      async deleteAlarm() {},
-    },
-    getConnections: () => connections,
-  } as unknown as Party.Room;
-  const server = new QuarryServer(room);
+function lobbyServer(connections: Connection[] = []) {
+  const { server } = createTestServer("LOBBY", { connections });
   server.state.players = [
     {
       id: "host",
@@ -73,7 +55,7 @@ describe("host remove_player (duplicates only)", () => {
     const sent: Record<string, unknown[]> = { host: [], dup: [] };
     const connections = ["host", "dup"].map((id) => ({
       id, send: (message: string) => sent[id].push(JSON.parse(message)),
-    })) as unknown as Party.Connection[];
+    })) as unknown as Connection[];
     const server = lobbyServer(connections);
     server.handleRemovePlayer("host", "dup");
     expect(sent.host).toEqual([]);

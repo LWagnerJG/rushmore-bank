@@ -1,0 +1,23 @@
+/**
+ * PartyServer (Cloudflare Workers + Durable Objects) config for Beans.
+ *
+ * Deploy: npx wrangler deploy
+ * Local:  npx wrangler dev  (default http://127.0.0.1:8787)
+ *
+ * After first deploy, set the workers.dev host as NEXT_PUBLIC_PARTYKIT_HOST
+ * on Vercel (and optionally update DEFAULT_PARTYKIT_HOST in src/lib/party.ts).
+ * Put JUDGE_SECRET with: npx wrangler secret put JUDGE_SECRET
+ */
+{
+  "name": "beans-party",
+  "main": "party/server.ts",
+  "compatibility_date": "2025-06-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "durable_objects": {
+    "bindings": [{ "name": "Main", "class_name": "QuarryServer" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["QuarryServer"] }],
+  "vars": {
+    "JUDGE_URL": "https://beans-game.vercel.app"
+  }
+}

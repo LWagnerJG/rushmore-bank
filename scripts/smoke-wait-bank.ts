@@ -1,10 +1,10 @@
 /**
  * Local regression: waiting Bank rejected + current Bank advances seat.
- * Requires partykit + next on 1999/3000 with NEXT_PUBLIC_PARTYKIT_HOST=127.0.0.1:1999
+ * Requires wrangler + next on 8787/3000 with NEXT_PUBLIC_PARTYKIT_HOST=127.0.0.1:8787
  */
 import PartySocket from "partysocket";
 
-const HOST = process.env.NEXT_PUBLIC_PARTYKIT_HOST || "127.0.0.1:1999";
+const HOST = process.env.NEXT_PUBLIC_PARTYKIT_HOST || "127.0.0.1:8787";
 const code = "WXYZ";
 
 type State = {

@@ -2,42 +2,16 @@
  * Soft-disconnect grace: keep host + vote quorum through app-switch blips.
  */
 import assert from "node:assert/strict";
-import type * as Party from "partykit/server";
+import type { Connection } from "partyserver";
 import { afterEach, beforeEach, describe, it, vi } from "vitest";
-import QuarryServer from "../../../party/server";
+import { createTestServer } from "../../../test/party-server-harness";
 import { emptyRoomState } from "../types";
 import { projectPublicState } from "../engine/public-state";
 
 const START = 1_800_000_000_000;
 
 function game() {
-  const saved = new Map<string, unknown>();
-  let deadline: number | null = null;
-  const room = {
-    id: "GRCE",
-    storage: {
-      async get(key: string) {
-        return structuredClone(saved.get(key));
-      },
-      async put(key: string, value: unknown) {
-        saved.set(key, structuredClone(value));
-      },
-      async delete(key: string) {
-        return saved.delete(key);
-      },
-      async getAlarm() {
-        return deadline;
-      },
-      async setAlarm(at: number) {
-        deadline = at;
-      },
-      async deleteAlarm() {
-        deadline = null;
-      },
-    },
-    getConnections: () => [],
-  } as unknown as Party.Room;
-  const server = new QuarryServer(room);
+  const { server } = createTestServer("GRCE");
   server.state.players = ["A", "B", "C"].map((id, seat) => ({
     id,
     name: id,
@@ -64,8 +38,8 @@ describe("disconnect grace robustness", () => {
 
   it("keeps host through mid-game soft disconnect", () => {
     const g = game();
-    const conn = { id: "A", send() {} } as unknown as Party.Connection;
-    g.server.onClose(conn);
+    const conn = { id: "A", send() {} } as unknown as Connection;
+    g.server.onClose(conn, 1000, "", true);
     assert.equal(g.server.state.players.find((p) => p.id === "A")!.connected, false);
     assert.equal(g.server.state.players.find((p) => p.id === "A")!.isHost, true);
     assert.equal(g.server.state.players.find((p) => p.id === "B")!.isHost, false);
@@ -88,7 +62,7 @@ describe("disconnect grace robustness", () => {
     }));
     g.server.state.judgeStatus = "ready";
     // C soft-disconnects (grace timer armed)
-    g.server.onClose({ id: "C", send() {} } as unknown as Party.Connection);
+    g.server.onClose({ id: "C", send() {} } as unknown as Connection, 1000, "", true);
     assert.equal(g.server.humanVoteNeededCount(), 3);
     await g.server.handleVote("A", "B");
     await g.server.handleVote("B", "A");
