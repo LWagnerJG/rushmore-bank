@@ -212,14 +212,80 @@ export function RoomClient({
   if (!joined || !you) {
     if (presetName.trim() && !removed) {
       return (
-        <main className="app-shell app-shell-lock mx-auto flex max-w-md flex-col gap-4 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))]">
+        <main className="app-shell app-shell-lock mx-auto flex max-w-md flex-col pt-0">
+          <div className="app-safe-top" aria-hidden="true" />
+          <div className="app-shell-scroll flex min-h-0 flex-1 flex-col gap-4 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4">
+            <BrandMark shimmer={false} onLogoTap={handleLogoTap} />
+            <h1 className="font-[family-name:var(--font-display)] text-2xl font-extrabold">
+              Room {code}
+            </h1>
+            <p className="text-sm text-[var(--muted)]">
+              {connected ? `Joining as ${presetName.trim()}…` : "Connecting…"}
+            </p>
+            {error && <p className="text-sm text-[var(--coral)]">{error}</p>}
+            {!connected && (
+              <p className="text-sm font-semibold text-[var(--muted)]">
+                Reconnecting…
+              </p>
+            )}
+            <Link href="/" className="text-sm font-semibold text-[var(--coral)]">
+              ← Home
+            </Link>
+          </div>
+        </main>
+      );
+    }
+
+    return (
+      <main className="app-shell app-shell-lock mx-auto flex max-w-md flex-col pt-0">
+        <div className="app-safe-top" aria-hidden="true" />
+        <div className="app-shell-scroll flex min-h-0 flex-1 flex-col gap-4 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4">
           <BrandMark shimmer={false} onLogoTap={handleLogoTap} />
           <h1 className="font-[family-name:var(--font-display)] text-2xl font-extrabold">
             Room {code}
           </h1>
           <p className="text-sm text-[var(--muted)]">
-            {connected ? `Joining as ${presetName.trim()}…` : "Connecting…"}
+            {removed
+              ? "The host removed this seat. You can join again below."
+              : connected
+                ? "Connected — enter a nickname"
+                : "Connecting…"}
           </p>
+          <input
+            className="field"
+            value={name}
+            maxLength={18}
+            placeholder="Nickname"
+            autoFocus
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter")
+                join(name, preferSpectate ? "spectator" : "player");
+            }}
+          />
+          <button
+            type="button"
+            className="btn-primary text-lg"
+            onClick={() => join(name, preferSpectate ? "spectator" : "player")}
+          >
+            Join game
+          </button>
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => join(name || "Spectator", "spectator")}
+          >
+            Watch only
+          </button>
+          {rejoinId && !removed && (
+            <button
+              type="button"
+              className="btn-secondary text-sm"
+              onClick={handleRejoin}
+            >
+              Rejoin this room
+            </button>
+          )}
           {error && <p className="text-sm text-[var(--coral)]">{error}</p>}
           {!connected && (
             <p className="text-sm font-semibold text-[var(--muted)]">
@@ -229,65 +295,7 @@ export function RoomClient({
           <Link href="/" className="text-sm font-semibold text-[var(--coral)]">
             ← Home
           </Link>
-        </main>
-      );
-    }
-
-    return (
-      <main className="app-shell app-shell-lock mx-auto flex max-w-md flex-col gap-4 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))]">
-        <BrandMark shimmer={false} onLogoTap={handleLogoTap} />
-        <h1 className="font-[family-name:var(--font-display)] text-2xl font-extrabold">
-          Room {code}
-        </h1>
-        <p className="text-sm text-[var(--muted)]">
-          {removed
-            ? "The host removed this seat. You can join again below."
-            : connected ? "Connected — enter a nickname" : "Connecting…"}
-        </p>
-        <input
-          className="field"
-          value={name}
-          maxLength={18}
-          placeholder="Nickname"
-          autoFocus
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter")
-              join(name, preferSpectate ? "spectator" : "player");
-          }}
-        />
-        <button
-          type="button"
-          className="btn-primary text-lg"
-          onClick={() => join(name, preferSpectate ? "spectator" : "player")}
-        >
-          Join game
-        </button>
-        <button
-          type="button"
-          className="btn-secondary"
-          onClick={() => join(name || "Spectator", "spectator")}
-        >
-          Watch only
-        </button>
-        {rejoinId && !removed && (
-          <button
-            type="button"
-            className="btn-secondary text-sm"
-            onClick={handleRejoin}
-          >
-            Rejoin this room
-          </button>
-        )}
-        {error && <p className="text-sm text-[var(--coral)]">{error}</p>}
-        {!connected && (
-          <p className="text-sm font-semibold text-[var(--muted)]">
-            Reconnecting…
-          </p>
-        )}
-        <Link href="/" className="text-sm font-semibold text-[var(--coral)]">
-          ← Home
-        </Link>
+        </div>
       </main>
     );
   }

@@ -8,7 +8,9 @@ export default function BuildNotesPage() {
   const shortSha = COMMIT_SHA ? COMMIT_SHA.slice(0, 7) : null;
 
   return (
-    <main className="app-shell app-shell-scroll mx-auto max-w-md space-y-6 px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))]">
+    <main className="app-shell app-shell-lock mx-auto flex max-w-md flex-col pt-0">
+      <div className="app-safe-top" aria-hidden="true" />
+      <div className="app-shell-scroll mx-auto w-full max-w-md flex-1 space-y-6 px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-4">
       <Link href="/" className="text-sm font-bold text-[var(--coral)]">
         ← Home
       </Link>
@@ -174,6 +176,7 @@ export default function BuildNotesPage() {
           </li>
         </ul>
       </section>
+      </div>
     </main>
   );
 }

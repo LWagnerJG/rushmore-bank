@@ -1,20 +1,60 @@
 "use client";
 
 import { useEffect } from "react";
-import { resolveAppHeightPx } from "@/shared/viewport-height";
+import {
+  isEditableElement,
+  resolveAppHeightPx,
+  scrollEditableIntoAppScroll,
+  shouldFreezeAppHeight,
+} from "@/shared/viewport-height";
 
 /**
- * Sets --app-h from the true visual viewport and keeps it updated.
- *
- * Why not bare 100dvh? On iOS PWA and iPad Safari, `dvh` tracks the layout
- * viewport and can disagree with the painted area (status bar, URL chrome,
- * landscape keyboard/toolbars). visualViewport.height / innerHeight match
- * what the user sees, so height-clamped shells clip correctly.
+ * Sets --app-h from the true visual viewport and keeps it updated — except
+ * while the software keyboard is open. Shrinking the locked shell with the
+ * keyboard (iOS Safari / standalone PWA) jumps the whole UI; freeze the last
+ * stable height instead and scroll the focused field inside the app scrollport.
  */
-function syncAppH() {
+function syncAppH(frozenPx: { current: number | null }) {
+  const innerHeight = window.innerHeight;
+  const visualViewportHeight = window.visualViewport?.height;
+  const visualViewportOffsetTop = window.visualViewport?.offsetTop;
+  const editableFocused = isEditableElement(document.activeElement);
+  const freeze = shouldFreezeAppHeight({
+    innerHeight,
+    visualViewportHeight,
+    visualViewportOffsetTop,
+    editableFocused,
+  });
+
+  if (freeze) {
+    if (frozenPx.current == null) {
+      const existing = parseFloat(
+        getComputedStyle(document.documentElement).getPropertyValue("--app-h"),
+      );
+      frozenPx.current =
+        Number.isFinite(existing) && existing > 0
+          ? Math.round(existing)
+          : resolveAppHeightPx({
+              innerHeight,
+              visualViewportHeight: null,
+              ignoreVisualViewport: true,
+            });
+    }
+    if (frozenPx.current > 0) {
+      document.documentElement.style.setProperty(
+        "--app-h",
+        `${frozenPx.current}px`,
+      );
+    }
+    // Kill page-level rubber-band / vv offset jumps under a locked shell.
+    window.scrollTo(0, 0);
+    return;
+  }
+
+  frozenPx.current = null;
   const px = resolveAppHeightPx({
-    innerHeight: window.innerHeight,
-    visualViewportHeight: window.visualViewport?.height,
+    innerHeight,
+    visualViewportHeight,
   });
   if (px > 0) {
     document.documentElement.style.setProperty("--app-h", `${px}px`);
@@ -25,12 +65,17 @@ function syncAppH() {
  * Blocks Safari/Chrome pull-to-refresh on phone so the PartyServer socket
  * isn't nuked mid-game. Only cancels the rubber-band-at-top gesture;
  * normal scrolling inside .app-shell-scroll / .room-phase-scroll still works.
+ *
+ * Also owns iOS keyboard focus hygiene: keep html/body locked, scroll the
+ * focused input inside the app scrollport only, and reset window scroll on blur.
  */
 export function NoPullToRefresh() {
-  // Sync --app-h before layout; re-sync on orientation / resize / vv scroll.
+  // Sync --app-h before layout; re-sync on orientation / resize / vv scroll,
+  // but freeze while the keyboard is open.
   useEffect(() => {
-    syncAppH();
-    const onResize = () => syncAppH();
+    const frozenPx: { current: number | null } = { current: null };
+    const onResize = () => syncAppH(frozenPx);
+    syncAppH(frozenPx);
     window.addEventListener("resize", onResize);
     window.addEventListener("orientationchange", onResize);
     window.visualViewport?.addEventListener("resize", onResize);
@@ -54,6 +99,36 @@ export function NoPullToRefresh() {
     sync();
     document.addEventListener("visibilitychange", sync);
     return () => document.removeEventListener("visibilitychange", sync);
+  }, []);
+
+  // Focus / blur: scroll within app containers only; never leave a shifted page.
+  useEffect(() => {
+    const onFocusIn = (e: FocusEvent) => {
+      const t = e.target;
+      if (!isEditableElement(t)) return;
+      window.scrollTo(0, 0);
+      // After keyboard / vv settles, nudge the field into the scrollport.
+      requestAnimationFrame(() => {
+        scrollEditableIntoAppScroll(t);
+        window.scrollTo(0, 0);
+      });
+      window.setTimeout(() => {
+        scrollEditableIntoAppScroll(t);
+        window.scrollTo(0, 0);
+      }, 120);
+    };
+    const onFocusOut = () => {
+      window.scrollTo(0, 0);
+      // Keyboard dismiss can leave a residual document offset on iOS.
+      window.setTimeout(() => window.scrollTo(0, 0), 50);
+      window.setTimeout(() => window.scrollTo(0, 0), 300);
+    };
+    document.addEventListener("focusin", onFocusIn);
+    document.addEventListener("focusout", onFocusOut);
+    return () => {
+      document.removeEventListener("focusin", onFocusIn);
+      document.removeEventListener("focusout", onFocusOut);
+    };
   }, []);
 
   useEffect(() => {
