@@ -7,7 +7,7 @@
  * on Vercel so this default is only a local/fallback hint.
  */
 export const DEFAULT_PARTYKIT_HOST =
-  "beans-party.YOUR_SUBDOMAIN.workers.dev";
+  "beans-party.beans-lwagner.workers.dev";
 
 /** PartyServer (or local wrangler) host for browser clients. */
 export function getPartyHost(): string {
