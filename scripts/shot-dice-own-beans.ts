@@ -104,9 +104,19 @@ async function main() {
           const roller = await page.$(".dice-roller-beans");
           if (roller) throw new Error("roller beans shown on your turn");
         }
-        // Scroll the dice panel into view within the lab page chrome
+        // Strip lab chrome so the dice column sits like the in-room phase body
         await page.evaluate(() => {
-          document.querySelector(".dice-layout")?.scrollIntoView({ block: "start" });
+          const main = document.querySelector("main");
+          const layout = document.querySelector(".dice-layout");
+          if (!main || !layout) return;
+          for (const child of Array.from(main.children)) {
+            if (child !== layout) (child as HTMLElement).style.display = "none";
+          }
+          main.className = "app-shell mx-auto max-w-md px-4";
+          (main as HTMLElement).style.paddingTop = "0.5rem";
+          (main as HTMLElement).style.paddingBottom =
+            "max(0.75rem, env(safe-area-inset-bottom, 0px))";
+          window.scrollTo(0, 0);
         });
         await page.waitForTimeout(200);
         const fit = await measureFit(page);
