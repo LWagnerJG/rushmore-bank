@@ -356,8 +356,8 @@ export function RoomClient({
                   paused={state.pickPaused}
                 />
               </div>
-            ) : phase === "SCORE_REVEAL" ? (
-              // Rail already shows totals (+earned) — drop Scores/beans chrome.
+            ) : phase === "SCORE_REVEAL" || phase === "DICE" ? (
+              // Turn strip / rail is the score surface — drop BANK + beans chrome.
               // Keep Party badge alone when party mode is on.
               partyOn ? (
                 <div className="flex shrink-0 items-center justify-end pt-0.5">
@@ -374,14 +374,7 @@ export function RoomClient({
                   )}
                   <span>{phase ? phaseLabel(phase) : "…"}</span>
                 </div>
-                {/* Soft balance chrome — Bank action lives in the dice CTA */}
-                <div
-                  className={
-                    phase === "DICE"
-                      ? "mt-0.5 text-[0.7rem] font-semibold normal-case tracking-normal tabular-nums text-[var(--muted)]"
-                      : "font-[family-name:var(--font-display)] text-sm font-extrabold tabular-nums normal-case tracking-normal text-[var(--text)]"
-                  }
-                >
+                <div className="font-[family-name:var(--font-display)] text-sm font-extrabold tabular-nums normal-case tracking-normal text-[var(--text)]">
                   {you.stones} {RULES.currencyName}
                 </div>
               </div>
@@ -407,7 +400,7 @@ export function RoomClient({
               </span>
             </div>
           )}
-          <RoomNotice notice={state?.notice} />
+          <RoomNotice notice={state?.notice} hostOnly isHost={you.isHost} />
         </div>
       </header>
 

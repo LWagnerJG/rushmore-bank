@@ -27,18 +27,20 @@ function useSecondsLeft(until: number | null) {
 }
 
 /**
- * Always-mounted roll/Bank decision clock.
- * When idle (rolling / settled / between seats), keep the slot and show — so
- * the stage never jumps when the 15s window appears or clears.
+ * Digits-only while the idle-bank window is live.
+ * Short label appears once on the first live turn of a seat; aria-label always
+ * names the clock. Idle slot stays empty (height reserved) — no “—” chrome.
  */
 function DecisionTimer({
   until,
   label,
+  showLabel,
   urgent,
   idle,
 }: {
   until: number | null;
   label: string;
+  showLabel?: boolean;
   urgent?: boolean;
   idle?: boolean;
 }) {
@@ -52,11 +54,16 @@ function DecisionTimer({
       aria-label={active ? `${label}: ${left} seconds` : "Timer idle"}
       aria-hidden={!active}
     >
-      <span className="dice-timer-label">{active ? label : "Timer"}</span>
-      <span className="dice-timer-value tabular-nums">
-        {active ? left : "—"}
-      </span>
-      <span className="dice-timer-unit">sec</span>
+      {active && showLabel ? (
+        <span className="dice-timer-label">{label}</span>
+      ) : null}
+      {active ? (
+        <span className="dice-timer-value tabular-nums">{left}</span>
+      ) : (
+        <span className="dice-timer-value dice-timer-value-idle" aria-hidden="true">
+          {"\u00a0"}
+        </span>
+      )}
     </div>
   );
 }
@@ -95,7 +102,7 @@ type SeatInfo = {
 
 /**
  * Compact phone turn strip — seat order left→right.
- * Clearer than a circle on small screens; no “TABLE” hub.
+ * Single score surface during BANK (chrome beans are hidden).
  */
 function TurnStrip({ seats }: { seats: SeatInfo[] }) {
   const upRef = useRef<HTMLLIElement | null>(null);
@@ -128,21 +135,30 @@ function TurnStrip({ seats }: { seats: SeatInfo[] }) {
           </span>
           <span className="dice-turn-chip-meta">
             <span className="dice-turn-chip-badge">{BADGE[seat.kind]}</span>
-            <span className="dice-turn-chip-split tabular-nums" aria-label={`${seat.safe} safe${seat.kind === "banked" || seat.kind === "busted" ? "" : `, ${seat.pot} risking`}`}>
-              {seat.kind === "banked" || seat.kind === "busted" ? (
-                <span className="dice-turn-chip-safe">
-                  <span className="dice-turn-chip-num">{seat.safe}</span>
+            <span
+              className="dice-turn-chip-split tabular-nums"
+              aria-label={
+                seat.kind === "banked" || seat.kind === "busted" || seat.pot === 0
+                  ? `${seat.safe} safe`
+                  : `${seat.pot} in pot`
+              }
+            >
+              {/* Single figure — Pot/Safe labels live once on the stage */}
+              <span
+                className={
+                  seat.kind === "banked" || seat.kind === "busted" || seat.pot === 0
+                    ? "dice-turn-chip-safe"
+                    : "dice-turn-chip-pot"
+                }
+              >
+                <span className="dice-turn-chip-num">
+                  {seat.kind === "banked" ||
+                  seat.kind === "busted" ||
+                  seat.pot === 0
+                    ? seat.safe
+                    : seat.pot}
                 </span>
-              ) : (
-                <>
-                  <span className="dice-turn-chip-safe">
-                    <span className="dice-turn-chip-num">{seat.safe}</span>
-                  </span>
-                  <span className="dice-turn-chip-pot">
-                    <span className="dice-turn-chip-num">{seat.pot}</span>
-                  </span>
-                </>
-              )}
+              </span>
             </span>
           </span>
         </li>
@@ -173,6 +189,7 @@ export function DicePanel({
   const [busy, setBusy] = useState(false);
   const turnHaptic = useRef<string | null>(null);
   const revealSeen = useRef<string | null>(null);
+  const timerLabelSeen = useRef<string | null>(null);
   const [heroReveal, setHeroReveal] = useState(false);
   /** Prior revealed non-secret roll — fills the total gap while the next tumble runs. */
   const [stickyRoll, setStickyRoll] = useState<DiceReadoutRoll | null>(null);
@@ -193,6 +210,8 @@ export function DicePanel({
     you.role === "player" &&
     state.diceSubphase === "READY" &&
     !bankConfirm;
+  const firstRoll =
+    canRoll && (state.personalRollCounts[youId] ?? 0) === 0;
   const glowOn = myTurn && active && you.role === "player" && !settling;
 
   useEffect(() => {
@@ -245,10 +264,6 @@ export function DicePanel({
     last,
     stickyForReadout,
   );
-  const lastName =
-    state.players.find(
-      (p) => p.id === (readout.rollerId ?? last?.rollerId),
-    )?.name ?? "Player";
   const nextId = Array.from(
     { length: state.seatOrder.length - 1 },
     (_, i) =>
@@ -258,8 +273,7 @@ export function DicePanel({
   const canResolveParty =
     partyPrompt?.targetPlayerIds.includes(youId) || you.isHost;
 
-  // BEAN BUSTER / settle pop only while SETTLED. Server clears lastDice on the
-  // next seat — never extend a client timer past the settle beat.
+  // Bust / settle beat while SETTLED. Server clears lastDice on the next seat.
   useEffect(() => {
     if (state.diceSubphase !== "SETTLED") return;
     if (!liveRoll?.rollId) return;
@@ -332,24 +346,36 @@ export function DicePanel({
     : state.diceSubphase === "READY"
       ? state.diceIdleDeadlineAt
       : null;
-  const timerLabel = myTurn ? "Your roll" : "Decision";
   const timerLive = timerUntil != null && !rolling && !settling;
+  const timerKey = `${state.code}:${state.diceTurnSeat}:${state.phaseRevision}`;
+  const [showTimerLabel, setShowTimerLabel] = useState(false);
+  useEffect(() => {
+    if (!timerLive) {
+      setShowTimerLabel(false);
+      return;
+    }
+    // Short label once on the first live window of each seat.
+    if (timerLabelSeen.current === timerKey) return;
+    timerLabelSeen.current = timerKey;
+    setShowTimerLabel(true);
+  }, [timerLive, timerKey]);
+  const timerLabel = myTurn ? "Roll" : "Turn";
 
-  // Bust banner + total always follow the live revealed roll on SETTLED (not sticky).
+  // Bust banner follows the live revealed roll on SETTLED (not sticky).
   const bustMoment = readout.showBust;
   const showBust = readout.showBust;
   const showTotal = readout.showTotal;
-  const statusLine = rolling
-    ? "Rolling…"
-    : bustMoment
-      ? "Pot wiped"
+  // One status signal merged with tray: title = role; status = Rolling/Settling
+  // or Tap (after first). Bust uses the result banner only — no spectator line.
+  const statusLine = bustMoment
+    ? null
+    : rolling
+      ? "Rolling…"
       : settling
         ? "Settling…"
-        : myTurn && canRoll
-          ? "TAP TO ROLL"
-          : myTurn
-            ? "Your turn"
-            : "Waiting";
+        : myTurn && canRoll && !firstRoll
+          ? "Tap to roll"
+          : null;
 
   const resultFresh = settling && !!liveRoll;
   const resultStale = readout.resultStale;
@@ -357,9 +383,9 @@ export function DicePanel({
 
   return (
     <div
-      className={`dice-layout ${heroReveal && settling ? "dice-hero-mode" : ""} ${bustMoment ? "dice-bust-linger" : ""} ${!active && you.role === "player" ? "dice-spectator" : ""}`}
+      className={`dice-layout ${heroReveal && settling ? "dice-hero-mode" : ""} ${bustMoment ? "dice-bust-flash" : ""} ${!active && you.role === "player" ? "dice-spectator" : ""}`}
     >
-      {/* Zone 1 — turn strip (table context, outside the soft stage) */}
+      {/* Zone 1 — turn strip = single score surface (chrome beans hidden) */}
       <section
         className={`dice-zone dice-zone-strip ${drama ? "dice-table-dim" : ""}`}
         aria-label="Turn order"
@@ -367,7 +393,7 @@ export function DicePanel({
         <TurnStrip seats={seats} />
       </section>
 
-      {/* Zone 2 — one soft cream panel: role + timer + dice + TAP + last roll + pot/Bank */}
+      {/* Zone 2 — one soft cream panel: role + timer + dice + result + Bank */}
       <section
         className={`dice-zone dice-zone-stage ${drama && !myTurn ? "dice-stage-dim" : ""}`}
         aria-label="Dice stage"
@@ -376,23 +402,25 @@ export function DicePanel({
           <header className="dice-stage-chrome">
             <div className="dice-stage-role">
               <h2 className="dice-up-title">
-                {bustMoment
-                  ? "BEAN BUSTER"
-                  : myTurn
-                    ? "Your roll"
-                    : `${roller?.name ?? "Player"} is up`}
+                {myTurn ? "Your roll" : `${roller?.name ?? "Player"} is up`}
               </h2>
-              <p className="dice-up-status" aria-live="polite">
-                {bustMoment ? `${lastName} · pot wiped` : statusLine}
-              </p>
+              {statusLine ? (
+                <p className="dice-up-status" aria-live="polite">
+                  {statusLine}
+                </p>
+              ) : (
+                <p className="dice-up-status dice-up-status-empty" aria-hidden="true">
+                  {"\u00a0"}
+                </p>
+              )}
             </div>
             <div
               className={`dice-stage-timer ${timerLive ? "dice-stage-timer-live" : "dice-stage-timer-idle"}`}
-              aria-label="Turn timer"
             >
               <DecisionTimer
                 until={timerUntil}
                 label={timerLabel}
+                showLabel={showTimerLabel && timerLive}
                 idle={!timerLive}
               />
             </div>
@@ -404,9 +432,7 @@ export function DicePanel({
               reducedMotion={reducedMotion}
               canRoll={canRoll && !busy}
               busted={readout.showBust}
-              firstRollHint={
-                canRoll && (state.personalRollCounts[youId] ?? 0) === 0
-              }
+              firstRollHint={firstRoll}
               onRoll={() => {
                 if (canRoll) act({ type: "roll" });
               }}
@@ -427,55 +453,41 @@ export function DicePanel({
             aria-live="assertive"
           >
             {showBust ? (
-              <>
-                <p className="dice-result-bust-title">BEAN BUSTER</p>
-                <p className="dice-result-note">Pot gone</p>
-              </>
+              <p className="dice-result-bust-title">Bean Buster · Pot gone</p>
             ) : showTotal && readout.gain != null ? (
               <p className="dice-result-gain tabular-nums">
                 +{readout.gain} {RULES.currencyName}
               </p>
-            ) : (
-              <p className="dice-result-gain dice-result-idle tabular-nums">—</p>
-            )}
+            ) : null}
           </div>
 
           {you.role === "player" ? (
             <div className="dice-stage-actions" aria-label="Pot and Bank">
+              {/* Pot / Safe once — chrome beans cut; strip chips stay single-figure */}
               <div className="dice-pot-row">
-                <div className="dice-pot-stack">
-                  <p className="dice-pot-label">
-                    {active ? "Your pot" : "Your beans"}
-                  </p>
-                  <p className="dice-pot-value tabular-nums">
-                    {active ? pot : you.stones}
-                  </p>
-                  <p className="dice-pot-hint">
-                    {active ? "at risk" : "banked"}
-                  </p>
-                </div>
-                <div
-                  className={
-                    "dice-pot-stack dice-pot-stack-end" +
-                    (active ? "" : " dice-pot-safe-muted")
-                  }
-                >
-                  <p className="dice-pot-label">Your safe</p>
-                  <p className="dice-pot-value tabular-nums">{safeBeans}</p>
-                  <p className="dice-pot-hint">banked</p>
-                </div>
+                {active && pot > 0 ? (
+                  <>
+                    <div className="dice-pot-stack">
+                      <p className="dice-pot-label">Pot</p>
+                      <p className="dice-pot-value tabular-nums">{pot}</p>
+                    </div>
+                    <div className="dice-pot-stack dice-pot-stack-end">
+                      <p className="dice-pot-label">Safe</p>
+                      <p className="dice-pot-value tabular-nums">{safeBeans}</p>
+                    </div>
+                  </>
+                ) : (
+                  <div className="dice-pot-stack">
+                    <p className="dice-pot-label">{active ? "Safe" : "Banked"}</p>
+                    <p className="dice-pot-value tabular-nums">
+                      {active ? safeBeans : you.stones}
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="dice-cta-slot">
-                {!active ? (
-                  <div className="dice-spectator-status" role="status">
-                    <p className="dice-watch-note">
-                      {roller?.name
-                        ? `${roller.name} is rolling`
-                        : "Waiting for the next roll"}
-                    </p>
-                  </div>
-                ) : myTurn ? (
+                {myTurn && active ? (
                   <button
                     type="button"
                     className={[
@@ -492,19 +504,13 @@ export function DicePanel({
                     <span className="dice-bank-cta-main">
                       {pot === 0 ? "Bank" : `Bank ${pot}`}
                     </span>
-                    {pot > 0 ? (
-                      <span className="dice-bank-cta-hint">
-                        → total {safeBeans + pot}
-                      </span>
-                    ) : null}
                   </button>
                 ) : (
+                  /* Reserve Bank height — no ghost label when not your turn */
                   <div
-                    className="dice-bank-cta dice-bank-cta-secondary dice-bank-cta-ghost"
+                    className="dice-bank-cta-spacer"
                     aria-hidden="true"
-                  >
-                    Bank
-                  </div>
+                  />
                 )}
               </div>
             </div>
@@ -576,9 +582,6 @@ export function DicePanel({
           <div className="bank-confirm-modal panel space-y-3">
             <p id="bank-confirm-title" className="font-[family-name:var(--font-display)] text-lg font-extrabold">
               Are you sure you want to Bank?
-            </p>
-            <p className="text-sm font-semibold text-[var(--muted)]">
-              Locks in your pot now. Timer is paused while you decide.
             </p>
             <div className="flex gap-2">
               <button
