@@ -42,6 +42,30 @@ function friendlyPlayerError(raw: string | null | undefined): string | null {
   return text;
 }
 
+/**
+ * Errors that are usually leftover from a double-tap / turn race after the
+ * room already advanced (server may still reject a second distinct actionId).
+ * Suppress briefly after a phaseRevision bump so the toast stays quiet.
+ */
+export function isBenignRaceError(message: string | null | undefined): boolean {
+  if (!message) return false;
+  switch (message.trim()) {
+    case "Not your turn":
+    case "Wrong phase":
+    case "Slot already filled":
+    case "Not drafting":
+    case "Already started":
+    case "Game over — play again":
+    case "Roster full":
+      return true;
+    default:
+      return false;
+  }
+}
+
+/** How long after a revision bump we swallow race leftovers. */
+export const RACE_ERROR_SUPPRESS_MS = 1000;
+
 /** Stable key so double-taps reuse one actionId until the phase advances. */
 export function gestureKeyFor(
   msg: ClientMessage,
@@ -115,9 +139,22 @@ export function useGameRoom(
   const lastForceReconnectAt = useRef(0);
   const gestureIds = useRef(new Map<string, string>());
   const phaseRevisionRef = useRef(0);
+  const suppressRaceUntilRef = useRef(0);
 
   const setError = useCallback((msg: string | null) => {
-    setErrorRaw(friendlyPlayerError(msg));
+    const next = friendlyPlayerError(msg);
+    if (
+      next &&
+      isBenignRaceError(next) &&
+      Date.now() < suppressRaceUntilRef.current
+    ) {
+      return;
+    }
+    setErrorRaw((prev) => {
+      // Dedupe identical copy while the toast is still up.
+      if (next && prev === next) return prev;
+      return next;
+    });
   }, []);
 
   // Prefer URL/preset nickname for onOpen join — never auto-queue from shared
@@ -199,6 +236,8 @@ export function useGameRoom(
           if (msg.state.phaseRevision !== phaseRevisionRef.current) {
             phaseRevisionRef.current = msg.state.phaseRevision;
             gestureIds.current.clear();
+            // Swallow double-tap race rejects that land right after a success.
+            suppressRaceUntilRef.current = Date.now() + RACE_ERROR_SUPPRESS_MS;
           }
           if (removedRef.current) return;
           const me = msg.state.players.find((p) => p.id === msg.youId);
