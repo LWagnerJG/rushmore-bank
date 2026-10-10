@@ -83,12 +83,14 @@ describe("waiting roster", () => {
     expect(JSON.stringify(pub)).not.toMatch(/"bankBeansReady"/);
   });
 
-  it("wires WaitingRoster into vote/wager/score waits", () => {
+  it("wires WaitingRoster into wager/score waits; vote uses one quiet line", () => {
     expect(waiting).toMatch(/waiting-roster-person-done/);
     expect(waiting).toMatch(/FitName/);
     expect(waiting).not.toMatch(/while you wait/i);
     expect(waiting).not.toMatch(/\bTips?\b/);
-    expect(vote).toMatch(/WaitingRoster/);
+    expect(vote).not.toMatch(/WaitingRoster/);
+    expect(vote).toMatch(/vote-wait|voteWaitLine/);
+    expect(vote).not.toMatch(/AI is calculating…/);
     expect(vote).not.toMatch(/vote-live-hint/);
     expect(wager).toMatch(/WaitingRoster/);
     expect(score).toMatch(/WaitingRoster/);

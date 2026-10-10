@@ -37,11 +37,12 @@ export function ScorePanel({
   const density = rosterDensity(state.seatOrder.length);
   const ready = state.myBankBeansReady;
 
+  // Hero first (Beans earned + cards), then docked ready count + Ready CTA.
   return (
     <div className="score-layout">
       <div className={`roster-board space-y-3 roster-board-${density}`}>
         <div className="flex items-baseline justify-between gap-2">
-          <h2 className="type-display">Beans earned</h2>
+          <h2 className="type-display score-hero">Beans earned</h2>
           {notice ? (
             <p className="max-w-[55%] type-meta text-right text-[var(--muted)]">
               {notice}

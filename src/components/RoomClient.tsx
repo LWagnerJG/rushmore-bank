@@ -382,7 +382,7 @@ export function RoomClient({
         forces overflow:visible (or an expanded compositing layer) on the
         brand/BANK row — a remaining soft-rasterize path on iPhone after #88.
       */}
-      {/* GAME_RESULTS: reveal list is the only score surface — hide the rail. */}
+      {/* Results lists own scores — hide the rail on ROUND_RESULTS + GAME_RESULTS. */}
       {/*
         No standings mid-vote: hidden (not unmounted) during voting so the
         chips' score-land still fires when Score reveal brings them back.
@@ -390,6 +390,7 @@ export function RoomClient({
       {state &&
         phase !== "LOBBY" &&
         phase !== "DICE" &&
+        phase !== "ROUND_RESULTS" &&
         phase !== "GAME_RESULTS" && (
         <div
           className={

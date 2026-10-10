@@ -135,6 +135,22 @@ describe("score reveal dock", () => {
     expect(buttons[0]!.text).toBe("Ready to wager");
   });
 
+  it("puts Beans earned hero before the ready count and Ready CTA", () => {
+    const tree = render(ScorePanel, viewOf(roomAt("SCORE_REVEAL", (s) => {
+      s.bankBeansReady = { a: true };
+    }), "b"));
+    const layout = tree.children[0]!;
+    const board = layout.children[0]!;
+    const dock = layout.children.at(-1)!;
+    expect(board.cls).toContain("roster-board");
+    expect(findAll(board, has("score-hero"))[0]!.text).toBe("Beans earned");
+    expect(dock.cls).toEqual(expect.arrayContaining(["score-dock"]));
+    expect(only(dock, "waiting-roster-count").text).toBe("1/3");
+    expect(layout.children.indexOf(board)).toBeLessThan(
+      layout.children.indexOf(dock),
+    );
+  });
+
   it("keeps one status line in the dock and drops the avatar roster", () => {
     const tree = render(ScorePanel, viewOf(roomAt("SCORE_REVEAL", (s) => {
       s.bankBeansReady = { a: true };
