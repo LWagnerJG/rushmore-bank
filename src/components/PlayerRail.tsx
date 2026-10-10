@@ -73,13 +73,29 @@ export function PlayerRail({
   const many = count >= 6;
   const dense = count >= 8;
   const upRef = useRef<HTMLDivElement | null>(null);
+  const trackRef = useRef<HTMLDivElement | null>(null);
 
+  // Scroll only the track (scrollIntoView can also nudge locked ancestors).
+  // Nobody up → back to the start so You isn't left off-screen from a
+  // previous phase's scroll.
   useEffect(() => {
-    if (!upId) return;
-    upRef.current?.scrollIntoView({
-      behavior: "smooth",
-      inline: "center",
-      block: "nearest",
+    const track = trackRef.current;
+    if (!track) return;
+    const behavior: ScrollBehavior = window.matchMedia?.(
+      "(prefers-reduced-motion: reduce)",
+    ).matches
+      ? "auto"
+      : "smooth";
+    const chip = upRef.current;
+    if (!chip) {
+      track.scrollTo({ left: 0, behavior });
+      return;
+    }
+    const t = track.getBoundingClientRect();
+    const c = chip.getBoundingClientRect();
+    track.scrollBy({
+      left: c.left + c.width / 2 - (t.left + t.width / 2),
+      behavior,
     });
   }, [upId, state.draftCursor, state.diceTurnSeat, state.phase]);
 
@@ -98,7 +114,7 @@ export function PlayerRail({
       data-count={count}
       aria-label={`Leaderboard · ${count} players`}
     >
-      <div className="player-rail-track">
+      <div className="player-rail-track" ref={trackRef}>
         {players.map((p) => {
           const inDice = state.diceActiveIds?.includes(p.id) ?? false;
           const pot = state.pots?.[p.id] ?? 0;

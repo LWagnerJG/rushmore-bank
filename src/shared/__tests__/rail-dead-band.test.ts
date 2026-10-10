@@ -96,6 +96,12 @@ describe("player rail: calm up-seat", () => {
     }
   });
 
+  it("scrolls only the track, back to the start when nobody is up", () => {
+    expect(rail).not.toMatch(/\.scrollIntoView\(/);
+    expect(rail).toMatch(/track\.scrollTo\(\{\s*left:\s*0/);
+    expect(rail).toMatch(/prefers-reduced-motion: reduce/);
+  });
+
   it("keeps the You chip opaque so its white label stays AA", () => {
     for (const decls of rulesFor(css, ".player-chip-you")) {
       expect(decls).not.toMatch(/(^|[;\s])opacity:/);
