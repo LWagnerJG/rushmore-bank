@@ -208,7 +208,6 @@ function bump(state: RoomState) {
   state.phaseRevision += 1;
 }
 
-const ADMIN_PIN = "8989";
 const BOT_NAMES = [
   "Ava",
   "Sam",
@@ -220,10 +219,6 @@ const BOT_NAMES = [
   "Eli",
 ];
 let botSeq = 0;
-
-function assertAdminPin(pin: string) {
-  if (pin !== ADMIN_PIN) throw new Error("Nope");
-}
 
 function ledgerPush(
   state: RoomState,
@@ -256,11 +251,17 @@ function hashStr(s: string): number {
 /** Brief app-switch / reconnect grace before mid-game leave advances turns.
  * Client forces a snappy reconnect on visibility/online; matching id cancels this timer in onConnect. */
 const DISCONNECT_GRACE_MS = 8_000;
+/** In-memory host failover poll while the DO is warm (alarm slot is shared with phase clocks). */
+const HOST_CHECK_INTERVAL_MS = 5_000;
+/** Wipe abandoned rooms (0 sockets, no grace) so codes can be reused. */
+const ROOM_ABANDON_MS = 15 * 60 * 1000;
 
 export type Env = {
   Main: DurableObjectNamespace<QuarryServer>;
   JUDGE_URL?: string;
   JUDGE_SECRET?: string;
+  /** Optional. When set, non-host admin calls must present this pin. Host always allowed. */
+  ADMIN_PIN?: string;
   NEXT_PUBLIC_APP_URL?: string;
 };
 
@@ -273,6 +274,11 @@ export class QuarryServer extends Server<Env> {
   private leaveTimers = new Map<string, ReturnType<typeof setTimeout>>();
   /** Admin smoke flag — compresses botDelayMs so CI can finish a full game. */
   private fastBots = false;
+  /** In-memory host failover poll (complements leave-path ensureHost). */
+  private hostCheckTimer: ReturnType<typeof setInterval> | null = null;
+  /** When the room last had zero live sockets (for abandon GC). */
+  private emptySince: number | null = null;
+  private abandonTimer: ReturnType<typeof setTimeout> | null = null;
 
   async onStart() {
     const saved = await this.ctx.storage.get<RoomState>("state");
@@ -320,6 +326,115 @@ export class QuarryServer extends Server<Env> {
       await this.beginDraft();
       await this.persist();
     }
+
+    // After hibernate: lobby shells with no sockets are empty; mid-game seats
+    // get a fresh disconnect grace so a refresh can reclaim the seat.
+    if (!this.state.rosterLocked) {
+      this.state.players = [];
+      this.state.notice = null;
+    } else {
+      for (const p of seatedPlayers(this.state)) {
+        if (!p.connected) this.armLeaveTimer(p.id, DISCONNECT_GRACE_MS);
+      }
+      this.ensureHost();
+    }
+    this.startHostCheckLoop();
+    await this.persist();
+  }
+
+  /** Host admin tools: host always allowed; optional ADMIN_PIN for non-host. */
+  assertAdminAccess(actorId: string, pin?: string) {
+    if (this.requireHost(actorId)) return;
+    const expected = this.env.ADMIN_PIN;
+    if (expected && pin === expected) return;
+    throw new Error("Host only");
+  }
+
+  gracePlayerIds(): string[] {
+    return [...this.leaveTimers.keys()];
+  }
+
+  humanVoteCastCount(): number {
+    const quorum = new Set(
+      quorumPlayers(this.state, this.leaveTimers).map((p) => p.id),
+    );
+    return Object.keys(this.state.humanVotes).filter((id) => quorum.has(id))
+      .length;
+  }
+
+  /** True when the room should block create/join-as-new (active table). */
+  roomAppearsActive(): boolean {
+    const players = this.state.players.filter((p) => p.role === "player");
+    if (players.length === 0) return false;
+    if ([...this.getConnections()].length > 0) return true;
+    if (!this.state.rosterLocked) {
+      return players.some((p) => p.connected);
+    }
+    // Bots alone with zero sockets do not keep a zombie room code.
+    return players.some(
+      (p) => !isBotId(p.id) && (p.connected || this.leaveTimers.has(p.id)),
+    );
+  }
+
+  startHostCheckLoop() {
+    if (this.hostCheckTimer) return;
+    this.hostCheckTimer = setInterval(() => {
+      void this.checkHostFailover().then(() => {
+        void this.maybeScheduleAbandon();
+      });
+    }, HOST_CHECK_INTERVAL_MS);
+  }
+
+  armLeaveTimer(playerId: string, delay: number) {
+    this.clearLeaveTimer(playerId);
+    const timer = setTimeout(() => {
+      this.leaveTimers.delete(playerId);
+      void this.handlePlayerLeave(playerId).then(() => {
+        void this.persist().then(() => this.broadcastState());
+        this.nudgeBots();
+        void this.maybeScheduleAbandon();
+      });
+    }, delay);
+    this.leaveTimers.set(playerId, timer);
+  }
+
+  async wipeAbandonedRoom() {
+    if ([...this.getConnections()].length > 0) return;
+    if (this.roomAppearsActive()) return;
+    const code = this.state.code;
+    this.state = emptyRoomState(code);
+    this.clearAllBotTimers();
+    for (const id of [...this.leaveTimers.keys()]) this.clearLeaveTimer(id);
+    this.emptySince = null;
+    if (this.abandonTimer) {
+      clearTimeout(this.abandonTimer);
+      this.abandonTimer = null;
+    }
+    await this.clearAlarm();
+    await this.persist();
+  }
+
+  async maybeScheduleAbandon() {
+    if ([...this.getConnections()].length > 0) {
+      this.emptySince = null;
+      if (this.abandonTimer) {
+        clearTimeout(this.abandonTimer);
+        this.abandonTimer = null;
+      }
+      return;
+    }
+    if (this.roomAppearsActive()) return;
+    if (this.emptySince == null) this.emptySince = Date.now();
+    const due = this.emptySince + ROOM_ABANDON_MS - Date.now();
+    if (due <= 0) {
+      await this.wipeAbandonedRoom();
+      return;
+    }
+    if (this.abandonTimer) return;
+    this.abandonTimer = setTimeout(() => {
+      this.abandonTimer = null;
+      void this.wipeAbandonedRoom();
+    }, due);
   }
 
   async persist() {
@@ -430,23 +545,28 @@ export class QuarryServer extends Server<Env> {
     const playerCount = this.state.players.filter(
       (p) => p.role === "player",
     ).length;
+    const active = this.roomAppearsActive();
     return new Response(
       JSON.stringify({
-        exists: playerCount > 0,
+        exists: active,
         phase: this.state.phase,
-        playerCount,
+        playerCount: active ? playerCount : 0,
       }),
       { status: 200, headers },
     );
   }
 
   publicStateFor(recipientId: string): PublicRoomState {
-    return projectPublicState(this.state, recipientId);
+    return projectPublicState(this.state, recipientId, {
+      gracePlayerIds: this.gracePlayerIds(),
+    });
   }
 
   broadcastState() {
     // Project shared fields once; overlay recipient-private fields per conn.
-    const shared = projectPublicStateShared(this.state);
+    const shared = projectPublicStateShared(this.state, {
+      gracePlayerIds: this.gracePlayerIds(),
+    });
     for (const conn of this.getConnections()) {
       const recipient = this.state.players.find((p) => p.id === conn.id);
       const state: PublicRoomState = {
@@ -563,13 +683,21 @@ export class QuarryServer extends Server<Env> {
     }
     bump(this.state);
 
-    // Unblock phase waits that required the leaver (connected-only counts).
+    // Drop stale ballots / ready flags from the leaver so quorums stay honest.
+    delete this.state.topicVotes[playerId];
+    delete this.state.humanVotes[playerId];
+    delete this.state.bankBeansReady[playerId];
+    delete this.state.rematchReady?.[playerId];
+
+    // Unblock phase waits that required the leaver (quorum = connected + grace).
     if (this.state.phase === "TOPIC_SELECTION") {
-      const needed = connectedPlayers(this.state).length;
-      const votes = Object.keys(this.state.topicVotes).filter((id) => {
-        const pl = this.state.players.find((x) => x.id === id);
-        return pl?.connected && this.state.seatOrder.includes(id);
-      }).length;
+      const needed = quorumPlayers(this.state, this.leaveTimers).length;
+      const quorumIds = new Set(
+        quorumPlayers(this.state, this.leaveTimers).map((p) => p.id),
+      );
+      const votes = Object.keys(this.state.topicVotes).filter((id) =>
+        quorumIds.has(id),
+      ).length;
       if (needed > 0 && votes >= needed) {
         await this.tallyTopicVotes();
       }
@@ -591,11 +719,13 @@ export class QuarryServer extends Server<Env> {
     }
 
     if (this.state.phase === "WAGER_SELECTION") {
-      const needed = connectedPlayers(this.state).length;
-      const have = Object.keys(this.state.wagers).filter((id) => {
-        const pl = this.state.players.find((x) => x.id === id);
-        return pl?.connected && this.state.seatOrder.includes(id);
-      }).length;
+      const needed = quorumPlayers(this.state, this.leaveTimers).length;
+      const quorumIds = new Set(
+        quorumPlayers(this.state, this.leaveTimers).map((p) => p.id),
+      );
+      const have = Object.keys(this.state.wagers).filter((id) =>
+        quorumIds.has(id),
+      ).length;
       if (needed === 0) {
         await this.finalizeWagers();
       } else if (have >= needed) {
@@ -605,6 +735,10 @@ export class QuarryServer extends Server<Env> {
 
     if (this.state.phase === "DICE" && wasSeated) {
       await this.recoverDiceAfterLeave(playerId);
+    }
+
+    if (this.state.phase === "GAME_RESULTS") {
+      await this.maybeRematchFromReady();
     }
   }
 
@@ -643,17 +777,30 @@ export class QuarryServer extends Server<Env> {
     ) {
       this.state.partyPrompt = null;
     }
-    // Mid-roll for the leaver — drop stuck COMMITTED so the table can move.
+    // Mid-roll for the leaver — reveal first so a bust cannot become a bank.
     if (
       this.state.lastDice?.rollerId === leftId &&
       (this.state.diceSubphase === "COMMITTED" ||
         this.state.diceSubphase === "SETTLED")
     ) {
-      this.state.lastDice = null;
-      this.state.diceSubphase = "READY";
-    }
-    // Auto-bank disconnected rollers so dice cannot soft-lock on an empty seat.
-    if (this.state.diceActiveIds.includes(leftId)) {
+      if (!this.state.lastDice.revealed) {
+        this.revealCommittedDice();
+      }
+      const busted = this.state.lastDice?.busted === true;
+      if (busted) {
+        // Bust already removed them from diceActiveIds — do not bank potBefore.
+      } else if (this.state.diceActiveIds.includes(leftId)) {
+        this.bankPlayer(leftId, "Auto-bank (disconnected)");
+      }
+      if (
+        this.state.diceSubphase === "SETTLED" &&
+        this.state.lastDice?.rollerId === leftId
+      ) {
+        // Clear settle hold ownership for the leaver so the table can advance.
+        await this.clearAlarm();
+      }
+    } else if (this.state.diceActiveIds.includes(leftId)) {
+      // Auto-bank disconnected rollers so dice cannot soft-lock on an empty seat.
       this.bankPlayer(leftId, "Auto-bank (disconnected)");
     }
     const connectedActive = this.state.diceActiveIds.filter((id) => {
@@ -758,6 +905,12 @@ export class QuarryServer extends Server<Env> {
   onConnect(conn: Connection) {
     const playerId = conn.id;
     this.clearLeaveTimer(playerId);
+    this.emptySince = null;
+    if (this.abandonTimer) {
+      clearTimeout(this.abandonTimer);
+      this.abandonTimer = null;
+    }
+    this.startHostCheckLoop();
     const existing = this.state.players.find((p) => p.id === playerId);
     if (existing) {
       existing.connected = true;
@@ -777,7 +930,10 @@ export class QuarryServer extends Server<Env> {
     void _reason;
     void _wasClean;
     const p = this.state.players.find((x) => x.id === conn.id);
-    if (!p) return;
+    if (!p) {
+      void this.maybeScheduleAbandon();
+      return;
+    }
     p.connected = false;
     // Lobby: reassign host immediately. Mid-game: keep the host through
     // disconnect grace so an app-switch doesn't steal pause/extend/correct.
@@ -788,17 +944,10 @@ export class QuarryServer extends Server<Env> {
     bump(this.state);
     void this.persist().then(() => this.broadcastState());
 
-    this.clearLeaveTimer(conn.id);
     // Lobby: leave immediately so headcount shrinks. Mid-game: grace for app switch.
     const delay = this.state.rosterLocked ? DISCONNECT_GRACE_MS : 0;
-    const timer = setTimeout(() => {
-      this.leaveTimers.delete(conn.id);
-      void this.handlePlayerLeave(conn.id).then(() => {
-        void this.persist().then(() => this.broadcastState());
-        this.nudgeBots();
-      });
-    }, delay);
-    this.leaveTimers.set(conn.id, timer);
+    this.armLeaveTimer(conn.id, delay);
+    void this.maybeScheduleAbandon();
   }
 
   /** Human-vote quorum: connected seats + soft-disconnect grace (leaveTimers). */
@@ -1031,10 +1180,10 @@ export class QuarryServer extends Server<Env> {
         this.handleRemovePlayer(id, msg.playerId);
         return;
       case "admin_spawn_bots":
-        this.handleAdminSpawnBots(msg.pin, msg.count, msg.fast);
+        this.handleAdminSpawnBots(id, msg.pin, msg.count, msg.fast);
         return;
       case "admin_jump_phase":
-        await this.handleAdminJumpPhase(msg.pin, msg.phase);
+        await this.handleAdminJumpPhase(id, msg.pin, msg.phase);
         return;
       default:
         throw new Error("Unknown action");
@@ -1058,21 +1207,36 @@ export class QuarryServer extends Server<Env> {
     // the client could not restore the prior PartySocket id.
     if (role === "player" && this.state.rosterLocked) {
       const needle = clean.toLowerCase();
-      const orphan = this.state.players.find(
+      const orphans = this.state.players.filter(
         (p) =>
           p.role === "player" &&
           !p.connected &&
           this.state.seatOrder.includes(p.id) &&
           p.name.trim().toLowerCase() === needle,
       );
-      if (orphan && this.reclaimSeatId(orphan.id, id, clean)) {
-        this.ensureHost();
-        this.state.notice = `${clean} rejoined`;
-        return;
+      if (orphans.length === 1) {
+        const orphan = orphans[0]!;
+        if (this.reclaimSeatId(orphan.id, id, clean)) {
+          this.ensureHost();
+          this.state.notice = `${clean} rejoined`;
+          return;
+        }
+      } else if (orphans.length > 1) {
+        throw new Error("Name ambiguous — rejoin from the same device");
       }
       // Late join → spectator until next game
       role = "spectator";
       this.state.notice = `${clean} joined as spectator (roster locked)`;
+    }
+
+    // Lobby: reject duplicate display names (case-insensitive).
+    if (role === "player" && !this.state.rosterLocked) {
+      const needle = clean.toLowerCase();
+      const taken = this.state.players.some(
+        (p) =>
+          p.role === "player" && p.name.trim().toLowerCase() === needle,
+      );
+      if (taken) throw new Error("Name taken — pick another");
     }
 
     const playerCount = this.state.players.filter((p) => p.role === "player")
@@ -1186,7 +1350,13 @@ export class QuarryServer extends Server<Env> {
   async handleStart(id: string) {
     if (!this.requireHost(id)) throw new Error("Host only");
     if (this.state.phase !== "LOBBY") throw new Error("Already started");
-    const hopeful = this.state.players.filter((p) => p.role === "player");
+    // Drop disconnected lobby ghosts before locking seats (Start×leave race).
+    this.state.players = this.state.players.filter(
+      (p) => p.role !== "player" || p.connected || isBotId(p.id),
+    );
+    const hopeful = this.state.players.filter(
+      (p) => p.role === "player" && (p.connected || isBotId(p.id)),
+    );
     if (hopeful.length < RULES.minPlayers) {
       throw new Error(`Need ${RULES.minPlayers}–${RULES.maxPlayers} players`);
     }
@@ -1325,8 +1495,13 @@ export class QuarryServer extends Server<Env> {
       throw new Error("Invalid topic");
     }
     this.state.topicVotes[id] = topicId;
-    const needed = connectedPlayers(this.state).length;
-    const votes = Object.keys(this.state.topicVotes).length;
+    const needed = quorumPlayers(this.state, this.leaveTimers).length;
+    const quorumIds = new Set(
+      quorumPlayers(this.state, this.leaveTimers).map((p) => p.id),
+    );
+    const votes = Object.keys(this.state.topicVotes).filter((vid) =>
+      quorumIds.has(vid),
+    ).length;
     if (votes >= needed && needed > 0) {
       await this.tallyTopicVotes();
     }
@@ -1845,7 +2020,7 @@ export class QuarryServer extends Server<Env> {
     if (this.state.scoresLocked) return;
     if (this.state.scores.length === 0) return;
     const needed = this.humanVoteNeededCount();
-    const votesIn = Object.keys(this.state.humanVotes).length;
+    const votesIn = this.humanVoteCastCount();
     if (
       this.state.seatOrder.length === 2 ||
       (needed > 0 && votesIn >= needed) ||
@@ -1873,7 +2048,7 @@ export class QuarryServer extends Server<Env> {
     this.state.humanVotes[id] = targetPlayerId;
     const needed = this.humanVoteNeededCount();
     if (
-      Object.keys(this.state.humanVotes).length >= needed &&
+      this.humanVoteCastCount() >= needed &&
       needed > 0 &&
       this.state.scores.length > 0
     ) {
@@ -1926,7 +2101,7 @@ export class QuarryServer extends Server<Env> {
 
   async maybeBeginWagersFromReady() {
     if (this.state.phase !== "SCORE_REVEAL") return;
-    const needed = seatedPlayers(this.state).filter((p) => p.connected);
+    const needed = quorumPlayers(this.state, this.leaveTimers);
     if (needed.length === 0) return;
     if (needed.every((p) => this.state.bankBeansReady[p.id])) {
       await this.beginWagers();
@@ -1980,11 +2155,13 @@ export class QuarryServer extends Server<Env> {
     }).pot;
     this.state.wagers[id] = W;
 
-    const needed = connectedPlayers(this.state).length;
-    const have = Object.keys(this.state.wagers).filter((wid) => {
-      const pl = this.state.players.find((x) => x.id === wid);
-      return pl?.connected && this.state.seatOrder.includes(wid);
-    }).length;
+    const needed = quorumPlayers(this.state, this.leaveTimers).length;
+    const quorumIds = new Set(
+      quorumPlayers(this.state, this.leaveTimers).map((p) => p.id),
+    );
+    const have = Object.keys(this.state.wagers).filter((wid) =>
+      quorumIds.has(wid),
+    ).length;
     if (needed > 0 && have >= needed) {
       await this.finalizeWagers();
     }
@@ -2590,12 +2767,20 @@ export class QuarryServer extends Server<Env> {
   async resetRoomForRematch() {
     const code = this.state.code;
     const settings = this.state.settings;
-    const names = this.state.players.map((p) => ({
-      id: p.id,
-      name: p.name,
-      role: p.role,
-      connected: p.connected,
-    }));
+    // Keep connected humans + bots; drop disconnected ghosts and do not
+    // auto-promote spectators into the next lobby.
+    const names = this.state.players
+      .filter(
+        (p) =>
+          (p.role === "player" && (p.connected || isBotId(p.id))) ||
+          p.role === "spectator",
+      )
+      .map((p) => ({
+        id: p.id,
+        name: p.name,
+        role: p.role,
+        connected: p.connected,
+      }));
     this.state = emptyRoomState(code);
     this.state.settings = settings;
     this.state.players = names.map((n, i) => ({
@@ -2604,7 +2789,7 @@ export class QuarryServer extends Server<Env> {
       stones: RULES.startBalance,
       connected: n.connected,
       isHost: i === 0,
-      role: n.role === "spectator" ? "player" : n.role,
+      role: n.role,
       seat: null,
       joinedAt: Date.now(),
     }));
@@ -2614,8 +2799,14 @@ export class QuarryServer extends Server<Env> {
     await this.clearAlarm();
   }
 
-  handleAdminSpawnBots(pin: string, count: number, fast?: boolean) {
-    assertAdminPin(pin);
+  handleAdminSpawnBots(
+    actorId: string,
+    pin: string | undefined,
+    count: number,
+    fast?: boolean,
+    opts?: { skipAuth?: boolean },
+  ) {
+    if (!opts?.skipAuth) this.assertAdminAccess(actorId, pin);
     if (fast) this.fastBots = true;
     const n = Math.max(1, Math.min(8, Math.floor(count) || 1));
     const existingBots = this.state.players.filter((p) => isBotId(p.id)).length;
@@ -3021,8 +3212,12 @@ export class QuarryServer extends Server<Env> {
     }
   }
 
-  async handleAdminJumpPhase(pin: string, phase: Phase) {
-    assertAdminPin(pin);
+  async handleAdminJumpPhase(
+    actorId: string,
+    pin: string | undefined,
+    phase: Phase,
+  ) {
+    this.assertAdminAccess(actorId, pin);
     await this.adminEnsureRoster();
     await this.clearAlarm();
     this.clearAllBotTimers();
@@ -3146,12 +3341,12 @@ export class QuarryServer extends Server<Env> {
   }
 
   async adminEnsureRoster() {
-    // Need at least 2 players for most phases
+    // Need at least 2 players for most phases (caller already passed admin gate).
     while (
       this.state.players.filter((p) => p.role === "player").length <
       RULES.minPlayers
     ) {
-      this.handleAdminSpawnBots(ADMIN_PIN, 1);
+      this.handleAdminSpawnBots("", undefined, 1, undefined, { skipAuth: true });
     }
     if (!this.state.rosterLocked || this.state.seatOrder.length === 0) {
       const hopeful = this.state.players.filter((p) => p.role === "player");
@@ -3343,8 +3538,11 @@ export class QuarryServer extends Server<Env> {
     const elapsed = Date.now() - this.state.hostLastSeenAt;
     if (elapsed > RULES.hostFailoverSeconds * 1000) {
       const host = this.state.players.find((p) => p.isHost);
-      if (host && !host.connected) {
+      if (host && !host.connected && !this.leaveTimers.has(host.id)) {
         this.ensureHost();
+        bump(this.state);
+        await this.persist();
+        this.broadcastState();
       }
     }
   }

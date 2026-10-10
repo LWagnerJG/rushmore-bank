@@ -4,7 +4,8 @@
 import PartySocket from "partysocket";
 
 export const DEFAULT_PARTY_HOST = "beans-party.beans-lwagner.workers.dev";
-export const ADMIN_PIN = "8989";
+/** Optional worker ADMIN_PIN; host-only admin works when unset (local wrangler). */
+export const ADMIN_PIN = process.env.ADMIN_PIN || "";
 
 export function resolvePartyHost(): string {
   return (

@@ -79,6 +79,7 @@ export function hostAiJudgeHealth(state: RoomState): HostAiJudgeHealth {
  */
 export function projectPublicStateShared(
   state: RoomState,
+  opts?: { gracePlayerIds?: Iterable<string> },
 ): Omit<
   PublicRoomState,
   | "myTopicVote"
@@ -87,20 +88,27 @@ export function projectPublicStateShared(
   | "myRematchReady"
   | "hostAiJudge"
 > {
+  const grace = new Set(opts?.gracePlayerIds ?? []);
+  const inQuorum = (pid: string) => {
+    const p = state.players.find((x) => x.id === pid);
+    if (!p || p.role !== "player" || !state.seatOrder.includes(pid)) return false;
+    return p.connected || grace.has(pid);
+  };
+
   const topicVoteCounts: Record<string, number> = {};
   for (const tid of Object.values(state.topicVotes)) {
     topicVoteCounts[tid] = (topicVoteCounts[tid] ?? 0) + 1;
   }
 
-  const humanVotesCast = Object.keys(state.humanVotes).length;
   // Two-player games: AI-only scoring (no forced human votes).
+  // Quorum includes soft-disconnect grace seats when provided by the server.
   const humanVotesNeeded =
     state.seatOrder.length === 2
       ? 0
-      : state.seatOrder.filter((pid) => {
-          const p = state.players.find((x) => x.id === pid);
-          return p && p.role === "player" && p.connected;
-        }).length;
+      : state.seatOrder.filter((pid) => inQuorum(pid)).length;
+  const humanVotesCast = Object.keys(state.humanVotes).filter((pid) =>
+    inQuorum(pid),
+  ).length;
 
   const scores = state.scoresLocked
     ? state.scores.map((s) => ({ ...s }))
@@ -116,20 +124,14 @@ export function projectPublicStateShared(
     }
   }
 
-  // Match server advance: only connected seated players block "Ready to wager".
-  const bankNeeded = state.seatOrder.filter((pid) => {
-    const p = state.players.find((x) => x.id === pid);
-    return p && p.role === "player" && p.connected;
-  }).length;
+  // Match server advance: quorum seats (connected + grace) block "Ready to wager".
+  const bankNeeded = state.seatOrder.filter((pid) => inQuorum(pid)).length;
   const bankBeansReadyIds = Object.keys(state.bankBeansReady ?? {}).filter(
-    (pid) => {
-      const p = state.players.find((x) => x.id === pid);
-      return !!p?.connected && state.seatOrder.includes(pid);
-    },
+    (pid) => inQuorum(pid),
   );
   const bankCast = bankBeansReadyIds.length;
   const humanVotedIds = Object.keys(state.humanVotes).filter((pid) =>
-    state.seatOrder.includes(pid),
+    inQuorum(pid),
   );
   // Rematch: all connected players (lobby may have no seatOrder yet after prior games).
   const rematchPool = state.players.filter(
@@ -229,10 +231,14 @@ export function projectPublicState(
   state: RoomState,
   recipientId: string,
   /** @deprecated Faces are gated by server `revealed` only; kept for call-site compat. */
-  now?: number,
+  nowOrOpts?: number | { gracePlayerIds?: Iterable<string> },
+  opts?: { gracePlayerIds?: Iterable<string> },
 ): PublicRoomState {
-  void now;
-  const shared = projectPublicStateShared(state);
+  const graceOpts =
+    typeof nowOrOpts === "object" && nowOrOpts
+      ? nowOrOpts
+      : opts;
+  const shared = projectPublicStateShared(state, graceOpts);
   const recipient = state.players.find((p) => p.id === recipientId);
   const hostOnly: { hostAiJudge?: HostAiJudgeHealth } = {};
   if (recipient?.isHost) {

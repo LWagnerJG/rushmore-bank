@@ -11,7 +11,6 @@ import { BOT_MAX_PER_ADD, parseBotCountDraft } from "@/shared/admin-bots";
 import { ADMIN_UNLOCK_KEY } from "@/lib/admin-session";
 
 const ADMIN_KEY = ADMIN_UNLOCK_KEY;
-const ADMIN_PIN = "8989";
 
 const PHASES: Phase[] = [
   "LOBBY",
@@ -69,7 +68,6 @@ export function AdminTools({
     const count = Math.min(parsed, slotsLeft);
     send({
       type: "admin_spawn_bots",
-      pin: ADMIN_PIN,
       count,
     });
     setLastAdded(count);
@@ -90,7 +88,6 @@ export function AdminTools({
           onChange={(e) =>
             send({
               type: "admin_jump_phase",
-              pin: ADMIN_PIN,
               phase: e.target.value as Phase,
             })
           }
