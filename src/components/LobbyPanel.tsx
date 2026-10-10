@@ -62,25 +62,27 @@ export function LobbyPanel({
   return (
     <div className="lobby-layout stack">
       <section className="panel lobby-invite">
-        <button
-          type="button"
-          className="lobby-room-code type-display"
-          onClick={() => void copyLink()}
-          aria-label={`Room code ${state.code.split("").join(" ")}. Tap to copy invite link.`}
-        >
-          {state.code}
-        </button>
+        <div className="lobby-invite-row">
+          <button
+            type="button"
+            className="lobby-room-code type-display"
+            onClick={() => void copyLink()}
+            aria-label={`Room code ${state.code.split("").join(" ")}. Tap to copy invite link.`}
+          >
+            {state.code}
+          </button>
 
-        <div className="lobby-qr" aria-label="Invite QR code">
-          <QRCodeSVG
-            value={url}
-            size={128}
-            bgColor="#f5f0e7"
-            fgColor="#23483e"
-            level="M"
-            marginSize={4}
-            title={`Join room ${state.code}`}
-          />
+          <div className="lobby-qr" aria-label="Invite QR code">
+            <QRCodeSVG
+              value={url}
+              size={108}
+              bgColor="#f5f0e7"
+              fgColor="#23483e"
+              level="M"
+              marginSize={2}
+              title={`Join room ${state.code}`}
+            />
+          </div>
         </div>
 
         <button

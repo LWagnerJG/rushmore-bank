@@ -9,8 +9,8 @@ import {
 } from "@/shared/types";
 import { loadStash, saveStash } from "@/lib/party";
 import { cueYourTurn } from "@/lib/your-turn";
+import { draftStatusLine } from "@/lib/draft-status";
 import { DraftBoard } from "@/components/DraftBoard";
-import { WaitingRoster } from "@/components/WaitingRoster";
 
 export function DraftPanel({
   state,
@@ -165,36 +165,25 @@ export function DraftPanel({
           ),
       );
 
-  const turnHint =
-    state.phase === "CORRECTION"
-      ? `Replace slot ${(state.correctionPickIndex ?? 0) + 1}/4 (${state.correctionReason ?? "redo"})`
-      : myTurn
-        ? null
-        : turnsAway < 0
-          ? "Your four are in"
-          : turnsAway === 1
-            ? "You’re next"
-            : `You’re up in ${turnsAway}`;
+  const status = draftStatusLine({
+    phase: state.phase,
+    myTurn,
+    turnName: turnPlayer?.name,
+    turnsAway,
+    pickPaused: state.pickPaused,
+    correctionPickIndex: state.correctionPickIndex,
+    correctionReason: state.correctionReason,
+  });
 
   return (
     <div className="draft-panel space-y-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-      <div
-        className={`draft-turn ${myTurn ? "draft-turn-active" : ""}`}
+      <p
+        className={`draft-turn-line ${myTurn ? "draft-turn-line-active" : ""}`}
         role="status"
         aria-live="polite"
       >
-        <p className="draft-turn-title">
-          {myTurn ? "Your turn" : `${turnPlayer?.name ?? "Player"}’s turn`}
-        </p>
-        {turnHint ? (
-          <p className="draft-turn-hint">
-            {turnHint}
-            {state.pickPaused ? " · paused" : ""}
-          </p>
-        ) : state.pickPaused ? (
-          <p className="draft-turn-hint">Paused</p>
-        ) : null}
-      </div>
+        {status}
+      </p>
 
       <DraftBoard
         state={state}
@@ -202,15 +191,6 @@ export function DraftPanel({
         isHost={you.isHost}
         send={send}
       />
-
-      {!myTurn && you.role === "player" && turnId ? (
-        <WaitingRoster
-          state={state}
-          youId={youId}
-          doneIds={state.seatOrder.filter((pid) => pid !== turnId)}
-          label={`Waiting on ${turnPlayer?.name ?? "player"}`}
-        />
-      ) : null}
 
       {you.role === "player" && (
         <section className="stash-surface space-y-3" aria-label="Your stash">
