@@ -7,8 +7,8 @@ import { phaseLabel, type Phase } from "@/shared/types";
 import { RULES } from "@/shared/rules";
 import { BrandMark } from "@/components/BrandMark";
 import { SettingsSheet } from "@/components/SettingsSheet";
-import { HostAiJudgeCue } from "@/components/HostAiJudgeCue";
 import { DiagPanel } from "@/components/DiagPanel";
+import { RoomNotice } from "@/components/RoomNotice";
 import { FinalRoundCue } from "@/components/FinalRoundCue";
 import { MotionSettle } from "@/components/MotionSettle";
 import {
@@ -321,12 +321,6 @@ export function RoomClient({
           <div className="room-chrome-top flex items-start justify-between gap-3">
             <div className="min-w-0 flex flex-wrap items-center gap-2">
               <BrandMark shimmer={false} onLogoTap={handleLogoTap} />
-              {you?.isHost ? (
-                <HostAiJudgeCue
-                  health={state?.hostAiJudge}
-                  variant="chrome"
-                />
-              ) : null}
             </div>
             {drafting && state ? (
               <div className="flex shrink-0 items-center gap-1 pt-0.5">
@@ -414,11 +408,7 @@ export function RoomClient({
               </span>
             </div>
           )}
-          {state?.notice && (
-            <p className="mt-1 text-xs font-semibold text-[var(--coral)]">
-              {state.notice}
-            </p>
-          )}
+          <RoomNotice notice={state?.notice} />
         </div>
       </header>
 

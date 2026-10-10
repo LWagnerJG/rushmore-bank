@@ -112,9 +112,10 @@ export function PlayerRail({
               up={upId === p.id}
               chipRef={upId === p.id ? upRef : undefined}
               compact={many}
+              showEarned={showEarned}
               earned={
                 showEarned
-                  ? (state.earnedThisRound[p.id] ?? undefined)
+                  ? (state.earnedThisRound[p.id] ?? 0)
                   : undefined
               }
               showPotSplit={showPotSplit}
@@ -134,6 +135,7 @@ function PlayerChip({
   you,
   up,
   earned,
+  showEarned,
   compact,
   chipRef,
   showPotSplit,
@@ -145,6 +147,7 @@ function PlayerChip({
   you: boolean;
   up: boolean;
   earned?: number;
+  showEarned?: boolean;
   compact?: boolean;
   chipRef?: RefObject<HTMLDivElement | null>;
   showPotSplit?: boolean;
@@ -225,14 +228,20 @@ function PlayerChip({
       ) : (
         <div className={`player-chip-score${land ? " score-land" : ""}`}>
           <span className="player-chip-stones tabular-nums">{player.stones}</span>
-          {earned != null && earned > 0 ? (
-            <span
-              className={`player-chip-earned tabular-nums ${
-                you ? "player-chip-earned-you" : ""
-              }`}
-            >
-              +{earned}
-            </span>
+          {showEarned ? (
+            earned != null && earned > 0 ? (
+              <span
+                className={`player-chip-earned tabular-nums ${
+                  you ? "player-chip-earned-you" : ""
+                }`}
+              >
+                +{earned}
+              </span>
+            ) : (
+              <span className="player-chip-earned-spacer" aria-hidden="true">
+                &nbsp;
+              </span>
+            )
           ) : null}
         </div>
       )}

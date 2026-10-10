@@ -639,6 +639,57 @@ async function judgeWithProviders(
   return { ok: false, reason: reasonFromFail(lastFail) };
 }
 
+/**
+ * Lightweight host pre-game probe — no scoring, no JUDGE_SECRET.
+ * Confirms a configured provider and returns the preferred live model id.
+ */
+export async function GET() {
+  const startedAt = Date.now();
+  const gKey = geminiKey();
+  const qKey = groqKey();
+
+  if (!gKey && !qKey) {
+    return NextResponse.json({
+      available: false,
+      model: null,
+      latencyMs: Date.now() - startedAt,
+    });
+  }
+
+  if (gKey) {
+    const available = await listGeminiModelIds(gKey, undefined);
+    if (available && available.size > 0) {
+      const ordered = orderGeminiModelsFromList(available);
+      const model = ordered.find((id) => available.has(id)) ?? null;
+      if (model) {
+        return NextResponse.json({
+          available: true,
+          model,
+          latencyMs: Date.now() - startedAt,
+        });
+      }
+    }
+    if (qKey) {
+      return NextResponse.json({
+        available: true,
+        model: GROQ_MODEL,
+        latencyMs: Date.now() - startedAt,
+      });
+    }
+    return NextResponse.json({
+      available: false,
+      model: null,
+      latencyMs: Date.now() - startedAt,
+    });
+  }
+
+  return NextResponse.json({
+    available: true,
+    model: GROQ_MODEL,
+    latencyMs: Date.now() - startedAt,
+  });
+}
+
 export async function POST(req: NextRequest) {
   const startedAt = Date.now();
   const auth = authorize(req);

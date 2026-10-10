@@ -70,9 +70,6 @@ const HTML = `<!doctype html><html><head>
   .room-chrome-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
   .brand{display:inline-flex;align-items:center;gap:10px}
   .brand-word{font-weight:800;font-size:28px;letter-spacing:-0.02em;color:var(--text)}
-  .host-ai-chrome{display:inline-flex;align-items:center;min-height:1.35rem;padding:0.12rem 0.45rem;
-    border-radius:0.45rem;font-size:0.62rem;font-weight:800;line-height:1;border:1px solid #b7d7c8;
-    white-space:nowrap;color:var(--text);background:#d8ebe2;opacity:1}
   .meta{text-align:right;font-size:12px;font-weight:700;text-transform:uppercase;color:var(--muted)}
   .meta-beans{font-size:14px;color:var(--text);text-transform:none;font-weight:800}
   .panel{margin:12px 16px;padding:24px;background:#fff;border-radius:18px;text-align:center;
@@ -93,7 +90,6 @@ const HTML = `<!doctype html><html><head>
           </svg>
           <span class="brand-word">Beans</span>
         </div>
-        <span class="host-ai-chrome host-ai-chrome-ready" id="ai">AI waiting</span>
       </div>
       <div class="meta" id="meta">
         <div>LOBBY</div>
@@ -156,10 +152,9 @@ async function main() {
   const dsf = 3;
 
   const brandBox = await page.locator("#brand").boundingBox();
-  const aiBox = await page.locator("#ai").boundingBox();
   const metaBox = await page.locator("#meta").boundingBox();
   const codeBox = await page.locator("#code").boundingBox();
-  if (!brandBox || !aiBox || !metaBox || !codeBox) {
+  if (!brandBox || !metaBox || !codeBox) {
     console.error("FAIL: missing boxes");
     process.exit(1);
   }
@@ -174,19 +169,18 @@ async function main() {
     );
 
   const brand = score(brandBox);
-  const ai = score(aiBox);
   const meta = score(metaBox);
   const code = score(codeBox);
   console.log(
     JSON.stringify(
-      { brand, ai, meta, code, shotPath, brandBox, aiBox, metaBox, codeBox },
+      { brand, meta, code, shotPath, brandBox, metaBox, codeBox },
       null,
       2,
     ),
   );
 
   // Header regions must stay in the same crisp ballpark as the room-code card
-  if (brand < 80 || ai < 40 || meta < 40) {
+  if (brand < 80 || meta < 40) {
     console.error("FAIL: header sharpness too low");
     process.exit(1);
   }
