@@ -91,20 +91,21 @@ async function main() {
 
     // Settings: no hard divider lines
     await openSettings(page);
-    await shot(page, "after_settings_no_dividers_390x844.png");
+    const tag = process.env.SHOT_TAG || "after";
+    await shot(page, `${tag}_settings_no_dividers_390x844.png`);
     await page.getByRole("button", { name: /^Close$/ }).click();
 
     await jumpPhase(page, "Vote");
     await page.waitForTimeout(800);
-    await shot(page, "after_vote_quiet_wait_390x844.png");
+    await shot(page, `${tag}_vote_quiet_wait_390x844.png`);
 
     await jumpPhase(page, "Scores");
     await page.waitForTimeout(800);
-    await shot(page, "after_score_reveal_hero_dock_390x844.png");
+    await shot(page, `${tag}_score_reveal_hero_dock_390x844.png`);
 
     await jumpPhase(page, "Wager");
     await page.waitForTimeout(800);
-    await shot(page, "after_wager_quiet_rail_390x844.png");
+    await shot(page, `${tag}_wager_quiet_rail_390x844.png`);
 
     await jumpPhase(page, "Round results");
     await page.waitForTimeout(1200);
@@ -114,7 +115,7 @@ async function main() {
       await list.click();
       await page.waitForTimeout(400);
     }
-    await shot(page, "after_round_results_no_rail_390x844.png");
+    await shot(page, `${tag}_round_results_no_rail_390x844.png`);
 
     // Update banner toast — inject soft banner to prove bottom placement
     await page.evaluate(() => {
@@ -124,7 +125,7 @@ async function main() {
       el.textContent = "A newer Beans build is available. Update after this round";
       document.body.appendChild(el);
     });
-    await shot(page, "after_update_banner_bottom_390x844.png");
+    await shot(page, `${tag}_update_banner_bottom_390x844.png`);
   } finally {
     await browser.close();
   }
