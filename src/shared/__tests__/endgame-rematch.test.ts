@@ -114,4 +114,16 @@ describe("endgame winner + rematch", () => {
     expect(css).toMatch(/animation:\s*endgame-green-sweep\s+280ms/);
     expect(css).toMatch(/\.endgame-rematch-btn[\s\S]*min-height:\s*calc\(var\(--tap-min\)/);
   });
+
+  it("keeps Rematch/Next gated until reveal finishes", () => {
+    expect(list).toMatch(/onRevealDone/);
+    expect(panel).toMatch(/onRevealDone=\{\(\) => setRevealDone\(true\)\}/);
+    expect(panel).toMatch(/revealDone && final && you\.role === "player"/);
+    expect(panel).toMatch(/revealDone && you\.isHost && !final/);
+    // Button markup must sit after the revealDone gate.
+    const rematchBtn = panel.indexOf("endgame-rematch-btn");
+    const gateIdx = panel.indexOf('revealDone && final && you.role === "player"');
+    expect(gateIdx).toBeGreaterThan(-1);
+    expect(rematchBtn).toBeGreaterThan(gateIdx);
+  });
 });

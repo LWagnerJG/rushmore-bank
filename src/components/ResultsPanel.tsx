@@ -1,10 +1,11 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
 import { RULES } from "@/shared/rules";
 import { ResultsRevealList } from "@/components/ResultsRevealList";
-import { resultsRevealKey } from "@/lib/results-reveal";
+import { hasRevealCompleted, resultsRevealKey } from "@/lib/results-reveal";
 
 export function ResultsPanel({
   state,
@@ -45,6 +46,15 @@ export function ResultsPanel({
     topicRound: state.topicRound,
   });
 
+  // Keep winner hidden until the end of the reveal — but only show Rematch /
+  // Next after the reveal finishes (or is skipped / restored).
+  const [revealDone, setRevealDone] = useState(() =>
+    hasRevealCompleted(revealKey),
+  );
+  useEffect(() => {
+    setRevealDone(hasRevealCompleted(revealKey));
+  }, [revealKey]);
+
   return (
     <div className="stack endgame-panel">
       <h2 className="type-display">
@@ -61,9 +71,10 @@ export function ResultsPanel({
         currencyName={RULES.currencyName}
         revealKey={revealKey}
         showWinnerSweep={final}
+        onRevealDone={() => setRevealDone(true)}
       />
 
-      {promptOpen && prompt?.kind === "lowest_drink" && (
+      {revealDone && promptOpen && prompt?.kind === "lowest_drink" && (
         <div className="party-sip party-sip-quiet stack-sm">
           <p className="party-sip-kicker type-meta">Party Mode</p>
           <p className="type-body font-bold">
@@ -99,7 +110,7 @@ export function ResultsPanel({
         </div>
       )}
 
-      {you.isHost && !final && (
+      {revealDone && you.isHost && !final && (
         <div className="stack-sm">
           <button
             type="button"
@@ -127,7 +138,7 @@ export function ResultsPanel({
         </div>
       )}
 
-      {final && you.role === "player" && (
+      {revealDone && final && you.role === "player" && (
         <div className="stack-sm endgame-rematch">
           <button
             type="button"
@@ -149,7 +160,7 @@ export function ResultsPanel({
         </div>
       )}
 
-      {final && you.role !== "player" && (
+      {revealDone && final && you.role !== "player" && (
         <Link href="/" className="endgame-home type-meta text-center">
           Home
         </Link>

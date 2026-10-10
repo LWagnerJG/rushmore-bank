@@ -194,6 +194,39 @@ html.party-on body::before {
   background: transparent;
 }
 
+/*
+ * Disconnect shield — covers phase content only (no blur, no hard band).
+ * Blocks taps while PartySocket retries with short backoff.
+ */
+.reconnect-blocker {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  pointer-events: auto;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+}
+
+.reconnect-blocker-copy {
+  margin: 0;
+  padding: 0.65rem 1.1rem;
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--text);
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  box-shadow: 0 4px 18px rgba(35, 72, 62, 0.1);
+}
+
+.reconnect-dimmed {
+  opacity: 0.42;
+  pointer-events: none;
+  user-select: none;
+}
+
 /* Phase body sits on the page — no card plate that ends above the safe area */
 .phase-panel {
   background: transparent;
@@ -1114,19 +1147,50 @@ html.party-on .brand-shimmer {
   transform: translateY(1px) scale(0.98);
 }
 
-/* Lobby: clear fixed Admin FAB without a full-bleed cream dead zone */
+/* Lobby fills the phase scrollport so sticky Start can pin to the bottom */
 .lobby-layout {
-  /* End padding so Topic vibes chrome + Start clear the scrollport bottom */
-  padding-bottom: 0.5rem;
+  min-height: 100%;
+  padding-bottom: 0;
+}
+
+/*
+ * Sticky primary CTA dock — cream fade only (no blur, no hairline band).
+ * Used by Lobby Start + Wager lock so short iPhones never lose the action.
+ */
+.phase-sticky-cta {
+  position: sticky;
+  bottom: 0;
+  z-index: 6;
+  margin-top: auto;
+  padding-top: 0.65rem;
+  padding-bottom: max(0.45rem, env(safe-area-inset-bottom, 0px));
+  background: var(--bg);
+  /* Anchor the soft cream fade (::before) without a hairline band */
+  isolation: isolate;
+}
+
+.phase-sticky-cta::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -1.35rem;
+  height: 1.35rem;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--bg) 0%, transparent),
+    var(--bg)
+  );
 }
 
 /* End of game — rematch + quiet home; winner sweep lives on reveal rows */
 .endgame-panel {
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
 .endgame-rematch {
-  margin-top: var(--space-2);
+  margin-top: var(--space-1);
 }
 
 .endgame-rematch-btn {
@@ -1294,30 +1358,53 @@ html.party-on .brand-shimmer {
 
   .lobby-qr,
   .lobby-qr svg {
-    width: 96px;
-    height: 96px;
+    width: 88px;
+    height: 88px;
   }
 
   .lobby-qr {
-    flex-basis: 96px;
+    flex-basis: 88px;
   }
 
   .lobby-layout.stack {
     gap: var(--space-2);
   }
 
-  .lobby-start-slot {
-    padding-bottom: 2.75rem;
+  .lobby-roster {
+    padding-block: var(--space-2);
+  }
+
+  .lobby-roster .player-row {
+    min-height: calc(var(--tap-min) - 2px);
+    padding: 0.3rem 0.65rem;
+  }
+
+  .ready-wager-row {
+    margin-top: 0.25rem;
+    gap: 0.45rem;
   }
 }
 
+.lobby-host-tools {
+  margin-top: auto;
+}
+
 .lobby-start-slot {
-  /* FAB is ~2.5rem + gap; phase scroll already applies safe-area pb — don't double it */
-  padding-bottom: 3.25rem;
+  /* Sticky dock — no dead FAB clearance */
+  padding-bottom: 0;
 }
 
 .lobby-start-slot .btn-primary {
   border-radius: 0.95rem;
+}
+
+.lobby-start-slot .host-ai-pregame {
+  margin-top: 0.35rem;
+}
+
+.wager-flow > .phase-sticky-cta {
+  /* Keep wager CTA reachable under the slider on short phones */
+  margin-top: 0.75rem;
 }
 
 .panel {
@@ -2455,14 +2542,34 @@ html.party-on .panel {
   --player-chip-w: 7.25rem;
 }
 
+/*
+ * Edge peeks whenever the track can scroll (4+ pot-split, 6+ seats).
+ * Soft cream fade only — no blur, no hard band edge.
+ */
+.player-rail-scrollable::before,
+.player-rail-scrollable::after,
 .player-rail-many::after {
   content: "";
   pointer-events: none;
   position: absolute;
   top: 0;
-  right: -1rem;
   bottom: 0;
   width: 1.35rem;
+  z-index: 2;
+}
+
+.player-rail-scrollable::before {
+  left: -1rem;
+  background: linear-gradient(
+    90deg,
+    rgba(245, 240, 231, 0.98),
+    transparent
+  );
+}
+
+.player-rail-scrollable::after,
+.player-rail-many::after {
+  right: -1rem;
   background: linear-gradient(
     90deg,
     transparent,
@@ -2470,16 +2577,34 @@ html.party-on .panel {
   );
 }
 
-.player-rail-fit.player-rail-many::after {
-  display: none;
+html.party-on .player-rail-scrollable::before {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 248, 236, 0.98),
+    transparent
+  );
 }
 
+html.party-on .player-rail-scrollable::after,
 html.party-on .player-rail-many::after {
   background: linear-gradient(
     90deg,
     transparent,
     rgba(255, 248, 236, 0.96)
   );
+}
+
+/* Pot-split fours must shrink enough that You isn't half-clipped at rest */
+.player-rail-fit.player-rail-pot-split[data-count="4"] .player-chip {
+  --player-chip-w: min(5.55rem, calc((100cqi - 3 * 0.32rem) / 4));
+}
+
+.player-rail-fit.player-rail-pot-split[data-count="4"] .player-chip-split-label {
+  font-size: 0.48rem;
+}
+
+.player-rail-fit.player-rail-pot-split[data-count="4"] .player-chip-split-num {
+  font-size: 0.92rem;
 }
 
 /* Ultra-compact chips for 8–10 (scroll mode) */

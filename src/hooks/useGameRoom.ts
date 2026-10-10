@@ -137,6 +137,8 @@ export function useGameRoom(
     role: "player" | "spectator";
   } | null>(null);
   const lastForceReconnectAt = useRef(0);
+  const reconnectAttemptRef = useRef(0);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const gestureIds = useRef(new Map<string, string>());
   const phaseRevisionRef = useRef(0);
   const suppressRaceUntilRef = useRef(0);
@@ -197,13 +199,18 @@ export function useGameRoom(
     host: getPartyHost(),
     room: code,
     id: playerId,
-    // Snappier resume after brief leaves / backgrounding.
-    minReconnectionDelay: 400,
-    maxReconnectionDelay: 6_000,
-    reconnectionDelayGrowFactor: 1.35,
-    connectionTimeout: 3_500,
+    // Fast retry with capped backoff — target recover within ~2s on brief flaps.
+    minReconnectionDelay: 150,
+    maxReconnectionDelay: 2_000,
+    reconnectionDelayGrowFactor: 1.45,
+    connectionTimeout: 2_500,
     maxRetries: Infinity,
     onOpen() {
+      reconnectAttemptRef.current = 0;
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
       setConnected(true);
       setErrorRaw(null);
       if (removedRef.current || seatContestedRef.current) return;
@@ -222,7 +229,23 @@ export function useGameRoom(
     },
     onClose() {
       setConnected(false);
-      // Partysocket auto-reconnects — show soft status via `connected`, not a hard error.
+      setErrorRaw("Reconnecting…");
+      // Kick an explicit reconnect in parallel with PartySocket's auto-retry.
+      const attempt = reconnectAttemptRef.current;
+      reconnectAttemptRef.current = attempt + 1;
+      const delay = Math.min(1_500, Math.round(120 * Math.pow(1.6, attempt)));
+      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = setTimeout(() => {
+        reconnectTimerRef.current = null;
+        const now = Date.now();
+        if (now - lastForceReconnectAt.current < 180) return;
+        lastForceReconnectAt.current = now;
+        try {
+          socket.reconnect();
+        } catch {
+          /* ignore */
+        }
+      }, delay);
     },
     onError() {
       setErrorRaw("Reconnecting…");
@@ -278,7 +301,7 @@ export function useGameRoom(
 
   const forceReconnect = useCallback(() => {
     const now = Date.now();
-    if (now - lastForceReconnectAt.current < 750) return;
+    if (now - lastForceReconnectAt.current < 180) return;
     lastForceReconnectAt.current = now;
     try {
       socket.reconnect();
@@ -306,6 +329,10 @@ export function useGameRoom(
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("online", onOnline);
       window.removeEventListener("pageshow", onPageShow);
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
     };
   }, [forceReconnect]);
 
@@ -317,6 +344,7 @@ export function useGameRoom(
       }
       if (socket.readyState !== WebSocket.OPEN) {
         setErrorRaw("Reconnecting…");
+        forceReconnect();
         return;
       }
       setErrorRaw(null);
@@ -329,7 +357,7 @@ export function useGameRoom(
       const withId = { ...msg, actionId };
       socket.send(JSON.stringify(withId));
     },
-    [socket, seatContested],
+    [socket, seatContested, forceReconnect],
   );
 
   const join = useCallback(

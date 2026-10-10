@@ -369,7 +369,11 @@ export function RoomClient({
         </div>
       )}
       {phase === "SCORE_REVEAL" && you.role === "player" && state ? (
-        <div className="ready-wager-row -mx-4 mb-2 px-4">
+        <div
+          className="ready-wager-row -mx-4 mb-2 px-4"
+          inert={!connected ? true : undefined}
+          aria-disabled={!connected || undefined}
+        >
           <div className="ready-wager-meta" aria-live="polite">
             {state.bankBeansReadyCast}/{state.bankBeansReadyNeeded} ready
           </div>
@@ -379,7 +383,7 @@ export function RoomClient({
               "ready-wager-cta " +
               (state.myBankBeansReady ? "ready-wager-cta-done" : "pulse-soft")
             }
-            disabled={state.myBankBeansReady}
+            disabled={!connected || state.myBankBeansReady}
             onClick={() => send({ type: "bank_the_beans" })}
           >
             {state.myBankBeansReady ? "Ready" : "Ready to wager"}
@@ -387,30 +391,39 @@ export function RoomClient({
         </div>
       ) : null}
 
-      <div className="room-phase-scroll min-h-0 flex-1">
-        {!connected && (
-          <p
-            className="mb-1.5 text-xs font-semibold tracking-wide text-[var(--muted)] opacity-80"
-            aria-live="polite"
+      <div className="room-phase-scroll relative min-h-0 flex-1">
+        {!connected ? (
+          <div
+            className="reconnect-blocker"
+            role="status"
+            aria-live="assertive"
+            aria-busy="true"
           >
-            Reconnecting…
-          </p>
-        )}
-        {phase === "SCORE_REVEAL" ? (
-          <div className="phase-panel flex min-h-full flex-col pb-[max(1.25rem,env(safe-area-inset-bottom),2.1rem)]">
-            {body}
+            <p className="reconnect-blocker-copy">Reconnecting…</p>
           </div>
-        ) : (
-          // key=phase remounts MotionSettle so enter runs once, then
-          // .motion-settled strips transform/will-change (iOS soft-raster fix).
-          <MotionSettle
-            key={phase ?? "none"}
-            motionClass="phase-enter"
-            className="phase-panel shrink-0 pb-[max(1.25rem,env(safe-area-inset-bottom),2.1rem)]"
-          >
-            {body}
-          </MotionSettle>
-        )}
+        ) : null}
+        <div
+          className={connected ? undefined : "reconnect-dimmed"}
+          inert={!connected ? true : undefined}
+          aria-hidden={!connected || undefined}
+        >
+          {phase === "SCORE_REVEAL" ? (
+            <div className="phase-panel flex min-h-full flex-col pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+              {body}
+            </div>
+          ) : (
+            // key=phase remounts MotionSettle so enter runs once, then
+            // .motion-settled strips transform/will-change (iOS soft-raster fix).
+            // min-h-full lets sticky primary CTAs pin to the scrollport bottom.
+            <MotionSettle
+              key={phase ?? "none"}
+              motionClass="phase-enter"
+              className="phase-panel flex min-h-full flex-col pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+            >
+              {body}
+            </MotionSettle>
+          )}
+        </div>
       </div>
       <SettingsSheet
         open={settingsOpen}
@@ -437,7 +450,10 @@ export function RoomClient({
         pickPaused={state?.pickPaused ?? false}
       />
       {diagOpen && <DiagPanel onClose={() => setDiagOpen(false)} />}
-      <ErrorToast error={error} onDismiss={() => setError(null)} />
+      <ErrorToast
+        error={error === "Reconnecting…" ? null : error}
+        onDismiss={() => setError(null)}
+      />
       <FinalRoundCue
         active={finalCueActive}
         onDone={() => setFinalCueActive(false)}
