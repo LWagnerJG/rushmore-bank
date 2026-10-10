@@ -3,7 +3,8 @@
   "version": "0.2.0",
   "private": true,
   "engines": {
-    "node": ">=22"
+    "node": ">=22",
+    "npm": ">=10"
   },
   "scripts": {
     "dev": "concurrently \"wrangler dev\" \"next dev --turbopack\"",

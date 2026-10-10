@@ -1,5 +1,5 @@
 /**
- * Lightweight party-server bot behavior smoke (no PartyKit runtime).
+ * Lightweight party-server bot behavior smoke (no PartyServer runtime).
  * Exercises pick/wager helpers + admin count parsing used by the bot brain.
  */
 import { describe, expect, it } from "vitest";
