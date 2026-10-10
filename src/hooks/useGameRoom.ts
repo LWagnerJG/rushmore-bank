@@ -20,6 +20,7 @@ import {
   rememberRoomSession,
   wasRemovedFromRoom,
 } from "@/lib/party";
+import { mergePublicState } from "@/shared/engine/merge-public-state";
 
 /** Map infra / transport failures to player-safe copy. Never mention PartyKit. */
 function friendlyPlayerError(raw: string | null | undefined): string | null {
@@ -254,7 +255,7 @@ export function useGameRoom(
       try {
         const msg = JSON.parse(String(event.data)) as ServerMessage;
         if (msg.type === "state" || msg.type === "joined") {
-          setState(msg.state);
+          setState((prev) => mergePublicState(prev, msg.state));
           setYouId(msg.youId);
           if (msg.state.phaseRevision !== phaseRevisionRef.current) {
             phaseRevisionRef.current = msg.state.phaseRevision;
