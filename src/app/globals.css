@@ -34,7 +34,7 @@
    * Design system lock (consistency pass):
    * - Spacing: 4/8px scale only
    * - Type: two text sizes + one display size
-   * - Buttons: exactly one primary + one secondary
+   * - Buttons: one primary + one secondary, plus a quiet text button
    */
   --space-1: 4px;
   --space-2: 8px;
