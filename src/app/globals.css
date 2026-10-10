@@ -4153,6 +4153,44 @@ html.party-on .draft-board-cell-mine {
   border-color: rgba(196, 92, 58, 0.55) !important;
 }
 
+/* Host topic settings — tucked behind a quiet Options row */
+.topic-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.topic-options-toggle {
+  appearance: none;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: var(--tap-min);
+  padding: 0.35rem 0.15rem;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.topic-options-toggle:focus-visible {
+  outline: 2px solid var(--coral);
+  outline-offset: 2px;
+  border-radius: 0.4rem;
+}
+.topic-options-caret {
+  font-size: 0.7rem;
+  opacity: 0.75;
+}
+.topic-options-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
 .topic-vibe-row {
   display: flex;
   flex-wrap: wrap;
