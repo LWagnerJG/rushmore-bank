@@ -54,15 +54,13 @@ export function LobbyPanel({
     : `Need ${RULES.minPlayers - players.length} more`;
 
   return (
-    <div className="lobby-layout space-y-4">
-      <section className="panel space-y-3 text-center">
-        <p className="font-[family-name:var(--font-display)] text-5xl font-extrabold tracking-[0.22em]">
-          {state.code}
-        </p>
-        <p className="text-sm font-semibold text-[var(--muted)]">{statusText}</p>
+    <div className="lobby-layout stack">
+      <section className="panel stack-sm text-center">
+        <p className="type-display tracking-[0.22em]">{state.code}</p>
+        <p className="type-meta text-[var(--muted)]">{statusText}</p>
 
         {showQR && (
-          <div className="mx-auto w-fit rounded-2xl bg-white p-3 shadow-sm">
+          <div className="mx-auto w-fit rounded-2xl bg-white p-[var(--space-3)] shadow-sm">
             <QRCodeSVG
               value={url}
               size={148}
@@ -72,17 +70,13 @@ export function LobbyPanel({
           </div>
         )}
 
-        <div className="flex flex-col gap-2">
-          <button
-            type="button"
-            className="btn-primary w-full text-base"
-            onClick={share}
-          >
+        <div className="stack-sm">
+          <button type="button" className="btn-primary w-full" onClick={share}>
             {copied ? "Copied!" : "Share invite"}
           </button>
           <button
             type="button"
-            className="btn-secondary w-full text-sm"
+            className="btn-secondary w-full"
             onClick={() => setShowQR((v) => !v)}
           >
             {showQR ? "Hide QR" : "Show QR"}
@@ -90,36 +84,36 @@ export function LobbyPanel({
         </div>
       </section>
 
-      <section className="panel space-y-3">
-        <div className="flex items-baseline justify-between gap-2">
-          <h2 className="font-[family-name:var(--font-display)] text-lg font-extrabold">
+      <section className="panel stack-sm">
+        <div className="flex items-baseline justify-between gap-[var(--space-2)]">
+          <h2 className="type-body font-[family-name:var(--font-display)] font-extrabold">
             Who&rsquo;s in
           </h2>
-          <span className="text-sm font-bold text-[var(--muted)]">
+          <span className="type-meta font-bold text-[var(--muted)]">
             {players.length}/{RULES.maxPlayers}
           </span>
         </div>
-        <ul className="space-y-2">
+        <ul className="stack-sm">
           {players.map((p) => (
             <li key={p.id} className="player-row">
-              <span className="font-extrabold">
+              <span className="type-body font-extrabold">
                 {p.isHost ? "★ " : ""}
                 {p.name}
                 {p.id === you.id ? " (you)" : ""}
                 {!p.connected && (
-                  <span className="ml-1 text-sm font-semibold text-[var(--muted)]">
+                  <span className="ml-[var(--space-1)] type-meta text-[var(--muted)]">
                     away
                   </span>
                 )}
               </span>
-              <span className="flex items-center gap-2">
-                <span className="text-sm font-bold text-[var(--muted)]">
+              <span className="stack-row">
+                <span className="type-meta font-bold text-[var(--muted)]">
                   {p.stones} {RULES.currencyName}
                 </span>
                 {you.isHost && p.id !== you.id && (
                   <button
                     type="button"
-                    className="rounded-md px-1.5 py-0.5 text-xs font-bold text-[var(--muted)] hover:bg-[rgba(231,111,78,0.12)] hover:text-[var(--coral)]"
+                    className="min-h-[var(--tap-min)] min-w-[var(--tap-min)] rounded-md px-[var(--space-2)] type-meta font-bold text-[var(--muted)] hover:bg-[rgba(231,111,78,0.12)] hover:text-[var(--coral)]"
                     aria-label={`Remove ${p.name}`}
                     onClick={() => {
                       if (
@@ -138,11 +132,11 @@ export function LobbyPanel({
             </li>
           ))}
           {players.length === 0 && (
-            <li className="text-sm text-[var(--muted)]">No players yet</li>
+            <li className="type-meta text-[var(--muted)]">No players yet</li>
           )}
         </ul>
         {spectators.length > 0 && (
-          <p className="text-xs text-[var(--muted)]">
+          <p className="type-meta text-[var(--muted)]">
             Watching: {spectators.map((s) => s.name).join(", ")}
           </p>
         )}
@@ -155,7 +149,7 @@ export function LobbyPanel({
               type="button"
               data-diag="lobby-start"
               className={
-                "btn-primary w-full text-lg " + (canStart ? "pulse-soft" : "")
+                "btn-primary w-full " + (canStart ? "pulse-soft" : "")
               }
               disabled={!canStart}
               onClick={() => send({ type: "start" })}

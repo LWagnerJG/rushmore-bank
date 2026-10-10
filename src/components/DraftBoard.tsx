@@ -109,21 +109,21 @@ export function DraftBoard({
           <div className="mt-2 flex flex-wrap gap-2">
             <button
               type="button"
-              className="btn-secondary flex-1 text-sm"
+              className="btn-secondary flex-1"
               onClick={() => requestRedo(focusTurn, "duplicate")}
             >
               Duplicate
             </button>
             <button
               type="button"
-              className="btn-secondary flex-1 text-sm"
+              className="btn-secondary flex-1"
               onClick={() => requestRedo(focusTurn, "invalid")}
             >
               Invalid
             </button>
             <button
               type="button"
-              className="btn-secondary text-sm"
+              className="btn-secondary"
               onClick={() => setHostFocusTurn(null)}
             >
               Cancel

@@ -266,7 +266,7 @@ export function RoomClient({
           />
           <button
             type="button"
-            className="btn-primary text-lg"
+            className="btn-primary"
             onClick={() => join(name, preferSpectate ? "spectator" : "player")}
           >
             Join game
@@ -281,19 +281,19 @@ export function RoomClient({
           {rejoinId && !removed && (
             <button
               type="button"
-              className="btn-secondary text-sm"
+              className="btn-secondary"
               onClick={handleRejoin}
             >
               Rejoin this room
             </button>
           )}
-          {error && <p className="text-sm text-[var(--coral)]">{error}</p>}
+          {error && <p className="type-meta text-[var(--coral)]">{error}</p>}
           {!connected && (
-            <p className="text-sm font-semibold text-[var(--muted)]">
+            <p className="type-meta font-semibold text-[var(--muted)]">
               Reconnecting…
             </p>
           )}
-          <Link href="/" className="text-sm font-semibold text-[var(--coral)]">
+          <Link href="/" className="type-meta font-semibold text-[var(--coral)]">
             ← Home
           </Link>
         </div>

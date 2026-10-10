@@ -37,8 +37,8 @@ export function ResultsPanel({
   const drinkBlocked = promptOpen && prompt?.kind === "lowest_drink";
 
   return (
-    <div className="space-y-4">
-      <h2 className="font-[family-name:var(--font-display)] text-2xl font-extrabold">
+    <div className="stack">
+      <h2 className="type-display">
         {final
           ? "Final standings"
           : isFinalRoundResults
@@ -46,9 +46,9 @@ export function ResultsPanel({
             : `Round ${state.topicRound}/${state.configuredTopicRounds}`}
       </h2>
 
-      <ol className="space-y-2">
+      <ol className="stack-sm">
         {ranked.map((p, i) => (
-          <li key={p.id} className="player-row font-extrabold">
+          <li key={p.id} className="player-row type-body font-extrabold">
             <span>
               {i + 1}. {p.name}
               {p.id === you.id ? " (you)" : ""}
@@ -61,21 +61,21 @@ export function ResultsPanel({
       </ol>
 
       {promptOpen && prompt?.kind === "lowest_drink" && (
-        <div className="party-sip party-sip-quiet space-y-3">
-          <p className="party-sip-kicker">Party Mode</p>
-          <p className="font-[family-name:var(--font-display)] text-lg font-extrabold">
+        <div className="party-sip party-sip-quiet stack-sm">
+          <p className="party-sip-kicker type-meta">Party Mode</p>
+          <p className="type-body font-[family-name:var(--font-display)] font-extrabold">
             Lowest beans · take a drink
           </p>
-          <p className="text-sm font-semibold text-[var(--muted)]">
+          <p className="type-meta text-[var(--muted)]">
             {lowestNames}
             {prompt.targetPlayerIds.length > 1 ? " (tie)" : ""} — finish a
             drink, then continue. Pass anytime is ok.
           </p>
           {canResolveParty && (
-            <div className="flex gap-2">
+            <div className="stack-row">
               <button
                 type="button"
-                className="btn-party-sip flex-1"
+                className="btn-primary flex-1"
                 onClick={() =>
                   send({ type: "party_resolve", choice: "done" })
                 }
@@ -97,7 +97,7 @@ export function ResultsPanel({
       )}
 
       {you.isHost && !final && (
-        <div className="space-y-3">
+        <div className="stack-sm">
           {!isFinalRoundResults && (
             <PartyModeSwitch
               compact
@@ -112,7 +112,7 @@ export function ResultsPanel({
           )}
           <button
             type="button"
-            className="btn-primary w-full text-lg"
+            className="btn-primary w-full"
             disabled={drinkBlocked}
             onClick={() => send({ type: "next_topic" })}
           >
@@ -137,15 +137,15 @@ export function ResultsPanel({
       )}
 
       {you.isHost && final && (
-        <div className="space-y-2">
+        <div className="stack-sm">
           <button
             type="button"
-            className="btn-primary w-full text-lg"
+            className="btn-primary w-full"
             onClick={() => send({ type: "play_again" })}
           >
             Rematch
           </button>
-          <p className="text-center text-xs font-semibold text-[var(--muted)]">
+          <p className="type-meta text-center text-[var(--muted)]">
             Same room &amp; players — fresh run, no new codes.
           </p>
         </div>

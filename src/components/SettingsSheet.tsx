@@ -124,7 +124,7 @@ export function SettingsSheet({
             </span>
             <button
               type="button"
-              className="btn-secondary !min-h-10 shrink-0 px-3 text-sm"
+              className="btn-secondary shrink-0 px-[var(--space-3)]"
               onClick={() => void copyCode()}
             >
               {copied ? "Copied" : "Copy"}

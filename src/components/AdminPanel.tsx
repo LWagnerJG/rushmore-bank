@@ -162,7 +162,7 @@ export function AdminPanel({
               </label>
               <button
                 type="button"
-                className="btn-secondary !min-h-11 shrink-0 px-3 text-sm disabled:opacity-40"
+                className="btn-secondary shrink-0 px-[var(--space-3)] disabled:opacity-40"
                 disabled={!canAdd}
                 onClick={commitAdd}
               >

@@ -546,7 +546,7 @@ export function DicePanel({
               {canResolveParty && (
                 <div className="flex gap-2">
                   <button
-                    className="btn-party-sip flex-1"
+                    className="btn-primary flex-1"
                     onClick={() =>
                       send({ type: "party_resolve", choice: "done" })
                     }

@@ -198,7 +198,7 @@ export function TopicPanel({
                   </select>
                   <button
                     type="button"
-                    className="btn-primary !min-h-11 shrink-0 px-4 text-sm"
+                    className="btn-primary shrink-0 px-[var(--space-4)]"
                     disabled={!custom.trim()}
                     onClick={lockCustom}
                   >
