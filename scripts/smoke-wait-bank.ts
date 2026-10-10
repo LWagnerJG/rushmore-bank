@@ -1,120 +1,74 @@
 /**
  * Local regression: waiting Bank rejected + current Bank advances seat.
- * Requires wrangler + next on 8787/3000 with NEXT_PUBLIC_PARTYKIT_HOST=127.0.0.1:8787
+ * Requires wrangler on 8787 (or PARTY_HOST).
  */
-import PartySocket from "partysocket";
+import { randomRoomCode, resolvePartyHost, SmokeClient } from "./smoke-lib";
 
-const HOST = process.env.NEXT_PUBLIC_PARTYKIT_HOST || "127.0.0.1:8787";
-const code = "WXYZ";
-
-type State = {
-  phase: string;
-  diceSubphase: string;
-  diceTurnSeat: number;
-  diceActiveIds: string[];
-  seatOrder: string[];
-  pots: Record<string, number>;
-  diceDecisionDeadlineAt: number | null;
-  phaseRevision: number;
-  scores?: unknown[];
-  humanVotesCast?: number;
-  topicVotes?: unknown;
-  humanVotes?: unknown;
-};
-
-class Client {
-  sock: PartySocket;
-  state: State | null = null;
-  youId = "";
-  constructor(public name: string, id: string) {
-    this.sock = new PartySocket({ host: HOST, room: code, id });
-    this.sock.addEventListener("message", (e) => {
-      const msg = JSON.parse(String(e.data));
-      if (msg.type === "state" || msg.type === "joined") {
-        this.state = msg.state;
-        this.youId = msg.youId;
-      } else if (msg.type === "error") {
-        this.lastError = msg.message;
-      }
-    });
-  }
-  lastError: string | null = null;
-  send(m: object) {
-    this.sock.send(JSON.stringify({ ...m, actionId: `a-${Math.random()}` }));
-  }
-  async wait(pred: () => boolean, ms = 15000) {
-    const start = Date.now();
-    while (Date.now() - start < ms) {
-      if (pred()) return;
-      await new Promise((r) => setTimeout(r, 50));
-    }
-    throw new Error(`${this.name} timeout`);
-  }
-}
+const HOST = resolvePartyHost();
+const CODE = (process.env.ROOM || randomRoomCode("WB")).toUpperCase();
 
 async function main() {
-  const a = new Client("A", "wait-a");
-  const b = new Client("B", "wait-b");
-  const c = new Client("C", "wait-c");
-  await Promise.all(
-    [a, b, c].map(
-      (x) =>
-        new Promise<void>((res) => {
-          x.sock.addEventListener("open", () => res());
-        }),
-    ),
-  );
-  a.send({ type: "join", name: "A" });
-  b.send({ type: "join", name: "B" });
-  c.send({ type: "join", name: "C" });
-  await a.wait(() => (a.state?.phase === "LOBBY"));
+  const a = new SmokeClient(HOST, CODE, "wait-a", "A");
+  const b = new SmokeClient(HOST, CODE, "wait-b", "B");
+  const c = new SmokeClient(HOST, CODE, "wait-c", "C");
+  await Promise.all([a.connect(), b.connect(), c.connect()]);
+  await a.join();
+  await b.join();
+  await c.join();
+  await a.wait(() => (a.state?.players.length ?? 0) >= 3, 8000, "3 players");
+
   a.send({ type: "start" });
-  await a.wait(() => a.state?.phase === "TOPIC_SELECTION");
-  // Force custom topic to skip voting
+  await a.waitPhase("TOPIC_SELECTION");
   a.send({
     type: "custom_topic",
     text: "Best snacks",
     scope: "food",
     scopeBoundary: "edible",
   });
-  await a.wait(() => a.state?.phase === "DRAFT");
-  // Draft starts immediately after topic lock (no prep).
-  await a.wait(() => a.state?.phase === "DRAFT");
+  await a.waitPhase("DRAFT");
 
-  // Fast draft — 12 picks
   for (let i = 0; i < 12; i++) {
-    await a.wait(() => {
-      const s = a.state!;
-      return s.phase === "DRAFT" || s.phase === "REVIEW" || s.phase === "VOTING_AND_JUDGING";
-    });
+    await a.wait(
+      () => {
+        const s = a.state!;
+        return (
+          s.phase === "DRAFT" ||
+          s.phase === "REVIEW" ||
+          s.phase === "VOTING_AND_JUDGING"
+        );
+      },
+      10000,
+      "draft tick",
+    );
     if (a.state!.phase !== "DRAFT") break;
-    const s = a.state as unknown as {
-      draftOrder: number[];
-      draftCursor: number;
-      seatOrder: string[];
-    };
-    const pid = s.seatOrder[s.draftOrder[s.draftCursor]!]!;
-    const actor = [a, b, c].find((x) => x.youId === pid)!;
-    const before = s.draftCursor;
+    const turnId = a.draftTurnId();
+    const actor = [a, b, c].find((x) => x.youId === turnId)!;
+    const before = a.state!.draftCursor;
     actor.send({ type: "lock_in", text: `Item-${i}-${actor.name}` });
-    await a.wait(() => {
-      const cur = (a.state as unknown as { draftCursor: number; phase: string });
-      return cur.phase !== "DRAFT" || cur.draftCursor > before;
-    });
+    await a.wait(
+      () => {
+        const cur = a.state!;
+        return cur.phase !== "DRAFT" || cur.draftCursor > before;
+      },
+      8000,
+      "cursor advance",
+    );
   }
-  await a.wait(() => a.state?.phase === "REVIEW" || a.state?.phase === "VOTING_AND_JUDGING");
+  await a.wait(
+    () => a.state?.phase === "REVIEW" || a.state?.phase === "VOTING_AND_JUDGING",
+    10000,
+    "post-draft",
+  );
   if (a.state?.phase === "REVIEW") a.send({ type: "skip_review" });
-  await a.wait(() => a.state?.phase === "VOTING_AND_JUDGING");
+  await a.waitPhase("VOTING_AND_JUDGING");
 
-  // Privacy: no ballot maps
   if ("topicVotes" in (a.state as object) || "humanVotes" in (a.state as object)) {
     throw new Error("LEAK: ballot maps in public state");
   }
 
-  // Reject client AI
   a.lastError = null;
   a.send({ type: "submit_ai_judgments", judgments: [], fallback: true });
-  await a.wait(() => a.lastError !== null, 5000);
+  await a.wait(() => a.lastError !== null, 5000, "reject AI");
   if (!a.lastError?.includes("server-side")) {
     throw new Error(`expected reject AI, got ${a.lastError}`);
   }
@@ -123,28 +77,26 @@ async function main() {
   a.send({ type: "submit_vote", targetPlayerId: b.youId });
   b.send({ type: "submit_vote", targetPlayerId: c.youId });
   c.send({ type: "submit_vote", targetPlayerId: a.youId });
-  await a.wait(() => a.state?.phase === "SCORE_REVEAL", 25000);
-  a.send({ type: "advance" });
-  await a.wait(() => a.state?.phase === "WAGER_SELECTION");
-  // All wager so dice runs
+  await a.waitPhase("SCORE_REVEAL", 25000);
+  for (const x of [a, b, c]) x.send({ type: "bank_the_beans" });
+  await a.waitPhase("WAGER_SELECTION");
   for (const x of [a, b, c]) x.send({ type: "submit_wager", amount: 20 });
-  await a.wait(() => a.state?.phase === "DICE");
+  await a.waitPhase("DICE");
 
-  const rollerId = a.state!.seatOrder[a.state!.diceTurnSeat];
+  const rollerId = a.state!.seatOrder[a.state!.diceTurnSeat!];
   const waiter = [a, b, c].find((x) => x.youId !== rollerId)!;
   const roller = [a, b, c].find((x) => x.youId === rollerId)!;
-  const seatBefore = a.state!.diceTurnSeat;
+  const seatBefore = a.state!.diceTurnSeat!;
   console.log("dice", a.state!.diceSubphase, "roller", rollerId, "waiter", waiter.youId);
 
-  await waiter.wait(() => waiter.state?.diceSubphase === "READY");
-  // Waiting players cannot bank early
+  await waiter.wait(() => waiter.state?.diceSubphase === "READY", 10000, "READY");
   waiter.lastError = null;
   waiter.send({ type: "pull_out" });
-  await waiter.wait(() => waiter.lastError !== null, 5000);
+  await waiter.wait(() => waiter.lastError !== null, 5000, "wait reject");
   if (!waiter.lastError?.toLowerCase().includes("wait")) {
     throw new Error(`expected wait-your-turn reject, got ${waiter.lastError}`);
   }
-  if (!waiter.state!.diceActiveIds.includes(waiter.youId)) {
+  if (!waiter.state!.diceActiveIds?.includes(waiter.youId)) {
     throw new Error("waiter should still be active");
   }
   if (waiter.state!.diceTurnSeat !== seatBefore) {
@@ -152,12 +104,17 @@ async function main() {
   }
   console.log("OK waiting Bank rejected:", waiter.lastError);
 
-  // Current roller Banks → seat advances
-  await roller.wait(() => roller.state?.diceSubphase === "READY");
+  await roller.wait(() => roller.state?.diceSubphase === "READY", 10000, "roller READY");
   roller.send({ type: "pull_out" });
-  await roller.wait(() => !roller.state!.diceActiveIds.includes(roller.youId));
-  if (roller.state!.diceTurnSeat === seatBefore && roller.state!.diceActiveIds.length > 0) {
-    // Seat should have moved unless round already ended
+  await roller.wait(
+    () => !roller.state!.diceActiveIds?.includes(roller.youId),
+    10000,
+    "roller banked",
+  );
+  if (
+    roller.state!.diceTurnSeat === seatBefore &&
+    (roller.state!.diceActiveIds?.length ?? 0) > 0
+  ) {
     throw new Error("current Bank should advance seat");
   }
   console.log("OK current Bank advanced; seat", roller.state!.diceTurnSeat);

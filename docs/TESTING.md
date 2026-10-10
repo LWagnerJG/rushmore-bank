@@ -29,18 +29,34 @@ GitHub Actions: `.github/workflows/deploy-partyserver.yml` deploys on pushes tha
 
 Room data is short-lived — **no** PartyKit storage export/import.
 
-## Programmatic multiplayer smoke (`npx tsx scripts/smoke-three.ts`)
+## Programmatic multiplayer smoke
 
-Against local PartyServer (`wrangler dev`, default `127.0.0.1:8787`):
+Host via `PARTY_HOST` or `NEXT_PUBLIC_PARTYKIT_HOST` (default: `beans-party.beans-lwagner.workers.dev`).
+
+### Three humans (`npm run smoke:three`)
 
 | Step | Result |
 |---|---|
-| 3 sockets join one room | Pass (when local stack up) |
+| 3 sockets join one room | Pass (waits for roster, not bare LOBBY) |
 | Topic vote → Draft (12 Lock Ins) | Pass |
-| Review → Vote → AI fallback scores | Pass (45 each = 20+20+5) |
+| Vote → AI fallback scores → Bank the Beans | Pass |
 | Wager → Dice → Pull Out → ROUND_RESULTS | Pass |
 
-Set `NEXT_PUBLIC_PARTYKIT_HOST=127.0.0.1:8787` for local smokes.
+### Bots e2e (`npm run smoke:bots`)
+
+Spawns admin bots (`fast: true` shortens tap delays), auto-plays the human seat, and asserts picks are real answers (not `Missed pick`).
+
+| Env | Purpose |
+|---|---|
+| `PARTY_HOST` | Target PartyServer host (no protocol) |
+| `SMOKE_UNTIL=round_results\|game_results` | Stop after one round or full match (default `game_results`) |
+| `SMOKE_BOTS` | Bot count (default 3) |
+
+CI: `.github/workflows/smoke-bots.yml` runs one round against local `wrangler dev` on PRs; scheduled/manual runs a full game against prod.
+
+Local: `PARTY_HOST=127.0.0.1:8787 SMOKE_UNTIL=round_results npm run smoke:bots`
+
+**Note:** A draft with “0 picks” while bots are seated is usually the *human* seat’s turn — bots only lock in on bot turns (not a server stall).
 
 ## Multi-context browser smoke (local)
 
