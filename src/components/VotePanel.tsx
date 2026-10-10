@@ -19,12 +19,10 @@ export function voteWaitLine(opts: {
   const { twoPlayer, votesDone, judging, waitingCount } = opts;
   if (twoPlayer) return "AI scoring…";
   if (!votesDone && waitingCount > 0) {
-    return judging
-      ? `Waiting on ${waitingCount} · AI scoring next`
-      : `Waiting on ${waitingCount}`;
+    // One quiet signal — waiting count + that AI scoring follows.
+    return `Waiting on ${waitingCount} · AI scoring next`;
   }
-  if (judging) return "AI scoring…";
-  if (votesDone) return "AI scoring next";
+  if (judging || votesDone) return "AI scoring…";
   return null;
 }
 

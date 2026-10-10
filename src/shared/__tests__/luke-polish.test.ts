@@ -58,7 +58,15 @@ describe("vote: one quiet waiting signal", () => {
         judging: false,
         waitingCount: 1,
       }),
-    ).toBe("Waiting on 1");
+    ).toBe("Waiting on 1 · AI scoring next");
+    expect(
+      voteWaitLine({
+        twoPlayer: false,
+        votesDone: true,
+        judging: true,
+        waitingCount: 0,
+      }),
+    ).toBe("AI scoring…");
     expect(
       voteWaitLine({
         twoPlayer: true,
@@ -141,10 +149,12 @@ describe("wager rail: quiet SAFE/RISKING copy", () => {
 });
 
 describe("settings: spacing instead of hard dividers", () => {
-  it("drops border-top hairlines on settings rows", () => {
+  it("drops border-top hairlines on settings rows and admin tools", () => {
     const row = rulesFor(css, ".settings-row").join("\n");
     expect(row).not.toMatch(/border-top/);
     expect(row).not.toMatch(/border:/);
+    const admin = rulesFor(css, ".admin-tools").join("\n");
+    expect(admin).not.toMatch(/border-top/);
     expect(settingsSrc).toMatch(/settings-row/);
   });
 });
