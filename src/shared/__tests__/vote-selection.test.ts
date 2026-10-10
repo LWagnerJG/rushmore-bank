@@ -6,6 +6,7 @@ import { contrastRatio, rootToken, rulesFor } from "./contrast";
 const read = (rel: string) => readFileSync(resolve(__dirname, rel), "utf8");
 const css = read("../../app/globals.css");
 const card = read("../../components/RushmoreCard.tsx");
+const room = read("../../components/RoomClient.tsx");
 
 describe("vote: your pick reads at a glance", () => {
   it("marks the pick with a badge + aria-pressed, not a ✓ glued to the name", () => {
@@ -61,5 +62,12 @@ describe("vote: your pick reads at a glance", () => {
     const guard = rulesFor(css, ".rushmore-card-disabled").join("\n");
     expect(guard).toMatch(/pointer-events:\s*none/);
     expect(guard).not.toMatch(/opacity/);
+  });
+});
+
+describe("vote: no standings mid-vote", () => {
+  it("hides the rail during voting without unmounting it", () => {
+    expect(room).toMatch(/hidden=\{phase === "VOTING_AND_JUDGING"\}/);
+    expect(room).toMatch(/<PlayerRail state=\{state\} youId=\{youId\} \/>/);
   });
 });

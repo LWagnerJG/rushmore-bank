@@ -375,11 +375,18 @@ export function RoomClient({
         brand/BANK row — a remaining soft-rasterize path on iPhone after #88.
       */}
       {/* GAME_RESULTS: reveal list is the only score surface — hide the rail. */}
+      {/*
+        No standings mid-vote: hidden (not unmounted) during voting so the
+        chips' score-land still fires when Score reveal brings them back.
+      */}
       {state &&
         phase !== "LOBBY" &&
         phase !== "DICE" &&
         phase !== "GAME_RESULTS" && (
-        <div className="room-rail-slot -mx-4 mb-2 px-4">
+        <div
+          className="room-rail-slot -mx-4 mb-2 px-4"
+          hidden={phase === "VOTING_AND_JUDGING"}
+        >
           <PlayerRail state={state} youId={youId} />
         </div>
       )}
