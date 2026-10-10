@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 import {
   normalizePick,
   type ClientMessage,
@@ -149,6 +149,12 @@ export function DraftPanel({
     else addToQueue(selection);
   }
 
+  // Draft controls never take focus: the pick field (and keyboard) stays up,
+  // so one tap is one click and nothing re-animates under the finger.
+  function keepFieldFocus(e: MouseEvent) {
+    e.preventDefault();
+  }
+
   const canPrimary = myTurn
     ? Boolean(
         selection.trim() &&
@@ -176,40 +182,64 @@ export function DraftPanel({
   });
 
   return (
-    <div className="draft-panel space-y-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-      {/* Fixed-height status — never reflow the board/input as turn copy changes. */}
-      <p
-        className={`draft-turn-line ${myTurn ? "draft-turn-line-active" : ""}`}
-        role="status"
-        aria-live="polite"
-      >
-        {status}
-      </p>
-
-      <DraftBoard
-        state={state}
-        youId={youId}
-        isHost={you.isHost}
-        send={send}
-      />
-
+    <div className="draft-panel">
+      {/*
+        Composer first: the pick field sits right under the chrome, above
+        where the iOS keyboard lands, so WebKit never pans the page to reveal
+        it. Everything that grows (stash chips, Taken, board) renders below.
+      */}
       {you.role === "player" && (
-        <section className="stash-surface space-y-3" aria-label="Your stash">
-          <div className="flex items-baseline justify-between gap-2">
-            <h2 className="text-[0.7rem] font-extrabold uppercase tracking-wide text-[var(--muted)]">
-              Your stash
-            </h2>
-            <span className="draft-stash-count text-[0.7rem] font-bold tabular-nums text-[var(--muted)]">
-              {queue.length > 0
-                ? `${queue.length}${myTurn ? " · tap to lock" : ""}`
-                : "\u00a0"}
-            </span>
+        <section className="draft-composer" aria-label="Your pick">
+          <div className="draft-composer-row">
+            <label className="sr-only" htmlFor="selected-pick">
+              Your draft pick
+            </label>
+            <input
+              id="selected-pick"
+              className="field draft-pick-input"
+              placeholder={
+                myTurn ? "Type your answer" : "Park a pick in your stash"
+              }
+              value={selection}
+              maxLength={48}
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              enterKeyHint="go"
+              onChange={(e) => setSelection(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key !== "Enter" || e.nativeEvent.isComposing) return;
+                e.preventDefault();
+                primaryAction();
+              }}
+            />
+            <button
+              type="button"
+              className={
+                myTurn
+                  ? "btn-primary btn-your-turn draft-pick-submit"
+                  : "btn-secondary draft-pick-submit"
+              }
+              aria-disabled={!canPrimary}
+              onMouseDown={keepFieldFocus}
+              onClick={() => {
+                if (canPrimary) primaryAction();
+              }}
+            >
+              <span>
+                {myTurn ? (busy ? "Locking…" : "Lock in") : "Stash it"}
+              </span>
+            </button>
           </div>
 
-          {/* Overlay stash chips so empty↔filled never shifts the pick input. */}
-          <div className="draft-stash-tray" aria-live="polite">
-            {queue.length > 0 ? (
-              <ul className="draft-stash-list flex flex-wrap gap-2">
+          {queue.length > 0 ? (
+            <div className="draft-stash">
+              <p className="draft-stash-meta">
+                {`Your stash · ${queue.length}${myTurn ? " · tap to lock" : ""}`}
+                {saveFailed ? " · won’t survive a reload" : ""}
+              </p>
+              <ul className="draft-stash-list">
                 {queue.map((text) => {
                   const taken = state.takenNormalized.includes(
                     normalizePick(text),
@@ -218,10 +248,7 @@ export function DraftPanel({
                     myTurn && !taken && !state.pickPaused && !busy;
                   const selected = selection.trim() === text;
                   return (
-                    <li
-                      key={text}
-                      className="flex max-w-full items-center gap-0.5"
-                    >
+                    <li key={text} className="draft-stash-item">
                       <button
                         type="button"
                         className={[
@@ -234,7 +261,7 @@ export function DraftPanel({
                                 ? "stash-chip-selected"
                                 : "stash-chip-idle",
                         ].join(" ")}
-                        disabled={taken}
+                        aria-disabled={taken || undefined}
                         aria-label={
                           canLock
                             ? `Lock in ${text}`
@@ -242,14 +269,16 @@ export function DraftPanel({
                               ? `${text} already taken`
                               : `Use ${text}`
                         }
+                        onMouseDown={keepFieldFocus}
                         onClick={() => applyStash(text)}
                       >
                         {text}
                       </button>
                       <button
                         type="button"
-                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-base text-[var(--muted)]"
+                        className="draft-stash-remove"
                         aria-label={`Remove ${text}`}
+                        onMouseDown={keepFieldFocus}
                         onClick={() =>
                           persist(queue.filter((item) => item !== text))
                         }
@@ -260,53 +289,34 @@ export function DraftPanel({
                   );
                 })}
               </ul>
-            ) : null}
-          </div>
-
-          <label className="sr-only" htmlFor="selected-pick">
-            Your draft pick
-          </label>
-          <input
-            id="selected-pick"
-            className="field draft-pick-input w-full"
-            placeholder={
-              myTurn ? "Type your answer" : "Park a pick in your stash"
-            }
-            value={selection}
-            maxLength={48}
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            spellCheck={false}
-            enterKeyHint={myTurn ? "done" : "done"}
-            onChange={(e) => setSelection(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") primaryAction();
-            }}
-          />
-          {/* Reserved status strip — Taken / saveFailed never push the CTA. */}
-          <p className="draft-input-status" role="status" aria-live="polite">
-            {selectedTaken
-              ? "Taken — try another."
-              : saveFailed
-                ? "Stash won’t survive a reload."
-                : "\u00a0"}
-          </p>
-
-          <button
-            type="button"
-            className={
-              myTurn
-                ? "btn-primary btn-your-turn w-full"
-                : "btn-secondary w-full"
-            }
-            disabled={!canPrimary}
-            onClick={() => primaryAction()}
-          >
-            <span>{myTurn ? (busy ? "Locking…" : "Lock in") : "Stash it"}</span>
-          </button>
+            </div>
+          ) : null}
         </section>
       )}
+
+      {/* One fixed line: turn copy, or why the typed pick can't go in. */}
+      <p
+        className={[
+          "draft-turn-line",
+          myTurn ? "draft-turn-line-active" : "",
+          you.role === "player" && selectedTaken ? "draft-turn-line-warn" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+        role="status"
+        aria-live="polite"
+      >
+        {you.role === "player" && selectedTaken
+          ? "Taken — try another."
+          : status}
+      </p>
+
+      <DraftBoard
+        state={state}
+        youId={youId}
+        isHost={you.isHost}
+        send={send}
+      />
     </div>
   );
 }

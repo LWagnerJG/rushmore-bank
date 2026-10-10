@@ -110,10 +110,11 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: "cover",
-  // Keyboard overlays the page instead of resizing the layout viewport.
-  // Combined with a frozen --app-h (NoPullToRefresh), this stops iOS from
-  // fighting the locked PWA shell when nickname / room-code fields focus.
-  interactiveWidget: "overlays-content",
+  // iOS WebKit ignores interactive-widget (Safari and home-screen PWA alike):
+  // the keyboard only shrinks/pans the visual viewport. resizes-visual names
+  // that model on every engine. Text fields stay above the keyboard by layout,
+  // and NoPullToRefresh keeps --app-h frozen through each keyboard session.
+  interactiveWidget: "resizes-visual",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: CREAM },
     { media: "(prefers-color-scheme: dark)", color: CREAM },

@@ -11,6 +11,7 @@ import {
   type DiceReadoutRoll,
 } from "@/shared/engine/dice-present";
 import { feedback } from "@/lib/feedback";
+import { centerInTrack } from "@/lib/scroll-track";
 import { cueYourTurn } from "@/lib/your-turn";
 import { RULES } from "@/shared/rules";
 import { youInlineSuffix } from "@/shared/you-label";
@@ -56,11 +57,9 @@ function TurnStrip({ seats }: { seats: SeatInfo[] }) {
   const upId = seats.find((s) => s.kind === "up")?.pid ?? "";
 
   useEffect(() => {
-    upRef.current?.scrollIntoView({
-      behavior: "smooth",
-      inline: "center",
-      block: "nearest",
-    });
+    const chip = upRef.current;
+    const track = chip?.parentElement;
+    if (chip && track) centerInTrack(chip, track);
   }, [upId]);
 
   return (
