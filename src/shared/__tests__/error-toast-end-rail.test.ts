@@ -57,12 +57,11 @@ describe("error toast overlay", () => {
   });
 });
 
-describe("GAME_RESULTS score surface", () => {
-  it("hides PlayerRail on final standings only", () => {
+describe("results score surface", () => {
+  it("hides PlayerRail on ROUND_RESULTS and GAME_RESULTS — list is the only score", () => {
+    expect(room).toMatch(/phase !== "ROUND_RESULTS"/);
     expect(room).toMatch(/phase !== "GAME_RESULTS"/);
     expect(room).toMatch(/PlayerRail/);
-    // Still shown for mid-game results
-    expect(room).not.toMatch(/phase !== "ROUND_RESULTS"/);
   });
 });
 
