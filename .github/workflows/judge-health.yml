@@ -1,4 +1,4 @@
-name: Judge health smoke
+name: Prod health smokes
 
 on:
   schedule:
@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 jobs:
-  smoke:
+  judge:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -25,3 +25,21 @@ jobs:
           # Optional repo variable; script defaults to https://beans-game.vercel.app
           JUDGE_URL: ${{ vars.JUDGE_URL }}
         run: node scripts/judge-smoke.mjs
+
+  # Folded PartyServer lobby check (same script as server-health.yml).
+  party:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: PartyServer lobby broadcast
+        env:
+          PARTY_HOST: beans-party.beans-lwagner.workers.dev
+          HEALTH_TIMEOUT_MS: "15000"
+          HEALTH_STEP_MS: "8000"
+        run: npx tsx scripts/server-health.ts
