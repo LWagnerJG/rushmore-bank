@@ -1836,7 +1836,7 @@ html.party-on .panel {
   gap: 0.65rem;
   /*
    * Everything on the dice screen except the tray is ~434px tall, so on a
-   * short phone the tray takes what's left and Pot, Safe and Bank stay on
+   * short phone the tray takes what's left and Your beans + Bank stay on
    * screen. One height for every beat: arming your turn never moves Bank.
    */
   --dice-tray-h: clamp(
@@ -1976,6 +1976,88 @@ html.party-on .panel {
   transition: opacity 200ms ease, color 200ms ease;
 }
 
+/* Ownership row under the tray — same height budget as the old Pot/Safe pair */
+.dice-beans-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.4rem;
+  min-height: 2.85rem;
+}
+
+.dice-your-beans {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+}
+
+.dice-your-beans-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.dice-your-beans-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(1.65rem, 7vw, 2.05rem);
+  font-weight: 800;
+  line-height: 1;
+  color: var(--text);
+}
+
+.dice-bean-glyph {
+  display: block;
+  flex-shrink: 0;
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+/* Other roller — quiet, right side; only when it isn't your turn */
+.dice-roller-beans {
+  min-width: 0;
+  max-width: 48%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.12rem;
+  text-align: right;
+}
+
+.dice-roller-beans-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  max-width: 100%;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.dice-roller-beans-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.dice-roller-beans-value {
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(1.25rem, 5.5vw, 1.55rem);
+  font-weight: 800;
+  line-height: 1;
+  color: var(--muted);
+}
+
+/* Legacy pot/safe — kept for older markup / tests */
 .dice-pot-row {
   display: flex;
   align-items: flex-end;
@@ -2022,7 +2104,6 @@ html.party-on .panel {
   opacity: 0.55;
 }
 
-/* Legacy safe column — kept for older markup / tests */
 .dice-pot-safe {
   font-size: 0.85rem;
   color: var(--muted);
@@ -4477,7 +4558,7 @@ html.party-on .draft-board-cell-mine {
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
-/* Strip chips: bare figure only — Pot/Safe labels live once on the stage */
+/* Strip chips: bare figure only — ownership labels live once under the tray */
 .dice-turn-chip-safe::before,
 .dice-turn-chip-pot::before {
   content: none;
