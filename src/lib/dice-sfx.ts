@@ -12,23 +12,20 @@ export async function ensureDiceAudio(): Promise<AudioContext | null> {
 }
 
 /** Soft cue when a roll commits. */
-export function playRollStart(_ctx?: AudioContext | null) {
+export function playRollStart(): void {
   playSfx("dice_tick");
 }
 
 /** Brief tick while tumbling (throttled by caller). */
-export function playRollTick(_ctx?: AudioContext | null) {
+export function playRollTick(): void {
   playSfx("dice_tick");
 }
 
 /** Settle land — bust uses soft thud. */
-export function playSettle(
-  _ctx?: AudioContext | null,
-  opts?: { busted?: boolean },
-) {
+export function playSettle(opts?: { busted?: boolean }): void {
   playSfx(opts?.busted ? "bust" : "dice_settle");
 }
 
-export function playBankChime(_ctx?: AudioContext | null) {
+export function playBankChime(): void {
   playSfx("bank");
 }
