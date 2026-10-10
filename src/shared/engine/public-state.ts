@@ -81,7 +81,11 @@ export function projectPublicStateShared(
   state: RoomState,
 ): Omit<
   PublicRoomState,
-  "myTopicVote" | "myHumanVote" | "myBankBeansReady" | "hostAiJudge"
+  | "myTopicVote"
+  | "myHumanVote"
+  | "myBankBeansReady"
+  | "myRematchReady"
+  | "hostAiJudge"
 > {
   const topicVoteCounts: Record<string, number> = {};
   for (const tid of Object.values(state.topicVotes)) {
@@ -127,6 +131,13 @@ export function projectPublicStateShared(
   const humanVotedIds = Object.keys(state.humanVotes).filter((pid) =>
     state.seatOrder.includes(pid),
   );
+  // Rematch: all connected players (lobby may have no seatOrder yet after prior games).
+  const rematchPool = state.players.filter(
+    (p) => p.role === "player" && p.connected,
+  );
+  const rematchReadyIds = rematchPool
+    .filter((p) => !!state.rematchReady?.[p.id])
+    .map((p) => p.id);
 
   return {
     code: state.code,
@@ -171,6 +182,9 @@ export function projectPublicStateShared(
     bankBeansReadyCast: bankCast,
     bankBeansReadyNeeded: bankNeeded,
     bankBeansReadyIds,
+    rematchReadyCast: rematchReadyIds.length,
+    rematchReadyNeeded: rematchPool.length,
+    rematchReadyIds,
     earnedThisRound: { ...state.earnedThisRound },
     wagers: { ...state.wagers },
     wagerDeadlineAt: state.wagerDeadlineAt,
@@ -230,6 +244,7 @@ export function projectPublicState(
     myTopicVote: state.topicVotes[recipientId] ?? null,
     myHumanVote: state.humanVotes[recipientId] ?? null,
     myBankBeansReady: !!state.bankBeansReady?.[recipientId],
+    myRematchReady: !!state.rematchReady?.[recipientId],
     ...hostOnly,
   };
 }

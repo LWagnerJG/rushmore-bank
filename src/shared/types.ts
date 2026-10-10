@@ -248,6 +248,8 @@ export interface RoomState {
   lastJudgeLatencyMs: number | null;
   /** Players who tapped “Ready to wager” on SCORE_REVEAL */
   bankBeansReady: Record<string, true>;
+  /** Players who tapped Rematch on GAME_RESULTS — resets when everyone is in. */
+  rematchReady: Record<string, true>;
   earnedThisRound: Record<string, number>;
   wagers: Record<string, number>;
   wagerDeadlineAt: number | null;
@@ -343,6 +345,11 @@ export interface PublicRoomState {
   /** Who tapped ready (ids only). */
   bankBeansReadyIds: string[];
   myBankBeansReady: boolean;
+  /** GAME_RESULTS rematch readiness */
+  rematchReadyCast: number;
+  rematchReadyNeeded: number;
+  rematchReadyIds: string[];
+  myRematchReady: boolean;
   earnedThisRound: Record<string, number>;
   wagers: Record<string, number>;
   wagerDeadlineAt: number | null;
@@ -516,6 +523,7 @@ export function emptyRoomState(code: string): RoomState {
     lastJudgeModel: null,
     lastJudgeLatencyMs: null,
     bankBeansReady: {},
+    rematchReady: {},
     earnedThisRound: {},
     wagers: {},
     wagerDeadlineAt: null,
