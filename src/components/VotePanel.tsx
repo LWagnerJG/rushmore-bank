@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
 import { RULES } from "@/shared/rules";
 import { rosterDensity } from "@/shared/roster-density";
@@ -35,6 +35,12 @@ export function VotePanel({
 }) {
   const myVote = state.myHumanVote;
   const [busy, setBusy] = useState(false);
+  const busyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (busyTimerRef.current) clearTimeout(busyTimerRef.current);
+    };
+  }, []);
   const twoPlayer = state.seatOrder.length === 2;
   const density = rosterDensity(state.seatOrder.length);
   /** Server only auto-completes when needed > 0; don’t treat 0/0 as done. */
@@ -122,7 +128,8 @@ export function VotePanel({
                       if (busy || you.role !== "player") return;
                       setBusy(true);
                       send({ type: "submit_vote", targetPlayerId: pid });
-                      setTimeout(() => setBusy(false), 400);
+                      if (busyTimerRef.current) clearTimeout(busyTimerRef.current);
+                      busyTimerRef.current = setTimeout(() => setBusy(false), 400);
                     }
                   : undefined
               }
