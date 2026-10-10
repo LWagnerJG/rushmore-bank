@@ -30,10 +30,15 @@ describe("dice clutter-cut", () => {
     expect(room).not.toMatch(/phase === "DICE"\s*\?\s*"mt-0\.5/);
   });
 
-  it("shows Pot/Safe once, Safe alone when pot is 0", () => {
-    expect(dice).toMatch(/>Pot</);
-    expect(dice).toMatch(/>Safe</);
-    expect(dice).toMatch(/active && pot > 0/);
+  it("labels the viewer's bean total; shows the roller only when it isn't you", () => {
+    expect(dice).toMatch(/Your beans/);
+    expect(dice).toMatch(/dice-your-beans/);
+    expect(dice).toMatch(/dice-roller-beans/);
+    expect(dice).toMatch(/!myTurn && roller/);
+    expect(dice).toMatch(/seatBeanTotal/);
+    // No second hero copy — Pot amount stays on the Bank CTA only
+    expect(dice).not.toMatch(/>Pot</);
+    expect(dice).not.toMatch(/>Safe</);
     expect(dice).not.toMatch(/Your pot|Your safe|at risk/);
     expect(dice).not.toMatch(/→ total/);
   });

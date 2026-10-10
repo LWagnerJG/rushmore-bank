@@ -18,6 +18,56 @@ import { youInlineSuffix } from "@/shared/you-label";
 
 type SeatKind = "up" | "next" | "in" | "banked" | "busted";
 
+/** Quiet bean glyph — same mark as BrandMark, sized for the dice beans row. */
+function BeanGlyph({ size = 18 }: { size?: number }) {
+  return (
+    <svg
+      viewBox="0 0 128 128"
+      width={size}
+      height={size}
+      aria-hidden="true"
+      className="dice-bean-glyph"
+      shapeRendering="auto"
+    >
+      <path
+        d="M85 13C109 15 122 39 112 60C106 73 92 71 89 85C85 110 61 123 38 111C11 97 10 61 25 38C40 17 63 10 85 13Z"
+        fill="#E76F4E"
+        stroke="#23483E"
+        strokeWidth="6"
+      />
+      <path
+        d="M41 36C50 27 59 24 69 24"
+        fill="none"
+        stroke="#FFDFA5"
+        strokeWidth="7"
+        strokeLinecap="round"
+      />
+      <ellipse cx="47" cy="62" rx="4" ry="6" fill="#23483E" />
+      <ellipse cx="65" cy="58" rx="4" ry="6" fill="#23483E" />
+      <path
+        d="M49 78Q60 87 69 74"
+        fill="none"
+        stroke="#23483E"
+        strokeWidth="4"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+/** Total beans for a seat: pot + safe while in the round, else banked stones. */
+function seatBeanTotal(
+  pid: string,
+  state: PublicRoomState,
+  stonesFallback: number,
+): number {
+  const inRound = state.diceActiveIds.includes(pid);
+  if (!inRound) return stonesFallback;
+  const pot = state.pots[pid] ?? 0;
+  const safe = state.protectedStones[pid] ?? stonesFallback;
+  return pot + safe;
+}
+
 function seatKind(
   pid: string,
   rollerId: string | null,
@@ -90,7 +140,7 @@ function TurnStrip({ seats }: { seats: SeatInfo[] }) {
                   : `${seat.pot} in pot`
               }
             >
-              {/* Single figure — Pot/Safe labels live once on the stage */}
+              {/* Single figure — ownership labels live once under the tray */}
               <span
                 className={
                   seat.kind === "banked" || seat.kind === "busted" || seat.pot === 0
@@ -129,8 +179,12 @@ export function DicePanel({
   const roller = state.players.find((p) => p.id === rollerId);
   const myTurn = rollerId === youId;
   const pot = state.pots[youId] ?? 0;
-  const safeBeans = state.protectedStones[youId] ?? you.stones;
   const active = state.diceActiveIds.includes(youId);
+  const yourBeans = seatBeanTotal(youId, state, you.stones);
+  const rollerBeans =
+    roller && !myTurn
+      ? seatBeanTotal(roller.id, state, roller.stones)
+      : null;
   const rolling = state.diceSubphase === "COMMITTED";
   const settling = state.diceSubphase === "SETTLED";
   const [busy, setBusy] = useState(false);
@@ -396,28 +450,39 @@ export function DicePanel({
           </div>
 
           {you.role === "player" ? (
-            <div className="dice-stage-actions" aria-label="Pot and Bank">
-              {/* Pot / Safe once — chrome beans cut; strip chips stay single-figure */}
-              <div className="dice-pot-row">
-                {active && pot > 0 ? (
-                  <>
-                    <div className="dice-pot-stack">
-                      <p className="dice-pot-label">Pot</p>
-                      <p className="dice-pot-value tabular-nums">{pot}</p>
-                    </div>
-                    <div className="dice-pot-stack dice-pot-stack-end">
-                      <p className="dice-pot-label">Safe</p>
-                      <p className="dice-pot-value tabular-nums">{safeBeans}</p>
-                    </div>
-                  </>
-                ) : (
-                  <div className="dice-pot-stack">
-                    <p className="dice-pot-label">{active ? "Safe" : "Banked"}</p>
-                    <p className="dice-pot-value tabular-nums">
-                      {active ? safeBeans : you.stones}
+            <div className="dice-stage-actions" aria-label="Your beans and Bank">
+              {/*
+                One ownership row under the tray: Your beans is always the
+                viewer's total. When someone else is up, their total sits on
+                the right — same height as the old Pot/Safe pair, no second hero.
+              */}
+              <div className="dice-beans-row">
+                <div
+                  className="dice-your-beans"
+                  aria-label={`Your beans ${yourBeans}`}
+                >
+                  <p className="dice-your-beans-label">Your beans</p>
+                  <p className="dice-your-beans-value">
+                    <BeanGlyph size={18} />
+                    <span className="tabular-nums">{yourBeans}</span>
+                  </p>
+                </div>
+                {!myTurn && roller && rollerBeans != null ? (
+                  <div
+                    className="dice-roller-beans"
+                    aria-label={`${roller.name}'s beans ${rollerBeans}`}
+                  >
+                    <p className="dice-roller-beans-label">
+                      <span className="dice-roller-beans-name" title={roller.name}>
+                        {roller.name}
+                      </span>
+                      {"'s beans"}
+                    </p>
+                    <p className="dice-roller-beans-value tabular-nums">
+                      {rollerBeans}
                     </p>
                   </div>
-                )}
+                ) : null}
               </div>
 
               <div className="dice-cta-slot">
