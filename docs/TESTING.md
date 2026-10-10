@@ -94,6 +94,8 @@ Local: `PARTY_HOST=127.0.0.1:8787 SMOKE_UNTIL=round_results npm run smoke:bots`
 
 Membership (`code`, nickname, role, player id) is remembered in session+local storage for ~2h. Returning to the room URL (or foregrounding the tab) auto-rejoins / forces PartySocket reconnect without hunting for Rejoin. Soft-disconnect grace (~8s) still holds the mid-game seat; matching id cancels it on connect.
 
+A new tab (or a relaunched PWA) has no session membership, so it shows the join form. If local storage still holds a player membership for the room (`rejoinOffer`), the form is prefilled with that nickname, and Join game under that nickname reloads onto the old seat's id. First-time visitors get an empty form; the join form renders only after hydration.
+
 ## Per-tab guest IDs
 
-Active guest player ids are stored in `sessionStorage` (`quarry:pid:session:${roomCode}`), so two tabs in the same browser join as distinct players instead of reconnecting as one. `localStorage` (`quarry:pid:last:${roomCode}`) only remembers the last id for an explicit Rejoin path — new tabs do not auto-reuse it.
+Active guest player ids are stored in `sessionStorage` (`quarry:pid:session:${roomCode}`), so two tabs in the same browser join as distinct players instead of reconnecting as one. `localStorage` (`quarry:pid:last:${roomCode}`) remembers the last id used, including ids minted by visits that never joined, so it is not proof of a seat — new tabs do not auto-reuse it.

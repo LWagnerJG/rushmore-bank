@@ -528,8 +528,9 @@ select,
 }
 
 /*
- * Buttons — exactly one primary and one secondary style.
- * Motion: transform/opacity only, under 300ms. Tap target ≥44px.
+ * Buttons — one primary and one secondary style, plus a quiet text button for
+ * the lesser alternative beside a primary. Motion: transform/opacity only,
+ * under 300ms. Tap target ≥44px.
  */
 .btn-primary,
 .btn-secondary,
@@ -577,6 +578,24 @@ html.party-on .btn-primary {
 
 .btn-secondary:disabled {
   opacity: 0.5;
+}
+
+.btn-quiet {
+  min-height: var(--tap-min);
+  min-width: var(--tap-min);
+  padding: 0 var(--space-4);
+  border: none;
+  border-radius: 0.95rem;
+  background: transparent;
+  /* Ink, not --muted: a text-only button still needs 4.5:1 */
+  color: var(--text);
+  font-size: var(--text-body);
+  font-weight: 600;
+  transition: opacity var(--motion-fast) ease;
+}
+
+.btn-quiet:active {
+  opacity: 0.6;
 }
 
 /* Legacy aliases → primary (single primary style) */
