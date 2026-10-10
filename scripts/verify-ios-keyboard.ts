@@ -470,9 +470,19 @@ async function closeAndCheckRestore(page: Page, f: Field, closed: Sample) {
  * Baseline with the keyboard closed, then open it with a tap and check the
  * field is still and clear. Leaves the keyboard open.
  */
+async function waitMotionSettled(page: Page) {
+  // animate-rise is 380ms; sampling mid-animation is a false "field moved".
+  try {
+    await page.locator(".motion-settled").first().waitFor({ timeout: 1200 });
+  } catch {
+    /* reduced-motion / no enter wrapper */
+  }
+  await sleep(80);
+}
+
 async function openField(page: Page, f: Field, dir: string, name: string, scope: string | null) {
   await page.locator(f.input).waitFor();
-  await sleep(300);
+  await waitMotionSettled(page);
   const closed = await sample(page, f);
   await ev(page, `window.__kbTest.markAbove(${q(f.input)})`);
   await ev(page, `window.__kbTest.watch(${q(scope)})`);
