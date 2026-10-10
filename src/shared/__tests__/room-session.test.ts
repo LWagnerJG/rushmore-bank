@@ -28,6 +28,7 @@ import {
   getLastPlayerIdForRejoin,
   markRoomRemoved,
   recallRoomSession,
+  recallRoomSessionForRejoin,
   rememberRoomSession,
   wasRemovedFromRoom,
 } from "@/lib/party";
@@ -89,5 +90,18 @@ describe("room session persistence", () => {
     expect(getLastPlayerIdForRejoin("ABCD")).toBe("other");
     expect(JSON.parse(store.get("quarry:room-session:ABCD")!).playerId).toBe("other");
     expect(recallRoomSession("ABCD")).toBeNull();
+  });
+
+  it("auto-resume ignores localStorage-only membership (second tab)", () => {
+    const session = {
+      code: "ABCD",
+      name: "Luke",
+      role: "player" as const,
+      playerId: "tab-a",
+      at: Date.now(),
+    };
+    store.set("quarry:room-session:ABCD", JSON.stringify(session));
+    expect(recallRoomSession("ABCD")).toBeNull();
+    expect(recallRoomSessionForRejoin("ABCD")?.playerId).toBe("tab-a");
   });
 });
