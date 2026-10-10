@@ -37,6 +37,7 @@ describe("lobby compact invite row", () => {
 
 describe("draft one status line", () => {
   it("formats your pick and queue position", () => {
+    // Your-turn label dropped — live cell is enough (no "Your pick" ×3).
     expect(
       draftStatusLine({
         phase: "DRAFT",
@@ -45,7 +46,16 @@ describe("draft one status line", () => {
         turnsAway: 0,
         pickPaused: false,
       }),
-    ).toBe("Your pick");
+    ).toBe("");
+    expect(
+      draftStatusLine({
+        phase: "DRAFT",
+        myTurn: true,
+        turnName: "Luke",
+        turnsAway: 0,
+        pickPaused: true,
+      }),
+    ).toBe("Paused");
     expect(
       draftStatusLine({
         phase: "DRAFT",

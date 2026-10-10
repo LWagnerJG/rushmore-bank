@@ -16,7 +16,9 @@ describe("you-label + font trim", () => {
   it("shows You on the draft board column for the local player", () => {
     expect(board).toMatch(/railYouLabel\(\)/);
     expect(board).toMatch(/mine \? railYouLabel\(\)/);
-    expect(board).toMatch(/Your pick/);
+    // Live cell uses a caret — no duplicated "Your pick" cell text
+    expect(board).toMatch(/draft-board-cell-caret/);
+    expect(board).not.toMatch(/"Your pick"/);
   });
 
   it("drops Nunito 400 from the font load list", () => {

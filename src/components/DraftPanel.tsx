@@ -189,14 +189,14 @@ export function DraftPanel({
         it. Everything that grows (stash chips, Taken, board) renders below.
       */}
       {you.role === "player" && (
-        <section className="draft-composer" aria-label="Your pick">
+        <section className="draft-composer" aria-label="Draft pick">
           <div className="draft-composer-row">
             <label className="sr-only" htmlFor="selected-pick">
               Your draft pick
             </label>
             <input
               id="selected-pick"
-              className="field draft-pick-input"
+              className="draft-pick-input"
               placeholder={
                 myTurn ? "Type your answer" : "Park a pick in your stash"
               }
@@ -294,10 +294,12 @@ export function DraftPanel({
         </section>
       )}
 
-      {/* One fixed line: turn copy, or why the typed pick can't go in. */}
+      {/* One fixed line: turn copy, or why the typed pick can't go in.
+          Empty on your turn (live cell is enough) so height stays reserved. */}
       <p
         className={[
           "draft-turn-line",
+          myTurn && !selectedTaken ? "draft-turn-line-quiet" : "",
           myTurn ? "draft-turn-line-active" : "",
           you.role === "player" && selectedTaken ? "draft-turn-line-warn" : "",
         ]
@@ -308,7 +310,7 @@ export function DraftPanel({
       >
         {you.role === "player" && selectedTaken
           ? "Taken — try another."
-          : status}
+          : status || "\u00a0"}
       </p>
 
       <DraftBoard
