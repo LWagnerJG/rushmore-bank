@@ -6,8 +6,9 @@ import {
   setSfxMuted,
   subscribeSfxMuted,
 } from "@/lib/sound-prefs";
-import type { HostAiJudgeHealth } from "@/shared/types";
+import type { ClientMessage, HostAiJudgeHealth, Phase } from "@/shared/types";
 import { HostAiJudgeCue } from "./HostAiJudgeCue";
+import { AdminTools, isAdminUnlocked } from "./AdminPanel";
 
 export function SettingsSheet({
   open,
@@ -17,6 +18,10 @@ export function SettingsSheet({
   partyOn = false,
   onPartyChange,
   hostAiJudge,
+  send,
+  currentPhase = null,
+  playerCount = 0,
+  botCountInRoom = 0,
 }: {
   open: boolean;
   onClose: () => void;
@@ -26,11 +31,16 @@ export function SettingsSheet({
   onPartyChange?: (next: boolean) => void;
   /** Host-only AI health from PartyKit — never pass for non-hosts. */
   hostAiJudge?: HostAiJudgeHealth;
+  send?: (m: ClientMessage) => void;
+  currentPhase?: Phase | null;
+  playerCount?: number;
+  botCountInRoom?: number;
 }) {
   const [muted, setMuted] = useState(() =>
     typeof window !== "undefined" ? isSfxMuted() : false,
   );
   const [copied, setCopied] = useState(false);
+  const [adminUnlocked, setAdminUnlocked] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -41,6 +51,11 @@ export function SettingsSheet({
     if (!open) return;
     const id = window.setTimeout(() => setMuted(isSfxMuted()), 0);
     return () => window.clearTimeout(id);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    setAdminUnlocked(isAdminUnlocked());
   }, [open]);
 
   useEffect(() => {
@@ -64,6 +79,9 @@ export function SettingsSheet({
       /* ignore */
     }
   }
+
+  // Host-only admin tools; PIN unlock still required.
+  const showAdmin = isHost && adminUnlocked && !!send;
 
   return (
     <div
@@ -91,7 +109,7 @@ export function SettingsSheet({
           </button>
         </div>
 
-        <label className="settings-row">
+        <div className="settings-row">
           <span className="settings-row-label">
             <span className="font-extrabold">Sound FX</span>
             <span className="text-xs text-[var(--muted)]">
@@ -112,7 +130,7 @@ export function SettingsSheet({
             <span className="settings-toggle-knob" />
             <span className="sr-only">{muted ? "Off" : "On"}</span>
           </button>
-        </label>
+        </div>
 
         {roomCode ? (
           <div className="settings-row">
@@ -133,7 +151,7 @@ export function SettingsSheet({
         ) : null}
 
         {isHost && onPartyChange ? (
-          <label className="settings-row">
+          <div className="settings-row">
             <span className="settings-row-label">
               <span className="font-extrabold">Party Mode</span>
               <span className="text-xs text-[var(--muted)]">
@@ -150,10 +168,19 @@ export function SettingsSheet({
               <span className="settings-toggle-knob" />
               <span className="sr-only">{partyOn ? "On" : "Off"}</span>
             </button>
-          </label>
+          </div>
         ) : null}
 
         {isHost ? <HostAiJudgeCue health={hostAiJudge} /> : null}
+
+        {showAdmin ? (
+          <AdminTools
+            send={send}
+            currentPhase={currentPhase}
+            playerCount={playerCount}
+            botCountInRoom={botCountInRoom}
+          />
+        ) : null}
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import type { Player, PublicRoomState } from "@/shared/types";
-import { RULES } from "@/shared/rules";
+import { FitName } from "@/components/FitName";
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -11,8 +11,8 @@ function initials(name: string): string {
 }
 
 /**
- * Waiting UI: who you’re still waiting on (avatars/names dim as they lock in)
- * plus current standings. No tips.
+ * Waiting UI: avatars + count. Done = green tint + check; waiting = neutral.
+ * Leaderboard lives on PlayerRail — never listed here.
  */
 export function WaitingRoster({
   state,
@@ -31,13 +31,20 @@ export function WaitingRoster({
     .map((id) => state.players.find((p) => p.id === id))
     .filter((p): p is Player => !!p && p.role === "player");
   const waiting = seated.filter((p) => !done.has(p.id));
-  const standings = [...seated].sort((a, b) => b.stones - a.stones);
+  const statusLine =
+    waiting.length > 0
+      ? `Waiting on ${waiting
+          .map((p) => (p.id === youId ? "you" : p.name))
+          .join(", ")}`
+      : label === "Votes in" || label.endsWith("in")
+        ? "Everyone’s in"
+        : label;
 
   return (
-    <section className="waiting-roster stack-sm" aria-live="polite">
+    <section className="waiting-roster" aria-live="polite">
       <div className="waiting-roster-head">
-        <p className="type-body font-extrabold">{label}</p>
-        <p className="type-meta tabular-nums text-[var(--muted)]">
+        <p className="waiting-roster-status">{statusLine}</p>
+        <p className="waiting-roster-count tabular-nums">
           {done.size}/{seated.length}
         </p>
       </div>
@@ -45,56 +52,34 @@ export function WaitingRoster({
       <ul className="waiting-roster-avatars" aria-label="Players">
         {seated.map((p) => {
           const locked = done.has(p.id);
+          const name = p.id === youId ? `${p.name} (you)` : p.name;
           return (
             <li
               key={p.id}
               className={[
                 "waiting-roster-person",
-                locked ? "waiting-roster-person-done" : "waiting-roster-person-wait",
+                locked
+                  ? "waiting-roster-person-done"
+                  : "waiting-roster-person-wait",
               ].join(" ")}
-              title={p.name}
+              title={name}
             >
               <span className="waiting-roster-avatar" aria-hidden="true">
-                {initials(p.name)}
+                {locked ? (
+                  <span className="waiting-roster-check">✓</span>
+                ) : (
+                  initials(p.name)
+                )}
               </span>
-              <span className="waiting-roster-name type-meta">
-                {p.name}
-                {p.id === youId ? " (you)" : ""}
-              </span>
+              <FitName
+                className="waiting-roster-name type-meta"
+                text={name}
+                title={name}
+              />
             </li>
           );
         })}
       </ul>
-
-      {waiting.length > 0 ? (
-        <p className="type-meta text-[var(--muted)]">
-          Waiting on{" "}
-          {waiting
-            .map((p) => (p.id === youId ? "you" : p.name))
-            .join(", ")}
-        </p>
-      ) : (
-        <p className="type-meta text-[var(--muted)]">Everyone’s in</p>
-      )}
-
-      <div className="waiting-roster-standings">
-        <p className="type-meta font-extrabold uppercase tracking-wide text-[var(--muted)]">
-          Standings
-        </p>
-        <ol className="stack-sm">
-          {standings.map((p, i) => (
-            <li key={p.id} className="waiting-roster-stand-row type-meta">
-              <span>
-                {i + 1}. {p.name}
-                {p.id === youId ? " (you)" : ""}
-              </span>
-              <span className="tabular-nums text-[var(--coral)]">
-                {p.stones} {RULES.currencyName}
-              </span>
-            </li>
-          ))}
-        </ol>
-      </div>
     </section>
   );
 }

@@ -28,7 +28,6 @@ import { WagerPanel } from "@/components/WagerPanel";
 import { DicePanel } from "@/components/DicePanel";
 import { ResultsPanel } from "@/components/ResultsPanel";
 import { PlayerRail } from "@/components/PlayerRail";
-import { AdminPanel } from "@/components/AdminPanel";
 import { shouldFireFinalRoundCue } from "@/shared/final-round-cue";
 
 function DraftBannerClock({
@@ -488,8 +487,6 @@ export function RoomClient({
                 send({ type: "update_settings", settings: { partyMode: next } })
             : undefined
         }
-      />
-      <AdminPanel
         send={send}
         currentPhase={phase}
         playerCount={

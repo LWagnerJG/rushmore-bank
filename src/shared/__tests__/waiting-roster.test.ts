@@ -20,6 +20,22 @@ const score = readFileSync(
   resolve(__dirname, "../../components/ScorePanel.tsx"),
   "utf8",
 );
+const room = readFileSync(
+  resolve(__dirname, "../../components/RoomClient.tsx"),
+  "utf8",
+);
+const settings = readFileSync(
+  resolve(__dirname, "../../components/SettingsSheet.tsx"),
+  "utf8",
+);
+const admin = readFileSync(
+  resolve(__dirname, "../../components/AdminPanel.tsx"),
+  "utf8",
+);
+const css = readFileSync(
+  resolve(__dirname, "../../app/globals.css"),
+  "utf8",
+);
 
 describe("waiting roster", () => {
   it("projects voted/ready ids without leaking ballot maps", () => {
@@ -68,8 +84,8 @@ describe("waiting roster", () => {
   });
 
   it("wires WaitingRoster into vote/wager/score waits", () => {
-    expect(waiting).toMatch(/Standings/);
     expect(waiting).toMatch(/waiting-roster-person-done/);
+    expect(waiting).toMatch(/FitName/);
     expect(waiting).not.toMatch(/while you wait/i);
     expect(waiting).not.toMatch(/\bTips?\b/);
     expect(vote).toMatch(/WaitingRoster/);
@@ -78,14 +94,64 @@ describe("waiting roster", () => {
     expect(score).toMatch(/WaitingRoster/);
   });
 
-  it("dims done people via opacity only", () => {
-    const css = readFileSync(
-      resolve(__dirname, "../../app/globals.css"),
-      "utf8",
+  it("keeps one status line with count — no duplicate waiting copy", () => {
+    expect(waiting).toMatch(/waiting-roster-status/);
+    expect(waiting).toMatch(/waiting-roster-count/);
+    // Single status construction — not a second "Waiting on" block below avatars
+    const waitingOnMatches = waiting.match(/Waiting on/g) ?? [];
+    expect(waitingOnMatches.length).toBe(1);
+  });
+
+  it("removes standings and divider from the waiting block", () => {
+    expect(waiting).not.toMatch(/Standings|standings/);
+    expect(waiting).not.toMatch(/waiting-roster-standings/);
+    expect(css).not.toMatch(/\.waiting-roster-standings\s*\{/);
+  });
+
+  it("uses uniform small avatars: green done + check, neutral waiting", () => {
+    expect(waiting).toMatch(/waiting-roster-check/);
+    const avatar =
+      css.match(/\.waiting-roster-avatar\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
+    expect(avatar).toMatch(/2\.25rem/);
+    const doneAvatar =
+      css.match(
+        /\.waiting-roster-person-done \.waiting-roster-avatar\s*\{[\s\S]*?\n\}/,
+      )?.[0] ?? "";
+    expect(doneAvatar).toMatch(/mint|--mint/);
+    // No pink/coral waiting circle
+    const waitAvatar =
+      css.match(
+        /\.waiting-roster-person-wait \.waiting-roster-avatar\s*\{[\s\S]*?\n\}/,
+      )?.[0] ?? "";
+    expect(waitAvatar).not.toMatch(/coral|--coral/);
+  });
+});
+
+describe("admin chrome", () => {
+  it("lives in host settings — no floating ADMIN pill", () => {
+    expect(settings).toMatch(/AdminTools/);
+    expect(settings).toMatch(/isHost && adminUnlocked/);
+    expect(room).not.toMatch(/<AdminPanel/);
+    expect(admin).toMatch(/export function AdminTools/);
+    // Floating fixed pill removed
+    expect(admin).not.toMatch(/fixed bottom-\[max/);
+    expect(admin).not.toMatch(/>Admin</);
+  });
+});
+
+describe("bottom seam", () => {
+  it("keeps phase panels transparent; page cream fills past the safe area", () => {
+    const phase =
+      css.match(/\.phase-panel\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
+    expect(phase).toMatch(/background:\s*transparent/);
+    expect(css).toMatch(
+      /body::before[\s\S]*?bottom:\s*calc\(\s*-80px/,
     );
-    const done =
-      css.match(/\.waiting-roster-person-done\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
-    expect(done).toMatch(/opacity:\s*0\.\d+/);
-    expect(done).not.toMatch(/filter|blur/);
+    expect(css).toMatch(
+      /body::before[\s\S]*?background-size:\s*100%\s*var\(--app-h/,
+    );
+    // No white/flat overlay band at the bottom
+    expect(css).not.toMatch(/html::after\s*\{/);
+    expect(css).not.toMatch(/\.app-shell::after\s*\{/);
   });
 });

@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1", "localhost"],
+  // Never ship the on-screen Issue/N badge into screenshots or device QA.
+  // Compile/runtime errors still surface via the error overlay.
+  devIndicators: false,
   async headers() {
     return [
       {
