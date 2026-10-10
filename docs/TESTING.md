@@ -67,6 +67,29 @@ Local: `PARTY_HOST=127.0.0.1:8787 SMOKE_UNTIL=round_results npm run smoke:bots`
 | 3rd player via home Join | Failed once due to missing `joinError` state (500) — **fixed** |
 | 3 sockets programmatic | Pass (authoritative path) |
 
+## iOS keyboard e2e (`npm run test:ios-keyboard`)
+
+Playwright WebKit against the real app (production build) and a local PartyServer, at 390×844 and 375×667. Desktop WebKit has no software keyboard, so `scripts/ios-keyboard-emulator.js` stands in for iOS: the layout viewport never shrinks, `visualViewport.height` shrinks by an iPhone-sized keyboard (380px / 304px incl. QuickType + accessory bar), and a focused field that is not fully visible above the keyboard is panned into view the way WebKit does.
+
+Fields: draft pick (while other players lock picks mid-word and the turn arrives), home nickname, home room code, room-link nickname, custom topic.
+
+| Check (per field, per size) | Result |
+|---|---|
+| Keyboard opens: field and its submit fully above it, no pan, `--app-h` unchanged, font-size ≥ 16px | Pass |
+| Typing (15 chars): field top constant every frame (±1px), field + submit bottom ≤ `visualViewport.height`, `scrollY` 0, nothing above the field changes layout height/position, no enter-animation class re-added, no programmatic vertical scroll | Pass |
+| One tap on Lock in / Stash it / stash chip submits with the keyboard open and keeps focus; Enter / Go submits; Continue / Join / Join game / topic Lock in submit on one tap | Pass |
+| Keyboard closed: layout back to the exact pre-keyboard position, no leftover offset | Pass |
+
+Local (three terminals):
+
+```bash
+npx wrangler dev --ip 127.0.0.1 --port 8787
+NEXT_PUBLIC_PARTYKIT_HOST=127.0.0.1:8787 npx next build && npx next start -p 3100
+BASE_URL=http://127.0.0.1:3100 PARTY_HOST=127.0.0.1:8787 npm run test:ios-keyboard
+```
+
+`OUT_DIR` (default `/tmp/ios-keyboard`) gets `report.json` and screenshots with the keyboard painted in; `REPORT_ONLY=1` records failures without failing (before/after runs). CI: `.github/workflows/ios-keyboard-e2e.yml`.
+
 ## Production verification
 
 | Check | Result |
