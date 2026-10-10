@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import type { DraftPick } from "@/shared/types";
 import { RULES } from "@/shared/rules";
 
-/** Premium Mount Rushmore roster card — cream panel, clear hierarchy, optional why. */
+/** Premium Mount Rushmore roster card — cream panel, clear hierarchy, always-on why. */
 export function RushmoreCard({
   name,
   picks,
@@ -34,25 +34,8 @@ export function RushmoreCard({
     .sort((a, b) => a.pickIndex - b.pickIndex)
     .slice(0, RULES.picksPerPlayer);
   const dens = compact && density === "cozy" ? "snug" : density;
-  const [whyOpen, setWhyOpen] = useState(false);
-  const hasWhy = !!why && why.trim().length > 0;
-
-  const whyBlock = hasWhy ? (
-    <div className="rushmore-why-wrap">
-      <button
-        type="button"
-        className="rushmore-why-toggle"
-        aria-expanded={whyOpen}
-        onClick={(e) => {
-          e.stopPropagation();
-          setWhyOpen((v) => !v);
-        }}
-      >
-        {whyOpen ? "Hide why" : "Why"}
-      </button>
-      {whyOpen ? <p className="rushmore-why">{why}</p> : null}
-    </div>
-  ) : null;
+  const whyText = why?.trim() ?? "";
+  const hasWhy = whyText.length > 0;
 
   const body = (
     <>
@@ -81,13 +64,12 @@ export function RushmoreCard({
           </li>
         ))}
       </ol>
-      {whyBlock}
+      {hasWhy ? <p className="rushmore-why">{whyText}</p> : null}
       {footer}
     </>
   );
 
   if (interactive) {
-    // div + role=button so the Why control can nest without invalid <button> nesting
     return (
       <div
         role="button"

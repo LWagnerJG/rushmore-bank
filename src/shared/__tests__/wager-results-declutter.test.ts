@@ -41,17 +41,18 @@ describe("results declutter", () => {
     expect(score).not.toMatch(/base \+|votes \*|earned-badge-split/);
   });
 
-  it("collapses AI why blurbs behind a tap", () => {
-    expect(rushmore).toMatch(/rushmore-why-toggle/);
-    expect(rushmore).toMatch(/whyOpen/);
-    expect(rushmore).toMatch(/Hide why|Why/);
-    expect(css).toMatch(/\.rushmore-why-toggle/);
+  it("always shows AI why inline — no toggle or Why label", () => {
+    expect(rushmore).toMatch(/className=\"rushmore-why\"/);
+    expect(rushmore).not.toMatch(/rushmore-why-toggle|whyOpen|Hide why/);
+    expect(rushmore).not.toMatch(/>Why</);
+    expect(css).toMatch(/\.rushmore-why\s*\{/);
+    expect(css).not.toMatch(/\.rushmore-why-toggle/);
   });
 
   it("avoids nested buttons on interactive cards", () => {
     expect(rushmore).toMatch(/role=\"button\"/);
     expect(rushmore).not.toMatch(
-      /interactive[\s\S]*return \(\s*<button[\s\S]*rushmore-why-toggle/,
+      /interactive[\s\S]*return \(\s*<button[\s\S]*rushmore-why/,
     );
   });
 });
