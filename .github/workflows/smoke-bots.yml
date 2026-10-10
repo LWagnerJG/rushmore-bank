@@ -1,0 +1,87 @@
+name: Bots e2e smoke
+
+on:
+  pull_request:
+    paths:
+      - "party/**"
+      - "scripts/smoke-*.ts"
+      - "scripts/smoke-lib.ts"
+      - "src/shared/**"
+      - "wrangler.jsonc"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/smoke-bots.yml"
+  push:
+    branches: [main]
+    paths:
+      - "party/**"
+      - "scripts/smoke-*.ts"
+      - "scripts/smoke-lib.ts"
+      - "src/shared/**"
+      - "wrangler.jsonc"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/smoke-bots.yml"
+  schedule:
+    # Daily ~9:15 AM America/New_York (after judge-health at :00).
+    - cron: "15 13 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  local-wrangler:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Start local PartyServer
+        run: npx wrangler dev --ip 127.0.0.1 --port 8787 &
+      - name: Wait for wrangler
+        run: |
+          for i in $(seq 1 60); do
+            if curl -sf "http://127.0.0.1:8787/" >/dev/null 2>&1 || \
+               curl -sf "http://127.0.0.1:8787/parties/main/ping" >/dev/null 2>&1; then
+              echo "wrangler up"
+              exit 0
+            fi
+            # PartyServer may 404 on / — treat TCP accept as ready via wrangler ready log / retry smoke.
+            if ss -ltn | grep -q ':8787'; then
+              echo "port 8787 open"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "wrangler failed to start"
+          exit 1
+      - name: Bots e2e (one round vs local wrangler)
+        env:
+          PARTY_HOST: 127.0.0.1:8787
+          SMOKE_UNTIL: round_results
+          SMOKE_TIMEOUT_MS: "600000"
+        run: npm run smoke:bots
+
+  prod-schedule:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Bots e2e (full game vs prod worker)
+        env:
+          PARTY_HOST: beans-party.beans-lwagner.workers.dev
+          SMOKE_UNTIL: game_results
+          SMOKE_TIMEOUT_MS: "900000"
+        run: npm run smoke:bots

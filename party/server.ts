@@ -271,6 +271,8 @@ export class QuarryServer extends Server<Env> {
   private botTimers = new Map<string, ReturnType<typeof setTimeout>>();
   /** Soft-disconnect grace — cancelled if the same id reconnects. */
   private leaveTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  /** Admin smoke flag — compresses botDelayMs so CI can finish a full game. */
+  private fastBots = false;
 
   async onStart() {
     const saved = await this.ctx.storage.get<RoomState>("state");
@@ -1029,7 +1031,7 @@ export class QuarryServer extends Server<Env> {
         this.handleRemovePlayer(id, msg.playerId);
         return;
       case "admin_spawn_bots":
-        this.handleAdminSpawnBots(msg.pin, msg.count);
+        this.handleAdminSpawnBots(msg.pin, msg.count, msg.fast);
         return;
       case "admin_jump_phase":
         await this.handleAdminJumpPhase(msg.pin, msg.phase);
@@ -2612,8 +2614,9 @@ export class QuarryServer extends Server<Env> {
     await this.clearAlarm();
   }
 
-  handleAdminSpawnBots(pin: string, count: number) {
+  handleAdminSpawnBots(pin: string, count: number, fast?: boolean) {
     assertAdminPin(pin);
+    if (fast) this.fastBots = true;
     const n = Math.max(1, Math.min(8, Math.floor(count) || 1));
     const existingBots = this.state.players.filter((p) => isBotId(p.id)).length;
     const seatCountBefore = this.state.seatOrder.length;
@@ -2730,6 +2733,9 @@ export class QuarryServer extends Server<Env> {
   /** Schedule a one-shot delayed bot action; replaces prior timer for the same key. */
   queueBot(key: string, delayMs: number, run: () => Promise<void>) {
     this.clearBotTimer(key);
+    const wait = this.fastBots
+      ? Math.min(120, Math.max(20, Math.floor(delayMs * 0.04)))
+      : delayMs;
     const timer = setTimeout(() => {
       this.botTimers.delete(key);
       void (async () => {
@@ -2743,7 +2749,7 @@ export class QuarryServer extends Server<Env> {
           this.nudgeBots();
         }
       })();
-    }, Math.max(0, delayMs));
+    }, Math.max(0, wait));
     this.botTimers.set(key, timer);
   }
 

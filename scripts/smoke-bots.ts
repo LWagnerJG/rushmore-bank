@@ -1,154 +1,132 @@
 /**
- * Smoke: spawn bots against local PartyKit and assert they lock_in real answers.
+ * End-to-end bots smoke against PartyServer.
+ *
+ * Spawns admin bots, auto-plays the human seat on its turns, and waits for
+ * bots to act on theirs — through ROUND_RESULTS (default) or GAME_RESULTS.
+ *
+ * Host (no protocol):
+ *   PARTY_HOST / NEXT_PUBLIC_PARTYKIT_HOST  (default: prod worker)
+ *
+ * Optional:
+ *   SMOKE_UNTIL=round_results|game_results  (default: game_results)
+ *   SMOKE_BOTS=3
+ *   ROOM=CODE
+ *
+ * Usage:
+ *   npx tsx scripts/smoke-bots.ts
+ *   PARTY_HOST=127.0.0.1:8787 SMOKE_UNTIL=round_results npx tsx scripts/smoke-bots.ts
  */
-import PartySocket from "partysocket";
+import {
+  ADMIN_PIN,
+  playHumanTurn,
+  randomRoomCode,
+  resolvePartyHost,
+  sleep,
+  SmokeClient,
+} from "./smoke-lib";
 
-const HOST =
-  process.env.NEXT_PUBLIC_PARTYKIT_HOST ??
-  process.env.PARTYKIT_HOST ??
-  "127.0.0.1:8787";
-const CODE = `BOT${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
-const ADMIN_PIN = "8989";
-
-type StateMsg = {
-  type: "state" | "joined" | "error";
-  state?: {
-    phase: string;
-    players: { id: string; name: string }[];
-    picks: { playerId: string; text: string }[];
-    topicVotes: Record<string, string>;
-    selectedTopic: { id: string; text: string } | null;
-    draftCursor: number;
-    seatOrder: string[];
-    draftOrder: number[];
-    notice: string | null;
-    phaseRevision: number;
-  };
-  message?: string;
-  youId?: string;
-};
-
-function waitFor(
-  sock: PartySocket,
-  pred: (m: StateMsg) => boolean,
-  ms = 15000,
-): Promise<StateMsg> {
-  return new Promise((resolve, reject) => {
-    const t = setTimeout(() => reject(new Error("timeout waiting for state")), ms);
-    const onMsg = (ev: MessageEvent) => {
-      const msg = JSON.parse(String(ev.data)) as StateMsg;
-      if (msg.type === "error") {
-        clearTimeout(t);
-        sock.removeEventListener("message", onMsg);
-        reject(new Error(msg.message ?? "error"));
-        return;
-      }
-      if (pred(msg)) {
-        clearTimeout(t);
-        sock.removeEventListener("message", onMsg);
-        resolve(msg);
-      }
-    };
-    sock.addEventListener("message", onMsg);
-  });
-}
+const HOST = resolvePartyHost();
+const CODE = (process.env.ROOM || randomRoomCode("BOT")).toUpperCase();
+const BOT_COUNT = Math.max(1, Math.min(8, Number(process.env.SMOKE_BOTS || 3) || 3));
+const UNTIL = (process.env.SMOKE_UNTIL || "game_results").toLowerCase();
+const TARGET_PHASE = UNTIL === "round_results" ? "ROUND_RESULTS" : "GAME_RESULTS";
+/** Full multi-round games need headroom for dice anim holds. */
+const DEADLINE_MS = Number(process.env.SMOKE_TIMEOUT_MS || 12 * 60 * 1000);
 
 async function main() {
-  const sock = new PartySocket({
-    host: HOST,
-    room: CODE,
-    party: "main",
-    id: `human-smoke-${Date.now()}`,
-  });
-
-  await new Promise<void>((resolve, reject) => {
-    sock.addEventListener("open", () => resolve());
-    sock.addEventListener("error", () => reject(new Error("ws error")));
-    setTimeout(() => reject(new Error("ws open timeout")), 8000);
-  });
-
-  sock.send(JSON.stringify({ type: "join", name: "Luke", role: "player" }));
-  let msg = await waitFor(sock, (m) => m.type === "joined" || !!m.state?.players?.length);
-  console.log("joined", CODE, "players", msg.state?.players?.length);
-
-  sock.send(
-    JSON.stringify({
-      type: "admin_spawn_bots",
-      pin: ADMIN_PIN,
-      count: 3,
-    }),
+  console.log(
+    `smoke-bots room ${CODE} @ ${HOST} bots=${BOT_COUNT} until=${TARGET_PHASE}`,
   );
-  msg = await waitFor(
-    sock,
-    (m) => (m.state?.players.filter((p) => p.id.startsWith("bot-")).length ?? 0) >= 3,
+  const human = new SmokeClient(HOST, CODE, `human-smoke-${Date.now()}`, "Luke");
+  await human.connect();
+  await human.join("player");
+  console.log("joined", CODE, "players", human.state?.players.length);
+
+  human.send({
+    type: "admin_spawn_bots",
+    pin: ADMIN_PIN,
+    count: BOT_COUNT,
+    fast: true,
+  });
+  await human.wait(
+    () =>
+      (human.state?.players.filter((p) => p.id.startsWith("bot-")).length ?? 0) >=
+      BOT_COUNT,
+    10000,
+    "bot spawn",
   );
-  const bots = msg.state!.players.filter((p) => p.id.startsWith("bot-"));
+  const bots = human.state!.players.filter((p) => p.id.startsWith("bot-"));
   console.log(
     "spawned bots:",
     bots.map((b) => b.name).join(", "),
     "notice:",
-    msg.state?.notice,
-  );
-  if (bots.length !== 3) throw new Error(`expected 3 bots, got ${bots.length}`);
-
-  sock.send(JSON.stringify({ type: "start" }));
-  msg = await waitFor(sock, (m) => m.state?.phase === "TOPIC_SELECTION");
-  console.log("phase TOPIC_SELECTION options ready");
-
-  // Wait for bots to vote topics (and human also votes so tally can complete).
-  const topicId = (msg.state as { topicOptions?: { id: string }[] } & typeof msg.state)
-    ?.topicOptions?.[0]?.id;
-  // topicOptions may be on public state — fetch from raw
-  const raw = msg.state as unknown as { topicOptions?: { id: string }[] };
-  // re-read via next state after a moment if needed
-  sock.send(
-    JSON.stringify({
-      type: "vote_topic",
-      topicId:
-        (msg as unknown as { state: { topicOptions: { id: string }[] } }).state
-          ?.topicOptions?.[0]?.id ?? topicId,
-    }),
+    human.state?.notice,
   );
 
-  // Keep voting if first message lacked options — pull from subsequent states
-  const draftMsg = await waitFor(
-    sock,
-    (m) => m.state?.phase === "DRAFT" || m.state?.phase === "TOPIC_SELECTION",
-    20000,
-  );
+  human.send({ type: "start" });
+  await human.waitPhase("TOPIC_SELECTION", 15000);
+  console.log("TOPIC_SELECTION");
 
-  if (draftMsg.state?.phase === "TOPIC_SELECTION") {
-    // Get options from live state by listening
-    const withOpts = await waitFor(
-      sock,
-      (m) =>
-        m.state?.phase === "TOPIC_SELECTION" &&
-        Array.isArray((m.state as unknown as { topicOptions: unknown[] }).topicOptions) &&
-        (m.state as unknown as { topicOptions: unknown[] }).topicOptions.length > 0,
-      5000,
-    ).catch(() => draftMsg);
+  // Prefer a single round when the host API allows; otherwise play all rounds.
+  human.send({ type: "set_topic_rounds", rounds: 3 });
 
-    const opts = (withOpts.state as unknown as { topicOptions: { id: string }[] })
-      .topicOptions;
-    if (opts?.[0]) {
-      sock.send(JSON.stringify({ type: "vote_topic", topicId: opts[0].id }));
+  const started = Date.now();
+  let lastPhase = "";
+  let lastDraftPicks = -1;
+
+  while (Date.now() - started < DEADLINE_MS) {
+    const phase = human.state?.phase ?? "";
+    if (phase !== lastPhase) {
+      console.log(
+        `phase ${phase}`,
+        phase === "DRAFT"
+          ? `picks=${human.state?.picks.length ?? 0}`
+          : phase === "SCORE_REVEAL"
+            ? `scores=${human.state?.scores?.length ?? 0}`
+            : "",
+      );
+      lastPhase = phase;
     }
+
+    if (phase === "DRAFT" || phase === "CORRECTION") {
+      const picks = human.state?.picks.length ?? 0;
+      if (picks !== lastDraftPicks) {
+        if (picks > 0) {
+          const latest = human.state!.picks[picks - 1]!;
+          console.log(
+            `pick ${picks}: ${latest.playerId.slice(0, 16)} → ${latest.text}`,
+          );
+          if (/^Missed pick/i.test(latest.text)) {
+            throw new Error(`miss placeholder: ${latest.text}`);
+          }
+        }
+        lastDraftPicks = picks;
+      }
+    }
+
+    if (phase === TARGET_PHASE || (TARGET_PHASE === "GAME_RESULTS" && phase === "GAME_RESULTS")) {
+      break;
+    }
+    // round_results target: stop at first ROUND_RESULTS
+    if (TARGET_PHASE === "ROUND_RESULTS" && phase === "ROUND_RESULTS") {
+      break;
+    }
+
+    await playHumanTurn(human);
+    await sleep(200);
   }
 
-  const inDraft = await waitFor(sock, (m) => m.state?.phase === "DRAFT", 25000);
-  console.log("entered DRAFT, picks so far", inDraft.state?.picks.length ?? 0);
+  const finalPhase = human.state?.phase;
+  if (finalPhase !== TARGET_PHASE && !(TARGET_PHASE === "ROUND_RESULTS" && finalPhase === "GAME_RESULTS")) {
+    throw new Error(
+      `expected ${TARGET_PHASE}, got ${finalPhase} after ${Date.now() - started}ms (picks=${human.state?.picks.length ?? 0})`,
+    );
+  }
 
-  // Wait for bots to make several lock_ins
-  const withPicks = await waitFor(
-    sock,
-    (m) => (m.state?.picks.length ?? 0) >= 3,
-    40000,
-  );
-  const picks = withPicks.state!.picks;
-  console.log(
-    "bot/human picks:",
-    picks.map((p) => `${p.playerId.slice(0, 12)}→${p.text}`).join(" | "),
-  );
+  const picks = human.state?.picks ?? [];
+  if (picks.length < BOT_COUNT) {
+    throw new Error(`expected picks from bots/human, got ${picks.length}`);
+  }
   for (const p of picks) {
     if (/^Missed pick/i.test(p.text)) {
       throw new Error(`got miss placeholder instead of real answer: ${p.text}`);
@@ -156,8 +134,15 @@ async function main() {
     if (p.text.length < 2) throw new Error("pick too short");
   }
 
-  console.log("SMOKE OK", { code: CODE, picks: picks.length, bots: bots.length });
-  sock.close();
+  console.log("SMOKE OK", {
+    code: CODE,
+    phase: finalPhase,
+    picks: picks.length,
+    bots: bots.length,
+    ms: Date.now() - started,
+    stones: human.state?.players.map((p) => `${p.name}:${p.stones}`),
+  });
+  human.close();
   process.exit(0);
 }
 
