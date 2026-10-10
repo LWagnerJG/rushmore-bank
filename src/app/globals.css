@@ -1015,6 +1015,70 @@ html.party-on .brand-shimmer {
   padding-bottom: 0.5rem;
 }
 
+/* End of game — winner name + single green sweep (no confetti/particles) */
+.endgame-winner {
+  position: relative;
+  overflow: hidden;
+  text-align: center;
+  padding: var(--space-4) var(--space-2);
+  isolation: isolate;
+}
+
+.endgame-winner-kicker {
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--muted);
+  margin-bottom: var(--space-1);
+}
+
+.endgame-winner-name {
+  position: relative;
+  z-index: 1;
+  font-size: clamp(2.25rem, 10vw, 3.25rem);
+  color: var(--text);
+}
+
+.endgame-winner-sweep {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    color-mix(in srgb, var(--mint) 55%, transparent) 45%,
+    color-mix(in srgb, #7ed9b8 40%, transparent) 55%,
+    transparent 100%
+  );
+  transform: translateX(-120%);
+  opacity: 0.9;
+  animation: endgame-green-sweep 280ms ease-out forwards;
+}
+
+@keyframes endgame-green-sweep {
+  from {
+    transform: translateX(-120%);
+    opacity: 0.55;
+  }
+  to {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+}
+
+.endgame-rematch-btn {
+  min-height: calc(var(--tap-min) + 12px);
+  font-size: 1.125rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .endgame-winner-sweep {
+    animation: none;
+    opacity: 0;
+    transform: none;
+  }
+}
+
 /* Lobby invite — room code big enough to read aloud; one big Share */
 .lobby-invite {
   padding-block: var(--space-5);

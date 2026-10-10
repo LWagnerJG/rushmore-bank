@@ -17,6 +17,7 @@ export function ResultsPanel({
   const ranked = [...state.players]
     .filter((p) => p.role === "player")
     .sort((a, b) => b.stones - a.stones);
+  const winner = ranked[0] ?? null;
 
   const final = state.phase === "GAME_RESULTS";
   // True when we're showing the last round's results before final standings.
@@ -39,13 +40,25 @@ export function ResultsPanel({
 
   return (
     <div className="stack">
-      <h2 className="type-display">
-        {final
-          ? "Final standings"
-          : isFinalRoundResults
+      {final && winner ? (
+        <div className="endgame-winner" aria-live="polite">
+          <p className="endgame-winner-kicker type-meta">Winner</p>
+          <p className="endgame-winner-name type-display">{winner.name}</p>
+          <span className="endgame-winner-sweep" aria-hidden="true" />
+        </div>
+      ) : (
+        <h2 className="type-display">
+          {isFinalRoundResults
             ? "Final round results"
             : `Round ${state.topicRound}/${state.configuredTopicRounds}`}
-      </h2>
+        </h2>
+      )}
+
+      {final ? (
+        <h2 className="type-body font-[family-name:var(--font-display)] font-extrabold">
+          Final standings
+        </h2>
+      ) : null}
 
       <ResultsRevealList
         ranked={ranked}
@@ -130,17 +143,24 @@ export function ResultsPanel({
         </div>
       )}
 
-      {you.isHost && final && (
-        <div className="stack-sm">
+      {final && you.role === "player" && (
+        <div className="stack-sm endgame-rematch">
           <button
             type="button"
-            className="btn-primary w-full"
+            className="btn-primary endgame-rematch-btn w-full"
+            disabled={state.myRematchReady}
             onClick={() => send({ type: "play_again" })}
           >
-            Rematch
+            {state.myRematchReady ? "Ready" : "Rematch"}
           </button>
+          <p
+            className="type-meta text-center tabular-nums text-[var(--muted)]"
+            aria-live="polite"
+          >
+            {state.rematchReadyCast}/{state.rematchReadyNeeded} ready
+          </p>
           <p className="type-meta text-center text-[var(--muted)]">
-            Same room &amp; players — fresh run, no new codes.
+            Same room &amp; players — no re-joins.
           </p>
         </div>
       )}

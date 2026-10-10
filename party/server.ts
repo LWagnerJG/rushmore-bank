@@ -117,6 +117,7 @@ function migrateState(raw: RoomState): RoomState {
     draftOptionsStatus: raw.draftOptionsStatus ?? "idle",
     draftOptionsJobId: raw.draftOptionsJobId ?? null,
     bankBeansReady: raw.bankBeansReady ?? {},
+    rematchReady: raw.rematchReady ?? {},
     diceLapsCompleted:
       legacy.diceLapsCompleted ?? legacy.diceBanksCompleted ?? 0,
     partyBustRedoUsedIds: Array.isArray(
@@ -451,6 +452,7 @@ export class QuarryServer extends Server<Env> {
         myTopicVote: this.state.topicVotes[conn.id] ?? null,
         myHumanVote: this.state.humanVotes[conn.id] ?? null,
         myBankBeansReady: !!this.state.bankBeansReady?.[conn.id],
+        myRematchReady: !!this.state.rematchReady?.[conn.id],
         ...(recipient?.isHost
           ? { hostAiJudge: hostAiJudgeHealth(this.state) }
           : {}),
@@ -609,6 +611,7 @@ export class QuarryServer extends Server<Env> {
     if (this.state.seatOrder.length === 0) {
       this.state.phase = "GAME_RESULTS";
       this.state.gameOver = true;
+      this.state.rematchReady = {};
       this.state.notice = "Everyone left — game over";
       return;
     }
@@ -696,6 +699,7 @@ export class QuarryServer extends Server<Env> {
     };
     remapKey(this.state.wagers as Record<string, unknown>);
     remapKey(this.state.bankBeansReady as Record<string, unknown>);
+    remapKey(this.state.rematchReady as Record<string, unknown>);
     remapKey(this.state.earnedThisRound as Record<string, unknown>);
     remapKey(this.state.pots as Record<string, unknown>);
     remapKey(this.state.protectedStones as Record<string, unknown>);
@@ -2542,6 +2546,7 @@ export class QuarryServer extends Server<Env> {
     if (this.state.topicRound >= this.state.configuredTopicRounds) {
       this.state.phase = "GAME_RESULTS";
       this.state.gameOver = true;
+      this.state.rematchReady = {};
       bump(this.state);
       return;
     }
@@ -2552,12 +2557,35 @@ export class QuarryServer extends Server<Env> {
     if (!this.requireHost(id)) throw new Error("Host only");
     this.state.phase = "GAME_RESULTS";
     this.state.gameOver = true;
+    this.state.rematchReady = {};
     bump(this.state);
     void this.clearAlarm();
   }
 
+  /**
+   * Rematch ready-up (same room + players). Any connected player may tap;
+   * when everyone is ready, reuse the existing play-again reset into lobby.
+   */
   async handlePlayAgain(id: string) {
-    if (!this.requireHost(id)) throw new Error("Host only");
+    if (!this.requirePlayer(id)) throw new Error("Players only");
+    if (this.state.phase !== "GAME_RESULTS") throw new Error("Wrong phase");
+    this.state.rematchReady = this.state.rematchReady ?? {};
+    this.state.rematchReady[id] = true;
+    bump(this.state);
+    await this.maybeRematchFromReady();
+  }
+
+  async maybeRematchFromReady() {
+    if (this.state.phase !== "GAME_RESULTS") return;
+    const needed = this.state.players.filter(
+      (p) => p.role === "player" && p.connected,
+    );
+    if (needed.length === 0) return;
+    if (!needed.every((p) => this.state.rematchReady?.[p.id])) return;
+    await this.resetRoomForRematch();
+  }
+
+  async resetRoomForRematch() {
     const code = this.state.code;
     const settings = this.state.settings;
     const names = this.state.players.map((p) => ({
@@ -2884,6 +2912,28 @@ export class QuarryServer extends Server<Env> {
         });
         return;
       }
+      case "GAME_RESULTS": {
+        bots.forEach((bot, i) => {
+          if (this.state.rematchReady?.[bot.id]) {
+            this.clearBotTimer(`rematch:${bot.id}`);
+            return;
+          }
+          const key = `rematch:${bot.id}`;
+          if (this.botTimers.has(key)) return;
+          this.queueBot(key, botDelayMs("bank", hashStr(bot.id) + i), async () => {
+            if (this.state.phase !== "GAME_RESULTS") return;
+            if (this.state.rematchReady?.[bot.id]) return;
+            await this.handle(
+              {
+                type: "play_again",
+                actionId: `bot-rematch-${bot.id}-${this.state.phaseRevision}`,
+              },
+              bot.id,
+            );
+          });
+        });
+        return;
+      }
       case "WAGER_SELECTION": {
         bots.forEach((bot, i) => {
           if (this.state.wagers[bot.id] !== undefined) {
@@ -3079,6 +3129,7 @@ export class QuarryServer extends Server<Env> {
         this.adminFillScores();
         this.state.phase = "GAME_RESULTS";
         this.state.gameOver = true;
+        this.state.rematchReady = {};
         this.state.phaseDeadlineAt = null;
         bump(this.state);
         break;
