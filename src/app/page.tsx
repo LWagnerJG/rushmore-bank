@@ -15,7 +15,7 @@ import { MotionSettle } from "@/components/MotionSettle";
 import { normalizeRoomCode, randomRoomCode } from "@/shared/types";
 import { RULES } from "@/shared/rules";
 import { ADMIN_UNLOCK_KEY } from "@/lib/admin-session";
-import { recallDisplayName } from "@/lib/party";
+import { recallDisplayName, rememberDisplayName } from "@/lib/party";
 
 const ADMIN_KEY = ADMIN_UNLOCK_KEY;
 const ADMIN_DISPLAY_NAME = "Admin";
@@ -118,7 +118,12 @@ export default function HomePage() {
       setNameError("Enter a nickname first");
       return;
     }
-    if (!name.trim() && adminUnlocked) setName(ADMIN_DISPLAY_NAME);
+    if (!name.trim() && adminUnlocked) {
+      setName(ADMIN_DISPLAY_NAME);
+    } else {
+      // A room link opened later (QR, share sheet) starts with this name.
+      rememberDisplayName(clean);
+    }
     setNameError(null);
     setNameReady(true);
   }
