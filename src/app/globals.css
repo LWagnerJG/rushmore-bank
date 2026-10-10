@@ -1015,26 +1015,35 @@ html.party-on .brand-shimmer {
   padding-bottom: 0.5rem;
 }
 
-/* End of game — winner name + single green sweep (no confetti/particles) */
-.endgame-winner {
-  position: relative;
-  overflow: hidden;
-  text-align: center;
-  padding: var(--space-4) var(--space-2);
-  isolation: isolate;
+/* End of game — rematch + quiet home; winner sweep lives on reveal rows */
+.endgame-panel {
+  gap: var(--space-4);
 }
 
-.endgame-winner-kicker {
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
+.endgame-rematch {
+  margin-top: var(--space-2);
+}
+
+.endgame-rematch-btn {
+  min-height: calc(var(--tap-min) + 12px);
+  font-size: 1.125rem;
+}
+
+.endgame-ready-count {
+  margin: 0;
+}
+
+.endgame-home {
+  display: block;
+  min-height: var(--tap-min);
+  line-height: var(--tap-min);
   color: var(--muted);
-  margin-bottom: var(--space-1);
+  text-decoration: none;
+  font-weight: 600;
 }
 
-.endgame-winner-name {
-  position: relative;
-  z-index: 1;
-  font-size: clamp(2.25rem, 10vw, 3.25rem);
+.endgame-home:hover,
+.endgame-home:focus-visible {
   color: var(--text);
 }
 
@@ -1064,11 +1073,6 @@ html.party-on .brand-shimmer {
     transform: translateX(120%);
     opacity: 0;
   }
-}
-
-.endgame-rematch-btn {
-  min-height: calc(var(--tap-min) + 12px);
-  font-size: 1.125rem;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2944,6 +2948,9 @@ html.party-on .player-row {
 .results-reveal {
   cursor: pointer;
   outline: none;
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
 .results-reveal:focus-visible {
@@ -2952,10 +2959,51 @@ html.party-on .player-row {
 }
 
 .results-reveal-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: var(--tap-min);
+  padding: 0.55rem 0.35rem;
+  isolation: isolate;
+  overflow: hidden;
+  /* Soft plane — no harsh border */
+  background: transparent;
+  border: none;
+  border-radius: 0.75rem;
   transition:
     opacity var(--motion-fast) ease,
     transform var(--motion-fast) ease;
   will-change: auto;
+}
+
+.results-reveal-row > *:not(.endgame-winner-sweep) {
+  position: relative;
+  z-index: 1;
+}
+
+.results-reveal-rank {
+  flex: 0 0 1.5rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.results-reveal-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.results-reveal-total {
+  flex: 0 0 auto;
+  color: var(--coral);
+  font-variant-numeric: tabular-nums;
+}
+
+.results-reveal-currency {
+  font-weight: 700;
 }
 
 .results-reveal-row-off {
@@ -2967,13 +3015,6 @@ html.party-on .player-row {
 .results-reveal-row-on {
   opacity: 1;
   transform: none;
-}
-
-.results-reveal-hint {
-  list-style: none;
-  text-align: center;
-  min-height: 1.25rem;
-  opacity: 0.85;
 }
 
 @media (prefers-reduced-motion: reduce) {

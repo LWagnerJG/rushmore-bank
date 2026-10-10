@@ -4,44 +4,53 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Player } from "@/shared/types";
 import {
   countUpValue,
+  hasRevealCompleted,
+  markRevealCompleted,
   prefersReducedMotion,
+  rankStandings,
   revealOrderIndices,
   revealSchedule,
+  WINNER_SWEEP_MS,
 } from "@/lib/results-reveal";
 
 type Row = {
   id: string;
   name: string;
   stones: number;
+  rank: number;
   isYou: boolean;
+  isWinner: boolean;
 };
 
 /**
  * Standings reveal: players appear last→first with a short count-up.
- * Total under 2s; tap to skip. No layout shift (rows reserved, opacity only).
+ * Total under ~2.5s; tap to skip. Rows keep layout space (opacity/transform only).
+ * Completion is keyed in sessionStorage so reconnects do not replay broken mid-state.
  */
 export function ResultsRevealList({
   ranked,
   youId,
   currencyName,
   revealKey,
+  showWinnerSweep = false,
 }: {
   ranked: Player[];
   youId: string;
   currencyName: string;
-  /** Change to restart the reveal (e.g. phase + topicRound). */
+  /** Stable game identity — must not include phaseRevision. */
   revealKey: string;
+  /** GAME_RESULTS only — green sweep on winner row(s) after they appear last. */
+  showWinnerSweep?: boolean;
 }) {
-  const rows: Row[] = useMemo(
-    () =>
-      ranked.map((p) => ({
-        id: p.id,
-        name: p.name,
-        stones: p.stones,
-        isYou: p.id === youId,
-      })),
-    [ranked, youId],
-  );
+  const rows: Row[] = useMemo(() => {
+    const standings = rankStandings(
+      ranked.map((p) => ({ id: p.id, name: p.name, stones: p.stones })),
+    );
+    return standings.map((s) => ({
+      ...s,
+      isYou: s.id === youId,
+    }));
+  }, [ranked, youId]);
 
   const schedule = useMemo(
     () => revealSchedule(rows.length),
@@ -52,57 +61,88 @@ export function ResultsRevealList({
     [rows.length],
   );
 
-  const [revealedCount, setRevealedCount] = useState(0);
-  const [displayValues, setDisplayValues] = useState<number[]>(() =>
-    rows.map(() => 0),
+  const alreadyDone = hasRevealCompleted(revealKey);
+  const [revealedCount, setRevealedCount] = useState(() =>
+    alreadyDone ? rows.length : 0,
   );
-  const [done, setDone] = useState(false);
+  const [displayValues, setDisplayValues] = useState<number[]>(() =>
+    alreadyDone ? rows.map((r) => r.stones) : rows.map(() => 0),
+  );
+  const [done, setDone] = useState(alreadyDone);
+  const [sweepOn, setSweepOn] = useState(alreadyDone && showWinnerSweep);
   const skipped = useRef(false);
   const rafRef = useRef<number | null>(null);
   const timers = useRef<number[]>([]);
+  const rowsRef = useRef(rows);
+  rowsRef.current = rows;
+
+  const clearTimers = () => {
+    timers.current.forEach((id) => window.clearTimeout(id));
+    timers.current = [];
+    if (rafRef.current != null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+  };
 
   const finish = () => {
     skipped.current = true;
-    timers.current.forEach((id) => window.clearTimeout(id));
-    timers.current = [];
-    if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
-    setRevealedCount(rows.length);
-    setDisplayValues(rows.map((r) => r.stones));
+    clearTimers();
+    const latest = rowsRef.current;
+    setRevealedCount(latest.length);
+    setDisplayValues(latest.map((r) => r.stones));
     setDone(true);
+    if (showWinnerSweep) setSweepOn(true);
+    markRevealCompleted(revealKey);
   };
 
   useEffect(() => {
     skipped.current = false;
-    timers.current.forEach((id) => window.clearTimeout(id));
-    timers.current = [];
-    if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+    clearTimers();
 
-    if (rows.length === 0 || prefersReducedMotion()) {
-      setRevealedCount(rows.length);
-      setDisplayValues(rows.map((r) => r.stones));
+    const latest = rowsRef.current;
+    if (latest.length === 0) {
+      setRevealedCount(0);
+      setDisplayValues([]);
       setDone(true);
+      setSweepOn(false);
+      return;
+    }
+
+    if (hasRevealCompleted(revealKey) || prefersReducedMotion()) {
+      setRevealedCount(latest.length);
+      setDisplayValues(latest.map((r) => r.stones));
+      setDone(true);
+      setSweepOn(showWinnerSweep);
+      markRevealCompleted(revealKey);
       return;
     }
 
     setRevealedCount(0);
-    setDisplayValues(rows.map(() => 0));
+    setDisplayValues(latest.map(() => 0));
     setDone(false);
+    setSweepOn(false);
 
     const runCountUp = (index: number, target: number, duration: number) => {
+      if (rafRef.current != null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
       const start = performance.now();
       const tick = (now: number) => {
         if (skipped.current) return;
         const t = duration <= 0 ? 1 : (now - start) / duration;
         setDisplayValues((prev) => {
-          const next = [...prev];
+          const next = prev.slice();
           next[index] = countUpValue(target, t);
           return next;
         });
         if (t < 1) {
           rafRef.current = requestAnimationFrame(tick);
         } else {
+          rafRef.current = null;
           setDisplayValues((prev) => {
-            const next = [...prev];
+            const next = prev.slice();
             next[index] = target;
             return next;
           });
@@ -111,16 +151,31 @@ export function ResultsRevealList({
       rafRef.current = requestAnimationFrame(tick);
     };
 
-    order.forEach((rowIndex, step) => {
-      const startAt = step * schedule.stepMs;
+    const ord = revealOrderIndices(latest.length);
+    const sched = revealSchedule(latest.length);
+
+    ord.forEach((rowIndex, step) => {
+      const startAt = step * sched.stepMs;
       const id = window.setTimeout(() => {
         if (skipped.current) return;
         setRevealedCount(step + 1);
-        runCountUp(rowIndex, rows[rowIndex].stones, schedule.countMs);
-        if (step + 1 >= rows.length) {
+        const row = latest[rowIndex];
+        if (!row) return;
+        runCountUp(rowIndex, row.stones, sched.countMs);
+        if (step + 1 >= latest.length) {
           const doneId = window.setTimeout(() => {
-            if (!skipped.current) setDone(true);
-          }, schedule.countMs);
+            if (skipped.current) return;
+            setDone(true);
+            markRevealCompleted(revealKey);
+            if (showWinnerSweep) {
+              setSweepOn(true);
+              // Keep sweep class briefly; CSS animation handles visuals.
+              const sweepEnd = window.setTimeout(() => {
+                /* no-op — class can stay; animation is forwards */
+              }, WINNER_SWEEP_MS);
+              timers.current.push(sweepEnd);
+            }
+          }, sched.countMs);
           timers.current.push(doneId);
         }
       }, startAt);
@@ -128,17 +183,18 @@ export function ResultsRevealList({
     });
 
     return () => {
-      timers.current.forEach((id) => window.clearTimeout(id));
-      timers.current = [];
-      if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+      clearTimers();
     };
-    // Restart only when the reveal identity changes.
+    // Restart only when the stable reveal identity changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- revealKey drives reset
-  }, [revealKey]);
+  }, [revealKey, showWinnerSweep]);
 
   const revealedSet = useMemo(() => {
     const set = new Set<number>();
-    for (let i = 0; i < revealedCount; i++) set.add(order[i]!);
+    for (let i = 0; i < revealedCount; i++) {
+      const idx = order[i];
+      if (idx != null) set.add(idx);
+    }
     return set;
   }, [revealedCount, order]);
 
@@ -166,33 +222,37 @@ export function ResultsRevealList({
     >
       {rows.map((row, i) => {
         const shown = revealedSet.has(i);
+        const winnerSweep =
+          showWinnerSweep && sweepOn && row.isWinner && shown;
         return (
           <li
             key={row.id}
             className={[
-              "player-row",
+              "results-reveal-row",
               "type-body",
               "font-extrabold",
-              "results-reveal-row",
               shown ? "results-reveal-row-on" : "results-reveal-row-off",
-            ].join(" ")}
+              winnerSweep ? "results-reveal-row-winner" : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
             aria-hidden={!shown}
           >
-            <span>
-              {i + 1}. {row.name}
+            {winnerSweep ? (
+              <span className="endgame-winner-sweep" aria-hidden="true" />
+            ) : null}
+            <span className="results-reveal-rank tabular-nums">{row.rank}</span>
+            <span className="results-reveal-name">
+              {row.name}
               {row.isYou ? " (you)" : ""}
             </span>
-            <span className="tabular-nums text-[var(--coral)]">
-              {shown ? displayValues[i] ?? 0 : "\u00a0"} {currencyName}
+            <span className="results-reveal-total tabular-nums">
+              {shown ? displayValues[i] ?? 0 : "\u00a0"}
+              <span className="results-reveal-currency"> {currencyName}</span>
             </span>
           </li>
         );
       })}
-      {!done && (
-        <li className="results-reveal-hint type-meta text-[var(--muted)]" aria-hidden="true">
-          Tap to skip
-        </li>
-      )}
     </ol>
   );
 }
