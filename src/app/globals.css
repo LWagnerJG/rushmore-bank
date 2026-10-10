@@ -3775,7 +3775,7 @@ html.dice-your-turn::after {
   color: var(--text);
 }
 .draft-turn-line-warn {
-  color: var(--coral-ink);
+  color: var(--btn-bg);
 }
 
 .draft-composer {
@@ -3815,6 +3815,9 @@ html.dice-your-turn::after {
   border-radius: 0.8rem;
   white-space: nowrap;
   touch-action: manipulation;
+}
+.draft-pick-submit[aria-disabled="true"] {
+  opacity: 0.5;
 }
 .draft-pick-submit[aria-disabled="true"]:active {
   transform: none;

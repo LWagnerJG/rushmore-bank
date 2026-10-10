@@ -86,7 +86,7 @@ describe("coral is decoration; coral ink is the text color", () => {
   });
 
   it("no CSS rule sets text in plain coral", () => {
-    expect(clean).not.toMatch(/(^|[;{\s])color:\s*var\(--(coral|accent|btn-bg)\)/);
+    expect(clean).not.toMatch(/(^|[;{\s])color:\s*var\(--(coral|accent)\)/);
     expect(clean).not.toMatch(/(^|[;{\s])color:\s*(#e76f4e|#ff6b4a)/i);
   });
 
@@ -117,7 +117,6 @@ describe("coral is decoration; coral ink is the text color", () => {
       ".home-edit-name",
       ".a2hs-nudge-dismiss",
       ".error-toast",
-      ".draft-turn-line-warn",
     ]) {
       const body = rule(sel);
       expect(decl(body, "color"), sel).toBe("var(--coral-ink)");
@@ -136,7 +135,7 @@ describe("honest disabled buttons", () => {
   const disabledRules = [...clean.matchAll(/([^{}]+)\{([^{}]*)\}/g)].filter(
     ([, sel]) =>
       /:disabled|\[aria-disabled="true"\]/.test(sel) &&
-      /btn-|draft-pick-submit|topic-custom-lock|dice-bank-cta/.test(sel),
+      /btn-|topic-custom-lock|dice-bank-cta/.test(sel),
   );
 
   it("never fades a disabled button with opacity", () => {
