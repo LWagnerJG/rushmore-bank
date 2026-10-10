@@ -86,7 +86,7 @@ export function PlayerRail({
   return (
     <div
       className={[
-        "player-rail mt-2",
+        "player-rail",
         fit ? "player-rail-fit" : "",
         few ? "player-rail-few" : "",
         many ? "player-rail-many" : "",
