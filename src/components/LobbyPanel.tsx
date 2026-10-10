@@ -4,6 +4,7 @@ import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
 import { RULES } from "@/shared/rules";
+import { shareInvite } from "@/lib/share-invite";
 
 export function LobbyPanel({
   state,
@@ -29,21 +30,10 @@ export function LobbyPanel({
   const partyOn = state.settings.partyMode;
 
   const share = async () => {
-    try {
-      if (navigator.share) {
-        await navigator.share({
-          title: "Beans",
-          url,
-          text: `Join Beans: ${state.code}`,
-        });
-      } else {
-        await navigator.clipboard.writeText(url);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
-      }
-    } catch {
-      await navigator.clipboard.writeText(url);
+    const result = await shareInvite({ url, code: state.code });
+    if (result === "copied") {
       setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
     }
   };
 
@@ -55,33 +45,43 @@ export function LobbyPanel({
 
   return (
     <div className="lobby-layout stack">
-      <section className="panel stack-sm text-center">
-        <p className="type-display tracking-[0.22em]">{state.code}</p>
+      <section className="panel lobby-invite stack text-center">
+        <p
+          className="lobby-room-code type-display"
+          aria-label={`Room code ${state.code.split("").join(" ")}`}
+        >
+          {state.code}
+        </p>
         <p className="type-meta text-[var(--muted)]">{statusText}</p>
 
-        {showQR && (
-          <div className="mx-auto w-fit rounded-2xl bg-white p-[var(--space-3)] shadow-sm">
-            <QRCodeSVG
-              value={url}
-              size={148}
-              bgColor="#ffffff"
-              fgColor="#23483E"
-            />
-          </div>
-        )}
-
         <div className="stack-sm">
-          <button type="button" className="btn-primary w-full" onClick={share}>
-            {copied ? "Copied!" : "Share invite"}
+          <button
+            type="button"
+            className="btn-primary lobby-share-btn w-full"
+            onClick={() => void share()}
+          >
+            {copied ? "Copied" : "Share"}
           </button>
           <button
             type="button"
             className="btn-secondary w-full"
             onClick={() => setShowQR((v) => !v)}
+            aria-expanded={showQR}
           >
             {showQR ? "Hide QR" : "Show QR"}
           </button>
         </div>
+
+        {showQR && (
+          <div className="lobby-qr mx-auto w-fit rounded-2xl bg-white p-[var(--space-3)] shadow-sm">
+            <QRCodeSVG
+              value={url}
+              size={160}
+              bgColor="#ffffff"
+              fgColor="#23483E"
+            />
+          </div>
+        )}
       </section>
 
       <section className="panel stack-sm">
@@ -148,9 +148,7 @@ export function LobbyPanel({
             <button
               type="button"
               data-diag="lobby-start"
-              className={
-                "btn-primary w-full " + (canStart ? "pulse-soft" : "")
-              }
+              className="btn-primary w-full"
               disabled={!canStart}
               onClick={() => send({ type: "start" })}
             >
