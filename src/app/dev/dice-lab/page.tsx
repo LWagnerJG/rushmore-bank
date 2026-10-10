@@ -78,7 +78,7 @@ export default function DiceLabPage() {
 
   return (
     <main className="app-shell app-shell-scroll mx-auto max-w-md space-y-4 px-4 pb-10 pt-8">
-      <Link href="/" className="text-sm font-bold text-[var(--coral)]">
+      <Link href="/" className="text-sm font-bold text-[var(--coral-ink)]">
         ← Home
       </Link>
       <h1 className="font-[family-name:var(--font-display)] text-2xl font-extrabold">

@@ -254,7 +254,7 @@ export default function HomePage() {
               className={
                 "type-meta text-center " +
                 (nameError
-                  ? "font-semibold text-[var(--coral)]"
+                  ? "font-semibold text-[var(--coral-ink)]"
                   : "text-[var(--muted)]")
               }
               aria-live="polite"
@@ -305,7 +305,7 @@ export default function HomePage() {
               </button>
             </div>
             {joinError && (
-              <p className="type-meta text-center font-semibold text-[var(--coral)]">
+              <p className="type-meta text-center font-semibold text-[var(--coral-ink)]">
                 {joinError}
               </p>
             )}

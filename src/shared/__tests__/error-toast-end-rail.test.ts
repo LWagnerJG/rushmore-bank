@@ -35,7 +35,7 @@ describe("error toast overlay", () => {
   it("overlays without pushing layout (fixed + opacity/transform only)", () => {
     const block = css.match(/\.error-toast\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
     expect(block).toMatch(/position:\s*fixed/);
-    expect(block).toMatch(/color:\s*var\(--coral\)/);
+    expect(block).toMatch(/color:\s*var\(--coral-ink\)/);
     expect(block).toMatch(/transition:[^;]*opacity/);
     expect(block).toMatch(/transition:[^;]*transform/);
     expect(block).not.toMatch(/blur\s*\(/);
