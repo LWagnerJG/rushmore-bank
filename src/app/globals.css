@@ -1113,19 +1113,29 @@ html.party-on .brand-shimmer {
   }
 }
 
-/* Lobby invite — code + QR + Share in one compact block (SE-first) */
+/* Lobby invite — code + QR side-by-side, Share below (SE-first) */
 .lobby-invite {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   gap: var(--space-2);
   padding-block: var(--space-3);
   padding-inline: var(--space-3);
 }
 
+.lobby-invite-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: var(--tap-min);
+}
+
 .lobby-room-code {
   display: block;
-  width: 100%;
+  flex: 1 1 auto;
+  min-width: 0;
   margin: 0;
   padding: var(--space-1) 0;
   min-height: var(--tap-min);
@@ -1133,11 +1143,11 @@ html.party-on .brand-shimmer {
   background: transparent;
   color: inherit;
   font: inherit;
-  font-size: clamp(2.15rem, 11vw, 3.1rem);
-  letter-spacing: 0.22em;
+  font-size: clamp(1.85rem, 9vw, 2.65rem);
+  letter-spacing: 0.2em;
   line-height: 1;
   font-variant-numeric: tabular-nums;
-  text-align: center;
+  text-align: left;
   user-select: all;
   cursor: pointer;
 }
@@ -1151,9 +1161,9 @@ html.party-on .brand-shimmer {
 .lobby-qr {
   display: grid;
   place-items: center;
-  width: 128px;
-  height: 128px;
-  flex-shrink: 0;
+  width: 108px;
+  height: 108px;
+  flex: 0 0 108px;
   border-radius: 0.85rem;
   background: #f5f0e7;
   /* Soft edge — no harsh stroke; quiet zone lives inside the SVG */
@@ -1162,20 +1172,21 @@ html.party-on .brand-shimmer {
 
 .lobby-qr svg {
   display: block;
-  width: 128px;
-  height: 128px;
+  width: 108px;
+  height: 108px;
   shape-rendering: crispEdges;
 }
 
 .lobby-share-btn {
   min-height: var(--tap-min);
   font-size: 1.0625rem;
-  width: min(100%, 16rem);
+  width: 100%;
 }
 
 .lobby-invite-status {
   margin: 0;
   line-height: 1.25;
+  text-align: center;
 }
 
 .lobby-roster {
@@ -1202,14 +1213,18 @@ html.party-on .brand-shimmer {
   }
 
   .lobby-room-code {
-    font-size: clamp(1.9rem, 10vw, 2.6rem);
+    font-size: clamp(1.65rem, 8.5vw, 2.25rem);
     padding-block: 0;
   }
 
   .lobby-qr,
   .lobby-qr svg {
-    width: 120px;
-    height: 120px;
+    width: 96px;
+    height: 96px;
+  }
+
+  .lobby-qr {
+    flex-basis: 96px;
   }
 
   .lobby-layout.stack {
@@ -3478,27 +3493,18 @@ html.dice-your-turn::after {
   }
 }
 
-/* Draft stash — embedded under the board, not a floating drawer */
-.draft-turn {
-  padding: 0.15rem 0.1rem;
-}
-.draft-turn-title {
+/* Draft — one concise status line above the board */
+.draft-turn-line {
+  margin: 0;
+  padding: 0.1rem 0.05rem;
   font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
-  font-size: 1.35rem;
+  font-size: 1.05rem;
   font-weight: 800;
-  line-height: 1.15;
+  line-height: 1.25;
   letter-spacing: -0.01em;
-}
-.draft-turn-active .draft-turn-title {
-  color: var(--text);
-}
-.draft-turn-hint {
-  margin-top: 0.15rem;
-  font-size: 0.9rem;
-  font-weight: 600;
   color: var(--muted);
 }
-.draft-turn-active .draft-turn-hint {
+.draft-turn-line-active {
   color: var(--text);
 }
 
