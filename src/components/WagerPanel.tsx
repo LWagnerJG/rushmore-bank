@@ -3,6 +3,7 @@
 import { useEffect, useId, useState } from "react";
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
 import { clampWager, maxWager, wagerFromPreset } from "@/shared/engine/wager";
+import { TimerPill } from "@/components/TimerPill";
 import { WagerSlider } from "@/components/WagerSlider";
 import { WaitingRoster } from "@/components/WaitingRoster";
 
@@ -28,7 +29,6 @@ export function WagerPanel({
     banked,
   );
   const [amount, setAmount] = useState<number | null>(null);
-  const [left, setLeft] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const sliderId = useId();
 
@@ -41,19 +41,6 @@ export function WagerPanel({
     state.seatOrder.includes(pid),
   );
   const nothingToRisk = max <= 0;
-  const urgent = left !== null && left <= 5;
-
-  useEffect(() => {
-    const tick = () =>
-      setLeft(
-        state.wagerDeadlineAt
-          ? Math.max(0, Math.ceil((state.wagerDeadlineAt - Date.now()) / 1000))
-          : null,
-      );
-    tick();
-    const timer = setInterval(tick, 250);
-    return () => clearInterval(timer);
-  }, [state.wagerDeadlineAt]);
 
   useEffect(() => {
     if (!busy) return;
@@ -119,16 +106,9 @@ export function WagerPanel({
         <div className="wager-header-copy">
           <h2 className="type-display">Risk how many?</h2>
         </div>
-        {left !== null && (
-          <div
-            className={`wager-timer ${urgent ? "wager-timer-urgent" : ""}`}
-            role="timer"
-            aria-live="polite"
-            aria-label={`${left} seconds left`}
-          >
-            <span className="wager-timer-value tabular-nums">{left}s</span>
-          </div>
-        )}
+        {state.wagerDeadlineAt ? (
+          <TimerPill until={state.wagerDeadlineAt} label="Wager" />
+        ) : null}
       </header>
 
       <section className="wager-hero" aria-live="polite">

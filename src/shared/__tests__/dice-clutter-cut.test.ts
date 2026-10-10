@@ -67,11 +67,16 @@ describe("dice clutter-cut", () => {
     expect(scene).not.toMatch(/\{canRoll && \(/);
   });
 
-  it("timer is digits-only while live with aria-label", () => {
-    expect(dice).toMatch(/aria-label=\{active \? `\$\{label\}: \$\{left\} seconds`/);
-    expect(dice).toMatch(/showLabel/);
-    expect(dice).not.toMatch(/dice-timer-unit/);
+  it("timer is the shared seconds pill — no ROLL/TURN caption over it", () => {
+    expect(dice).toMatch(/<TimerPill[\s\S]*?label=\{timerLabel\}[\s\S]*?urgentAt=\{5\}/);
+    expect(dice).not.toMatch(/dice-timer|showTimerLabel|DecisionTimer/);
     expect(dice).not.toMatch(/\{active \? left : "—"\}/);
+  });
+
+  it("shows the idle-bank clock paused while Bank confirm holds it", () => {
+    expect(dice).toMatch(/state\.diceIdlePauseRemainingMs != null/);
+    expect(dice).toMatch(/paused=\{timerPaused\}/);
+    expect(dice).not.toMatch(/Date\.now\(\) \+ state\.diceIdlePauseRemainingMs/);
   });
 
   it("uses one green tray; coral edge is the your-turn signal", () => {

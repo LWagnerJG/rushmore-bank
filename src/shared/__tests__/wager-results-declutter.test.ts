@@ -21,11 +21,11 @@ const rushmore = readFileSync(
 const css = readFileSync(resolve(__dirname, "../../app/globals.css"), "utf8");
 
 describe("wager declutter", () => {
-  it("shows one stake and clear seconds on the timer", () => {
+  it("shows one stake and the shared seconds pill", () => {
     expect(wager).toMatch(/wager-stake/);
     expect(wager).not.toMatch(/Stay safe|At risk/);
-    expect(wager).toMatch(/\{left\}s/);
-    expect(wager).not.toMatch(/wager-timer-label|wager-timer-unit/);
+    expect(wager).toMatch(/<TimerPill until=\{state\.wagerDeadlineAt\}/);
+    expect(wager).not.toMatch(/wager-timer/);
   });
 
   it("slider ends are bare numbers (not “1 min”)", () => {

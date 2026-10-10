@@ -29,38 +29,10 @@ import { WagerPanel } from "@/components/WagerPanel";
 import { DicePanel } from "@/components/DicePanel";
 import { ResultsPanel } from "@/components/ResultsPanel";
 import { PlayerRail } from "@/components/PlayerRail";
+import { TimerPill } from "@/components/TimerPill";
 import { shouldFireFinalRoundCue } from "@/shared/final-round-cue";
 import { isSoundEnabled } from "@/lib/sound-prefs";
 import { armGestureUnlock } from "@/lib/sfx";
-
-function DraftBannerClock({
-  until,
-  paused,
-}: {
-  until: number | null;
-  paused: boolean;
-}) {
-  const [left, setLeft] = useState(0);
-  useEffect(() => {
-    const tick = () =>
-      setLeft(until ? Math.max(0, Math.ceil((until - Date.now()) / 1000)) : 0);
-    tick();
-    const t = setInterval(tick, 250);
-    return () => clearInterval(t);
-  }, [until]);
-  const urgent = !paused && left > 0 && left <= 10;
-  return (
-    <span
-      className={
-        "draft-timer-pill tabular-nums" +
-        (urgent ? " draft-timer-pill-urgent" : "")
-      }
-      aria-live="polite"
-    >
-      {paused ? "‖" : `${left}s`}
-    </span>
-  );
-}
 
 export function RoomClient({
   code,
@@ -340,9 +312,15 @@ export function RoomClient({
             </div>
             <div className="room-chrome-end">
               {drafting && state ? (
-                <DraftBannerClock
+                <TimerPill
                   until={state.pickDeadlineAt}
                   paused={state.pickPaused}
+                  label="Pick"
+                  announce={
+                    you.role === "player" &&
+                    state.seatOrder[state.draftOrder[state.draftCursor]] ===
+                      youId
+                  }
                 />
               ) : phase === "LOBBY" ? (
                 <div className="room-chrome-phase type-meta">
