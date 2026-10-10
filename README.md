@@ -42,6 +42,17 @@ npm run dev
 | `npm test` | Pure rules unit tests (Vitest) |
 | `npm run lint` | ESLint |
 
+## Deploy Next.js to Cloudflare Workers (optional redundancy)
+
+The same Next app also deploys as Cloudflare worker **`beans-web`** via OpenNext (`wrangler.web.jsonc`), alongside Vercel.
+
+- URL: `https://beans-web.beans-lwagner.workers.dev`
+- CI: `.github/workflows/deploy-beans-web.yml` on every push to `main`
+- Local: `npm run build:web` / `npm run deploy:web`
+- Secrets (GitHub Actions → `wrangler secret put`): `GEMINI_API_KEY` (or `GOOGLE_GENERATIVE_AI_API_KEY`), optional `GROQ_API_KEY`, `JUDGE_SECRET`
+
+Vercel stays connected; do not remove it. PartyServer `JUDGE_URL` still points at Vercel by default.
+
 ## Deploy PartyServer
 
 Realtime rooms live in `party/server.ts` and deploy as Cloudflare worker **`beans-party`** (`wrangler.jsonc`).

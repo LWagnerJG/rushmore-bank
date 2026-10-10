@@ -42,3 +42,8 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+
+// OpenNext Cloudflare: bind Workers platform APIs during `next dev`.
+// Point at wrangler.web.jsonc so the PartyServer wrangler.jsonc is untouched.
+import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
+void initOpenNextCloudflareForDev({ configPath: "wrangler.web.jsonc" });
