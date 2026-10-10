@@ -29,7 +29,7 @@ function lastPidKey(roomCode: string): string {
 /**
  * Per-tab guest id for this room. Uses sessionStorage so a second browser tab
  * gets a distinct id (localStorage would make handleJoin treat it as reconnect).
- * Also records the id in localStorage for explicit Rejoin only — never auto-reuse
+ * Also records the id in localStorage as the last one used — never auto-reuse
  * a prior tab's localStorage id when opening a new tab.
  */
 export function getStablePlayerId(roomCode: string): string {
@@ -44,16 +44,6 @@ export function getStablePlayerId(roomCode: string): string {
   window.sessionStorage.setItem(sessionKey, id);
   window.localStorage.setItem(lastPidKey(roomCode), id);
   return id;
-}
-
-/** Last guest id used in this room (any tab) — for explicit Rejoin UI only. */
-export function getLastPlayerIdForRejoin(roomCode: string): string | null {
-  if (typeof window === "undefined") return null;
-  return (
-    window.localStorage.getItem(lastPidKey(roomCode)) ??
-    window.localStorage.getItem(`quarry:pid:${roomCode}`) ??
-    window.localStorage.getItem(`rushmore-bank:pid:${roomCode}`)
-  );
 }
 
 /** Adopt a prior guest id into this tab's session (explicit Rejoin). */
@@ -204,6 +194,17 @@ export function recallRoomSessionForRejoin(
     parseRoomSession(window.sessionStorage.getItem(key), roomCode, maxAgeMs) ??
     parseRoomSession(window.localStorage.getItem(key), roomCode, maxAgeMs)
   );
+}
+
+/**
+ * A player seat this device held here (another tab, or before the app was
+ * closed) that this tab isn't already resuming. Unlike the last-used id, which
+ * getStablePlayerId writes on every visit, this only exists after a real join.
+ */
+export function rejoinOffer(roomCode: string): RoomSession | null {
+  if (recallRoomSession(roomCode)) return null;
+  const prior = recallRoomSessionForRejoin(roomCode);
+  return prior?.role === "player" ? prior : null;
 }
 
 export type SeatLockHandle = {

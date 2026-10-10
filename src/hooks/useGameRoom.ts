@@ -191,7 +191,7 @@ export function useGameRoom(
     const lock = acquireSeatLock(code, playerId, () => {
       seatContestedRef.current = true;
       setSeatContested(true);
-      setErrorRaw("This seat is open in another tab — use that tab or Rejoin.");
+      setErrorRaw("This seat is open in another tab — use that tab.");
     });
     return () => lock.release();
   }, [code, playerId]);
@@ -291,6 +291,9 @@ export function useGameRoom(
             setJoined(false);
             setState(null);
             markRoomRemoved(code, playerId);
+            // The join screen's status line explains the removal.
+            setErrorRaw(null);
+            return;
           }
           setError(msg.message);
         }
@@ -340,7 +343,7 @@ export function useGameRoom(
   const send = useCallback(
     (msg: ClientMessage) => {
       if (seatContested) {
-        setErrorRaw("This seat is open in another tab — use that tab or Rejoin.");
+        setErrorRaw("This seat is open in another tab — use that tab.");
         return;
       }
       if (socket.readyState !== WebSocket.OPEN) {
@@ -369,7 +372,7 @@ export function useGameRoom(
         return;
       }
       if (seatContested) {
-        setErrorRaw("This seat is open in another tab — use that tab or Rejoin.");
+        setErrorRaw("This seat is open in another tab — use that tab.");
         return;
       }
       allowRoomRejoin(code);
