@@ -77,14 +77,8 @@ describe("iOS chrome + keyboard CSS contracts", () => {
     expect(css).toMatch(
       /\.room-chrome,\s*\n?\s*\.room-chrome \*\s*\{[\s\S]*?background-clip:\s*border-box\s*!important/,
     );
-    const ready =
-      css.match(/\.host-ai-chrome-ready\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
-    expect(ready.replace(/\/\*[\s\S]*?\*\//g, "")).toMatch(
-      /background:\s*#[0-9a-fA-F]{3,8}/,
-    );
-    expect(ready.replace(/\/\*[\s\S]*?\*\//g, "")).not.toMatch(
-      /background:\s*rgba\(/,
-    );
+    // Header AI chip removed — pre-game status is outside chrome.
+    expect(css).not.toMatch(/\.host-ai-chrome\s*\{/);
   });
 
   it("floors text-entry font-size at 16px to stop iOS focus zoom", () => {

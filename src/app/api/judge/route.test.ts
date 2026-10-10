@@ -437,3 +437,65 @@ describe("/api/judge free-tier flash-lite chain", () => {
     expect(JSON.stringify(data)).not.toMatch(/HTTP|503|429/);
   });
 });
+
+describe("GET /api/judge health probe", () => {
+  const originalEnv = { ...process.env };
+  const fetchMock = vi.fn();
+
+  beforeEach(async () => {
+    vi.useRealTimers();
+    vi.resetModules();
+    fetchMock.mockReset();
+    vi.stubGlobal("fetch", fetchMock);
+    delete process.env.GEMINI_API_KEY;
+    delete process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+    delete process.env.GROQ_API_KEY;
+    delete process.env.JUDGE_SECRET;
+    const mod = await import("./route");
+    mod.__resetGeminiModelCacheForTests();
+  });
+
+  afterEach(() => {
+    process.env = { ...originalEnv };
+    vi.unstubAllGlobals();
+  });
+
+  it("reports unavailable with no keys and never calls providers", async () => {
+    const { GET } = await import("./route");
+    const res = await GET();
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.available).toBe(false);
+    expect(data.model).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("returns the preferred live model from the models list", async () => {
+    process.env.GEMINI_API_KEY = "test-gemini";
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (isModelsList(url)) return modelsListResponse();
+      return new Response("nope", { status: 500 });
+    });
+
+    const { GET } = await import("./route");
+    const res = await GET();
+    const data = await res.json();
+    expect(data.available).toBe(true);
+    expect(data.model).toBe("gemini-3.5-flash-lite");
+    expect(fetchMock.mock.calls.every((c) => isModelsList(String(c[0])))).toBe(
+      true,
+    );
+  });
+
+  it("reports unavailable when the models list fails and no groq key", async () => {
+    process.env.GEMINI_API_KEY = "test-gemini";
+    fetchMock.mockResolvedValue(new Response("nope", { status: 503 }));
+
+    const { GET } = await import("./route");
+    const res = await GET();
+    const data = await res.json();
+    expect(data.available).toBe(false);
+    expect(data.model).toBeNull();
+  });
+});

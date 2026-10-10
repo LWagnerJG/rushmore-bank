@@ -5,6 +5,7 @@ import { QRCodeSVG } from "qrcode.react";
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
 import { RULES } from "@/shared/rules";
 import { shareInvite } from "@/lib/share-invite";
+import { HostAiPreGameStatus } from "@/components/HostAiPreGameStatus";
 
 export function LobbyPanel({
   state,
@@ -158,6 +159,7 @@ export function LobbyPanel({
                   : "Start game"
                 : `Need ${RULES.minPlayers}+ players`}
             </button>
+            <HostAiPreGameStatus />
           </div>
         </section>
       ) : null}

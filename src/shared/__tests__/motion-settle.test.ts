@@ -23,6 +23,14 @@ const cueSrc = readFileSync(
   resolve(__dirname, "../../components/HostAiJudgeCue.tsx"),
   "utf8",
 );
+const pregameSrc = readFileSync(
+  resolve(__dirname, "../../components/HostAiPreGameStatus.tsx"),
+  "utf8",
+);
+const lobbySrc = readFileSync(
+  resolve(__dirname, "../../components/LobbyPanel.tsx"),
+  "utf8",
+);
 
 describe("MotionSettle wiring", () => {
   it("swaps to motion-settled after animationend", () => {
@@ -47,9 +55,12 @@ describe("MotionSettle wiring", () => {
     expect(brandSrc).toMatch(/shapeRendering="auto"/);
   });
 
-  it("chrome AI cue stays a static chip (no pulse class)", () => {
-    expect(cueSrc).toMatch(/host-ai-chrome/);
-    expect(cueSrc).not.toMatch(/pulse-soft|animate-/);
-    expect(roomSrc).toMatch(/variant="chrome"/);
+  it("keeps AI judge out of header chrome; host pre-game line is discreet", () => {
+    expect(roomSrc).not.toMatch(/HostAiJudgeCue/);
+    expect(roomSrc).not.toMatch(/variant="chrome"/);
+    expect(cueSrc).not.toMatch(/host-ai-chrome/);
+    expect(lobbySrc).toMatch(/HostAiPreGameStatus/);
+    expect(pregameSrc).toMatch(/\/api\/judge/);
+    expect(pregameSrc).not.toMatch(/pulse-soft|animate-/);
   });
 });

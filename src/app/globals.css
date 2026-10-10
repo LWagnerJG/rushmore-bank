@@ -2029,28 +2029,34 @@ html.party-on .panel {
 }
 
 .player-chip {
-  flex: 0 0 auto;
+  /* Fixed equal tile widths — FitName handles long names; rail scrolls. */
+  --player-chip-w: 5.25rem;
+  flex: 0 0 var(--player-chip-w);
+  width: var(--player-chip-w);
+  min-width: var(--player-chip-w);
+  max-width: var(--player-chip-w);
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
-  min-width: 5.1rem;
-  max-width: 8.25rem;
-  padding: 0.4rem 0.55rem;
+  gap: 0.2rem;
+  padding: 0.45rem 0.5rem;
   border-radius: 0.85rem;
   box-shadow: 0 2px 8px rgba(35, 72, 62, 0.06);
+  border: none;
   line-height: 1.15;
   scroll-snap-align: start;
+  box-sizing: border-box;
+  overflow: visible;
 }
 
 .player-chip-compact {
-  min-width: 3.85rem;
-  max-width: 5.5rem;
-  padding: 0.32rem 0.45rem;
+  --player-chip-w: 4.35rem;
+  padding: 0.36rem 0.42rem;
   border-radius: 0.75rem;
 }
 
 .player-chip-you {
-  background: var(--coral);
+  /* Darker coral so white labels meet WCAG AA (≥4.5:1). */
+  background: var(--btn-bg);
   color: #fff;
 }
 
@@ -2114,7 +2120,7 @@ html.party-on .panel {
 }
 
 .player-chip-you.player-chip-up {
-  background: linear-gradient(160deg, #ef7d5c, #e76f4e);
+  background: var(--btn-bg);
   box-shadow:
     0 0 0 3px var(--yellow),
     0 0 12px rgba(244, 201, 91, 0.55),
@@ -2125,8 +2131,7 @@ html.party-on .panel {
 
 .player-chip-you:not(.player-chip-up) {
   /* You stays coral, but quieter when someone else is on the clock */
-  opacity: 0.78;
-  filter: saturate(0.85);
+  opacity: 0.92;
 }
 
 .player-chip-up-dot {
@@ -2184,29 +2189,47 @@ html.party-on .panel {
 
 .player-chip-score {
   display: flex;
-  align-items: baseline;
-  gap: 0.3rem;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 0.1rem;
+  min-width: 0;
+  width: 100%;
 }
 
 .player-chip-stones {
   font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
-  font-size: 1.05rem;
+  font-size: 1.1rem;
   font-weight: 800;
   line-height: 1;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
 }
 
 .player-chip-compact .player-chip-stones {
-  font-size: 0.95rem;
+  font-size: 0.98rem;
 }
 
 .player-chip-earned {
-  font-size: 0.7rem;
+  display: block;
+  font-size: 0.68rem;
   font-weight: 800;
+  line-height: 1;
   color: var(--coral);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
 }
 
 .player-chip-earned-you {
-  color: rgba(255, 255, 255, 0.92);
+  color: #ffe8d8;
+}
+
+/* Keep tile height steady when some seats have no round delta */
+.player-chip-earned-spacer {
+  display: block;
+  font-size: 0.68rem;
+  line-height: 1;
+  visibility: hidden;
 }
 
 .player-chip-split {
@@ -2237,8 +2260,9 @@ html.party-on .panel {
   color: #ffe6c8;
 }
 .player-chip-pot-split {
-  min-width: 6.4rem;
-  max-width: 10rem;
+  min-width: 0;
+  max-width: none;
+  width: 100%;
 }
 .player-rail-pot-split .player-chip {
   min-height: 3.35rem;
@@ -2249,8 +2273,8 @@ html.party-on .panel {
  * Failproof player rail = live leaderboard:
  * You first (top-left), then beans descending.
  * Single row ONLY — never wraps, never clips a second row.
- * Fit mode (≤5, or 6–7 on wide phones): chips share width, no scroll.
- * Many: denser chips + horizontal scroll + edge fade.
+ * Fixed equal chip widths; round delta stacks under the total.
+ * Horizontal scroll + edge fade when tiles exceed the rail.
  */
 .player-rail {
   position: relative;
@@ -2300,10 +2324,11 @@ html.party-on .panel {
 }
 
 .player-rail-few .player-chip {
-  padding: 0.65rem 0.85rem;
+  --player-chip-w: 6.35rem;
+  padding: 0.55rem 0.6rem;
   min-height: 3.85rem;
   border-radius: 1rem;
-  gap: 0.28rem;
+  gap: 0.22rem;
   justify-content: space-between;
 }
 
@@ -2316,8 +2341,9 @@ html.party-on .panel {
   font-size: 1.4rem;
 }
 
-.player-rail-few .player-chip-earned {
-  font-size: 0.85rem;
+.player-rail-few .player-chip-earned,
+.player-rail-few .player-chip-earned-spacer {
+  font-size: 0.72rem;
 }
 
 .player-rail-few .player-chip-safe,
@@ -2335,10 +2361,11 @@ html.party-on .panel {
 
 /* Duo — maximum presence across the row */
 .player-rail[data-count="2"].player-rail-few .player-chip {
-  padding: 0.78rem 1.05rem;
+  --player-chip-w: 7.5rem;
+  padding: 0.65rem 0.7rem;
   min-height: 4.25rem;
   border-radius: 1.15rem;
-  gap: 0.35rem;
+  gap: 0.28rem;
 }
 
 .player-rail[data-count="2"].player-rail-few .player-chip-name {
@@ -2349,8 +2376,9 @@ html.party-on .panel {
   font-size: 1.6rem;
 }
 
-.player-rail[data-count="2"].player-rail-few .player-chip-earned {
-  font-size: 0.95rem;
+.player-rail[data-count="2"].player-rail-few .player-chip-earned,
+.player-rail[data-count="2"].player-rail-few .player-chip-earned-spacer {
+  font-size: 0.78rem;
 }
 
 .player-rail[data-count="2"].player-rail-few .player-chip-split-num {
@@ -2359,7 +2387,8 @@ html.party-on .panel {
 
 /* Trio — still generous, a touch tighter than duo */
 .player-rail[data-count="3"].player-rail-few .player-chip {
-  padding: 0.7rem 0.85rem;
+  --player-chip-w: 6.85rem;
+  padding: 0.6rem 0.65rem;
   min-height: 4rem;
   border-radius: 1.05rem;
 }
@@ -2368,51 +2397,29 @@ html.party-on .panel {
   font-size: 1.45rem;
 }
 
-/* Fit everyone without scroll when the row can breathe */
+/*
+ * Fit mode keeps fixed equal widths (no flex-stretch). Track still scrolls
+ * when tiles + gaps exceed the rail — deltas stay stacked, never overflow.
+ */
 .player-rail-fit .player-rail-track {
-  /* No x-scroll needed → real overflow:visible so ring/glow never clip */
-  overflow: visible;
-  scroll-snap-type: none;
-}
-
-.player-rail-fit .player-chip {
-  flex: 1 1 0;
-  min-width: 0;
-  max-width: none;
-}
-
-/* Safe / Risking needs room — don’t squeeze pot-split chips in fit mode */
-.player-rail-fit.player-rail-pot-split .player-rail-track {
   overflow-x: auto;
   scroll-snap-type: x proximity;
 }
-.player-rail-fit.player-rail-pot-split .player-chip {
-  flex: 0 0 auto;
-  min-width: 6.8rem;
-}
-.player-rail-fit.player-rail-pot-split .player-chip-pot-split {
-  min-width: 6.4rem;
-}
 
-/*
- * Pot-split + few: share the row (don’t lock fixed min-widths / scroll).
- * After the general pot-split fit rules so 2–3 seats still stretch.
- * Safe/Risking stays readable; You glow stays unclipped (overflow:visible).
- */
-.player-rail-few.player-rail-fit.player-rail-pot-split .player-rail-track {
-  overflow: visible;
-  scroll-snap-type: none;
+/* Safe / Risking needs a wider fixed tile */
+.player-rail-fit.player-rail-pot-split .player-chip,
+.player-rail-pot-split .player-chip {
+  --player-chip-w: 6.8rem;
+}
+.player-rail-fit.player-rail-pot-split .player-chip-pot-split,
+.player-rail-pot-split .player-chip-pot-split {
+  min-width: 0;
+  max-width: none;
+  width: 100%;
 }
 
 .player-rail-few.player-rail-fit.player-rail-pot-split .player-chip {
-  flex: 1 1 0;
-  min-width: 0;
-  max-width: none;
-}
-
-.player-rail-few.player-rail-fit.player-rail-pot-split .player-chip-pot-split {
-  min-width: 0;
-  max-width: none;
+  --player-chip-w: 7.25rem;
 }
 
 .player-rail-many::after {
@@ -2444,9 +2451,8 @@ html.party-on .player-rail-many::after {
 
 /* Ultra-compact chips for 8–10 (scroll mode) */
 .player-rail-dense .player-chip {
-  min-width: 3.15rem;
-  max-width: 4.6rem;
-  padding: 0.28rem 0.38rem;
+  --player-chip-w: 3.85rem;
+  padding: 0.3rem 0.36rem;
   border-radius: 0.65rem;
 }
 
@@ -2458,29 +2464,9 @@ html.party-on .player-rail-many::after {
   font-size: 0.88rem;
 }
 
-.player-rail-dense .player-chip-earned {
-  font-size: 0.62rem;
-}
-
-/* 6–7 players: try to fit on wider phones */
-@container player-rail (min-width: 22.5rem) {
-  .player-rail[data-count="6"].player-rail-many .player-rail-track,
-  .player-rail[data-count="7"].player-rail-many .player-rail-track {
-    overflow: visible;
-    scroll-snap-type: none;
-  }
-
-  .player-rail[data-count="6"].player-rail-many .player-chip,
-  .player-rail[data-count="7"].player-rail-many .player-chip {
-    flex: 1 1 0;
-    min-width: 0;
-    max-width: none;
-  }
-
-  .player-rail[data-count="6"].player-rail-many::after,
-  .player-rail[data-count="7"].player-rail-many::after {
-    display: none;
-  }
+.player-rail-dense .player-chip-earned,
+.player-rail-dense .player-chip-earned-spacer {
+  font-size: 0.58rem;
 }
 
 /* Topic pick — phone-first hierarchy */
@@ -3989,57 +3975,30 @@ html.party-on .draft-board-cell-mine {
   color: var(--text);
 }
 
-/*
- * Compact chrome chip beside Beans logo.
- * SOLID fills only — rgba alphas inside .room-chrome soft-rasterized the
- * whole header (logo + wordmark + LOBBY) on iPhone after #105.
- * Never animate this chip (no pulse/opacity/transform).
- */
-.host-ai-chrome {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  min-height: 1.35rem;
-  padding: 0.12rem 0.45rem;
-  border-radius: 0.45rem;
-  font-size: 0.62rem;
-  font-weight: 800;
+/* Host-only pre-game AI line — lobby / first topic, never in chrome */
+.host-ai-pregame {
+  margin: 0.35rem 0 0;
+  text-align: center;
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1.3;
   letter-spacing: 0.01em;
-  line-height: 1;
-  border: 1px solid #c5d9cf;
-  white-space: nowrap;
-  color: var(--text);
-  background: #d8ebe2;
-  opacity: 1;
-  animation: none !important;
-  transform: none !important;
-  will-change: auto !important;
-  filter: none !important;
+  color: var(--muted);
+  opacity: 0.72;
 }
-.host-ai-chrome-ok {
-  background: #cfe8db;
-  color: var(--text);
-  border-color: #a7d7c2;
+
+/* Room notice (admin flashes) — small, muted, fades out */
+.room-notice {
+  margin: 0.25rem 0 0;
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--muted);
+  opacity: 0.7;
+  transition: opacity 280ms ease;
 }
-.host-ai-chrome-fallback {
-  background: #f3d0c4;
-  color: var(--text);
-  border-color: #e8a88e;
-}
-.host-ai-chrome-pending {
-  background: #f6e4b0;
-  color: var(--text);
-  border-color: #e2c86a;
-}
-.host-ai-chrome-ready {
-  background: #d8ebe2;
-  color: var(--text);
-  border-color: #b7d7c8;
-}
-.host-ai-chrome-unknown {
-  background: #f5f0e7;
-  color: var(--text);
-  border-color: #d9e0dc;
+.room-notice-leave {
+  opacity: 0;
 }
 
 .settings-toggle {

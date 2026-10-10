@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
 import type { TopicScope } from "@/shared/topics";
 import { RULES } from "@/shared/rules";
+import { HostAiPreGameStatus } from "@/components/HostAiPreGameStatus";
 
 export function TopicPanel({
   state,
@@ -72,6 +73,7 @@ export function TopicPanel({
         <p className="topic-sub">
           Four from the bank — vote or write your own
         </p>
+        {you.isHost && firstTopicScreen ? <HostAiPreGameStatus /> : null}
       </header>
 
       {canPickRounds ? (
