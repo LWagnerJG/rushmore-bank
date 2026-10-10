@@ -81,10 +81,10 @@ function baseState(players: Player[], createdAt: number): PublicRoomState {
     bankBeansReadyNeeded: 0,
     bankBeansReadyIds: [],
     myBankBeansReady: false,
-    rematchReadyCast: 1,
+    rematchReadyCast: 0,
     rematchReadyNeeded: players.length,
-    rematchReadyIds: [YOU_ID],
-    myRematchReady: true,
+    rematchReadyIds: [],
+    myRematchReady: false,
     earnedThisRound: {},
     wagers: {},
     wagerDeadlineAt: null,
@@ -178,7 +178,7 @@ export default function EndgameLabPage() {
     <main className="app-shell mx-auto flex max-w-md flex-col gap-4 px-4 py-6">
       <div className="stack-sm">
         <p className="type-meta text-[var(--muted)]">Dev · endgame lab</p>
-        <h1 className="type-display">Final standings</h1>
+        <h1 className="type-display">Endgame lab</h1>
         <div className="stack-row flex-wrap">
           {(["two", "four", "six", "tie"] as Scenario[]).map((s) => (
             <button
