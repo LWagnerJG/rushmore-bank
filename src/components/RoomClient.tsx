@@ -9,6 +9,7 @@ import { BrandMark } from "@/components/BrandMark";
 import { SettingsSheet } from "@/components/SettingsSheet";
 import { DiagPanel } from "@/components/DiagPanel";
 import { RoomNotice } from "@/components/RoomNotice";
+import { ErrorToast } from "@/components/ErrorToast";
 import { FinalRoundCue } from "@/components/FinalRoundCue";
 import { MotionSettle } from "@/components/MotionSettle";
 import {
@@ -369,7 +370,11 @@ export function RoomClient({
         forces overflow:visible (or an expanded compositing layer) on the
         brand/BANK row — a remaining soft-rasterize path on iPhone after #88.
       */}
-      {state && phase !== "LOBBY" && phase !== "DICE" && (
+      {/* GAME_RESULTS: reveal list is the only score surface — hide the rail. */}
+      {state &&
+        phase !== "LOBBY" &&
+        phase !== "DICE" &&
+        phase !== "GAME_RESULTS" && (
         <div className="room-rail-slot -mx-4 mb-2 px-4">
           <PlayerRail state={state} youId={youId} />
         </div>
@@ -400,18 +405,6 @@ export function RoomClient({
             aria-live="polite"
           >
             Reconnecting…
-          </p>
-        )}
-        {error && (
-          <p className="mb-2 text-sm text-[var(--coral)]" role="alert">
-            {error}{" "}
-            <button
-              type="button"
-              className="underline"
-              onClick={() => setError(null)}
-            >
-              dismiss
-            </button>
           </p>
         )}
         {phase === "SCORE_REVEAL" ? (
@@ -455,6 +448,7 @@ export function RoomClient({
         pickPaused={state?.pickPaused ?? false}
       />
       {diagOpen && <DiagPanel onClose={() => setDiagOpen(false)} />}
+      <ErrorToast error={error} onDismiss={() => setError(null)} />
       <FinalRoundCue
         active={finalCueActive}
         onDone={() => setFinalCueActive(false)}

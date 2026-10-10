@@ -1,7 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { AddToHomeScreen } from "@/components/AddToHomeScreen";
 import { BrandMark } from "@/components/BrandMark";
 import { DiagPanel } from "@/components/DiagPanel";
@@ -14,6 +20,49 @@ import { recallDisplayName } from "@/lib/party";
 const ADMIN_KEY = ADMIN_UNLOCK_KEY;
 const ADMIN_DISPLAY_NAME = "Admin";
 
+const adminListeners = new Set<() => void>();
+function subscribeAdmin(cb: () => void) {
+  adminListeners.add(cb);
+  return () => {
+    adminListeners.delete(cb);
+  };
+}
+function getAdminSnapshot() {
+  try {
+    return window.sessionStorage.getItem(ADMIN_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+function getAdminServerSnapshot() {
+  return false;
+}
+function unlockAdminSession() {
+  try {
+    window.sessionStorage.setItem(ADMIN_KEY, "1");
+  } catch {
+    /* ignore */
+  }
+  for (const cb of adminListeners) cb();
+}
+
+function useDiagFromUrl() {
+  return useSyncExternalStore(
+    (cb) => {
+      window.addEventListener("popstate", cb);
+      return () => window.removeEventListener("popstate", cb);
+    },
+    () => {
+      try {
+        return new URLSearchParams(window.location.search).get("diag") === "1";
+      } catch {
+        return false;
+      }
+    },
+    () => false,
+  );
+}
+
 export default function HomePage() {
   const router = useRouter();
   const [code, setCode] = useState("");
@@ -22,20 +71,18 @@ export default function HomePage() {
   const [nameError, setNameError] = useState<string | null>(null);
   const [joinError, setJoinError] = useState<string | null>(null);
   const [joining, setJoining] = useState(false);
-  const [adminUnlocked, setAdminUnlocked] = useState(() => {
-    if (typeof window === "undefined") return false;
-    try {
-      return window.sessionStorage.getItem(ADMIN_KEY) === "1";
-    } catch {
-      return false;
-    }
-  });
+  // useSyncExternalStore: server snapshot false, client reads sessionStorage —
+  // avoids React #418 without a sync setState-in-effect.
+  const adminUnlocked = useSyncExternalStore(
+    subscribeAdmin,
+    getAdminSnapshot,
+    getAdminServerSnapshot,
+  );
   const taps = useRef(0);
   const tapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [diagOpen, setDiagOpen] = useState(() =>
-    typeof window !== "undefined" &&
-    new URLSearchParams(window.location.search).get("diag") === "1",
-  );
+  const diagFromUrl = useDiagFromUrl();
+  const [diagClosed, setDiagClosed] = useState(false);
+  const showDiag = diagFromUrl && !diagClosed;
 
   // Prefill last nickname on mount so returning players skip the name step.
   useEffect(() => {
@@ -58,12 +105,7 @@ export default function HomePage() {
     }, 1600);
     if (taps.current >= 5) {
       taps.current = 0;
-      try {
-        window.sessionStorage.setItem(ADMIN_KEY, "1");
-      } catch {
-        /* ignore */
-      }
-      setAdminUnlocked(true);
+      unlockAdminSession();
       setName((prev) => (prev.trim() ? prev : ADMIN_DISPLAY_NAME));
       setNameReady(true);
       setNameError(null);
@@ -276,7 +318,7 @@ export default function HomePage() {
 
       {/* Outside MotionSettle so fixed/absolute children aren’t transform-clipped */}
       <AddToHomeScreen />
-      {diagOpen && <DiagPanel onClose={() => setDiagOpen(false)} />}
+      {showDiag && <DiagPanel onClose={() => setDiagClosed(true)} />}
     </main>
   );
 }
