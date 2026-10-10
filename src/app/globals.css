@@ -2774,6 +2774,54 @@ html.party-on .player-row {
 
 /* .btn-party-sip / .btn-danger alias to .btn-primary (see button block above) */
 
+/* Results reveal — opacity/transform only; rows keep layout space */
+.results-reveal {
+  cursor: pointer;
+  outline: none;
+}
+
+.results-reveal:focus-visible {
+  box-shadow: 0 0 0 3px rgba(231, 111, 78, 0.25);
+  border-radius: 0.95rem;
+}
+
+.results-reveal-row {
+  transition:
+    opacity var(--motion-fast) ease,
+    transform var(--motion-fast) ease;
+  will-change: auto;
+}
+
+.results-reveal-row-off {
+  opacity: 0;
+  transform: translateY(6px);
+  pointer-events: none;
+}
+
+.results-reveal-row-on {
+  opacity: 1;
+  transform: none;
+}
+
+.results-reveal-hint {
+  list-style: none;
+  text-align: center;
+  min-height: 1.25rem;
+  opacity: 0.85;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .results-reveal-row {
+    transition: none;
+  }
+
+  .results-reveal-row-off,
+  .results-reveal-row-on {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 .status-pill {
   display: inline-flex;
   align-items: center;
