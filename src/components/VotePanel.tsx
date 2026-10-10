@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
 import { RULES } from "@/shared/rules";
 import { rosterDensity } from "@/shared/roster-density";
+import { cueYourTurn } from "@/lib/your-turn";
 import { RushmoreCard } from "@/components/RushmoreCard";
 
 function Countdown({ until }: { until: number | null }) {
@@ -43,6 +44,11 @@ export function VotePanel({
   /** Only show while the judge is actually running — not ready/idle. */
   const judging = state.judgeStatus === "pending";
   const canVote = you.role === "player" && !twoPlayer && !votesDone;
+
+  useEffect(() => {
+    if (!canVote) return;
+    cueYourTurn(`vote:${state.code}:${state.topicRound}:${state.phaseRevision}`);
+  }, [canVote, state.code, state.topicRound, state.phaseRevision]);
 
   return (
     <div className={`roster-board space-y-3 roster-board-${density}`}>

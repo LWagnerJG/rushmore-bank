@@ -71,9 +71,17 @@ export function RushmoreCard({
     return (
       <button
         type="button"
-        className={`panel rushmore-card rushmore-card-${dens} w-full text-left transition ${
-          selected ? "rushmore-card-selected" : ""
-        }`}
+        className={[
+          "panel",
+          "rushmore-card",
+          `rushmore-card-${dens}`,
+          "rushmore-card-your-turn",
+          "w-full",
+          "text-left",
+          selected ? "rushmore-card-selected" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
         disabled={disabled}
         onClick={onSelect}
       >
