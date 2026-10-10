@@ -50,6 +50,63 @@ export function TopicPanel({
     });
   }
 
+  // Writing your own takes over the panel top: the field and Lock in sit
+  // right under the rail, above the iOS keyboard (the 5th list row is far
+  // below the fold).
+  if (you.isHost && customOpen) {
+    return (
+      <div className="topic-layout">
+        <section className="topic-custom-card" aria-label="Write your own topic">
+          <p className="topic-custom-label">Write your own</p>
+          <div className="topic-custom-row">
+            <input
+              className="field topic-custom-input"
+              value={custom}
+              placeholder="Your topic"
+              aria-label="Your topic"
+              maxLength={80}
+              enterKeyHint="go"
+              autoFocus
+              onChange={(e) => setCustom(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.nativeEvent.isComposing) lockCustom();
+              }}
+            />
+            <button
+              type="button"
+              className="btn-primary topic-custom-lock"
+              aria-disabled={!custom.trim()}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={lockCustom}
+            >
+              Lock in
+            </button>
+          </div>
+          <div className="topic-custom-row">
+            <select
+              className="field topic-custom-scope"
+              value={scope}
+              aria-label="Topic scope"
+              onChange={(e) => setScope(e.target.value as TopicScope)}
+            >
+              <option value="sports">Sports</option>
+              <option value="food">Food</option>
+              <option value="everyday">Everyday</option>
+              <option value="entertainment">Entertainment</option>
+            </select>
+            <button
+              type="button"
+              className="topic-custom-cancel"
+              onClick={() => setCustomOpen(false)}
+            >
+              Back to picks
+            </button>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="topic-layout">
       <header className="topic-head">
@@ -183,63 +240,17 @@ export function TopicPanel({
           );
         })}
 
-        {/* 5th choice — custom topic mixed into the same list */}
+        {/* 5th choice — opens the custom form at the top of the panel */}
         {you.isHost ? (
-          <div
-            className={`topic-choice topic-choice-custom ${customOpen ? "topic-choice-custom-open" : ""}`}
-          >
-            {!customOpen ? (
-              <button
-                type="button"
-                className="topic-choice-custom-toggle"
-                onClick={() => setCustomOpen(true)}
-              >
-                <span className="topic-choice-text">Write your own…</span>
-                <span className="topic-choice-hint">Custom</span>
-              </button>
-            ) : (
-              <div className="topic-custom-form">
-                <p className="topic-custom-label">Write your own</p>
-                <input
-                  className="field w-full !py-2.5"
-                  value={custom}
-                  placeholder="Your topic"
-                  autoFocus
-                  onChange={(e) => setCustom(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") lockCustom();
-                  }}
-                />
-                <div className="topic-custom-row">
-                  <select
-                    className="field flex-1 !py-2"
-                    value={scope}
-                    aria-label="Topic scope"
-                    onChange={(e) => setScope(e.target.value as TopicScope)}
-                  >
-                    <option value="sports">Sports</option>
-                    <option value="food">Food</option>
-                    <option value="everyday">Everyday</option>
-                    <option value="entertainment">Entertainment</option>
-                  </select>
-                  <button
-                    type="button"
-                    className="btn-primary shrink-0 px-[var(--space-4)]"
-                    disabled={!custom.trim()}
-                    onClick={lockCustom}
-                  >
-                    Lock in
-                  </button>
-                </div>
-                <button
-                  type="button"
-                  className="topic-custom-cancel"
-                  onClick={() => setCustomOpen(false)}
-                >
-                  Back to picks
-                </button>
-              </div>
-            )}
+          <div className="topic-choice topic-choice-custom">
+            <button
+              type="button"
+              className="topic-choice-custom-toggle"
+              onClick={() => setCustomOpen(true)}
+            >
+              <span className="topic-choice-text">Write your own…</span>
+              <span className="topic-choice-hint">Custom</span>
+            </button>
           </div>
         ) : (
           <div className="topic-choice topic-choice-custom topic-choice-custom-locked">

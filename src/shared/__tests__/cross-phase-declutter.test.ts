@@ -24,6 +24,7 @@ const css = readFileSync(resolve(__dirname, "../../app/globals.css"), "utf8");
 describe("cross-phase clutter-cut", () => {
   it("home has one join heading", () => {
     expect(home).toMatch(/Join a room/);
+    expect(home).toMatch(/aria-label="Room code"/);
     expect(home).not.toMatch(/Have a code\?/);
   });
 

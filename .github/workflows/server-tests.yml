@@ -37,8 +37,6 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Install Playwright WebKit
-        run: npx playwright install --with-deps webkit
       # Full suite (includes die-face pip invariants — blocks merge on failure).
       - run: npm test
       # Explicit die pip / face clamp gate (never paint 0 or 7+ pips on a face).
