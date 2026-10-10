@@ -100,7 +100,7 @@ export function LobbyPanel({
 
       <section className="panel stack-sm lobby-roster">
         <div className="flex items-baseline justify-between gap-[var(--space-2)]">
-          <h2 className="type-body font-[family-name:var(--font-display)] font-extrabold">
+          <h2 className="type-body font-bold">
             Who&rsquo;s in
           </h2>
           <span className="type-meta font-bold text-[var(--muted)]">

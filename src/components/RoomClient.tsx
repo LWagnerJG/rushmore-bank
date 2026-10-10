@@ -46,9 +46,13 @@ function DraftBannerClock({
     const t = setInterval(tick, 250);
     return () => clearInterval(t);
   }, [until]);
+  const urgent = !paused && left > 0 && left <= 10;
   return (
     <span
-      className="min-w-[2.75rem] text-right font-[family-name:var(--font-display)] text-2xl font-extrabold tabular-nums leading-none text-[var(--text)]"
+      className={
+        "draft-timer-pill tabular-nums" +
+        (urgent ? " draft-timer-pill-urgent" : "")
+      }
       aria-live="polite"
     >
       {paused ? "‖" : `${left}s`}
@@ -222,11 +226,9 @@ export function RoomClient({
         <main className="app-shell app-shell-lock mx-auto flex max-w-md flex-col pt-0">
           <div className="app-safe-top" aria-hidden="true" />
           <div className="app-shell-scroll flex min-h-0 flex-1 flex-col gap-4 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4">
-            <BrandMark shimmer={false} onLogoTap={handleLogoTap} />
-            <h1 className="font-[family-name:var(--font-display)] text-2xl font-extrabold">
-              Room {code}
-            </h1>
-            <p className="text-sm text-[var(--muted)]">
+            <BrandMark chrome shimmer={false} onLogoTap={handleLogoTap} />
+            <h1 className="type-display">Room {code}</h1>
+            <p className="type-meta text-[var(--muted)]">
               {connected ? `Joining as ${presetName.trim()}…` : "Connecting…"}
             </p>
             {error && <p className="text-sm text-[var(--coral)]">{error}</p>}
@@ -247,11 +249,9 @@ export function RoomClient({
       <main className="app-shell app-shell-lock mx-auto flex max-w-md flex-col pt-0">
         <div className="app-safe-top" aria-hidden="true" />
         <div className="app-shell-scroll flex min-h-0 flex-1 flex-col gap-4 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4">
-          <BrandMark shimmer={false} onLogoTap={handleLogoTap} />
-          <h1 className="font-[family-name:var(--font-display)] text-2xl font-extrabold">
-            Room {code}
-          </h1>
-          <p className="text-sm text-[var(--muted)]">
+          <BrandMark chrome shimmer={false} onLogoTap={handleLogoTap} />
+          <h1 className="type-display">Room {code}</h1>
+          <p className="type-meta text-[var(--muted)]">
             {removed
               ? "The host removed this seat. You can join again below."
               : connected
@@ -324,43 +324,41 @@ export function RoomClient({
       >
         <div className="room-chrome-safe" aria-hidden="true" />
         <div className="room-chrome-body px-4 pb-2 pt-1">
-          <div className="room-chrome-top flex items-start justify-between gap-3">
-            <div className="min-w-0 flex flex-wrap items-center gap-2">
-              <BrandMark shimmer={false} onLogoTap={handleLogoTap} />
+          {/*
+            Stable chrome row: brand (quiet) + end slot always same height so
+            timer appear/disappear never shifts the topic hero below.
+          */}
+          <div className="room-chrome-top">
+            <div className="room-chrome-brand min-w-0">
+              <BrandMark chrome shimmer={false} onLogoTap={handleLogoTap} />
             </div>
-            {drafting && state ? (
-              // Draft chrome = topic (below) + timer only. Pause/+15s live in Settings.
-              <div className="flex shrink-0 items-center gap-1 pt-0.5">
+            <div className="room-chrome-end">
+              {drafting && state ? (
                 <DraftBannerClock
                   until={state.pickDeadlineAt}
                   paused={state.pickPaused}
                 />
-              </div>
-            ) : phase === "LOBBY" ? (
-              <div className="text-right text-xs font-bold uppercase tracking-wide text-[var(--muted)]">
-                <div className="flex items-center justify-end gap-1.5">
-                  {partyOn && (
+              ) : phase === "LOBBY" ? (
+                <div className="room-chrome-phase type-meta">
+                  {partyOn ? (
                     <span className="room-chrome-pill normal-case tracking-normal">
                       Party
                     </span>
-                  )}
+                  ) : null}
                   <span>Lobby</span>
                 </div>
-              </div>
-            ) : (
-              // PlayerRail / turn strip is the score surface — no phase+beans chrome.
-              partyOn ? (
-                <div className="flex shrink-0 items-center justify-end pt-0.5">
-                  <span className="room-chrome-pill">Party</span>
-                </div>
-              ) : null
-            )}
+              ) : partyOn ? (
+                <span className="room-chrome-pill">Party</span>
+              ) : (
+                <span className="room-chrome-end-spacer" aria-hidden="true" />
+              )}
+            </div>
           </div>
-          {drafting && state?.selectedTopic && (
-            <h1 className="mt-1.5 font-[family-name:var(--font-display)] text-[1.35rem] font-extrabold leading-snug tracking-tight text-[var(--text)]">
+          {drafting && state?.selectedTopic ? (
+            <h1 className="type-display room-chrome-topic">
               {state.selectedTopic.text}
             </h1>
-          )}
+          ) : null}
           <RoomNotice notice={state?.notice} hostOnly isHost={you.isHost} />
         </div>
       </header>

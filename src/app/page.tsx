@@ -202,7 +202,7 @@ export default function HomePage() {
             <div className="flex justify-center">
               <BrandMark large onLogoTap={onLogoTap} />
             </div>
-            <p className="font-[family-name:var(--font-display)] text-lg font-bold text-[var(--text)]">
+            <p className="type-body text-[var(--text)]">
               {RULES.tagline}
             </p>
           </header>
@@ -210,7 +210,10 @@ export default function HomePage() {
         {!canPlay ? (
           <section className="home-card home-card-step space-y-4">
             <div className="stack-sm text-center">
-              <h1 className="type-display">What’s your name?</h1>
+              {/* BrandMark large above is the sole display hero on Home */}
+              <h1 className="type-body font-[family-name:var(--font-display)] font-extrabold tracking-tight">
+                What’s your name?
+              </h1>
               <p className="type-meta text-[var(--muted)]">
                 Pick a nickname to create or join a room.
               </p>

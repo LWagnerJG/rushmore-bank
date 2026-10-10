@@ -24,11 +24,9 @@ export function ReviewPanel({
   return (
     <div className={`roster-board space-y-3 roster-board-${density}`}>
       <div className="flex items-baseline justify-between gap-2">
-        <h2 className="font-[family-name:var(--font-display)] text-xl font-extrabold">
-          Rosters
-        </h2>
+        <h2 className="type-display">Rosters</h2>
       </div>
-      <p className="text-sm text-[var(--muted)]">
+      <p className="type-meta text-[var(--muted)]">
         Starting vote + AI judge…
       </p>
       <div className={`roster-board-grid roster-board-grid-${density}`}>

@@ -47,13 +47,13 @@ export function ResultsPanel({
 
   return (
     <div className="stack endgame-panel">
-      {!final ? (
-        <h2 className="type-display">
-          {isFinalRoundResults
+      <h2 className="type-display">
+        {final
+          ? "Final standings"
+          : isFinalRoundResults
             ? "Final round results"
             : `Round ${state.topicRound}/${state.configuredTopicRounds}`}
-        </h2>
-      ) : null}
+      </h2>
 
       <ResultsRevealList
         ranked={ranked}
@@ -66,7 +66,7 @@ export function ResultsPanel({
       {promptOpen && prompt?.kind === "lowest_drink" && (
         <div className="party-sip party-sip-quiet stack-sm">
           <p className="party-sip-kicker type-meta">Party Mode</p>
-          <p className="type-body font-[family-name:var(--font-display)] font-extrabold">
+          <p className="type-body font-bold">
             Lowest beans · take a drink
           </p>
           <p className="type-meta text-[var(--muted)]">
