@@ -14,6 +14,10 @@ const railSrc = readFileSync(
   resolve(__dirname, "../../components/PlayerRail.tsx"),
   "utf8",
 );
+const railCss = readFileSync(
+  resolve(__dirname, "../../app/globals.css"),
+  "utf8",
+);
 
 function p(
   partial: Partial<Player> & Pick<Player, "id" | "name" | "stones">,
@@ -123,5 +127,20 @@ describe("currentUpPlayerId", () => {
     room.phase = "REVIEW";
     room.seatOrder = ["a"];
     expect(currentUpPlayerId(room)).toBeNull();
+  });
+});
+
+describe("player rail overflow affordance", () => {
+  it("marks scrollable rails and peeks both edges without blur", () => {
+    expect(railSrc).toMatch(/player-rail-scrollable/);
+    expect(railSrc).toMatch(/behavior:\s*ScrollBehavior\s*=\s*"auto"/);
+    expect(railCss).toMatch(/\.player-rail-scrollable::before/);
+    expect(railCss).toMatch(/\.player-rail-scrollable::after/);
+    expect(railCss).not.toMatch(
+      /\.player-rail-scrollable::after[\s\S]{0,120}blur\s*\(/,
+    );
+    expect(railCss).toMatch(
+      /\.player-rail-fit\.player-rail-pot-split\[data-count="4"\]/,
+    );
   });
 });
