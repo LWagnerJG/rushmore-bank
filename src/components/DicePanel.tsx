@@ -9,10 +9,9 @@ import {
   resolveDiceReadout,
   type DiceReadoutRoll,
 } from "@/shared/engine/dice-present";
-import { haptic } from "@/lib/haptics";
+import { feedback } from "@/lib/feedback";
 import { cueYourTurn } from "@/lib/your-turn";
 import { RULES } from "@/shared/rules";
-import { ensureDiceAudio, playBankChime } from "@/lib/dice-sfx";
 
 function useSecondsLeft(until: number | null) {
   const [left, setLeft] = useState(0);
@@ -282,11 +281,17 @@ export function DicePanel({
     const hold = liveRoll.busted ? RULES.diceBustHoldMs : 900;
     const on = window.setTimeout(() => setHeroReveal(true), 0);
     const off = window.setTimeout(() => setHeroReveal(false), hold);
+    // +beans land — after dice settle cue; skip on bust.
+    let beansId: number | undefined;
+    if (!liveRoll.busted && (liveRoll.gain ?? 0) > 0) {
+      beansId = window.setTimeout(() => feedback("beans_land"), 70);
+    }
     return () => {
       window.clearTimeout(on);
       window.clearTimeout(off);
+      if (beansId != null) window.clearTimeout(beansId);
     };
-  }, [liveRoll?.rollId, liveRoll?.busted, state.diceSubphase]);
+  }, [liveRoll?.rollId, liveRoll?.busted, liveRoll?.gain, state.diceSubphase]);
 
   const seats: SeatInfo[] = state.seatOrder.map((pid) => {
     const player = state.players.find((p) => p.id === pid);
@@ -323,16 +328,10 @@ export function DicePanel({
     send({ type: "bank_confirm_cancel" });
   }
 
-  async function confirmBank() {
+  function confirmBank() {
     if (!canBank || busy) return;
     setBankConfirm(false);
-    haptic("bank");
-    try {
-      const ctx = await ensureDiceAudio();
-      playBankChime(ctx);
-    } catch {
-      /* ignore */
-    }
+    feedback("bank");
     act({ type: "pull_out" });
   }
 

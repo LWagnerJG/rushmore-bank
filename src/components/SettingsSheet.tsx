@@ -2,11 +2,16 @@
 
 import { useEffect, useState } from "react";
 import {
-  isSfxMuted,
-  setSfxMuted,
-  subscribeSfxMuted,
+  isSoundEnabled,
+  setSoundEnabled,
+  subscribeSoundEnabled,
 } from "@/lib/sound-prefs";
+<<<<<<< HEAD
 import type { ClientMessage, HostAiJudgeHealth, Phase } from "@/shared/types";
+=======
+import { ensureAudio, unlockAudioOnGesture } from "@/lib/sfx";
+import type { HostAiJudgeHealth } from "@/shared/types";
+>>>>>>> db9dc30 (feat(ui): subtle WebAudio sound + haptics, off by default)
 import { HostAiJudgeCue } from "./HostAiJudgeCue";
 import { AdminTools, isAdminUnlocked } from "./AdminPanel";
 
@@ -36,20 +41,20 @@ export function SettingsSheet({
   playerCount?: number;
   botCountInRoom?: number;
 }) {
-  const [muted, setMuted] = useState(() =>
-    typeof window !== "undefined" ? isSfxMuted() : false,
+  const [soundOn, setSoundOn] = useState(() =>
+    typeof window !== "undefined" ? isSoundEnabled() : false,
   );
   const [copied, setCopied] = useState(false);
   const [adminUnlocked, setAdminUnlocked] = useState(false);
 
   useEffect(() => {
     if (!open) return;
-    return subscribeSfxMuted(setMuted);
+    return subscribeSoundEnabled(setSoundOn);
   }, [open]);
 
   useEffect(() => {
     if (!open) return;
-    const id = window.setTimeout(() => setMuted(isSfxMuted()), 0);
+    const id = window.setTimeout(() => setSoundOn(isSoundEnabled()), 0);
     return () => window.clearTimeout(id);
   }, [open]);
 
@@ -111,24 +116,28 @@ export function SettingsSheet({
 
         <div className="settings-row">
           <span className="settings-row-label">
-            <span className="font-extrabold">Sound FX</span>
+            <span className="font-extrabold">Sound</span>
             <span className="text-xs text-[var(--muted)]">
-              Roll, settle, bank, bust
+              Soft cues — off by default
             </span>
           </span>
           <button
             type="button"
             role="switch"
-            aria-checked={!muted}
-            className={`settings-toggle ${muted ? "" : "settings-toggle-on"}`}
+            aria-checked={soundOn}
+            className={`settings-toggle ${soundOn ? "settings-toggle-on" : ""}`}
             onClick={() => {
-              const next = !muted;
-              setMuted(next);
-              setSfxMuted(next);
+              const next = !soundOn;
+              setSoundOn(next);
+              setSoundEnabled(next);
+              if (next) {
+                unlockAudioOnGesture();
+                void ensureAudio();
+              }
             }}
           >
             <span className="settings-toggle-knob" />
-            <span className="sr-only">{muted ? "Off" : "On"}</span>
+            <span className="sr-only">{soundOn ? "On" : "Off"}</span>
           </button>
         </div>
 
