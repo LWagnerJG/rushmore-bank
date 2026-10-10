@@ -74,7 +74,7 @@ describe("shouldFreezeAppHeight", () => {
     ).toBe(false);
   });
 
-  it("does not freeze for modest chrome shrinks even with focus", () => {
+  it("freezes for the whole focus session even on modest chrome shrinks", () => {
     expect(
       shouldFreezeAppHeight({
         innerHeight: 844,
@@ -82,7 +82,18 @@ describe("shouldFreezeAppHeight", () => {
         visualViewportOffsetTop: 0,
         editableFocused: true,
       }),
-    ).toBe(false);
+    ).toBe(true);
+  });
+
+  it("freezes on focus alone before the keyboard heuristic would trip", () => {
+    expect(
+      shouldFreezeAppHeight({
+        innerHeight: 844,
+        visualViewportHeight: 844,
+        visualViewportOffsetTop: 0,
+        editableFocused: true,
+      }),
+    ).toBe(true);
   });
 });
 
