@@ -6,6 +6,7 @@
  *
  * Set the workers.dev host as NEXT_PUBLIC_PARTYKIT_HOST on Vercel (env name is
  * historical). Put JUDGE_SECRET with: npx wrangler secret put JUDGE_SECRET
+ * Optional: npx wrangler secret put ADMIN_PIN (non-host admin calls only; host always allowed)
  */
 {
   "name": "beans-party",

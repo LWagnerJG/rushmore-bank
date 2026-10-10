@@ -412,16 +412,21 @@ export type ClientMessage =
   | { type: "skip_review"; actionId?: string }
   /** Host-only: remove a player from the lobby before the game starts. */
   | { type: "remove_player"; playerId: string; actionId?: string }
-  /** Secret admin — PIN gated on server; not advertised in UI. */
+  /** Host admin tools — host always allowed; optional ADMIN_PIN for non-host. */
   | {
       type: "admin_spawn_bots";
-      pin: string;
+      pin?: string;
       count: number;
       /** Shorter bot tap delays for CI / playtest smokes. */
       fast?: boolean;
       actionId?: string;
     }
-  | { type: "admin_jump_phase"; pin: string; phase: Phase; actionId?: string };
+  | {
+      type: "admin_jump_phase";
+      pin?: string;
+      phase: Phase;
+      actionId?: string;
+    };
 
 export type ServerMessage =
   | { type: "state"; state: PublicRoomState; youId: string }

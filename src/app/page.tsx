@@ -86,13 +86,33 @@ export default function HomePage() {
     setJoinError(null);
   }
 
-  function create() {
+  async function create() {
     if (!canPlay) {
       setNameError("Enter a nickname first");
       return;
     }
-    const room = randomRoomCode();
-    router.push(`/room/${room}?name=${encodeURIComponent(displayName)}`);
+    setJoinError(null);
+    setJoining(true);
+    try {
+      let room = randomRoomCode();
+      for (let attempt = 0; attempt < 8; attempt++) {
+        try {
+          const res = await fetch(`/api/room/${room}/exists`);
+          if (res.ok) {
+            const data = (await res.json()) as { exists: boolean };
+            if (!data.exists) break;
+          } else {
+            break;
+          }
+        } catch {
+          break;
+        }
+        room = randomRoomCode();
+      }
+      router.push(`/room/${room}?name=${encodeURIComponent(displayName)}`);
+    } finally {
+      setJoining(false);
+    }
   }
 
   function join() {
