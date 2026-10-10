@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import { stepKeyboardSession } from "../viewport-height";
 
 const css = readFileSync(
   resolve(__dirname, "../../app/globals.css"),
@@ -92,8 +93,9 @@ describe("iOS chrome + keyboard CSS contracts", () => {
     expect(css).toMatch(/body\s*\{[\s\S]*?overflow:\s*hidden/);
   });
 
-  it("sets interactive-widget overlays-content on the viewport export", () => {
-    expect(layout).toMatch(/interactiveWidget:\s*"overlays-content"/);
+  it("declares the visual-viewport keyboard model iOS actually uses", () => {
+    expect(layout).toMatch(/interactiveWidget:\s*"resizes-visual"/);
+    expect(layout).not.toMatch(/interactiveWidget:\s*"resizes-content"/);
   });
 
   it("does not leave enter animations with fill-mode forwards/both", () => {
@@ -174,22 +176,24 @@ describe("iPhone viewport fixtures (safe-area top)", () => {
       // Shell height stays the layout height (keyboard must not shrink it)
       const shellH = phone.h;
       const keyboardH = 336;
-      const vvWithKeyboard = phone.h - keyboardH;
-      expect(
-        shouldKeepShell(shellH, vvWithKeyboard, true),
-      ).toBe(shellH);
+      const viewport = (vv: number) => ({
+        innerHeight: shellH,
+        innerWidth: phone.w,
+        visualViewportHeight: vv,
+      });
+      let step = stepKeyboardSession(
+        { phase: "idle" },
+        { type: "focus", viewport: viewport(shellH), currentAppHeightPx: shellH },
+      );
+      for (const event of [
+        { type: "viewport", viewport: viewport(shellH - keyboardH) },
+        { type: "blur", viewport: viewport(shellH - keyboardH) },
+        { type: "viewport", viewport: viewport(shellH - keyboardH / 2) },
+      ] as const) {
+        step = stepKeyboardSession(step.session, event);
+        expect(step.appHeightPx).toBeNull();
+      }
       expect(phone.w).toBeGreaterThan(0);
     });
   }
 });
-
-/** Mirror of freeze+resolve used by NoPullToRefresh for the fixture check. */
-function shouldKeepShell(
-  innerHeight: number,
-  visualViewportHeight: number,
-  editableFocused: boolean,
-): number {
-  // Freeze for the entire editable-focus session — not only after >150px shrink.
-  if (editableFocused) return innerHeight;
-  return visualViewportHeight;
-}

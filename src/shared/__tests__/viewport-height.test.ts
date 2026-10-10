@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
+  idleAppHeightPx,
   isEditableElement,
+  keyboardGone,
   looksLikeIpad,
   resolveAppHeightPx,
   scrollEditableIntoAppScroll,
-  shouldFreezeAppHeight,
+  stepKeyboardSession,
+  type KeyboardSession,
+  type ViewportSample,
 } from "../viewport-height";
 
 describe("resolveAppHeightPx", () => {
@@ -40,60 +44,151 @@ describe("resolveAppHeightPx", () => {
   });
 });
 
-describe("shouldFreezeAppHeight", () => {
-  it("freezes when an editable is focused and vv shrinks by keyboard amount", () => {
-    expect(
-      shouldFreezeAppHeight({
-        innerHeight: 844,
-        visualViewportHeight: 480,
-        visualViewportOffsetTop: 0,
-        editableFocused: true,
-      }),
-    ).toBe(true);
+describe("keyboard session (--app-h)", () => {
+  const vp = (
+    visualViewportHeight: number,
+    extra: Partial<ViewportSample> = {},
+  ): ViewportSample => ({
+    innerHeight: 844,
+    innerWidth: 390,
+    visualViewportHeight,
+    visualViewportScale: 1,
+    ...extra,
+  });
+  const idle: KeyboardSession = { phase: "idle" };
+  const open = (frozenPx = 844): KeyboardSession => ({
+    phase: "open",
+    frozenPx,
+    width: 390,
   });
 
-  it("freezes when visualViewport offsetTop jumps under focus", () => {
+  it("follows the visual viewport while idle", () => {
     expect(
-      shouldFreezeAppHeight({
-        innerHeight: 844,
-        visualViewportHeight: 780,
-        visualViewportOffsetTop: 64,
-        editableFocused: true,
-      }),
-    ).toBe(true);
+      stepKeyboardSession(idle, { type: "viewport", viewport: vp(778) }),
+    ).toEqual({ session: idle, appHeightPx: 778, ended: false });
   });
 
-  it("does not freeze for small browser-chrome shrinks without focus", () => {
-    expect(
-      shouldFreezeAppHeight({
-        innerHeight: 844,
-        visualViewportHeight: 778,
-        visualViewportOffsetTop: 0,
-        editableFocused: false,
-      }),
-    ).toBe(false);
+  it("ignores pinch-zoom shrinks while idle", () => {
+    expect(idleAppHeightPx(vp(420, { visualViewportScale: 2 }))).toBeNull();
   });
 
-  it("freezes for the whole focus session even on modest chrome shrinks", () => {
-    expect(
-      shouldFreezeAppHeight({
-        innerHeight: 844,
-        visualViewportHeight: 778,
-        visualViewportOffsetTop: 0,
-        editableFocused: true,
-      }),
-    ).toBe(true);
+  it("freezes at the applied height on focus, before the keyboard shows", () => {
+    const step = stepKeyboardSession(idle, {
+      type: "focus",
+      viewport: vp(844),
+      currentAppHeightPx: 844,
+    });
+    expect(step).toEqual({ session: open(), appHeightPx: null, ended: false });
   });
 
-  it("freezes on focus alone before the keyboard heuristic would trip", () => {
+  it("never follows keyboard frames while a field is focused", () => {
+    for (const h of [800, 640, 464, 464.5]) {
+      const step = stepKeyboardSession(open(), {
+        type: "viewport",
+        viewport: vp(h),
+      });
+      expect(step.appHeightPx).toBeNull();
+      expect(step.session.phase).toBe("open");
+    }
+  });
+
+  it("stays frozen after blur until the keyboard has fully closed", () => {
+    // Tap on "Lock in": blur fires while the keyboard is still up.
+    let step = stepKeyboardSession(open(), { type: "blur", viewport: vp(464) });
+    expect(step).toMatchObject({ appHeightPx: null, ended: false });
+    expect(step.session.phase).toBe("closing");
+    for (const h of [520, 700, 820]) {
+      step = stepKeyboardSession(step.session, {
+        type: "viewport",
+        viewport: vp(h),
+      });
+      expect(step.appHeightPx).toBeNull();
+      expect(step.session.phase).toBe("closing");
+    }
+    step = stepKeyboardSession(step.session, {
+      type: "viewport",
+      viewport: vp(844),
+    });
+    expect(step).toEqual({ session: idle, appHeightPx: 844, ended: true });
+  });
+
+  it("ends immediately on blur when the keyboard never opened", () => {
     expect(
-      shouldFreezeAppHeight({
-        innerHeight: 844,
-        visualViewportHeight: 844,
-        visualViewportOffsetTop: 0,
-        editableFocused: true,
+      stepKeyboardSession(open(), { type: "blur", viewport: vp(844) }),
+    ).toEqual({ session: idle, appHeightPx: 844, ended: true });
+  });
+
+  it("returns to open when another field takes focus mid-close", () => {
+    const closing = stepKeyboardSession(open(), {
+      type: "blur",
+      viewport: vp(464),
+    }).session;
+    const step = stepKeyboardSession(closing, {
+      type: "focus",
+      viewport: vp(464),
+      currentAppHeightPx: 844,
+    });
+    expect(step).toEqual({ session: open(), appHeightPx: null, ended: false });
+  });
+
+  it("times out without shrinking when the keyboard never reports closed", () => {
+    const closing = stepKeyboardSession(open(), {
+      type: "blur",
+      viewport: vp(464),
+    }).session;
+    expect(
+      stepKeyboardSession(closing, { type: "timeout", viewport: vp(464) }),
+    ).toEqual({ session: idle, appHeightPx: null, ended: true });
+    expect(
+      stepKeyboardSession(open(), { type: "timeout", viewport: vp(464) }),
+    ).toEqual({ session: open(), appHeightPx: null, ended: false });
+  });
+
+  it("takes the settled height on timeout when the viewport shrank without a keyboard", () => {
+    const closing = stepKeyboardSession(open(), {
+      type: "blur",
+      viewport: vp(464),
+    }).session;
+    const toolbar = vp(778, { innerHeight: 778 });
+    const step = stepKeyboardSession(closing, {
+      type: "viewport",
+      viewport: toolbar,
+    });
+    expect(step.session.phase).toBe("closing");
+    expect(
+      stepKeyboardSession(step.session, { type: "timeout", viewport: toolbar }),
+    ).toEqual({ session: idle, appHeightPx: 778, ended: true });
+  });
+
+  it("re-freezes at the new layout height when rotated mid-session", () => {
+    const step = stepKeyboardSession(open(), {
+      type: "viewport",
+      viewport: { innerHeight: 390, innerWidth: 844, visualViewportHeight: 180 },
+    });
+    expect(step).toEqual({
+      session: { phase: "open", frozenPx: 390, width: 844 },
+      appHeightPx: 390,
+      ended: false,
+    });
+  });
+
+  it("freezes from innerHeight when no --app-h was applied yet", () => {
+    expect(
+      stepKeyboardSession(idle, {
+        type: "focus",
+        viewport: vp(464),
+        currentAppHeightPx: null,
       }),
+    ).toEqual({ session: open(), appHeightPx: 844, ended: false });
+  });
+
+  it("treats a missing visual viewport or full height as keyboard gone", () => {
+    expect(keyboardGone(vp(843.5), 844)).toBe(true);
+    expect(keyboardGone(vp(464), 844)).toBe(false);
+    expect(
+      keyboardGone({ innerHeight: 844, innerWidth: 390 }, 844),
     ).toBe(true);
+    expect(keyboardGone(vp(844, { visualViewportScale: 1.5 }), 844)).toBe(false);
   });
 });
 

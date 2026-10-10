@@ -40,10 +40,18 @@ export function FitName({
 
       el.style.fontSize = "";
       el.style.letterSpacing = "";
+      el.style.lineHeight = "";
       el.style.textOverflow = "clip";
 
-      const base = parseFloat(getComputedStyle(el).fontSize);
+      const computed = getComputedStyle(el);
+      const base = parseFloat(computed.fontSize);
       if (!Number.isFinite(base) || base <= 0) return;
+      // Keep the unshrunk line box: a shrunk name must not change the row
+      // height (rail chips re-fit on every turn change).
+      const lineHeight = parseFloat(computed.lineHeight);
+      if (Number.isFinite(lineHeight) && lineHeight > 0) {
+        el.style.lineHeight = `${lineHeight}px`;
+      }
 
       const style = resolveFitNameStyle(base, (fontPx, letterSpacing) => {
         el.style.fontSize = `${fontPx}px`;

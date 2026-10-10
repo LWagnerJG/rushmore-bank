@@ -199,9 +199,13 @@ export default function HomePage() {
     <main className="app-shell app-shell-lock mx-auto flex max-w-md flex-col pt-0">
       <div className="app-safe-top" aria-hidden="true" />
       <div className="app-shell-scroll flex min-h-0 flex-1 flex-col px-4 pb-[max(1.25rem,env(safe-area-inset-bottom),2.1rem)] pt-4">
+        {/*
+          Top-anchored (not centered): every field lands in the upper half,
+          above where the iOS keyboard opens, so WebKit never pans the page.
+        */}
         <MotionSettle
           motionClass="animate-rise"
-          className="flex min-h-0 flex-1 flex-col justify-center gap-6"
+          className="home-stack flex min-h-0 flex-1 flex-col gap-6"
         >
           <header className="space-y-2 text-center">
             <div className="flex justify-center">
@@ -213,68 +217,57 @@ export default function HomePage() {
           </header>
 
         {!canPlay ? (
-          <section className="home-card home-card-step space-y-4">
-            <div className="stack-sm text-center">
-              {/* BrandMark large above is the sole display hero on Home */}
-              <h1 className="type-body font-[family-name:var(--font-display)] font-extrabold tracking-tight">
-                What’s your name?
-              </h1>
-              <p className="type-meta text-[var(--muted)]">
-                Pick a nickname to create or join a room.
-              </p>
+          <section className="home-card home-card-step stack-sm">
+            {/* BrandMark large above is the sole display hero on Home */}
+            <h1 className="type-body text-center font-[family-name:var(--font-display)] font-extrabold tracking-tight">
+              What’s your name?
+            </h1>
+            <div className="home-field-row">
+              <input
+                id="home-name"
+                className="field home-field type-body"
+                placeholder="Nickname"
+                aria-label="Nickname"
+                value={name}
+                maxLength={18}
+                autoComplete="nickname"
+                autoCorrect="off"
+                spellCheck={false}
+                enterKeyHint="go"
+                autoFocus
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setNameError(null);
+                }}
+                onKeyDown={(e) => e.key === "Enter" && confirmName()}
+              />
+              <button
+                type="button"
+                className="btn-primary home-field-go"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={confirmName}
+              >
+                Continue
+              </button>
             </div>
-            <input
-              id="home-name"
-              className="field w-full !py-3 text-center type-body"
-              placeholder="Nickname"
-              aria-label="Nickname"
-              value={name}
-              maxLength={18}
-              autoComplete="nickname"
-              autoFocus
-              onChange={(e) => {
-                setName(e.target.value);
-                setNameError(null);
-              }}
-              onKeyDown={(e) => e.key === "Enter" && confirmName()}
-            />
-            {nameError && (
-              <p className="type-meta text-center font-semibold text-[var(--coral)]">
-                {nameError}
-              </p>
-            )}
-            <button
-              type="button"
-              className="btn-primary w-full"
-              onClick={confirmName}
+            <p
+              className={
+                "type-meta text-center " +
+                (nameError
+                  ? "font-semibold text-[var(--coral)]"
+                  : "text-[var(--muted)]")
+              }
+              aria-live="polite"
             >
-              Continue
-            </button>
+              {nameError ?? "Pick a nickname to create or join a room."}
+            </p>
           </section>
         ) : (
           <MotionSettle
             motionClass="animate-rise"
             as="section"
-            className="home-play-stack stack"
+            className="home-play-stack stack-sm"
           >
-            <div className="home-playing-as">
-              <p className="type-meta font-extrabold uppercase tracking-[0.12em] text-[var(--muted)]">
-                Playing as
-              </p>
-              <div className="mt-[var(--space-1)] flex items-center justify-center gap-[var(--space-2)]">
-                <p className="type-body font-[family-name:var(--font-display)] font-extrabold tracking-tight">
-                  {displayName}
-                </p>
-                <button
-                  type="button"
-                  className="home-edit-name"
-                  onClick={editName}
-                >
-                  Edit
-                </button>
-              </div>
-            </div>
-
             <button
               type="button"
               className="btn-primary w-full"
@@ -283,35 +276,54 @@ export default function HomePage() {
               Create game
             </button>
 
-            <div className="home-join-card">
-              <p className="home-join-card-title type-body">Join a room</p>
-              <div className="mt-[var(--space-3)] flex gap-[var(--space-2)]">
-                <input
-                  className="field home-join-code w-full !py-2.5 uppercase tracking-[0.28em]"
-                  placeholder="CODE"
-                  value={code}
-                  maxLength={4}
-                  aria-label="Room code"
-                  onChange={(e) => {
-                    setCode(e.target.value.toUpperCase());
-                    setJoinError(null);
-                  }}
-                  onKeyDown={(e) => e.key === "Enter" && join()}
-                />
-                <button
-                  type="button"
-                  className="btn-secondary home-join-go shrink-0 px-[var(--space-4)]"
-                  disabled={joining}
-                  onClick={join}
-                >
-                  {joining ? "…" : "Join"}
-                </button>
-              </div>
-              {joinError && (
-                <p className="mt-[var(--space-2)] type-meta font-semibold text-[var(--coral)]">
-                  {joinError}
-                </p>
-              )}
+            <div className="home-field-row" aria-label="Join a room">
+              <input
+                className="field home-field home-join-code uppercase tracking-[0.28em]"
+                placeholder="CODE"
+                value={code}
+                maxLength={4}
+                aria-label="Room code"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="characters"
+                spellCheck={false}
+                enterKeyHint="go"
+                onChange={(e) => {
+                  setCode(e.target.value.toUpperCase());
+                  setJoinError(null);
+                }}
+                onKeyDown={(e) => e.key === "Enter" && join()}
+              />
+              <button
+                type="button"
+                className="btn-secondary home-field-go home-join-go"
+                disabled={joining}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={join}
+              >
+                {joining ? "…" : "Join"}
+              </button>
+            </div>
+            {joinError && (
+              <p className="type-meta text-center font-semibold text-[var(--coral)]">
+                {joinError}
+              </p>
+            )}
+
+            <div className="home-playing-as">
+              <p className="type-meta text-[var(--muted)]">
+                Playing as{" "}
+                <span className="font-[family-name:var(--font-display)] font-extrabold text-[var(--text)]">
+                  {displayName}
+                </span>
+              </p>
+              <button
+                type="button"
+                className="home-edit-name"
+                onClick={editName}
+              >
+                Edit
+              </button>
             </div>
           </MotionSettle>
         )}

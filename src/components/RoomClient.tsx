@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useGameRoom } from "@/hooks/useGameRoom";
 import { useHydrated } from "@/hooks/useHydrated";
@@ -33,6 +33,14 @@ import { TimerPill } from "@/components/TimerPill";
 import { shouldFireFinalRoundCue } from "@/shared/final-round-cue";
 import { isSoundEnabled } from "@/lib/sound-prefs";
 import { armGestureUnlock } from "@/lib/sfx";
+
+/** Long topics step down a size so the hero stays about two lines tall. */
+function topicHeroClass(text: string): string {
+  const n = text.trim().length;
+  if (n > 52) return "type-display room-chrome-topic room-chrome-topic-xlong";
+  if (n > 34) return "type-display room-chrome-topic room-chrome-topic-long";
+  return "type-display room-chrome-topic";
+}
 
 export function RoomClient({
   code,
@@ -151,6 +159,16 @@ export function RoomClient({
   }, []);
 
   const drafting = phase === "DRAFT" || phase === "CORRECTION";
+  // Phases with a text field: rail packs tight so the field clears the keyboard.
+  const inputPhase = drafting || phase === "TOPIC_SELECTION";
+  const phaseScrollRef = useRef<HTMLDivElement | null>(null);
+
+  // Each phase starts at the top (a scrolled Topic list must not hide the
+  // draft composer under the rail).
+  useLayoutEffect(() => {
+    const el = phaseScrollRef.current;
+    if (el && el.scrollTop !== 0) el.scrollTop = 0;
+  }, [phase]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -256,13 +274,23 @@ export function RoomClient({
                 value={name}
                 maxLength={18}
                 placeholder="Nickname"
+                aria-label="Nickname"
+                autoComplete="nickname"
+                autoCorrect="off"
+                spellCheck={false}
+                enterKeyHint="go"
                 autoFocus
                 onChange={(e) => setName(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") joinGame();
                 }}
               />
-              <button type="button" className="btn-primary" onClick={joinGame}>
+              <button
+                type="button"
+                className="btn-primary"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={joinGame}
+              >
                 Join game
               </button>
               <button
@@ -294,7 +322,8 @@ export function RoomClient({
     >
       <header
         className={
-          "room-chrome shrink-0 -mx-4 mb-3 " +
+          "room-chrome shrink-0 -mx-4 " +
+          (inputPhase ? "" : "mb-3 ") +
           (partyOn ? "room-chrome-party" : "")
         }
       >
@@ -307,6 +336,10 @@ export function RoomClient({
           <div className="room-chrome-top">
             <div className="room-chrome-brand min-w-0">
               <BrandMark chrome shimmer={false} onLogoTap={handleLogoTap} />
+            </div>
+            {/* Transient status rides in the row's empty middle — never in flow. */}
+            <div className="room-chrome-status">
+              <RoomNotice notice={state?.notice} hostOnly isHost={you.isHost} />
             </div>
             <div className="room-chrome-end">
               {drafting && state ? (
@@ -337,11 +370,10 @@ export function RoomClient({
             </div>
           </div>
           {drafting && state?.selectedTopic ? (
-            <h1 className="type-display room-chrome-topic">
+            <h1 className={topicHeroClass(state.selectedTopic.text)}>
               {state.selectedTopic.text}
             </h1>
           ) : null}
-          <RoomNotice notice={state?.notice} hostOnly isHost={you.isHost} />
         </div>
       </header>
 
@@ -360,7 +392,10 @@ export function RoomClient({
         phase !== "DICE" &&
         phase !== "GAME_RESULTS" && (
         <div
-          className="room-rail-slot -mx-4 mb-2 px-4"
+          className={
+            "room-rail-slot -mx-4 px-4 " +
+            (inputPhase ? "room-rail-slot-tight" : "mb-2")
+          }
           hidden={phase === "VOTING_AND_JUDGING"}
         >
           <PlayerRail state={state} youId={youId} />
@@ -389,7 +424,10 @@ export function RoomClient({
         </div>
       ) : null}
 
-      <div className="room-phase-scroll relative min-h-0 flex-1">
+      <div
+        ref={phaseScrollRef}
+        className="room-phase-scroll relative min-h-0 flex-1"
+      >
         {!connected ? (
           <div
             className="reconnect-blocker"
