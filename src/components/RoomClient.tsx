@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useGameRoom } from "@/hooks/useGameRoom";
+import { useHydrated } from "@/hooks/useHydrated";
 import type { Phase } from "@/shared/types";
 import { RULES } from "@/shared/rules";
 import { BrandMark } from "@/components/BrandMark";
@@ -14,9 +15,8 @@ import { FinalRoundCue } from "@/components/FinalRoundCue";
 import { MotionSettle } from "@/components/MotionSettle";
 import {
   adoptPlayerIdForRejoin,
-  getLastPlayerIdForRejoin,
-  recallDisplayName,
   recallRoomSession,
+  rejoinOffer,
   wasRemovedFromRoom,
 } from "@/lib/party";
 import { LobbyPanel } from "@/components/LobbyPanel";
@@ -78,16 +78,23 @@ export function RoomClient({
     preferredName: presetName || sessionResume?.name || "",
     preferSpectate: preferSpectate || sessionResume?.role === "spectator",
   });
-  const [name, setName] = useState(presetName || defaultName);
-  const [rejoinId] = useState(() => getLastPlayerIdForRejoin(code));
+  const hydrated = useHydrated();
+  // Seeded from storage on the client, so the join form renders only once hydrated.
+  const [name, setName] = useState(
+    () => presetName || rejoinOffer(code)?.name || defaultName,
+  );
 
-  function handleRejoin() {
-    const id = getLastPlayerIdForRejoin(code);
-    if (!id) return;
-    adoptPlayerIdForRejoin(code, id);
-    const n = (name.trim() || recallDisplayName()).trim();
-    const q = n ? `?name=${encodeURIComponent(n)}` : "";
-    window.location.assign(`/room/${code}${q}`);
+  function joinGame() {
+    const prior = preferSpectate ? null : rejoinOffer(code);
+    const clean = name.trim();
+    if (prior && clean.toLowerCase() === prior.name.trim().toLowerCase()) {
+      // This phone's earlier seat: reload onto its id so the server reconnects
+      // it, rather than rejecting the name in the lobby or seating a spectator.
+      adoptPlayerIdForRejoin(code, prior.playerId);
+      window.location.assign(`/room/${code}?name=${encodeURIComponent(clean)}`);
+      return;
+    }
+    join(name, preferSpectate ? "spectator" : "player");
   }
 
   // Retry join on every connected rising edge (lost first join / flap).
@@ -217,6 +224,17 @@ export function RoomClient({
   }, [state, you, youId, send]);
 
   if (!joined || !you) {
+    // The status line already says "Connecting…" while the socket is down.
+    const joinError = error === "Reconnecting…" ? null : error;
+    const homeLink = (
+      <Link
+        href="/"
+        className="inline-flex min-h-[var(--tap-min)] items-center self-start type-meta font-semibold text-[var(--coral-ink)]"
+      >
+        ← Home
+      </Link>
+    );
+
     if (presetName.trim() && !removed) {
       return (
         <main className="app-shell app-shell-lock mx-auto flex max-w-md flex-col pt-0">
@@ -227,15 +245,10 @@ export function RoomClient({
             <p className="type-meta text-[var(--muted)]">
               {connected ? `Joining as ${presetName.trim()}…` : "Connecting…"}
             </p>
-            {error && <p className="text-sm text-[var(--coral)]">{error}</p>}
-            {!connected && (
-              <p className="text-sm font-semibold text-[var(--muted)]">
-                Reconnecting…
-              </p>
+            {joinError && (
+              <p className="type-meta text-[var(--coral-ink)]">{joinError}</p>
             )}
-            <Link href="/" className="text-sm font-semibold text-[var(--coral)]">
-              ← Home
-            </Link>
+            {homeLink}
           </div>
         </main>
       );
@@ -251,59 +264,48 @@ export function RoomClient({
             {removed
               ? "The host removed this seat. You can join again below."
               : connected
-                ? "Connected — enter a nickname"
+                ? "Pick a name to join."
                 : "Connecting…"}
           </p>
-          <input
-            className="field"
-            value={name}
-            maxLength={18}
-            placeholder="Nickname"
-            aria-label="Nickname"
-            autoComplete="nickname"
-            autoCorrect="off"
-            spellCheck={false}
-            enterKeyHint="go"
-            autoFocus
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter")
-                join(name, preferSpectate ? "spectator" : "player");
-            }}
-          />
-          <button
-            type="button"
-            className="btn-primary"
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => join(name, preferSpectate ? "spectator" : "player")}
-          >
-            Join game
-          </button>
-          <button
-            type="button"
-            className="btn-secondary"
-            onClick={() => join(name || "Spectator", "spectator")}
-          >
-            Watch only
-          </button>
-          {rejoinId && !removed && (
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={handleRejoin}
-            >
-              Rejoin this room
-            </button>
-          )}
-          {error && <p className="type-meta text-[var(--coral)]">{error}</p>}
-          {!connected && (
-            <p className="type-meta font-semibold text-[var(--muted)]">
-              Reconnecting…
-            </p>
-          )}
-          <Link href="/" className="type-meta font-semibold text-[var(--coral)]">
-            ← Home
-          </Link>
+          {hydrated ? (
+            <>
+              <input
+                className="field"
+                value={name}
+                maxLength={18}
+                placeholder="Nickname"
+                aria-label="Nickname"
+                autoComplete="nickname"
+                autoCorrect="off"
+                spellCheck={false}
+                enterKeyHint="go"
+                autoFocus
+                onChange={(e) => setName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") joinGame();
+                }}
+              />
+              <button
+                type="button"
+                className="btn-primary"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={joinGame}
+              >
+                Join game
+              </button>
+              <button
+                type="button"
+                className="btn-quiet self-center"
+                onClick={() => join(name || "Spectator", "spectator")}
+              >
+                Watch only
+              </button>
+              {joinError && (
+                <p className="type-meta text-[var(--coral-ink)]">{joinError}</p>
+              )}
+              {homeLink}
+            </>
+          ) : null}
         </div>
       </main>
     );

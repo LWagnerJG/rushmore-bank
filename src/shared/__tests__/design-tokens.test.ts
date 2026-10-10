@@ -45,7 +45,7 @@ describe("design tokens consistency", () => {
     expect(css).toMatch(/\.type-display\s*\{/);
   });
 
-  it("defines exactly one primary and one secondary button style", () => {
+  it("defines one primary and one secondary button style", () => {
     expect(css).toMatch(/\.btn-primary\s*\{/);
     expect(css).toMatch(/\.btn-secondary\s*\{/);
     // Primary uses accessible dark coral for ≥4.5:1 contrast
