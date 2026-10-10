@@ -12,6 +12,7 @@ import {
   revealSchedule,
   WINNER_SWEEP_MS,
 } from "@/lib/results-reveal";
+import { feedback } from "@/lib/feedback";
 
 type Row = {
   id: string;
@@ -92,7 +93,10 @@ export function ResultsRevealList({
     setRevealedCount(latest.length);
     setDisplayValues(latest.map((r) => r.stones));
     setDone(true);
-    if (showWinnerSweep) setSweepOn(true);
+    if (showWinnerSweep) {
+      setSweepOn(true);
+      feedback("winner");
+    }
     markRevealCompleted(revealKey);
   };
 
@@ -110,11 +114,13 @@ export function ResultsRevealList({
     }
 
     if (hasRevealCompleted(revealKey) || prefersReducedMotion()) {
+      const firstShow = !hasRevealCompleted(revealKey);
       setRevealedCount(latest.length);
       setDisplayValues(latest.map((r) => r.stones));
       setDone(true);
       setSweepOn(showWinnerSweep);
       markRevealCompleted(revealKey);
+      if (firstShow && showWinnerSweep) feedback("winner");
       return;
     }
 
@@ -169,6 +175,7 @@ export function ResultsRevealList({
             markRevealCompleted(revealKey);
             if (showWinnerSweep) {
               setSweepOn(true);
+              feedback("winner");
               // Keep sweep class briefly; CSS animation handles visuals.
               const sweepEnd = window.setTimeout(() => {
                 /* no-op — class can stay; animation is forwards */

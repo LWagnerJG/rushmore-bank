@@ -31,8 +31,10 @@ describe("your-turn moments", () => {
     vi.unstubAllGlobals();
   });
 
-  it("uses a single ~20ms vibrate for your_turn (never required)", () => {
-    expect(hapticPattern("your_turn")).toBe(20);
+  it("uses a single 10–20ms vibrate for your_turn (never required)", () => {
+    const ms = hapticPattern("your_turn");
+    expect(ms).toBeGreaterThanOrEqual(10);
+    expect(ms).toBeLessThanOrEqual(20);
   });
 
   it("dedupes cueYourTurn by key and calls vibrate once", () => {
@@ -42,7 +44,7 @@ describe("your-turn moments", () => {
     cueYourTurn("draft:ABCD:1");
     cueYourTurn("draft:ABCD:2");
     expect(vibrate).toHaveBeenCalledTimes(2);
-    expect(vibrate).toHaveBeenNthCalledWith(1, 20);
+    expect(vibrate).toHaveBeenNthCalledWith(1, hapticPattern("your_turn"));
   });
 
   it("defines a single coral fill-in with transform/opacity under 300ms", () => {

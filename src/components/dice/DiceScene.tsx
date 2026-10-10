@@ -11,12 +11,8 @@ import {
   type DieFace,
 } from "@/shared/engine/die-face";
 import { SCRAMBLE_TICK_MS } from "@/shared/engine/dice-scramble";
-import {
-  ensureDiceAudio,
-  playRollStart,
-  playRollTick,
-  playSettle,
-} from "@/lib/dice-sfx";
+import { ensureAudio, playSfx } from "@/lib/sfx";
+import { feedback } from "@/lib/feedback";
 import { haptic } from "@/lib/haptics";
 
 /**
@@ -118,7 +114,6 @@ export function DiceScene({
   /** TAP chip on the first personal roll only. */
   firstRollHint?: boolean;
 }) {
-  const audio = useRef<AudioContext | null>(null);
   const sounded = useRef<string | null>(null);
   const rollStarted = useRef<string | null>(null);
   const lastTick = useRef(0);
@@ -173,7 +168,8 @@ export function DiceScene({
 
     const kick = window.setTimeout(() => {
       setPunch(true);
-      haptic(busted ? "bust" : "settle");
+      // Haptic only here — SFX fires in the settle effect below (debounced).
+      haptic(busted ? "bust" : "dice_settle");
     }, 0);
     const clearPunch = window.setTimeout(() => setPunch(false), 240);
     return () => {
@@ -182,15 +178,14 @@ export function DiceScene({
     };
   }, [revealed, rollId, authD1, authD2, reducedMotion, busted]);
 
-  // Tumble SFX — setInterval instead of perpetual rAF.
+  // Tumble SFX — setInterval instead of perpetual rAF. Lazy AudioContext.
   useEffect(() => {
     if (phase.kind !== "tumbling" || !rollId || reducedMotion) return;
 
     if (rollStarted.current !== rollId) {
       rollStarted.current = rollId;
-      void ensureDiceAudio().then((ctx) => {
-        audio.current = ctx;
-        playRollStart(ctx);
+      void ensureAudio().then(() => {
+        playSfx("dice_tick");
       });
     }
 
@@ -198,7 +193,7 @@ export function DiceScene({
       const now = Date.now();
       if (now - lastTick.current > 150) {
         lastTick.current = now;
-        playRollTick(audio.current);
+        playSfx("dice_tick");
       }
     }, 150);
     return () => window.clearInterval(id);
@@ -208,18 +203,12 @@ export function DiceScene({
     if (!revealed || !rollId || sounded.current === rollId) return;
     if (authD1 == null || authD2 == null) return;
     sounded.current = rollId;
-    void ensureDiceAudio().then((ctx) => {
-      audio.current = ctx;
-      playSettle(ctx, { busted: !!busted });
-    });
+    playSfx(busted ? "bust" : "dice_settle");
   }, [revealed, rollId, authD1, authD2, busted]);
 
-  async function handleRoll() {
+  function handleRoll() {
     if (!canRoll) return;
-    haptic("tap_roll");
-    const ctx = await ensureDiceAudio();
-    audio.current = ctx;
-    playRollStart(ctx);
+    feedback("dice_tick");
     onRoll();
   }
 

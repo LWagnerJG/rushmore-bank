@@ -1,21 +1,31 @@
 /**
- * Best-effort haptics. iOS Safari often no-ops vibrate — never block gameplay.
- * Never rely on vibrate for game logic (Android-only in practice).
+ * Best-effort haptics via navigator.vibrate (10–20ms).
+ * iOS Safari ignores vibrate — fail silently. Never block gameplay.
  */
+
 export type HapticKind =
   | "your_turn"
-  | "tap_roll"
-  | "settle"
+  | "dice_tick"
+  | "dice_settle"
+  | "beans_land"
+  | "bust"
   | "bank"
-  | "bust";
+  | "winner"
+  /** @deprecated use dice_tick */
+  | "tap_roll"
+  /** @deprecated use dice_settle */
+  | "settle";
 
-const PATTERNS: Record<HapticKind, number | number[]> = {
-  /** Single short buzz — ~20ms; iOS ignores navigator.vibrate. */
-  your_turn: 20,
+const PATTERNS: Record<HapticKind, number> = {
+  your_turn: 18,
+  dice_tick: 10,
+  dice_settle: 16,
+  beans_land: 14,
+  bust: 20,
+  bank: 16,
+  winner: 20,
   tap_roll: 10,
-  settle: [8, 30, 24],
-  bank: [14, 28, 14],
-  bust: [30, 40, 50],
+  settle: 16,
 };
 
 export function haptic(kind: HapticKind): void {
@@ -29,6 +39,6 @@ export function haptic(kind: HapticKind): void {
   }
 }
 
-export function hapticPattern(kind: HapticKind): number | number[] {
+export function hapticPattern(kind: HapticKind): number {
   return PATTERNS[kind];
 }

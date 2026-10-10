@@ -1,12 +1,12 @@
-import { haptic } from "@/lib/haptics";
+import { feedback } from "@/lib/feedback";
 
-/** Deduped your-turn cue: one ~20ms vibrate per logical turn key. */
+/** Deduped your-turn cue: sound (if on) + ~18ms vibrate per logical turn key. */
 let lastKey = "";
 
 export function cueYourTurn(key: string): void {
   if (!key || lastKey === key) return;
   lastKey = key;
-  haptic("your_turn");
+  feedback("your_turn");
 }
 
 /** Test helper — reset dedupe between cases. */
