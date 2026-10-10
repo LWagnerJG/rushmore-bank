@@ -36,6 +36,7 @@ export function RushmoreCard({
   const dens = compact && density === "cozy" ? "snug" : density;
   const whyText = why?.trim() ?? "";
   const hasWhy = whyText.length > 0;
+  const votePicked = !!selected;
 
   const body = (
     <>
@@ -50,9 +51,14 @@ export function RushmoreCard({
           }`}
         >
           {name}
-          {selected ? " ✓" : ""}
         </p>
-        {badge}
+        {votePicked ? (
+          <span className="rushmore-vote-badge" aria-hidden="true">
+            ✓ Your vote
+          </span>
+        ) : (
+          badge
+        )}
       </div>
       <ol className={`rushmore-list rushmore-list-${dens}`}>
         {sorted.map((pk, i) => (
@@ -74,6 +80,7 @@ export function RushmoreCard({
       <div
         role="button"
         tabIndex={disabled ? -1 : 0}
+        aria-pressed={!!selected}
         aria-disabled={disabled || undefined}
         className={[
           "panel",

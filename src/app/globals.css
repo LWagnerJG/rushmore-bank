@@ -640,9 +640,14 @@ html.party-on .btn-primary {
   cursor: pointer;
 }
 
+/* Only the 400ms double-tap guard — no visual dim (it flickered every card) */
 .rushmore-card-disabled {
-  cursor: not-allowed;
-  opacity: 0.72;
+  pointer-events: none;
+}
+
+/* Votable = coral-tinted edge + faint wash; the pick plate stays distinct */
+.rushmore-card.rushmore-card-your-turn {
+  border-color: rgba(192, 85, 48, 0.32);
 }
 
 .rushmore-card-your-turn::before {
@@ -650,7 +655,7 @@ html.party-on .btn-primary {
   position: absolute;
   inset: 0;
   z-index: 0;
-  background: color-mix(in srgb, var(--coral) 22%, transparent);
+  background: color-mix(in srgb, var(--coral) 7%, transparent);
   transform-origin: left center;
   transform: scaleX(0);
   animation: coral-fill-in var(--motion-fast) ease-out forwards;
@@ -662,17 +667,8 @@ html.party-on .btn-primary {
   z-index: 1;
 }
 
-.rushmore-card-selected.rushmore-card-your-turn {
-  background: var(--btn-bg);
-  color: #fff;
-  border-color: var(--btn-bg);
-  box-shadow: none;
-}
-
-.rushmore-card-selected.rushmore-card-your-turn .rushmore-card-name,
-.rushmore-card-selected.rushmore-card-your-turn .rushmore-list-text,
-.rushmore-card-selected.rushmore-card-your-turn .rushmore-list-num {
-  color: #fff;
+.rushmore-card-selected.rushmore-card-your-turn::before {
+  content: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1338,16 +1334,49 @@ html.party-on .panel {
   box-shadow: 0 4px 18px rgba(35, 72, 62, 0.06);
 }
 
-.rushmore-card-selected {
-  border-color: rgba(231, 111, 78, 0.55);
+/*
+ * Your vote — ink text on a light coral plate + inset ring (border width
+ * unchanged, so no layout shift). Text is never white on a tint.
+ */
+.rushmore-card.rushmore-card-selected,
+.roster-board .rushmore-card.rushmore-card-selected {
+  background: #fbe6de;
+  border-color: var(--btn-bg);
   box-shadow:
-    0 0 0 2px rgba(231, 111, 78, 0.28),
-    0 8px 22px rgba(231, 111, 78, 0.12);
-  background: linear-gradient(
-    165deg,
-    rgba(255, 255, 255, 0.92),
-    rgba(255, 236, 228, 0.88)
-  );
+    inset 0 0 0 1px var(--btn-bg),
+    0 6px 18px rgba(192, 85, 48, 0.14);
+}
+
+.rushmore-vote-badge {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 0.22rem 0.6rem;
+  border-radius: 999px;
+  background: var(--btn-bg);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.2;
+  white-space: nowrap;
+  animation: vote-badge-in var(--motion-fast) cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes vote-badge-in {
+  from {
+    opacity: 0;
+    transform: scale(0.86);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rushmore-vote-badge {
+    animation: none;
+  }
 }
 
 .rushmore-list {
@@ -1531,13 +1560,6 @@ html.party-on .panel {
     165deg,
     rgba(255, 255, 255, 0.92),
     rgba(245, 240, 231, 0.78)
-  );
-}
-.roster-board .rushmore-card-selected {
-  background: linear-gradient(
-    165deg,
-    rgba(255, 255, 255, 0.96),
-    rgba(255, 236, 228, 0.9)
   );
 }
 .judge-working {
