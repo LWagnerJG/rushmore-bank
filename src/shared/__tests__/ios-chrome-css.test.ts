@@ -152,8 +152,8 @@ describe("iOS chrome + keyboard CSS contracts", () => {
 });
 
 describe("iPhone viewport fixtures (safe-area top)", () => {
-  const SOLID_EXTRA = 14;
-  const FADE = 32;
+  const SOLID_EXTRA = 12;
+  const FADE = 24;
   const phones = [
     { name: "desktop (no inset)", w: 1280, h: 800, safeTop: 0 },
     { name: "iPhone 14/15", w: 390, h: 844, safeTop: 47 },

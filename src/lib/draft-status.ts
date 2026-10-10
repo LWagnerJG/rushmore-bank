@@ -17,8 +17,9 @@ export function draftStatusLine(opts: {
     return opts.pickPaused ? `${base} · paused` : base;
   }
 
+  // Your-turn cell pulse is enough — no "Your pick" label above the board.
   if (opts.myTurn) {
-    return opts.pickPaused ? "Your pick · paused" : "Your pick";
+    return opts.pickPaused ? "Paused" : "";
   }
 
   const name = (opts.turnName ?? "Player").trim() || "Player";
