@@ -214,7 +214,6 @@ export default function HomePage() {
             </button>
 
             <div className="home-join-card">
-              <p className="home-join-card-kicker type-meta">Have a code?</p>
               <p className="home-join-card-title type-body">Join a room</p>
               <div className="mt-[var(--space-3)] flex gap-[var(--space-2)]">
                 <input

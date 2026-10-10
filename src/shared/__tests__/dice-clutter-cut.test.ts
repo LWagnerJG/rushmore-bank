@@ -25,8 +25,8 @@ const notice = readFileSync(
 
 describe("dice clutter-cut", () => {
   it("hides chrome BANK/beans during DICE (turn strip is the score surface)", () => {
-    expect(room).toMatch(/phase === "SCORE_REVEAL" \|\| phase === "DICE"/);
-    // Soft beans chrome path for DICE must be gone
+    // PlayerRail / turn strip owns scores — no phase+beans chrome outside lobby
+    expect(room).not.toMatch(/\{you\.stones\} \{RULES\.currencyName\}/);
     expect(room).not.toMatch(/phase === "DICE"\s*\?\s*"mt-0\.5/);
   });
 

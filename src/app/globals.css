@@ -4009,28 +4009,10 @@ html.party-on .draft-board-cell-mine {
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
-.dice-turn-chip-safe .dice-turn-chip-num::after {
-  content: "";
-}
-.dice-turn-chip-safe::before {
-  content: "Safe";
-  font-size: 0.5rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  opacity: 0.55;
-  margin-right: 0.2rem;
-  vertical-align: 0.05em;
-}
+/* Strip chips: bare figure only — Pot/Safe labels live once on the stage */
+.dice-turn-chip-safe::before,
 .dice-turn-chip-pot::before {
-  content: "Risking";
-  font-size: 0.5rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  opacity: 0.55;
-  margin-right: 0.2rem;
-  vertical-align: 0.05em;
+  content: none;
 }
 
 .dice-spectator-status {

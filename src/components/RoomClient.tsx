@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useGameRoom } from "@/hooks/useGameRoom";
-import { phaseLabel, type Phase } from "@/shared/types";
+import type { Phase } from "@/shared/types";
 import { RULES } from "@/shared/rules";
 import { BrandMark } from "@/components/BrandMark";
 import { SettingsSheet } from "@/components/SettingsSheet";
@@ -322,49 +322,14 @@ export function RoomClient({
               <BrandMark shimmer={false} onLogoTap={handleLogoTap} />
             </div>
             {drafting && state ? (
+              // Draft chrome = topic (below) + timer only. Pause/+15s live in Settings.
               <div className="flex shrink-0 items-center gap-1 pt-0.5">
-                {you.isHost && (
-                  <>
-                    <button
-                      type="button"
-                      className="rounded-md px-1.5 py-1 text-[0.65rem] font-extrabold uppercase tracking-wide text-[var(--muted)]"
-                      aria-label={
-                        state.pickPaused ? "Resume pick clock" : "Pause pick clock"
-                      }
-                      title={state.pickPaused ? "Resume" : "Pause"}
-                      onClick={() =>
-                        send({
-                          type: state.pickPaused ? "host_resume" : "host_pause",
-                        })
-                      }
-                    >
-                      {state.pickPaused ? "Resume" : "Pause"}
-                    </button>
-                    <button
-                      type="button"
-                      className="rounded-md px-1.5 py-1 text-[0.65rem] font-extrabold tabular-nums text-[var(--muted)]"
-                      aria-label={`Add ${RULES.hostExtendSeconds} seconds`}
-                      title={`+${RULES.hostExtendSeconds}s`}
-                      onClick={() => send({ type: "host_extend" })}
-                    >
-                      +{RULES.hostExtendSeconds}s
-                    </button>
-                  </>
-                )}
                 <DraftBannerClock
                   until={state.pickDeadlineAt}
                   paused={state.pickPaused}
                 />
               </div>
-            ) : phase === "SCORE_REVEAL" || phase === "DICE" ? (
-              // Turn strip / rail is the score surface — drop BANK + beans chrome.
-              // Keep Party badge alone when party mode is on.
-              partyOn ? (
-                <div className="flex shrink-0 items-center justify-end pt-0.5">
-                  <span className="room-chrome-pill">Party</span>
-                </div>
-              ) : null
-            ) : (
+            ) : phase === "LOBBY" ? (
               <div className="text-right text-xs font-bold uppercase tracking-wide text-[var(--muted)]">
                 <div className="flex items-center justify-end gap-1.5">
                   {partyOn && (
@@ -372,33 +337,22 @@ export function RoomClient({
                       Party
                     </span>
                   )}
-                  <span>{phase ? phaseLabel(phase) : "…"}</span>
-                </div>
-                <div className="font-[family-name:var(--font-display)] text-sm font-extrabold tabular-nums normal-case tracking-normal text-[var(--text)]">
-                  {you.stones} {RULES.currencyName}
+                  <span>Lobby</span>
                 </div>
               </div>
+            ) : (
+              // PlayerRail / turn strip is the score surface — no phase+beans chrome.
+              partyOn ? (
+                <div className="flex shrink-0 items-center justify-end pt-0.5">
+                  <span className="room-chrome-pill">Party</span>
+                </div>
+              ) : null
             )}
           </div>
           {drafting && state?.selectedTopic && (
             <h1 className="mt-1.5 font-[family-name:var(--font-display)] text-[1.35rem] font-extrabold leading-snug tracking-tight text-[var(--text)]">
               {state.selectedTopic.text}
             </h1>
-          )}
-          {drafting && (
-            <div className="mt-1 flex items-center justify-between gap-2 text-[0.7rem] font-bold tracking-wide text-[var(--muted)]">
-              <span className="uppercase">
-                {state &&
-                state.topicRound === state.configuredTopicRounds - 1
-                  ? `Final round · ${phase ? phaseLabel(phase) : "Draft"}`
-                  : phase
-                    ? phaseLabel(phase)
-                    : "Draft"}
-              </span>
-              <span className="normal-case tabular-nums text-[var(--text)]">
-                {you.stones} {RULES.currencyName}
-              </span>
-            </div>
           )}
           <RoomNotice notice={state?.notice} hostOnly isHost={you.isHost} />
         </div>
@@ -488,6 +442,8 @@ export function RoomClient({
         botCountInRoom={
           state?.players.filter((p) => p.id.startsWith("bot-")).length ?? 0
         }
+        drafting={drafting}
+        pickPaused={state?.pickPaused ?? false}
       />
       {diagOpen && <DiagPanel onClose={() => setDiagOpen(false)} />}
       <FinalRoundCue

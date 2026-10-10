@@ -108,9 +108,6 @@ export function LobbyPanel({
                 )}
               </span>
               <span className="stack-row">
-                <span className="type-meta font-bold text-[var(--muted)]">
-                  {p.stones} {RULES.currencyName}
-                </span>
                 {you.isHost && p.id !== you.id && (
                   <button
                     type="button"

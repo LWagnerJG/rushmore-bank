@@ -7,6 +7,7 @@ import {
   subscribeSfxMuted,
 } from "@/lib/sound-prefs";
 import type { ClientMessage, HostAiJudgeHealth, Phase } from "@/shared/types";
+import { RULES } from "@/shared/rules";
 import { HostAiJudgeCue } from "./HostAiJudgeCue";
 import { AdminTools, isAdminUnlocked } from "./AdminPanel";
 
@@ -22,6 +23,8 @@ export function SettingsSheet({
   currentPhase = null,
   playerCount = 0,
   botCountInRoom = 0,
+  drafting = false,
+  pickPaused = false,
 }: {
   open: boolean;
   onClose: () => void;
@@ -35,6 +38,8 @@ export function SettingsSheet({
   currentPhase?: Phase | null;
   playerCount?: number;
   botCountInRoom?: number;
+  drafting?: boolean;
+  pickPaused?: boolean;
 }) {
   const [muted, setMuted] = useState(() =>
     typeof window !== "undefined" ? isSfxMuted() : false,
@@ -172,6 +177,35 @@ export function SettingsSheet({
         ) : null}
 
         {isHost ? <HostAiJudgeCue health={hostAiJudge} /> : null}
+
+        {isHost && drafting && send ? (
+          <div className="settings-row">
+            <span className="settings-row-label">
+              <span className="font-extrabold">Draft clock</span>
+              <span className="text-xs text-[var(--muted)]">
+                Pause or add time
+              </span>
+            </span>
+            <div className="flex shrink-0 gap-2">
+              <button
+                type="button"
+                className="btn-secondary px-[var(--space-3)]"
+                onClick={() =>
+                  send({ type: pickPaused ? "host_resume" : "host_pause" })
+                }
+              >
+                {pickPaused ? "Resume" : "Pause"}
+              </button>
+              <button
+                type="button"
+                className="btn-secondary px-[var(--space-3)]"
+                onClick={() => send({ type: "host_extend" })}
+              >
+                +{RULES.hostExtendSeconds}s
+              </button>
+            </div>
+          </div>
+        ) : null}
 
         {showAdmin ? (
           <AdminTools
