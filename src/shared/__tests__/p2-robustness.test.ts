@@ -68,8 +68,8 @@ describe("P2 robustness", () => {
       joinedAt: 1,
     }));
     server.state.picks = [
-      { playerId: "A", text: "x", turnIndex: 0 },
-      { playerId: "B", text: "y", turnIndex: 1 },
+      { playerId: "A", text: "x", turnIndex: 0, pickIndex: 0 },
+      { playerId: "B", text: "y", turnIndex: 1, pickIndex: 0 },
     ];
     const jobId = "judge-1-1";
     server.state.judgeJobId = jobId;
