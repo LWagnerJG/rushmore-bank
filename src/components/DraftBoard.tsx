@@ -10,7 +10,7 @@ import {
 } from "@/shared/engine/snake";
 import { readAdminUnlocked } from "@/lib/admin-session";
 import { FitName } from "@/components/FitName";
-import { nameWithYouSuffix } from "@/shared/you-label";
+import { nameWithYouSuffix, railYouLabel } from "@/shared/you-label";
 
 function densityFor(count: number): "fit" | "snug" | "dense" {
   // 2–5: share the phone width with no sideways scroll.
@@ -161,7 +161,7 @@ export function DraftBoard({
                   >
                     <FitName
                       className="draft-board-name"
-                      text={player?.name ?? ""}
+                      text={mine ? railYouLabel() : (player?.name ?? "")}
                       title={
                         mine
                           ? nameWithYouSuffix(player?.name ?? "You")
@@ -272,7 +272,11 @@ export function DraftBoard({
                             }`}
                           >
                             {pick?.text ??
-                              (current || isRedoTarget ? "…" : "")}
+                              (current || isRedoTarget
+                                ? mine
+                                  ? "Your pick"
+                                  : "…"
+                                : "")}
                           </p>
                         )}
                         {isRedoTarget && (
