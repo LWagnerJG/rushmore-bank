@@ -104,21 +104,15 @@ async function main() {
           const roller = await page.$(".dice-roller-beans");
           if (roller) throw new Error("roller beans shown on your turn");
         }
-        // Strip lab chrome so the dice column sits like the in-room phase body
-        await page.evaluate(() => {
-          const main = document.querySelector("main");
-          const layout = document.querySelector(".dice-layout");
-          if (!main || !layout) return;
-          for (const child of Array.from(main.children)) {
-            if (child !== layout) (child as HTMLElement).style.display = "none";
-          }
-          main.className = "app-shell mx-auto max-w-md px-4";
-          (main as HTMLElement).style.paddingTop = "0.5rem";
-          (main as HTMLElement).style.paddingBottom =
-            "max(0.75rem, env(safe-area-inset-bottom, 0px))";
-          window.scrollTo(0, 0);
+        // CSS-hide lab chrome (React re-renders from Measure must not bring it back)
+        await page.addStyleTag({
+          content: `
+            main.app-shell > :not(.dice-layout) { display: none !important; }
+            main.app-shell { padding-top: 0.5rem !important; gap: 0 !important; }
+          `,
         });
-        await page.waitForTimeout(200);
+        await page.evaluate(() => window.scrollTo(0, 0));
+        await page.waitForTimeout(250);
         const fit = await measureFit(page);
         console.log(p.name, sc.label, JSON.stringify(fit));
         results.push({ profile: p.name, scenario: sc.label, fit });
@@ -135,15 +129,31 @@ async function main() {
     await browser.close();
   }
 
-  // Fail if 375×667 overflows
+  // Fail if 375×667 puts Bank below the fold once lab chrome is gone
   for (const r of results) {
-    const fit = r.fit as { overflow: number; bankBottom: number | null; viewportH: number } | null;
+    const fit = r.fit as {
+      overflow: number;
+      bankBottom: number | null;
+      viewportH: number;
+      yourText: string | null;
+      rollerText: string | null;
+      trayH: number | null;
+    } | null;
     if (!fit) throw new Error("missing fit");
-    if (r.profile === "375x667" && fit.overflow > 0) {
-      throw new Error(`375×667 overflow ${fit.overflow}px in ${r.scenario}`);
+    if (!fit.yourText?.includes("Your beans")) {
+      throw new Error(`missing Your beans in ${r.scenario}`);
+    }
+    if (r.scenario === "other-turn" && !fit.rollerText?.includes("'s beans")) {
+      throw new Error(`missing roller beans in ${r.scenario}`);
+    }
+    if (r.scenario === "your-turn" && fit.rollerText) {
+      throw new Error(`roller beans shown on your turn`);
     }
     if (r.profile === "375x667" && fit.bankBottom != null && fit.bankBottom > fit.viewportH + 1) {
       throw new Error(`Bank below fold on 375×667 (${fit.bankBottom} > ${fit.viewportH})`);
+    }
+    if (r.profile === "375x667" && fit.trayH != null && (fit.trayH < 188 || fit.trayH > 260)) {
+      throw new Error(`tray height ${fit.trayH} outside #151 clamp`);
     }
   }
   console.log("ok", results.length, "shots");
