@@ -7,12 +7,14 @@ import "./globals.css";
 const nunito = Nunito({
   variable: "--font-body",
   subsets: ["latin"],
-  weight: ["400", "600", "700", "800"],
+  // App chrome is 600–800; skip 400 to cut ~1 woff2 on first paint.
+  weight: ["600", "700", "800"],
 });
 
 const sora = Sora({
   variable: "--font-display",
   subsets: ["latin"],
+  // Display is bold/extrabold; 600 covers remaining semibold labels.
   weight: ["600", "700", "800"],
 });
 

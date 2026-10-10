@@ -106,6 +106,8 @@ body {
   position: relative;
   color: var(--text);
   background-color: #f5f0e7;
+  /* Matches loaded Nunito axes (400 dropped — see layout.tsx). */
+  font-weight: 600;
   height: var(--app-h, 100dvh);
   overflow: hidden;
   overscroll-behavior-y: none;

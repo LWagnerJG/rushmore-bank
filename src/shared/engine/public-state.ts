@@ -141,6 +141,10 @@ export function projectPublicStateShared(
     .filter((p) => !!state.rematchReady?.[p.id])
     .map((p) => p.id);
 
+  // Dice turns rebroadcast often (roll / settle / next seat). Strip heavy
+  // draft+judge payloads — clients merge from the prior snapshot (see useGameRoom).
+  const diceSlim = state.phase === "DICE";
+
   return {
     code: state.code,
     phase: state.phase,
@@ -153,8 +157,8 @@ export function projectPublicStateShared(
     configuredTopicRounds: state.configuredTopicRounds,
     // usedTopicIds / draftOptions / full ledger / checkpoint stay server-side —
     // they were unused by the UI and dominated late-game WS payloads.
-    topicOptions: state.topicOptions.map((t) => ({ ...t })),
-    topicVoteCounts,
+    topicOptions: diceSlim ? [] : state.topicOptions.map((t) => ({ ...t })),
+    topicVoteCounts: diceSlim ? {} : topicVoteCounts,
     selectedTopic: state.selectedTopic ? { ...state.selectedTopic } : null,
     topicRerollsUsed: state.topicRerollsUsed,
     seenTopicCount: Array.isArray(state.seenTopicIds)
@@ -164,8 +168,8 @@ export function projectPublicStateShared(
     starterOffset: state.starterOffset,
     draftCursor: state.draftCursor,
     draftOrder: [...state.draftOrder],
-    picks: state.picks.map((p) => ({ ...p })),
-    takenNormalized: [...state.takenNormalized],
+    picks: diceSlim ? [] : state.picks.map((p) => ({ ...p })),
+    takenNormalized: diceSlim ? [] : [...state.takenNormalized],
     draftOptionsStatus: state.draftOptionsStatus,
     pickDeadlineAt: state.pickDeadlineAt,
     pickPaused: state.pickPaused,
@@ -175,15 +179,15 @@ export function projectPublicStateShared(
     correctionPickIndex: state.correctionPickIndex,
     humanVotesCast,
     humanVotesNeeded,
-    humanVotedIds,
-    scores,
+    humanVotedIds: diceSlim ? [] : humanVotedIds,
+    scores: diceSlim ? [] : scores,
     scoresLocked: state.scoresLocked,
     judgeStatus: state.judgeStatus,
     judgeNotice: state.judgeNotice,
-    rushmoreWhy,
+    rushmoreWhy: diceSlim ? {} : rushmoreWhy,
     bankBeansReadyCast: bankCast,
     bankBeansReadyNeeded: bankNeeded,
-    bankBeansReadyIds,
+    bankBeansReadyIds: diceSlim ? [] : bankBeansReadyIds,
     rematchReadyCast: rematchReadyIds.length,
     rematchReadyNeeded: rematchPool.length,
     rematchReadyIds,
