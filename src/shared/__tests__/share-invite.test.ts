@@ -58,13 +58,22 @@ describe("lobby share invite", () => {
     expect(copy).not.toHaveBeenCalled();
   });
 
-  it("keeps one big Share, Copied confirmation, big code, QR behind Show QR", () => {
+  it("always shows code + QR + one Share (no Show QR toggle)", () => {
     expect(lobby).toMatch(/>\s*\{copied \? "Copied" : "Share"\}\s*</);
-    expect(lobby).toMatch(/Show QR/);
+    expect(lobby).not.toMatch(/Show QR|Hide QR|showQR/);
     expect(lobby).toMatch(/lobby-room-code/);
+    expect(lobby).toMatch(/lobby-qr/);
     expect(lobby).toMatch(/shareInvite/);
     expect(lobby).toMatch(/QRCodeSVG/);
+    expect(lobby).toMatch(/marginSize=\{4\}/);
+    expect(lobby).toMatch(/size=\{128\}/);
+    expect(lobby).toMatch(/bgColor="#f5f0e7"/);
+    expect(lobby).toMatch(/fgColor="#23483e"/);
+    expect(lobby).toMatch(/copyLink|clipboard\.writeText/);
     expect(css).toMatch(/\.lobby-room-code/);
     expect(css).toMatch(/\.lobby-share-btn/);
+    expect(css).toMatch(/\.lobby-qr/);
+    const invite = css.match(/\.lobby-invite\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
+    expect(invite).not.toMatch(/blur\s*\(/);
   });
 });

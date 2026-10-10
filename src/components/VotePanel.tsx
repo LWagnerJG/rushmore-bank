@@ -7,6 +7,7 @@ import { rosterDensity } from "@/shared/roster-density";
 import { cueYourTurn } from "@/lib/your-turn";
 import { RushmoreCard } from "@/components/RushmoreCard";
 import { WaitingRoster } from "@/components/WaitingRoster";
+import { nameWithYouSuffix } from "@/shared/you-label";
 
 function Countdown({ until }: { until: number | null }) {
   const [left, setLeft] = useState(0);
@@ -106,7 +107,7 @@ export function VotePanel({
               key={pid}
               name={
                 isYou
-                  ? `${p?.name ?? "You"} (you)`
+                  ? nameWithYouSuffix(p?.name ?? "You")
                   : (p?.name ?? "Player")
               }
               picks={picks}

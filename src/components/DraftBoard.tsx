@@ -10,6 +10,7 @@ import {
 } from "@/shared/engine/snake";
 import { readAdminUnlocked } from "@/lib/admin-session";
 import { FitName } from "@/components/FitName";
+import { nameWithYouSuffix } from "@/shared/you-label";
 
 function densityFor(count: number): "fit" | "snug" | "dense" {
   // 2–5: share the phone width with no sideways scroll.
@@ -163,7 +164,7 @@ export function DraftBoard({
                       text={player?.name ?? ""}
                       title={
                         mine
-                          ? `${player?.name ?? "You"} (you)`
+                          ? nameWithYouSuffix(player?.name ?? "You")
                           : (player?.name ?? undefined)
                       }
                     />

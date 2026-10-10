@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   sortDraftBoardPlayers,
@@ -7,6 +9,11 @@ import { currentUpPlayerId } from "@/shared/engine/up-seat";
 import type { Player, PublicRoomState } from "@/shared/types";
 import { emptyRoomState } from "@/shared/types";
 import { projectPublicState } from "@/shared/engine/public-state";
+
+const railSrc = readFileSync(
+  resolve(__dirname, "../../components/PlayerRail.tsx"),
+  "utf8",
+);
 
 function p(
   partial: Partial<Player> & Pick<Player, "id" | "name" | "stones">,
@@ -76,6 +83,14 @@ describe("sortDraftBoardPlayers", () => {
     expect(
       sortDraftBoardPlayers(players, ["a", "b", "c"], 2).map((x) => x.id),
     ).toEqual(["c", "a", "b"]);
+  });
+});
+
+describe("PlayerRail you label", () => {
+  it("builds the You chip via you-label helpers (no You · you)", () => {
+    expect(railSrc).toMatch(/railYouLabel/);
+    expect(railSrc).toMatch(/railChipTip/);
+    expect(railSrc).not.toMatch(/You · \$\{|You · you|"You · /);
   });
 });
 
