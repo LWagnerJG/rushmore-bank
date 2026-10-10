@@ -41,6 +41,9 @@ jobs:
           echo "Building OpenNext worker (commit ${NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA:0:8})…"
           npx opennextjs-cloudflare build --config wrangler.web.jsonc
 
+          # Deploy first so the Worker exists, then sync secrets onto it.
+          npx opennextjs-cloudflare deploy --config wrangler.web.jsonc -- --keep-vars
+
           # Sync runtime secrets from GitHub Actions secrets when present.
           # Wrangler reads the secret value from stdin; empty/missing → skip.
           put_secret() {
@@ -62,5 +65,3 @@ jobs:
           if [ -z "${GEMINI_API_KEY:-}" ] && [ -z "${GOOGLE_GENERATIVE_AI_API_KEY:-}" ] && [ -z "${GROQ_API_KEY:-}" ]; then
             echo "::warning::No judge provider key in GitHub secrets (GEMINI_API_KEY / GOOGLE_GENERATIVE_AI_API_KEY / GROQ_API_KEY). /api/judge will fallback until one is set."
           fi
-
-          npx opennextjs-cloudflare deploy --config wrangler.web.jsonc -- --keep-vars
