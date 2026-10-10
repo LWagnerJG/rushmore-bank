@@ -1802,6 +1802,18 @@ html.party-on .panel {
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
+  /*
+   * Everything on the dice screen except the tray is ~434px tall, so on a
+   * short phone the tray takes what's left and Pot, Safe and Bank stay on
+   * screen. One height for every beat: arming your turn never moves Bank.
+   */
+  --dice-tray-h: clamp(
+    188px,
+    calc(100svh - env(safe-area-inset-top, 0px) - var(--phase-pad-b) - 434px),
+    260px
+  );
+  /* Clears the TAP chip above and fits two dice across a 320px phone */
+  --dice-die: min(138px, calc(var(--dice-tray-h) - 90px), calc(50vw - 50px));
 }
 
 .dice-zone {
@@ -1857,7 +1869,8 @@ html.party-on .panel {
   align-items: center;
   justify-content: space-between;
   gap: 0.65rem;
-  min-height: 3.1rem;
+  /* Display title + status line, so busting to the spectator title can't shift the tray */
+  min-height: 3.25rem;
 }
 
 .dice-stage-role {
@@ -1885,7 +1898,7 @@ html.party-on .panel {
 }
 
 .dice-stage-tray {
-  margin: 0.05rem 0;
+  margin: 0;
 }
 
 .dice-stage-actions {
@@ -1936,7 +1949,7 @@ html.party-on .panel {
   align-items: flex-end;
   justify-content: space-between;
   gap: 0.75rem;
-  margin-bottom: 0.55rem;
+  margin-bottom: 0.4rem;
   min-height: 2.85rem;
 }
 
@@ -2066,6 +2079,8 @@ html.party-on .panel {
   display: grid;
   grid-template-rows: 0fr;
   opacity: 0;
+  /* A closed slot takes no layout gap; an open prompt brings its own */
+  margin-top: -0.65rem;
   transition:
     grid-template-rows 280ms ease,
     opacity 220ms ease;
@@ -2077,6 +2092,9 @@ html.party-on .panel {
 .dice-party-slot-inner {
   overflow: hidden;
   min-height: 0;
+}
+.dice-party-slot-inner > * {
+  margin-top: 0.65rem;
 }
 
 /*
@@ -3357,8 +3375,7 @@ html.party-on .status-pill-ready {
   position: relative;
   display: block;
   width: 100%;
-  height: min(292px, 56vw);
-  min-height: 248px;
+  height: var(--dice-tray-h, 248px);
   overflow: hidden;
   border: 1.5px solid rgba(35, 72, 62, 0.28);
   border-radius: 1.15rem;
@@ -3382,7 +3399,6 @@ html.party-on .status-pill-ready {
   position: relative;
   overflow: hidden;
   isolation: isolate;
-  min-height: 260px;
   /* Coral edge = only your-turn signal */
   border-color: rgba(231, 111, 78, 0.7);
   box-shadow:
@@ -3412,7 +3428,7 @@ html.party-on .status-pill-ready {
 }
 .bean-dice-hint {
   position: absolute;
-  top: 12px;
+  top: 10px;
   bottom: auto;
   left: 50%;
   right: auto;
@@ -3436,9 +3452,10 @@ html.party-on .status-pill-ready {
   animation: none;
 }
 .bean-dice-hint-first {
-  font-size: 1rem;
+  font-size: 0.88rem;
+  line-height: 1.2;
   letter-spacing: 0.18em;
-  padding: 0.36rem 1rem;
+  padding: 0.24rem 0.85rem;
   border-color: rgba(196, 92, 58, 0.55);
   animation: dice-hint-fade-in 180ms ease-out both;
 }
@@ -3500,19 +3517,30 @@ html.party-on .status-pill-ready {
 
 /* Flat 2D pip dice — calculator-clear; scramble while tumbling */
 .bean-pip-die {
-  width: 138px;
-  height: 138px;
+  position: relative;
+  width: var(--dice-die, 138px);
+  height: var(--dice-die, 138px);
   transform-origin: 50% 55%;
+}
+/* Shadow on a box shaped like the SVG body (3/80 inset, 12/74 corners):
+   a filter on the SVG makes iOS rasterize the die soft. */
+.bean-pip-die::before {
+  content: "";
+  position: absolute;
+  inset: 3.75%;
+  border-radius: 16%;
+  box-shadow: 0 12px 16px rgba(16, 45, 37, 0.4);
+  pointer-events: none;
 }
 .bean-pip-die-tumbling,
 .bean-pip-die-scrambling {
   will-change: transform;
 }
 .bean-pip-die-svg {
+  position: relative;
   width: 100%;
   height: 100%;
   display: block;
-  filter: drop-shadow(0 12px 16px rgba(16, 45, 37, 0.4));
 }
 .bean-pip-die-body {
   fill: #fff8ec;
@@ -3533,15 +3561,8 @@ html.party-on .status-pill-ready {
 .bean-pip-die-tumbling {
   animation: pip-die-tumble 380ms linear infinite;
 }
-.bean-pip-die-scrambling .bean-pip-die-svg {
-  /* Keep pips legible during scramble — motion alone signals tumble */
-  filter: drop-shadow(0 10px 12px rgba(16, 45, 37, 0.32));
-}
 .bean-pip-die-scrambling .bean-pip-die-pip {
   animation: pip-die-scramble-pip 90ms steps(1, end) infinite;
-}
-.bean-pip-die-known .bean-pip-die-svg {
-  filter: drop-shadow(0 12px 16px rgba(16, 45, 37, 0.4));
 }
 .bean-pip-die-settle {
   animation: pip-die-settle 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -3677,7 +3698,7 @@ html.dice-your-turn::after {
   font-weight: 800;
   line-height: 1.15;
   letter-spacing: 0.01em;
-  color: var(--coral);
+  color: var(--coral-ink);
 }
 @keyframes dice-result-pop {
   0% {
@@ -4200,10 +4221,6 @@ html.party-on .draft-board-cell-mine {
   .dice-bank-cta-armed {
     animation: none !important;
   }
-  .bean-pip-die-tumbling,
-  .bean-pip-die-scrambling .bean-pip-die-svg {
-    filter: drop-shadow(0 10px 12px rgba(16, 45, 37, 0.32));
-  }
   .dice-zone,
   .dice-stage-timer,
   .dice-result-readout,
@@ -4423,7 +4440,7 @@ html.party-on .draft-board-cell-mine {
 
 .bean-dice-hint {
   opacity: 1 !important;
-  top: 12px !important;
+  top: 10px !important;
   bottom: auto !important;
   left: 50% !important;
   right: auto !important;
