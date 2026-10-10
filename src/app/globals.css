@@ -192,6 +192,39 @@ html.party-on body::before {
   background: transparent;
 }
 
+/*
+ * Disconnect shield — covers phase content only (no blur, no hard band).
+ * Blocks taps while PartySocket retries with short backoff.
+ */
+.reconnect-blocker {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  pointer-events: auto;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+}
+
+.reconnect-blocker-copy {
+  margin: 0;
+  padding: 0.65rem 1.1rem;
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--text);
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  box-shadow: 0 4px 18px rgba(35, 72, 62, 0.1);
+}
+
+.reconnect-dimmed {
+  opacity: 0.42;
+  pointer-events: none;
+  user-select: none;
+}
+
 /* Phase body sits on the page — no card plate that ends above the safe area */
 .phase-panel {
   background: transparent;
