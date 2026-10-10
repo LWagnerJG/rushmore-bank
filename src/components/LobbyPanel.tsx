@@ -152,25 +152,24 @@ export function LobbyPanel({
         )}
       </section>
 
+      {/* A direct child of the layout: a sticky box only travels inside its parent. */}
       {you.isHost ? (
-        <section className="lobby-host-tools">
-          <div className="lobby-start-slot phase-sticky-cta">
-            <button
-              type="button"
-              data-diag="lobby-start"
-              className="btn-primary w-full"
-              disabled={!canStart}
-              onClick={() => send({ type: "start" })}
-            >
-              {canStart
-                ? partyOn
-                  ? "Start the party"
-                  : "Start game"
-                : `Need ${RULES.minPlayers}+ players`}
-            </button>
-            <HostAiPreGameStatus />
-          </div>
-        </section>
+        <div className="lobby-start-slot phase-sticky-cta">
+          <button
+            type="button"
+            data-diag="lobby-start"
+            className="btn-primary w-full"
+            disabled={!canStart}
+            onClick={() => send({ type: "start" })}
+          >
+            {canStart
+              ? partyOn
+                ? "Start the party"
+                : "Start game"
+              : `Need ${RULES.minPlayers}+ players`}
+          </button>
+          <HostAiPreGameStatus />
+        </div>
       ) : null}
     </div>
   );

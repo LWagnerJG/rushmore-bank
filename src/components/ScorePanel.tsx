@@ -35,55 +35,78 @@ export function ScorePanel({
         ? RULES.aiFallbackLabel
         : null;
   const density = rosterDensity(state.seatOrder.length);
+  const ready = state.myBankBeansReady;
 
   return (
-    <div className={`roster-board space-y-3 roster-board-${density}`}>
-      <div className="flex items-baseline justify-between gap-2">
-        <h2 className="type-display">Beans earned</h2>
-        {notice ? (
-          <p className="max-w-[55%] type-meta text-right text-[var(--muted)]">
-            {notice}
-          </p>
+    <div className="score-layout">
+      <div className={`roster-board space-y-3 roster-board-${density}`}>
+        <div className="flex items-baseline justify-between gap-2">
+          <h2 className="type-display">Beans earned</h2>
+          {notice ? (
+            <p className="max-w-[55%] type-meta text-right text-[var(--muted)]">
+              {notice}
+            </p>
+          ) : null}
+        </div>
+
+        <div className={`roster-board-grid roster-board-grid-${density}`}>
+          {scored.map((s) => {
+            const p = state.players.find((x) => x.id === s.playerId);
+            const picks = state.picks.filter((pk) => pk.playerId === s.playerId);
+            const why =
+              s.explanation && s.explanation !== RULES.aiFallbackLabel
+                ? s.explanation
+                : state.rushmoreWhy[s.playerId];
+            return (
+              <RushmoreCard
+                key={s.playerId}
+                name={p?.name ?? "Player"}
+                picks={picks}
+                why={why}
+                compact={density !== "cozy"}
+                density={density}
+                badge={<EarnedBadge earned={s.earned} />}
+              />
+            );
+          })}
+        </div>
+
+        {you.isHost ? (
+          <button
+            type="button"
+            className="w-full text-center type-meta font-bold text-[var(--muted)] underline-offset-2 hover:underline"
+            onClick={() => send({ type: "advance" })}
+          >
+            Force wager (host)
+          </button>
         ) : null}
       </div>
 
-      <div className={`roster-board-grid roster-board-grid-${density}`}>
-        {scored.map((s) => {
-          const p = state.players.find((x) => x.id === s.playerId);
-          const picks = state.picks.filter((pk) => pk.playerId === s.playerId);
-          const why =
-            s.explanation && s.explanation !== RULES.aiFallbackLabel
-              ? s.explanation
-              : state.rushmoreWhy[s.playerId];
-          return (
-            <RushmoreCard
-              key={s.playerId}
-              name={p?.name ?? "Player"}
-              picks={picks}
-              why={why}
-              compact={density !== "cozy"}
-              density={density}
-              badge={<EarnedBadge earned={s.earned} />}
-            />
-          );
-        })}
+      <div className="phase-sticky-cta score-dock">
+        <WaitingRoster
+          compact
+          state={state}
+          youId={you.id}
+          doneIds={state.bankBeansReadyIds}
+          label="Everyone’s ready"
+        />
+        {you.role === "player" ? (
+          <button
+            type="button"
+            className={`btn-primary w-full${ready ? " btn-done" : ""}`}
+            disabled={ready}
+            onClick={() => send({ type: "bank_the_beans" })}
+          >
+            {ready ? (
+              <>
+                Ready<span aria-hidden="true"> ✓</span>
+              </>
+            ) : (
+              "Ready to wager"
+            )}
+          </button>
+        ) : null}
       </div>
-
-      <WaitingRoster
-        state={state}
-        youId={you.id}
-        doneIds={state.bankBeansReadyIds}
-        label="Ready to wager"
-      />
-      {you.isHost ? (
-        <button
-          type="button"
-          className="w-full text-center type-meta font-bold text-[var(--muted)] underline-offset-2 hover:underline"
-          onClick={() => send({ type: "advance" })}
-        >
-          Force wager (host)
-        </button>
-      ) : null}
     </div>
   );
 }

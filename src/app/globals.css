@@ -50,6 +50,8 @@
   --leading-display: 1.1;
   --tap-min: 44px;
   --motion-fast: 180ms;
+  /* Phase body bottom padding; a last-child sticky dock cancels it */
+  --phase-pad-b: max(0.75rem, env(safe-area-inset-bottom, 0px));
 }
 
 html.party-on {
@@ -234,6 +236,20 @@ html.party-on body::before {
   background: transparent;
   border: none;
   box-shadow: none;
+}
+
+/*
+ * Phase body is at least the scrollport's height, so a sticky dock
+ * (margin-top:auto) rests at the bottom even when the content is short.
+ */
+.room-phase-fill {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.room-phase-fill > .phase-panel {
+  flex: 1 0 auto;
 }
 
 /*
@@ -588,6 +604,14 @@ select,
   opacity: 0.5;
 }
 
+/* Done (“Ready ✓”): mint fill, ink label at full strength — not a faded primary */
+.btn-primary.btn-done,
+.btn-primary.btn-done:disabled {
+  background: var(--mint);
+  color: var(--text);
+  opacity: 1;
+}
+
 html.party-on .btn-primary {
   /* Static depth only — no animated shadow */
   box-shadow: 0 6px 0 rgba(35, 72, 62, 0.18);
@@ -837,20 +861,6 @@ html.party-on .btn-primary {
 
 .topic-refresh {
   animation: topic-refresh 420ms ease-out both;
-}
-
-@keyframes pulse-soft {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.03);
-  }
-}
-
-.pulse-soft {
-  animation: pulse-soft 1.6s ease-in-out infinite;
 }
 
 @keyframes judge-dot {
@@ -1167,60 +1177,17 @@ html.party-on .brand-shimmer {
   text-underline-offset: 0.12em;
 }
 
-/* Ready to wager — under player rail, right-aligned, soft pulse */
-.ready-wager-row {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.65rem;
-  margin-top: 0.55rem;
-  padding-top: 0.15rem;
-}
-
-.ready-wager-meta {
-  font-size: 0.68rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  color: var(--muted);
-}
-
-.ready-wager-cta {
-  appearance: none;
-  border: 0;
-  border-radius: 999px;
-  padding: 0.45rem 0.95rem;
-  min-height: 2.15rem;
-  background: linear-gradient(180deg, #b05030, var(--btn-bg));
-  color: #fffaf2;
-  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
-  font-size: 0.82rem;
-  font-weight: 800;
-  letter-spacing: 0.01em;
-  box-shadow: 0 4px 12px rgba(192, 85, 48, 0.3);
-  cursor: pointer;
-}
-
-.ready-wager-cta:disabled,
-.ready-wager-cta-done {
-  background: rgba(35, 72, 62, 0.14);
-  color: var(--muted);
-  box-shadow: none;
-  cursor: default;
-}
-
-.ready-wager-cta:not(:disabled):active {
-  transform: translateY(1px) scale(0.98);
-}
-
-/* Lobby fills the phase scrollport so sticky Start can pin to the bottom */
+/* Lobby fills the phase body so sticky Start rests at the bottom */
 .lobby-layout {
-  min-height: 100%;
+  flex: 1 0 auto;
   padding-bottom: 0;
 }
 
 /*
  * Sticky primary CTA dock — cream fade only (no blur, no hairline band).
- * Used by Lobby Start + Wager lock so short iPhones never lose the action.
+ * Lobby Start, Wager lock, Score Ready, Results Next/Rematch: short iPhones
+ * never lose the action. The dock must be a direct child of the full-height
+ * layout — a sticky box only travels inside its parent.
  */
 .phase-sticky-cta {
   position: sticky;
@@ -1249,13 +1216,36 @@ html.party-on .brand-shimmer {
   );
 }
 
+/* Resting at the end, the dock reaches the panel's edge: same spot as stuck */
+.phase-sticky-cta:last-child {
+  margin-bottom: calc(-1 * var(--phase-pad-b));
+}
+
+/* Score reveal: cards scroll under the Ready dock */
+.score-layout {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Clear of the dock's fade when it rests under the last card */
+.score-layout > .roster-board {
+  margin-bottom: 1.35rem;
+}
+
+.score-dock .waiting-roster {
+  margin-bottom: var(--space-2);
+}
+
 /* End of game — rematch + quiet home; winner sweep lives on reveal rows */
 .endgame-panel {
+  flex: 1 0 auto;
   gap: var(--space-3);
 }
 
-.endgame-rematch {
-  margin-top: var(--space-1);
+/* End game / Home follow the dock; its bottom padding is the gap */
+.endgame-panel > .phase-sticky-cta + .dock-trailing {
+  margin-top: calc(-1 * var(--space-3));
 }
 
 .endgame-rematch-btn {
@@ -1264,7 +1254,7 @@ html.party-on .brand-shimmer {
 }
 
 .endgame-ready-count {
-  margin: 0;
+  margin: 0 0 var(--space-2);
 }
 
 .endgame-home {
@@ -1443,20 +1433,6 @@ html.party-on .brand-shimmer {
     min-height: calc(var(--tap-min) - 2px);
     padding: 0.3rem 0.65rem;
   }
-
-  .ready-wager-row {
-    margin-top: 0.25rem;
-    gap: 0.45rem;
-  }
-}
-
-.lobby-host-tools {
-  margin-top: auto;
-}
-
-.lobby-start-slot {
-  /* Sticky dock — no dead FAB clearance */
-  padding-bottom: 0;
 }
 
 .lobby-start-slot .btn-primary {
@@ -3126,6 +3102,21 @@ html.party-on .player-row {
   color: var(--muted);
 }
 
+/* Dock status: one line — long name lists truncate, the count stays */
+.waiting-roster-compact {
+  padding: 0;
+}
+
+.waiting-roster-compact .waiting-roster-head {
+  margin-bottom: 0;
+}
+
+.waiting-roster-compact .waiting-roster-status {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 .waiting-roster-avatars {
   list-style: none;
   margin: 0;
@@ -3310,7 +3301,6 @@ html.party-on .status-pill-ready {
   .score-land,
   .motion-settled,
   .brand-shimmer,
-  .pulse-soft,
   .topic-refresh,
   .judge-working-dot,
   .earned-badge {
