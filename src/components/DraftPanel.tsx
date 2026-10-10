@@ -8,6 +8,7 @@ import {
   type PublicRoomState,
 } from "@/shared/types";
 import { loadStash, saveStash } from "@/lib/party";
+import { cueYourTurn } from "@/lib/your-turn";
 import { DraftBoard } from "@/components/DraftBoard";
 
 export function DraftPanel({
@@ -83,6 +84,17 @@ export function DraftPanel({
     const timer = setTimeout(() => setBusy(false), 1200);
     return () => clearTimeout(timer);
   }, [busy]);
+
+  useEffect(() => {
+    if (!myTurn || state.pickPaused) return;
+    cueYourTurn(`draft:${state.code}:${state.draftCursor}:${state.phaseRevision}`);
+  }, [
+    myTurn,
+    state.pickPaused,
+    state.code,
+    state.draftCursor,
+    state.phaseRevision,
+  ]);
 
   function persist(next: string[]) {
     setQueue(next);
@@ -289,13 +301,13 @@ export function DraftPanel({
             type="button"
             className={
               myTurn
-                ? "btn-primary w-full"
+                ? "btn-primary btn-your-turn w-full"
                 : "btn-secondary w-full"
             }
             disabled={!canPrimary}
             onClick={() => primaryAction()}
           >
-            {myTurn ? (busy ? "Locking…" : "Lock in") : "Stash it"}
+            <span>{myTurn ? (busy ? "Locking…" : "Lock in") : "Stash it"}</span>
           </button>
         </section>
       )}

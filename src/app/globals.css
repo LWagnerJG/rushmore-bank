@@ -507,6 +507,93 @@ html.party-on .btn-primary {
   }
 }
 
+/*
+ * Your-turn action highlight — single coral fill-in (transform/opacity only).
+ * No pulse, flash, or infinite loop. Used on pick / vote / roll CTAs.
+ */
+@keyframes coral-fill-in {
+  from {
+    transform: scaleX(0);
+    opacity: 0.85;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+
+.btn-your-turn {
+  position: relative;
+  overflow: hidden;
+  background: var(--btn-bg);
+  color: #fff;
+  border: none;
+  isolation: isolate;
+}
+
+.btn-your-turn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: var(--coral);
+  transform-origin: left center;
+  transform: scaleX(0);
+  animation: coral-fill-in var(--motion-fast) ease-out forwards;
+  pointer-events: none;
+}
+
+.btn-your-turn > * {
+  position: relative;
+  z-index: 1;
+}
+
+.rushmore-card-your-turn {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.rushmore-card-your-turn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: color-mix(in srgb, var(--coral) 22%, transparent);
+  transform-origin: left center;
+  transform: scaleX(0);
+  animation: coral-fill-in var(--motion-fast) ease-out forwards;
+  pointer-events: none;
+}
+
+.rushmore-card-your-turn > * {
+  position: relative;
+  z-index: 1;
+}
+
+.rushmore-card-selected.rushmore-card-your-turn {
+  background: var(--btn-bg);
+  color: #fff;
+  border-color: var(--btn-bg);
+  box-shadow: none;
+}
+
+.rushmore-card-selected.rushmore-card-your-turn .rushmore-card-name,
+.rushmore-card-selected.rushmore-card-your-turn .rushmore-list-text,
+.rushmore-card-selected.rushmore-card-your-turn .rushmore-list-num {
+  color: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-your-turn::before,
+  .rushmore-card-your-turn::before,
+  .bean-dice-tray-armed::before {
+    animation: none;
+    transform: none;
+    opacity: 1;
+  }
+}
+
 @keyframes rise {
   from {
     opacity: 0.01;
@@ -2778,13 +2865,32 @@ html.party-on .status-pill-ready {
 }
 .bean-dice-tray-armed {
   cursor: pointer;
-  border-color: rgba(167, 215, 194, 0.85);
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  border-color: rgba(231, 111, 78, 0.7);
   box-shadow:
     inset 0 0 0 7px #ffffff08,
     inset 0 10px 28px #0002,
-    0 0 0 3px rgba(167, 215, 194, 0.45),
-    0 10px 28px rgba(35, 72, 62, 0.18);
-  animation: dice-armed-pulse 1.8s ease-in-out infinite;
+    0 0 0 3px rgba(231, 111, 78, 0.35),
+    0 12px 30px rgba(35, 72, 62, 0.22);
+  /* Single coral fill-in — no infinite pulse/flash */
+  animation: none;
+}
+.bean-dice-tray-armed::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: color-mix(in srgb, var(--coral) 28%, transparent);
+  transform-origin: left center;
+  transform: scaleX(0);
+  animation: coral-fill-in var(--motion-fast) ease-out forwards;
+  pointer-events: none;
+}
+.bean-dice-tray-armed > * {
+  position: relative;
+  z-index: 1;
 }
 .bean-dice-tray-armed:active {
   transform: scale(0.985);
@@ -2822,7 +2928,8 @@ html.party-on .status-pill-ready {
   box-shadow:
     0 0 0 3px rgba(231, 111, 78, 0.12),
     0 6px 14px rgba(35, 72, 62, 0.12);
-  animation: dice-hint-pulse 1.35s ease-in-out infinite;
+  /* Static label — no pulse/flash on your-turn */
+  animation: none;
 }
 .bean-dice-hint-first {
   font-size: 1rem;
@@ -2832,20 +2939,13 @@ html.party-on .status-pill-ready {
   box-shadow:
     0 0 0 3px rgba(231, 111, 78, 0.16),
     0 8px 16px rgba(35, 72, 62, 0.14);
-  animation: dice-hint-pulse 1.15s ease-in-out infinite;
+  animation: none;
 }
 .bean-dice-tray-armed {
   min-height: 260px;
-  border-color: rgba(231, 111, 78, 0.7);
-  box-shadow:
-    inset 0 0 0 7px #ffffff08,
-    inset 0 10px 28px #0002,
-    0 0 0 3px rgba(231, 111, 78, 0.35),
-    0 12px 30px rgba(35, 72, 62, 0.22);
-  animation: dice-armed-pulse 1.15s ease-in-out infinite;
 }
 .bean-dice-tray-first-hint {
-  animation: dice-armed-pulse 0.95s ease-in-out infinite;
+  animation: none;
   border-color: rgba(244, 201, 91, 0.95);
   box-shadow:
     inset 0 0 0 7px #ffffff08,
@@ -3011,33 +3111,13 @@ html.party-on .status-pill-ready {
 }
 
 /*
- * Full-phone “you’re up” perimeter glow.
- * Applied on <html> (not inside animate-rise) so fixed positioning
- * isn’t trapped by transformed ancestors — edge-to-edge device ring.
+ * Your-turn cue lives on the action control (coral fill-in), not a
+ * full-phone perimeter glow / flash. Keep the selector inert.
  */
 html.dice-your-turn::after {
-  content: "";
-  pointer-events: none;
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  border-radius: 0;
-  box-shadow:
-    inset 0 0 0 2.5px rgba(126, 185, 150, 0.7),
-    inset 0 0 18px 6px rgba(167, 215, 194, 0.45),
-    inset 0 0 48px 16px rgba(126, 185, 150, 0.22);
-  animation: dice-glow-breathe 2.4s ease-in-out infinite;
-}
-
-/* Phones: lighter perimeter glow — full multi-blur was a compositor tax. */
-@media (pointer: coarse) {
-  html.dice-your-turn::after {
-    box-shadow:
-      inset 0 0 0 2px rgba(126, 185, 150, 0.55),
-      inset 0 0 14px 4px rgba(167, 215, 194, 0.28);
-    animation: none;
-    opacity: 0.9;
-  }
+  content: none;
+  display: none;
+  animation: none;
 }
 
 @keyframes dice-glow-breathe {
@@ -3859,12 +3939,13 @@ html.party-on .draft-board-table thead th.is-you {
   box-shadow:
     0 0 0 3px rgba(231, 111, 78, 0.12),
     0 6px 14px rgba(35, 72, 62, 0.12) !important;
-  animation: dice-hint-pulse 1.35s ease-in-out infinite !important;
+  /* Your-turn: static TAP label — no pulse/flash */
+  animation: none !important;
 }
 .bean-dice-hint-first {
   opacity: 1 !important;
   border-color: rgba(196, 92, 58, 0.55) !important;
-  animation: dice-hint-pulse 1.15s ease-in-out infinite !important;
+  animation: none !important;
 }
 
 .topic-vibe-row {

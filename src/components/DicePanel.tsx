@@ -10,6 +10,7 @@ import {
   type DiceReadoutRoll,
 } from "@/shared/engine/dice-present";
 import { haptic } from "@/lib/haptics";
+import { cueYourTurn } from "@/lib/your-turn";
 import { RULES } from "@/shared/rules";
 import { ensureDiceAudio, playBankChime } from "@/lib/dice-sfx";
 
@@ -202,18 +203,17 @@ export function DicePanel({
 
   useEffect(() => {
     if (!glowOn || state.diceSubphase !== "READY") return;
-    const key = `${state.diceTurnSeat}-${state.diceSubphase}-${state.phaseRevision}`;
+    const key = `dice:${state.code}:${state.diceTurnSeat}:${state.phaseRevision}`;
     if (turnHaptic.current === key) return;
     turnHaptic.current = key;
-    haptic("your_turn");
-  }, [glowOn, state.diceSubphase, state.diceTurnSeat, state.phaseRevision]);
-
-  useEffect(() => {
-    const root = document.documentElement;
-    if (glowOn) root.classList.add("dice-your-turn");
-    else root.classList.remove("dice-your-turn");
-    return () => root.classList.remove("dice-your-turn");
-  }, [glowOn]);
+    cueYourTurn(key);
+  }, [
+    glowOn,
+    state.diceSubphase,
+    state.diceTurnSeat,
+    state.phaseRevision,
+    state.code,
+  ]);
 
   const reducedMotion = useMemo(
     () =>

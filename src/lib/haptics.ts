@@ -1,5 +1,6 @@
 /**
  * Best-effort haptics. iOS Safari often no-ops vibrate — never block gameplay.
+ * Never rely on vibrate for game logic (Android-only in practice).
  */
 export type HapticKind =
   | "your_turn"
@@ -9,7 +10,8 @@ export type HapticKind =
   | "bust";
 
 const PATTERNS: Record<HapticKind, number | number[]> = {
-  your_turn: [12, 40, 18],
+  /** Single short buzz — ~20ms; iOS ignores navigator.vibrate. */
+  your_turn: 20,
   tap_roll: 10,
   settle: [8, 30, 24],
   bank: [14, 28, 14],
@@ -25,4 +27,8 @@ export function haptic(kind: HapticKind): void {
   } catch {
     // Unsupported or blocked — ignore.
   }
+}
+
+export function hapticPattern(kind: HapticKind): number | number[] {
+  return PATTERNS[kind];
 }
