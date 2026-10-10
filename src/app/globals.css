@@ -3641,24 +3641,6 @@ html.party-on .status-pill-ready {
   }
 }
 
-/* Legacy 3D selectors kept harmless for any stray markup */
-.bean-die {
-  width: 144px;
-  height: 176px;
-  overflow: visible;
-}
-.bean-die-body {
-  fill: #fff6e4;
-  stroke: #ded1b8;
-}
-.bean-die-1 .bean-die-body {
-  fill: #f4c95b;
-  stroke: #d3aa49;
-}
-.bean-pip {
-  fill: #23483e;
-}
-
 /*
  * Your-turn cue lives on the action control (coral fill-in), not a
  * full-phone perimeter glow / flash. Keep the selector inert.
@@ -3667,16 +3649,6 @@ html.dice-your-turn::after {
   content: none;
   display: none;
   animation: none;
-}
-
-@keyframes dice-glow-breathe {
-  0%,
-  100% {
-    opacity: 0.78;
-  }
-  50% {
-    opacity: 1;
-  }
 }
 
 .dice-table-dim,
@@ -4313,31 +4285,7 @@ html.party-on .draft-board-cell-mine {
   opacity: 0.75;
 }
 
-.bean-die {
-  /* will-change only while settling — persistent hint soft-promotes layers */
-  transform-origin: 50% 45%;
-}
-
-.bean-die-settle {
-  will-change: transform;
-  animation: die-settle 520ms cubic-bezier(0.22, 1, 0.36, 1);
-  animation-fill-mode: none;
-}
-
-@keyframes die-settle {
-  0% {
-    transform: translateY(-22px) scale(1.18);
-  }
-  45% {
-    transform: translateY(4px) scale(0.94);
-  }
-  100% {
-    transform: translateY(0) scale(1);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .bean-die-settle,
   .bean-pip-die-settle,
   .bean-pip-die-tumbling,
   .bean-pip-die-scrambling .bean-pip-die-pip,

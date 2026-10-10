@@ -121,19 +121,14 @@ describe("iOS chrome + keyboard CSS contracts", () => {
     }
   });
 
-  it("drops backdrop-filter on bank-confirm and avoids persistent bean-die will-change", () => {
+  it("drops backdrop-filter on bank-confirm and has no leftover 3D die will-change", () => {
     const bank =
       css.match(/\.bank-confirm-backdrop\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
     const bankDecls = bank.replace(/\/\*[\s\S]*?\*\//g, "");
     expect(bankDecls).toMatch(/backdrop-filter:\s*none/);
     expect(bankDecls).not.toMatch(/backdrop-filter:\s*blur/);
-    const beanDie = css.match(/\.bean-die\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
-    expect(beanDie.replace(/\/\*[\s\S]*?\*\//g, "")).not.toMatch(
-      /will-change:\s*transform/,
-    );
-    expect(css).toMatch(
-      /\.bean-die-settle\s*\{[\s\S]*?will-change:\s*transform/,
-    );
+    expect(css).not.toMatch(/\.bean-die(?:-settle)?\s*\{/);
+    expect(css).not.toMatch(/@keyframes\s+die-settle/);
   });
 
   it("keeps body::before free of background-attachment fixed", () => {
