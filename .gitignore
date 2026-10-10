@@ -41,8 +41,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# partykit / wrangler local state
-.partykit/
+# wrangler local state
 .wrangler/
 artifacts/
 /beans-*.webp

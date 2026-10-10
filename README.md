@@ -42,9 +42,9 @@ npm run dev
 | `npm test` | Pure rules unit tests (Vitest) |
 | `npm run lint` | ESLint |
 
-## Deploy PartyServer (cutover)
+## Deploy PartyServer
 
-Hosted PartyKit (`*.partykit.dev`) is shutting down. The realtime server lives in `party/server.ts` and deploys as worker **`beans-party`** (`wrangler.jsonc`).
+Realtime rooms live in `party/server.ts` and deploy as Cloudflare worker **`beans-party`** (`wrangler.jsonc`).
 
 1. **Login** (once): `npx wrangler login`
 2. **Secret** (once per account): `npx wrangler secret put JUDGE_SECRET` — same value as Vercel `JUDGE_SECRET`
@@ -52,10 +52,12 @@ Hosted PartyKit (`*.partykit.dev`) is shutting down. The realtime server lives i
 4. **Note the host** from the deploy output, e.g. `beans-party.<subdomain>.workers.dev`
 5. **Point the Next app** at that host:
    - Set Vercel env `NEXT_PUBLIC_PARTYKIT_HOST` to the workers.dev host (no protocol)
-   - Optionally replace the placeholder in `src/lib/party.ts` (`DEFAULT_PARTYKIT_HOST`)
+   - Or rely on `DEFAULT_PARTYKIT_HOST` in `src/lib/party.ts` (currently `beans-party.beans-lwagner.workers.dev`)
 6. **CI**: GitHub Actions workflow `Deploy PartyServer` uses `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID`. If those secrets are missing, the job **skips** (exit 0) instead of failing.
 
-`JUDGE_URL` is a wrangler `vars` entry (`https://beans-game.vercel.app`). Room storage is short-lived — no export/import from PartyKit.
+`JUDGE_URL` is a wrangler `vars` entry (`https://beans-game.vercel.app`). Room storage is short-lived.
+
+Requires **Node 22** (see `.nvmrc` / `engines`). Env name `NEXT_PUBLIC_PARTYKIT_HOST` is historical — it points at PartyServer, not hosted PartyKit.
 
 Full notes: [`docs/TESTING.md`](docs/TESTING.md).
 

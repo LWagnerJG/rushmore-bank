@@ -14,7 +14,7 @@
 
 ## PartyServer deploy
 
-Realtime rooms run on **PartyServer** (Cloudflare Workers + SQLite Durable Objects), not hosted PartyKit.
+Realtime rooms run on **PartyServer** (Cloudflare Workers + SQLite Durable Objects).
 
 | Step | Command / action |
 |---|---|
@@ -22,12 +22,12 @@ Realtime rooms run on **PartyServer** (Cloudflare Workers + SQLite Durable Objec
 | Put judge secret | `npx wrangler secret put JUDGE_SECRET` |
 | Deploy worker `beans-party` | `npx wrangler deploy` |
 | Dry-run build check | `npx wrangler deploy --dry-run` |
-| Point Next at new host | Vercel env `NEXT_PUBLIC_PARTYKIT_HOST=<worker>.<subdomain>.workers.dev` |
-| Code default host | `DEFAULT_PARTYKIT_HOST` in `src/lib/party.ts` (placeholder until cutover) |
+| Point Next at worker | Vercel env `NEXT_PUBLIC_PARTYKIT_HOST=<worker>.<subdomain>.workers.dev` |
+| Code default host | `DEFAULT_PARTYKIT_HOST` in `src/lib/party.ts` |
 
 GitHub Actions: `.github/workflows/deploy-partyserver.yml` deploys on pushes that touch `party/**` when `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` are set; otherwise the job **skips gracefully**.
 
-Room data is short-lived — **no** PartyKit storage export/import.
+Room data is short-lived.
 
 ## Programmatic multiplayer smoke
 
@@ -71,9 +71,9 @@ Local: `PARTY_HOST=127.0.0.1:8787 SMOKE_UNTIL=round_results npm run smoke:bots`
 
 | Check | Result |
 |---|---|
-| https://beans-game.vercel.app loads (roundacats alias OK) | After merge/deploy |
+| https://beans-game.vercel.app loads (roundacats alias OK) | Pass |
 | PartyServer worker matches this branch | After `wrangler deploy` + `NEXT_PUBLIC_PARTYKIT_HOST` on Vercel |
-| 2 sessions join one room | After cutover |
+| 2 sessions join one room | Pass |
 | Beans PWA name + dog/sunglasses icons / OG | Branding assets in `public/` + manifest |
 
 ## Timing notes
