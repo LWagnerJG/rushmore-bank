@@ -10,6 +10,14 @@ const room = readFileSync(
   resolve(__dirname, "../../components/RoomClient.tsx"),
   "utf8",
 );
+const pill = readFileSync(
+  resolve(__dirname, "../../components/TimerPill.tsx"),
+  "utf8",
+);
+const countdown = readFileSync(
+  resolve(__dirname, "../../lib/countdown.ts"),
+  "utf8",
+);
 
 describe("FitName ResizeObserver hygiene", () => {
   it("debounces RO callbacks with rAF and skips unchanged width bins", () => {
@@ -20,16 +28,16 @@ describe("FitName ResizeObserver hygiene", () => {
   });
 });
 
-describe("DraftBannerClock interval", () => {
-  it("updates via DOM at 1s without setState every tick", () => {
-    expect(room).toMatch(/setInterval\(write,\s*1000\)/);
-    expect(room).toMatch(/el\.textContent\s*=/);
-    expect(room).not.toMatch(/setInterval\([^,]+,\s*250\)/);
+describe("Draft clock ticking", () => {
+  it("updates via DOM once a second without setState every tick", () => {
+    expect(room).toMatch(/<TimerPill[\s\S]*?until=\{state\.pickDeadlineAt\}/);
+    expect(pill).toMatch(/\.textContent\s*=/);
     // No React state for the seconds value.
-    const clock = room.slice(
-      room.indexOf("function DraftBannerClock"),
-      room.indexOf("export function RoomClient"),
-    );
-    expect(clock).not.toMatch(/useState/);
+    expect(pill).not.toMatch(/useState/);
+    // One wake just past each second boundary; 250ms was pure churn.
+    expect(countdown).toMatch(/setTimeout\(tick, \(ms % 1000 \|\| 1000\) \+ 20\)/);
+    for (const src of [room, pill, countdown]) {
+      expect(src).not.toMatch(/setInterval\([^,]+,\s*250\)/);
+    }
   });
 });

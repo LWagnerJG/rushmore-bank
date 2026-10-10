@@ -63,15 +63,13 @@ describe("type hierarchy — one hero per screen", () => {
 
   it("makes draft topic the display hero and timer a secondary pill", () => {
     expect(room).toMatch(/type-display room-chrome-topic|room-chrome-topic/);
-    expect(room).toMatch(/draft-timer-pill/);
-    expect(room).toMatch(/draft-timer-pill-urgent|left <= 10/);
-    const pill =
-      css.match(/\.draft-timer-pill\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
+    expect(room).toMatch(/<TimerPill[\s\S]*?until=\{state\.pickDeadlineAt\}/);
+    const pill = css.match(/\.timer-pill\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
     expect(pill).toMatch(/font-size:\s*var\(--text-meta\)/);
     expect(pill).not.toMatch(/blur\s*\(/);
     const urgent =
-      css.match(/\.draft-timer-pill-urgent\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
-    expect(urgent).toMatch(/var\(--coral\)/);
+      css.match(/\.timer-pill-urgent\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
+    expect(urgent).toMatch(/var\(--coral-ink\)/);
     expect(urgent).not.toMatch(/animation|pulse/);
   });
 

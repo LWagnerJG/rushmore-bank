@@ -29,57 +29,10 @@ import { WagerPanel } from "@/components/WagerPanel";
 import { DicePanel } from "@/components/DicePanel";
 import { ResultsPanel } from "@/components/ResultsPanel";
 import { PlayerRail } from "@/components/PlayerRail";
+import { TimerPill } from "@/components/TimerPill";
 import { shouldFireFinalRoundCue } from "@/shared/final-round-cue";
 import { isSoundEnabled } from "@/lib/sound-prefs";
 import { armGestureUnlock } from "@/lib/sfx";
-
-function DraftBannerClock({
-  until,
-  paused,
-}: {
-  until: number | null;
-  paused: boolean;
-}) {
-  const textRef = useRef<HTMLSpanElement>(null);
-  const urgentRef = useRef(false);
-  // Paint the seconds via DOM — avoid setState every tick re-rendering chrome.
-  useEffect(() => {
-    const el = textRef.current;
-    if (!el) return;
-    const write = () => {
-      if (paused) {
-        el.textContent = "‖";
-        if (urgentRef.current) {
-          urgentRef.current = false;
-          el.classList.remove("draft-timer-pill-urgent");
-        }
-        return;
-      }
-      const left = until
-        ? Math.max(0, Math.ceil((until - Date.now()) / 1000))
-        : 0;
-      el.textContent = `${left}s`;
-      const urgent = left > 0 && left <= 10;
-      if (urgent !== urgentRef.current) {
-        urgentRef.current = urgent;
-        el.classList.toggle("draft-timer-pill-urgent", urgent);
-      }
-    };
-    write();
-    // 1s is enough for a whole-second countdown; 250ms was pure React churn.
-    const t = window.setInterval(write, 1000);
-    return () => window.clearInterval(t);
-  }, [until, paused]);
-  return (
-    <span
-      ref={textRef}
-      className="draft-timer-pill tabular-nums"
-      aria-live="polite"
-    >
-      {paused ? "‖" : "…"}
-    </span>
-  );
-}
 
 export function RoomClient({
   code,
@@ -359,9 +312,15 @@ export function RoomClient({
             </div>
             <div className="room-chrome-end">
               {drafting && state ? (
-                <DraftBannerClock
+                <TimerPill
                   until={state.pickDeadlineAt}
                   paused={state.pickPaused}
+                  label="Pick"
+                  announce={
+                    you.role === "player" &&
+                    state.seatOrder[state.draftOrder[state.draftCursor]] ===
+                      youId
+                  }
                 />
               ) : phase === "LOBBY" ? (
                 <div className="room-chrome-phase type-meta">

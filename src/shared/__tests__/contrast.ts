@@ -4,11 +4,30 @@ export function contrastRatio(fg: string, bg: string): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 
-function luminance(hex: string): number {
+/**
+ * `a` at `weight` (0–1) over `b`, as `color-mix(in srgb, a W%, b)` or an
+ * `rgba(a, weight)` tint painted on an opaque `b`.
+ */
+export function mixHex(a: string, b: string, weight: number): string {
+  const [x, y] = [channels(a), channels(b)];
+  return `#${x
+    .map((c, i) =>
+      Math.round(c * weight + y[i] * (1 - weight))
+        .toString(16)
+        .padStart(2, "0"),
+    )
+    .join("")}`;
+}
+
+function channels(hex: string): number[] {
   const m = /^#([0-9a-f]{6})$/i.exec(hex.trim());
   if (!m) throw new Error(`expected #rrggbb, got "${hex}"`);
   const n = parseInt(m[1], 16);
-  const [r, g, b] = [n >> 16, (n >> 8) & 255, n & 255].map((c) => {
+  return [n >> 16, (n >> 8) & 255, n & 255];
+}
+
+function luminance(hex: string): number {
+  const [r, g, b] = channels(hex).map((c) => {
     const s = c / 255;
     return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
   });

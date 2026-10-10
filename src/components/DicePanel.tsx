@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
 import { DiceScene } from "@/components/dice/DiceScene";
+import { TimerPill } from "@/components/TimerPill";
 import { classifyPullOut } from "@/shared/engine/banking";
 import {
   liveReadoutRoll,
@@ -13,60 +14,6 @@ import { feedback } from "@/lib/feedback";
 import { cueYourTurn } from "@/lib/your-turn";
 import { RULES } from "@/shared/rules";
 import { youInlineSuffix } from "@/shared/you-label";
-
-function useSecondsLeft(until: number | null) {
-  const [left, setLeft] = useState(0);
-  useEffect(() => {
-    const tick = () =>
-      setLeft(until ? Math.max(0, Math.ceil((until - Date.now()) / 1000)) : 0);
-    tick();
-    const t = setInterval(tick, 200);
-    return () => clearInterval(t);
-  }, [until]);
-  return left;
-}
-
-/**
- * Digits-only while the idle-bank window is live.
- * Short label appears once on the first live turn of a seat; aria-label always
- * names the clock. Idle slot stays empty (height reserved) — no “—” chrome.
- */
-function DecisionTimer({
-  until,
-  label,
-  showLabel,
-  urgent,
-  idle,
-}: {
-  until: number | null;
-  label: string;
-  showLabel?: boolean;
-  urgent?: boolean;
-  idle?: boolean;
-}) {
-  const left = useSecondsLeft(until);
-  const active = !!until && !idle;
-  return (
-    <div
-      className={`dice-timer ${active && (urgent || left <= 5) ? "dice-timer-urgent" : ""} ${active ? "" : "dice-timer-idle"}`}
-      role="timer"
-      aria-live="polite"
-      aria-label={active ? `${label}: ${left} seconds` : "Timer idle"}
-      aria-hidden={!active}
-    >
-      {active && showLabel ? (
-        <span className="dice-timer-label">{label}</span>
-      ) : null}
-      {active ? (
-        <span className="dice-timer-value tabular-nums">{left}</span>
-      ) : (
-        <span className="dice-timer-value dice-timer-value-idle" aria-hidden="true">
-          {"\u00a0"}
-        </span>
-      )}
-    </div>
-  );
-}
 
 type SeatKind = "up" | "next" | "in" | "banked" | "busted";
 
@@ -190,7 +137,6 @@ export function DicePanel({
   const [busy, setBusy] = useState(false);
   const turnHaptic = useRef<string | null>(null);
   const revealSeen = useRef<string | null>(null);
-  const timerLabelSeen = useRef<string | null>(null);
   const [heroReveal, setHeroReveal] = useState(false);
   /** Prior revealed non-secret roll — fills the total gap while the next tumble runs. */
   const [stickyRoll, setStickyRoll] = useState<DiceReadoutRoll | null>(null);
@@ -337,29 +283,15 @@ export function DicePanel({
     act({ type: "pull_out" });
   }
 
-  // Honest 15s idle bank window — freeze while Bank confirm modal is open.
-  const timerUntil = bankConfirm
-    ? (state.diceIdlePauseRemainingMs != null
-        // Pause clock is reconstructed from remaining ms at open time.
-        // eslint-disable-next-line react-hooks/purity -- intentional freeze anchor
-        ? Date.now() + state.diceIdlePauseRemainingMs
-        : null)
-    : state.diceSubphase === "READY"
-      ? state.diceIdleDeadlineAt
-      : null;
-  const timerLive = timerUntil != null && !rolling && !settling;
-  const timerKey = `${state.code}:${state.diceTurnSeat}:${state.phaseRevision}`;
-  const [showTimerLabel, setShowTimerLabel] = useState(false);
-  useEffect(() => {
-    if (!timerLive) {
-      setShowTimerLabel(false);
-      return;
-    }
-    // Short label once on the first live window of each seat.
-    if (timerLabelSeen.current === timerKey) return;
-    timerLabelSeen.current = timerKey;
-    setShowTimerLabel(true);
-  }, [timerLive, timerKey]);
+  // Honest 15s idle bank window. The server pauses it while the roller has
+  // Bank confirm open, so everyone sees it paused rather than ticking.
+  const timerPaused =
+    bankConfirm ||
+    (state.diceSubphase === "READY" && state.diceIdlePauseRemainingMs != null);
+  const timerUntil =
+    state.diceSubphase === "READY" ? state.diceIdleDeadlineAt : null;
+  const timerLive =
+    (timerUntil != null || timerPaused) && !rolling && !settling;
   const timerLabel = myTurn ? "Roll" : "Turn";
 
   // Bust banner follows the live revealed roll on SETTLED (not sticky).
@@ -417,12 +349,14 @@ export function DicePanel({
             </div>
             <div
               className={`dice-stage-timer ${timerLive ? "dice-stage-timer-live" : "dice-stage-timer-idle"}`}
+              aria-hidden={!timerLive}
             >
-              <DecisionTimer
+              <TimerPill
                 until={timerUntil}
+                paused={timerPaused}
                 label={timerLabel}
-                showLabel={showTimerLabel && timerLive}
-                idle={!timerLive}
+                urgentAt={5}
+                announce={myTurn && timerLive}
               />
             </div>
           </header>

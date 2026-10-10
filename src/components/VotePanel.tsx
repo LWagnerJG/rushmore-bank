@@ -6,22 +6,9 @@ import { RULES } from "@/shared/rules";
 import { rosterDensity } from "@/shared/roster-density";
 import { cueYourTurn } from "@/lib/your-turn";
 import { RushmoreCard } from "@/components/RushmoreCard";
+import { TimerPill } from "@/components/TimerPill";
 import { WaitingRoster } from "@/components/WaitingRoster";
 import { nameWithYouSuffix } from "@/shared/you-label";
-
-function Countdown({ until }: { until: number | null }) {
-  const [left, setLeft] = useState(0);
-  useEffect(() => {
-    if (!until) return;
-    const tick = () =>
-      setLeft(Math.max(0, Math.ceil((until - Date.now()) / 1000)));
-    tick();
-    const t = setInterval(tick, 250);
-    return () => clearInterval(t);
-  }, [until]);
-  if (!until) return null;
-  return <span className="tabular-nums">{left}s</span>;
-}
 
 export function VotePanel({
   state,
@@ -68,10 +55,12 @@ export function VotePanel({
               ? "Votes in"
               : "Vote"}
         </h2>
-        {!twoPlayer && !votesDone ? (
-          <span className="type-meta font-bold tabular-nums text-[var(--muted)]">
-            <Countdown until={state.phaseDeadlineAt} />
-          </span>
+        {!twoPlayer && !votesDone && state.phaseDeadlineAt ? (
+          <TimerPill
+            until={state.phaseDeadlineAt}
+            label="Vote"
+            announce={canVote && !myVote}
+          />
         ) : null}
       </div>
 

@@ -39,7 +39,7 @@ describe("cross-phase clutter-cut", () => {
 
   it("PlayerRail is the score surface — chrome drops phase+beans outside lobby", () => {
     // Draft chrome keeps timer only (no Pause/+15s inline)
-    expect(room).toMatch(/DraftBannerClock/);
+    expect(room).toMatch(/<TimerPill[\s\S]*?until=\{state\.pickDeadlineAt\}/);
     expect(room).not.toMatch(/host_pause|host_resume|host_extend/);
     // Pause/+15s moved into settings
     expect(settings).toMatch(/host_pause|host_resume/);
