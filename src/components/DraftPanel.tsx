@@ -180,6 +180,12 @@ export function DraftPanel({
     correctionPickIndex: state.correctionPickIndex,
     correctionReason: state.correctionReason,
   });
+  // Quiet your-turn: no blank status row (live cell is enough) — keeps
+  // composer→board at one 12px gap for keyboard-stable upper-half layout.
+  const turnLine =
+    you.role === "player" && selectedTaken
+      ? "Taken — try another."
+      : status;
 
   return (
     <div className="draft-panel">
@@ -294,24 +300,24 @@ export function DraftPanel({
         </section>
       )}
 
-      {/* One fixed line: turn copy, or why the typed pick can't go in.
-          Empty on your turn (live cell is enough) so height stays reserved. */}
-      <p
-        className={[
-          "draft-turn-line",
-          myTurn && !selectedTaken ? "draft-turn-line-quiet" : "",
-          myTurn ? "draft-turn-line-active" : "",
-          you.role === "player" && selectedTaken ? "draft-turn-line-warn" : "",
-        ]
-          .filter(Boolean)
-          .join(" ")}
-        role="status"
-        aria-live="polite"
-      >
-        {you.role === "player" && selectedTaken
-          ? "Taken — try another."
-          : status || "\u00a0"}
-      </p>
+      {/* Turn copy / taken warn — omit when quiet so composer→board stays ~12px. */}
+      {turnLine ? (
+        <p
+          className={[
+            "draft-turn-line",
+            myTurn ? "draft-turn-line-active" : "",
+            you.role === "player" && selectedTaken
+              ? "draft-turn-line-warn"
+              : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+          role="status"
+          aria-live="polite"
+        >
+          {turnLine}
+        </p>
+      ) : null}
 
       <DraftBoard
         state={state}

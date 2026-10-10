@@ -65,4 +65,15 @@ describe("draft declutter (Luke iPhone DRAFT pass)", () => {
     expect(draft).toMatch(/aria-disabled=\{!canPrimary\}/);
     expect(rule(".draft-pick-submit")).toMatch(/height:\s*var\(--tap-min\)/);
   });
+
+  it("keeps composer→board at one 12px gap when your-turn status is quiet", () => {
+    const panel = rule(".draft-panel");
+    expect(panel).toMatch(/gap:\s*var\(--space-3\)/);
+    // Quiet your-turn omits the status node (no reserved blank line)
+    expect(draft).toMatch(/turnLine \? \(/);
+    expect(draft).toMatch(/: null/);
+    expect(css).not.toMatch(/draft-turn-line-quiet/);
+    const turn = rule(".draft-turn-line");
+    expect(turn).not.toMatch(/min-height:/);
+  });
 });
