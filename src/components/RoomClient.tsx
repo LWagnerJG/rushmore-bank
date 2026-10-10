@@ -40,24 +40,43 @@ function DraftBannerClock({
   until: number | null;
   paused: boolean;
 }) {
-  const [left, setLeft] = useState(0);
+  const textRef = useRef<HTMLSpanElement>(null);
+  const urgentRef = useRef(false);
+  // Paint the seconds via DOM — avoid setState every tick re-rendering chrome.
   useEffect(() => {
-    const tick = () =>
-      setLeft(until ? Math.max(0, Math.ceil((until - Date.now()) / 1000)) : 0);
-    tick();
-    const t = setInterval(tick, 250);
-    return () => clearInterval(t);
-  }, [until]);
-  const urgent = !paused && left > 0 && left <= 10;
+    const el = textRef.current;
+    if (!el) return;
+    const write = () => {
+      if (paused) {
+        el.textContent = "‖";
+        if (urgentRef.current) {
+          urgentRef.current = false;
+          el.classList.remove("draft-timer-pill-urgent");
+        }
+        return;
+      }
+      const left = until
+        ? Math.max(0, Math.ceil((until - Date.now()) / 1000))
+        : 0;
+      el.textContent = `${left}s`;
+      const urgent = left > 0 && left <= 10;
+      if (urgent !== urgentRef.current) {
+        urgentRef.current = urgent;
+        el.classList.toggle("draft-timer-pill-urgent", urgent);
+      }
+    };
+    write();
+    // 1s is enough for a whole-second countdown; 250ms was pure React churn.
+    const t = window.setInterval(write, 1000);
+    return () => window.clearInterval(t);
+  }, [until, paused]);
   return (
     <span
-      className={
-        "draft-timer-pill tabular-nums" +
-        (urgent ? " draft-timer-pill-urgent" : "")
-      }
+      ref={textRef}
+      className="draft-timer-pill tabular-nums"
       aria-live="polite"
     >
-      {paused ? "‖" : `${left}s`}
+      {paused ? "‖" : "…"}
     </span>
   );
 }
