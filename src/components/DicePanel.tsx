@@ -106,6 +106,7 @@ type SeatInfo = {
  */
 function TurnStrip({ seats }: { seats: SeatInfo[] }) {
   const upRef = useRef<HTMLLIElement | null>(null);
+  const upId = seats.find((s) => s.kind === "up")?.pid ?? "";
 
   useEffect(() => {
     upRef.current?.scrollIntoView({
@@ -113,7 +114,7 @@ function TurnStrip({ seats }: { seats: SeatInfo[] }) {
       inline: "center",
       block: "nearest",
     });
-  }, [seats]);
+  }, [upId]);
 
   return (
     <ol className="dice-turn-strip" aria-label="Turn order">

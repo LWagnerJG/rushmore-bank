@@ -154,6 +154,12 @@ export function RoomClient({
     setSettingsOpen(true);
   }
 
+  useEffect(() => {
+    return () => {
+      if (logoTapTimerRef.current) clearTimeout(logoTapTimerRef.current);
+    };
+  }, []);
+
   const drafting = phase === "DRAFT" || phase === "CORRECTION";
 
   useEffect(() => {

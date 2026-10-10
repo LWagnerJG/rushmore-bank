@@ -29,12 +29,38 @@ async function fetchVersion(): Promise<VersionPayload | null> {
   }
 }
 
+function inActiveRoomPath(): boolean {
+  if (typeof window === "undefined") return false;
+  return /\/room\/[A-Za-z0-9]+/i.test(window.location.pathname);
+}
+
+async function clearServiceWorkerCaches() {
+  try {
+    const regs = await navigator.serviceWorker?.getRegistrations();
+    await Promise.all(regs?.map((r) => r.unregister()) ?? []);
+    if ("caches" in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k)));
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+function hardReload(serverSha: string) {
+  const url = new URL(window.location.href);
+  url.searchParams.set("_v", serverSha || String(Date.now()));
+  window.location.replace(url.toString());
+}
+
 /**
- * Detects a mismatched build SHA or legacy PartyKit host vs /api/version,
- * prompts, then hard-reloads so a cached SW/bundle cannot stick forever.
+ * Detects a mismatched build SHA or legacy PartyKit host vs /api/version.
+ * Party-host mismatches hard-reload; mid-room build updates prompt softly.
  */
 export function StaleClientGuard() {
   const [reason, setReason] = useState<StaleReason>(null);
+  const [soft, setSoft] = useState(false);
+  const [pendingSha, setPendingSha] = useState("");
   const reloading = useRef(false);
 
   useEffect(() => {
@@ -49,26 +75,21 @@ export function StaleClientGuard() {
         clientPartyHost: getPartyHost(),
         server,
       });
-      if (result.stale) {
-        setReason(result.reason);
+      if (!result.stale) return;
+
+      setReason(result.reason);
+      setPendingSha(server.sha || "");
+
+      // Wrong realtime host must hard-reload. Mid-game build updates stay soft.
+      const forceHard =
+        result.reason === "party-host" || !inActiveRoomPath();
+      if (forceHard) {
         reloading.current = true;
-        // Drop waiting SW so the next navigation gets the fresh bundle.
-        try {
-          const regs = await navigator.serviceWorker?.getRegistrations();
-          await Promise.all(regs?.map((r) => r.unregister()) ?? []);
-          if ("caches" in window) {
-            const keys = await caches.keys();
-            await Promise.all(keys.map((k) => caches.delete(k)));
-          }
-        } catch {
-          /* ignore */
-        }
-        window.setTimeout(() => {
-          const url = new URL(window.location.href);
-          url.searchParams.set("_v", server.sha || String(Date.now()));
-          window.location.replace(url.toString());
-        }, AUTO_RELOAD_MS);
+        await clearServiceWorkerCaches();
+        window.setTimeout(() => hardReload(server.sha), AUTO_RELOAD_MS);
+        return;
       }
+      setSoft(true);
     };
 
     void check();
@@ -87,7 +108,6 @@ export function StaleClientGuard() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (!("serviceWorker" in navigator)) return;
-    // Register after load so it never races first paint.
     const onLoad = () => {
       void navigator.serviceWorker.register("/sw.js").catch(() => {
         /* optional */
@@ -98,6 +118,24 @@ export function StaleClientGuard() {
   }, []);
 
   if (!reason) return null;
+
+  if (soft) {
+    return (
+      <div className="stale-client-banner" role="status" aria-live="polite">
+        <span>A newer Beans build is available.</span>{" "}
+        <button
+          type="button"
+          className="underline font-bold"
+          onClick={() => {
+            reloading.current = true;
+            void clearServiceWorkerCaches().then(() => hardReload(pendingSha));
+          }}
+        >
+          Update after this round
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="stale-client-banner" role="status" aria-live="assertive">

@@ -634,14 +634,20 @@ export class QuarryServer extends Server<Env> {
     return p;
   }
 
+  /** True when this actionId was already successfully processed. */
   seenAction(actionId?: string): boolean {
     if (!actionId) return false;
-    if (this.state.processedActionIds.includes(actionId)) return true;
+    return this.state.processedActionIds.includes(actionId);
+  }
+
+  /** Record only after a successful handle — failed validation may retry same id. */
+  recordAction(actionId?: string) {
+    if (!actionId) return;
+    if (this.state.processedActionIds.includes(actionId)) return;
     this.state.processedActionIds.push(actionId);
     if (this.state.processedActionIds.length > 200) {
       this.state.processedActionIds = this.state.processedActionIds.slice(-100);
     }
-    return false;
   }
 
   clearLeaveTimer(playerId: string) {
@@ -1050,6 +1056,7 @@ export class QuarryServer extends Server<Env> {
         return;
       }
       await this.handle(msg, sender.id, sender);
+      this.recordAction(msg.actionId);
       await this.persist();
       this.broadcastState();
       this.nudgeBots();
@@ -2012,6 +2019,8 @@ export class QuarryServer extends Server<Env> {
       typeof meta?.latencyMs === "number" ? meta.latencyMs : null;
     // Never show raw HTTP / model errors to players.
     this.state.judgeNotice = sanitizeJudgeNotice(notice);
+    // Rotate job id so a late provider success cannot overwrite fallback mid-vote.
+    this.state.judgeJobId = `${jobId}:fallback`;
     void this.persist().then(() => this.broadcastState());
     void this.maybeFinalizeAfterJudge();
   }
