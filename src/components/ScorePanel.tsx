@@ -6,26 +6,10 @@ import { rosterDensity } from "@/shared/roster-density";
 import { RushmoreCard } from "@/components/RushmoreCard";
 import { WaitingRoster } from "@/components/WaitingRoster";
 
-function EarnedBadge({
-  earned,
-  votes,
-  aiAward,
-  aiFallback,
-}: {
-  earned: number;
-  votes: number;
-  aiAward: number;
-  aiFallback: boolean;
-}) {
-  const fromVotes = votes * RULES.stonesPerHumanVote;
+function EarnedBadge({ earned }: { earned: number }) {
   return (
-    <span className="earned-badge flex flex-col items-end gap-0.5 text-right">
-      <span className="font-[family-name:var(--font-display)] text-xl font-extrabold tabular-nums text-[var(--coral)]">
-        +{earned}
-      </span>
-      <span className="earned-badge-split text-[0.65rem] font-semibold leading-tight text-[var(--muted)]">
-        {RULES.scoreBase} base + {aiAward} AI{aiFallback ? "*" : ""} + {fromVotes} votes
-      </span>
+    <span className="earned-badge earned-badge-quiet">
+      <span className="earned-badge-num tabular-nums">+{earned}</span>
     </span>
   );
 }
@@ -79,14 +63,7 @@ export function ScorePanel({
               why={why}
               compact={density !== "cozy"}
               density={density}
-              badge={
-                <EarnedBadge
-                  earned={s.earned}
-                  votes={s.votes}
-                  aiAward={s.aiAward}
-                  aiFallback={s.aiFallback}
-                />
-              }
+              badge={<EarnedBadge earned={s.earned} />}
             />
           );
         })}

@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import type { DraftPick } from "@/shared/types";
 import { RULES } from "@/shared/rules";
 
@@ -34,6 +34,25 @@ export function RushmoreCard({
     .sort((a, b) => a.pickIndex - b.pickIndex)
     .slice(0, RULES.picksPerPlayer);
   const dens = compact && density === "cozy" ? "snug" : density;
+  const [whyOpen, setWhyOpen] = useState(false);
+  const hasWhy = !!why && why.trim().length > 0;
+
+  const whyBlock = hasWhy ? (
+    <div className="rushmore-why-wrap">
+      <button
+        type="button"
+        className="rushmore-why-toggle"
+        aria-expanded={whyOpen}
+        onClick={(e) => {
+          e.stopPropagation();
+          setWhyOpen((v) => !v);
+        }}
+      >
+        {whyOpen ? "Hide why" : "Why"}
+      </button>
+      {whyOpen ? <p className="rushmore-why">{why}</p> : null}
+    </div>
+  ) : null;
 
   const body = (
     <>
@@ -62,15 +81,18 @@ export function RushmoreCard({
           </li>
         ))}
       </ol>
-      {why ? <p className="rushmore-why">{why}</p> : null}
+      {whyBlock}
       {footer}
     </>
   );
 
   if (interactive) {
+    // div + role=button so the Why control can nest without invalid <button> nesting
     return (
-      <button
-        type="button"
+      <div
+        role="button"
+        tabIndex={disabled ? -1 : 0}
+        aria-disabled={disabled || undefined}
         className={[
           "panel",
           "rushmore-card",
@@ -79,14 +101,24 @@ export function RushmoreCard({
           "w-full",
           "text-left",
           selected ? "rushmore-card-selected" : "",
+          disabled ? "rushmore-card-disabled" : "",
         ]
           .filter(Boolean)
           .join(" ")}
-        disabled={disabled}
-        onClick={onSelect}
+        onClick={() => {
+          if (disabled) return;
+          onSelect?.();
+        }}
+        onKeyDown={(e) => {
+          if (disabled) return;
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onSelect?.();
+          }
+        }}
       >
         {body}
-      </button>
+      </div>
     );
   }
 

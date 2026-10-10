@@ -169,8 +169,8 @@ export function WagerSlider({
         />
       </div>
       <div className="wager-slider-ends">
-        <span>{min} min</span>
-        <span>{max} max</span>
+        <span>{min}</span>
+        <span>{max}</span>
       </div>
     </div>
   );
