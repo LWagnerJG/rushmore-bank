@@ -29,12 +29,12 @@ export function resolveAppHeightPx(input: {
 }
 
 /**
- * Keyboard open heuristic for iOS Safari / standalone PWA.
+ * Freeze --app-h whenever a text field is focused.
  *
- * Browser chrome changes shrink visualViewport by tens of px; the software
- * keyboard typically shrinks by >150px and/or bumps offsetTop while an
- * editable field is focused. Freeze --app-h in that case so the shell does
- * not resize under the keyboard.
+ * iOS fires visualViewport resize/scroll on every keyboard frame (and often
+ * before the >150px shrink heuristic trips). Updating --app-h during focus
+ * is what makes the draft pick input jump. Ignore vv entirely while focused;
+ * resume syncing after blur.
  */
 export function shouldFreezeAppHeight(input: {
   innerHeight: number;
@@ -42,26 +42,7 @@ export function shouldFreezeAppHeight(input: {
   visualViewportOffsetTop?: number | null;
   editableFocused: boolean;
 }): boolean {
-  if (!input.editableFocused) return false;
-  const vv = input.visualViewportHeight;
-  const inner = input.innerHeight;
-  if (
-    typeof vv !== "number" ||
-    !Number.isFinite(vv) ||
-    vv <= 0 ||
-    typeof inner !== "number" ||
-    !Number.isFinite(inner) ||
-    inner <= 0
-  ) {
-    return false;
-  }
-  const offset =
-    typeof input.visualViewportOffsetTop === "number" &&
-    Number.isFinite(input.visualViewportOffsetTop)
-      ? input.visualViewportOffsetTop
-      : 0;
-  if (offset > 20) return true;
-  return inner - vv > 150;
+  return input.editableFocused === true;
 }
 
 type EditableLike = {

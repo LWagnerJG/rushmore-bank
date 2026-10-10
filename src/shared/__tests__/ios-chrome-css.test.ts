@@ -189,9 +189,7 @@ function shouldKeepShell(
   visualViewportHeight: number,
   editableFocused: boolean,
 ): number {
-  const freeze =
-    editableFocused &&
-    (innerHeight - visualViewportHeight > 150);
-  if (freeze) return innerHeight;
+  // Freeze for the entire editable-focus session — not only after >150px shrink.
+  if (editableFocused) return innerHeight;
   return visualViewportHeight;
 }

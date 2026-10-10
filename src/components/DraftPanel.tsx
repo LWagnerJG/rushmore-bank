@@ -177,6 +177,7 @@ export function DraftPanel({
 
   return (
     <div className="draft-panel space-y-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+      {/* Fixed-height status — never reflow the board/input as turn copy changes. */}
       <p
         className={`draft-turn-line ${myTurn ? "draft-turn-line-active" : ""}`}
         role="status"
@@ -198,92 +199,99 @@ export function DraftPanel({
             <h2 className="text-[0.7rem] font-extrabold uppercase tracking-wide text-[var(--muted)]">
               Your stash
             </h2>
-            {queue.length > 0 && (
-              <span className="text-[0.7rem] font-bold tabular-nums text-[var(--muted)]">
-                {queue.length}
-                {myTurn ? " · tap to lock" : ""}
-              </span>
-            )}
+            <span className="draft-stash-count text-[0.7rem] font-bold tabular-nums text-[var(--muted)]">
+              {queue.length > 0
+                ? `${queue.length}${myTurn ? " · tap to lock" : ""}`
+                : "\u00a0"}
+            </span>
           </div>
 
-          {queue.length > 0 && (
-            <ul className="flex flex-wrap gap-2">
-              {queue.map((text) => {
-                const taken = state.takenNormalized.includes(
-                  normalizePick(text),
-                );
-                const canLock =
-                  myTurn && !taken && !state.pickPaused && !busy;
-                const selected = selection.trim() === text;
-                return (
-                  <li key={text} className="flex max-w-full items-center gap-0.5">
-                    <button
-                      type="button"
-                      className={[
-                        "stash-chip",
-                        taken
-                          ? "stash-chip-taken"
-                          : canLock
-                            ? "stash-chip-ready"
-                            : selected
-                              ? "stash-chip-selected"
-                              : "stash-chip-idle",
-                      ].join(" ")}
-                      disabled={taken}
-                      aria-label={
-                        canLock
-                          ? `Lock in ${text}`
-                          : taken
-                            ? `${text} already taken`
-                            : `Use ${text}`
-                      }
-                      onClick={() => applyStash(text)}
+          {/* Overlay stash chips so empty↔filled never shifts the pick input. */}
+          <div className="draft-stash-tray" aria-live="polite">
+            {queue.length > 0 ? (
+              <ul className="draft-stash-list flex flex-wrap gap-2">
+                {queue.map((text) => {
+                  const taken = state.takenNormalized.includes(
+                    normalizePick(text),
+                  );
+                  const canLock =
+                    myTurn && !taken && !state.pickPaused && !busy;
+                  const selected = selection.trim() === text;
+                  return (
+                    <li
+                      key={text}
+                      className="flex max-w-full items-center gap-0.5"
                     >
-                      {text}
-                    </button>
-                    <button
-                      type="button"
-                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-base text-[var(--muted)]"
-                      aria-label={`Remove ${text}`}
-                      onClick={() =>
-                        persist(queue.filter((item) => item !== text))
-                      }
-                    >
-                      ×
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
+                      <button
+                        type="button"
+                        className={[
+                          "stash-chip",
+                          taken
+                            ? "stash-chip-taken"
+                            : canLock
+                              ? "stash-chip-ready"
+                              : selected
+                                ? "stash-chip-selected"
+                                : "stash-chip-idle",
+                        ].join(" ")}
+                        disabled={taken}
+                        aria-label={
+                          canLock
+                            ? `Lock in ${text}`
+                            : taken
+                              ? `${text} already taken`
+                              : `Use ${text}`
+                        }
+                        onClick={() => applyStash(text)}
+                      >
+                        {text}
+                      </button>
+                      <button
+                        type="button"
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-base text-[var(--muted)]"
+                        aria-label={`Remove ${text}`}
+                        onClick={() =>
+                          persist(queue.filter((item) => item !== text))
+                        }
+                      >
+                        ×
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : null}
+          </div>
 
           <label className="sr-only" htmlFor="selected-pick">
             Your draft pick
           </label>
           <input
             id="selected-pick"
-            className="field w-full text-base"
+            className="field draft-pick-input w-full"
             placeholder={
               myTurn ? "Type your answer" : "Park a pick in your stash"
             }
             value={selection}
             maxLength={48}
             autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            enterKeyHint={myTurn ? "done" : "done"}
             onChange={(e) => setSelection(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") primaryAction();
             }}
           />
-          {selectedTaken && (
-            <p className="text-sm font-bold" role="status">
-              Taken — try another.
-            </p>
-          )}
-          {saveFailed && (
-            <p className="text-xs text-[var(--muted)]" role="status">
-              Stash won’t survive a reload.
-            </p>
-          )}
+          {/* Reserved status strip — Taken / saveFailed never push the CTA. */}
+          <p className="draft-input-status" role="status" aria-live="polite">
+            {selectedTaken
+              ? "Taken — try another."
+              : saveFailed
+                ? "Stash won’t survive a reload."
+                : "\u00a0"}
+          </p>
 
           <button
             type="button"

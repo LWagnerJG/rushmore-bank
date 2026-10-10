@@ -4,15 +4,14 @@ import { useEffect } from "react";
 import {
   isEditableElement,
   resolveAppHeightPx,
-  scrollEditableIntoAppScroll,
   shouldFreezeAppHeight,
 } from "@/shared/viewport-height";
 
 /**
  * Sets --app-h from the true visual viewport and keeps it updated — except
- * while the software keyboard is open. Shrinking the locked shell with the
+ * while any text field is focused. Shrinking the locked shell under the
  * keyboard (iOS Safari / standalone PWA) jumps the whole UI; freeze the last
- * stable height instead and scroll the focused field inside the app scrollport.
+ * stable height for the entire focus session and never scroll/focus the input.
  */
 function syncAppH(frozenPx: { current: number | null }) {
   const innerHeight = window.innerHeight;
@@ -39,15 +38,15 @@ function syncAppH(frozenPx: { current: number | null }) {
               visualViewportHeight: null,
               ignoreVisualViewport: true,
             });
+      if (frozenPx.current > 0) {
+        document.documentElement.style.setProperty(
+          "--app-h",
+          `${frozenPx.current}px`,
+        );
+      }
     }
-    if (frozenPx.current > 0) {
-      document.documentElement.style.setProperty(
-        "--app-h",
-        `${frozenPx.current}px`,
-      );
-    }
-    // Kill page-level rubber-band / vv offset jumps under a locked shell.
-    window.scrollTo(0, 0);
+    // While focused: leave --app-h alone. Do not scrollTo on every vv frame —
+    // that fights iOS and jumps the caret.
     return;
   }
 
@@ -66,25 +65,49 @@ function syncAppH(frozenPx: { current: number | null }) {
  * isn't nuked mid-game. Only cancels the rubber-band-at-top gesture;
  * normal scrolling inside .app-shell-scroll / .room-phase-scroll still works.
  *
- * Also owns iOS keyboard focus hygiene: keep html/body locked, scroll the
- * focused input inside the app scrollport only, and reset window scroll on blur.
+ * Also owns iOS keyboard focus hygiene: freeze --app-h for the whole focus
+ * session, keep html/body locked, never scrollIntoView/focus the field on
+ * change, and reset window scroll only on focus edges (not vv frames).
  */
 export function NoPullToRefresh() {
-  // Sync --app-h before layout; re-sync on orientation / resize / vv scroll,
-  // but freeze while the keyboard is open.
   useEffect(() => {
     const frozenPx: { current: number | null } = { current: null };
     const onResize = () => syncAppH(frozenPx);
+
+    const onFocusIn = (e: FocusEvent) => {
+      if (!isEditableElement(e.target)) return;
+      // Kill document bounce once at focus edge — never nudge the field into view.
+      window.scrollTo(0, 0);
+      syncAppH(frozenPx);
+    };
+    const onFocusOut = () => {
+      window.scrollTo(0, 0);
+      // Unfreeze + resync after keyboard dismiss; residual offset cleanup.
+      syncAppH(frozenPx);
+      window.setTimeout(() => {
+        window.scrollTo(0, 0);
+        syncAppH(frozenPx);
+      }, 50);
+      window.setTimeout(() => {
+        window.scrollTo(0, 0);
+        syncAppH(frozenPx);
+      }, 300);
+    };
+
     syncAppH(frozenPx);
     window.addEventListener("resize", onResize);
     window.addEventListener("orientationchange", onResize);
     window.visualViewport?.addEventListener("resize", onResize);
     window.visualViewport?.addEventListener("scroll", onResize);
+    document.addEventListener("focusin", onFocusIn);
+    document.addEventListener("focusout", onFocusOut);
     return () => {
       window.removeEventListener("resize", onResize);
       window.removeEventListener("orientationchange", onResize);
       window.visualViewport?.removeEventListener("resize", onResize);
       window.visualViewport?.removeEventListener("scroll", onResize);
+      document.removeEventListener("focusin", onFocusIn);
+      document.removeEventListener("focusout", onFocusOut);
     };
   }, []);
 
@@ -99,36 +122,6 @@ export function NoPullToRefresh() {
     sync();
     document.addEventListener("visibilitychange", sync);
     return () => document.removeEventListener("visibilitychange", sync);
-  }, []);
-
-  // Focus / blur: scroll within app containers only; never leave a shifted page.
-  useEffect(() => {
-    const onFocusIn = (e: FocusEvent) => {
-      const t = e.target;
-      if (!isEditableElement(t)) return;
-      window.scrollTo(0, 0);
-      // After keyboard / vv settles, nudge the field into the scrollport.
-      requestAnimationFrame(() => {
-        scrollEditableIntoAppScroll(t);
-        window.scrollTo(0, 0);
-      });
-      window.setTimeout(() => {
-        scrollEditableIntoAppScroll(t);
-        window.scrollTo(0, 0);
-      }, 120);
-    };
-    const onFocusOut = () => {
-      window.scrollTo(0, 0);
-      // Keyboard dismiss can leave a residual document offset on iOS.
-      window.setTimeout(() => window.scrollTo(0, 0), 50);
-      window.setTimeout(() => window.scrollTo(0, 0), 300);
-    };
-    document.addEventListener("focusin", onFocusIn);
-    document.addEventListener("focusout", onFocusOut);
-    return () => {
-      document.removeEventListener("focusin", onFocusIn);
-      document.removeEventListener("focusout", onFocusOut);
-    };
   }, []);
 
   useEffect(() => {

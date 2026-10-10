@@ -3497,6 +3497,7 @@ html.dice-your-turn::after {
 .draft-turn-line {
   margin: 0;
   padding: 0.1rem 0.05rem;
+  min-height: 1.4em;
   font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
   font-size: 1.05rem;
   font-weight: 800;
@@ -3505,6 +3506,39 @@ html.dice-your-turn::after {
   color: var(--muted);
 }
 .draft-turn-line-active {
+  color: var(--text);
+}
+
+/* Stash chips sit in a height-capped tray so the pick input never shifts. */
+.draft-stash-tray {
+  position: relative;
+  min-height: 3rem;
+  max-height: 5.5rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.draft-stash-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.draft-stash-count {
+  min-width: 4.5rem;
+  text-align: right;
+}
+
+/* Pick input: 16px floor (iOS zoom), stable slot, no layout chrome on type. */
+.draft-pick-input {
+  font-size: max(16px, 1rem) !important;
+  min-height: var(--tap-min);
+}
+.draft-input-status {
+  margin: 0;
+  min-height: 1.35em;
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.35;
   color: var(--text);
 }
 
