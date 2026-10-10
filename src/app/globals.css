@@ -3452,14 +3452,16 @@ html.dice-your-turn::after {
 }
 
 .draft-board-table thead th {
-  position: sticky;
-  top: 0;
-  z-index: 2;
+  /* No sticky strip — header scrolls with the board */
+  position: static;
+  top: auto;
+  z-index: auto;
   text-align: center;
   /* Solid fill — backdrop-filter blur soft-rasterizes sibling chrome on iPad */
   background: #f5f0e7;
 }
 
+/* Your column header — same single solid mint tint as own picks (no badge) */
 .draft-board-table thead th.is-you {
   background: #d8ebe2;
 }
@@ -3469,7 +3471,21 @@ html.party-on .draft-board-table thead th {
 }
 
 html.party-on .draft-board-table thead th.is-you {
-  background: #b8e6d2;
+  background: #d8ebe2;
+}
+
+/* Own picks: one solid tint only — no stacked bold / badge / extra color */
+.draft-board-cell-mine {
+  background: #d8ebe2 !important;
+}
+
+.draft-board-cell-mine .draft-board-cell-text {
+  font-weight: 600;
+  color: var(--text);
+}
+
+html.party-on .draft-board-cell-mine {
+  background: #d8ebe2 !important;
 }
 
 .draft-board-table th,

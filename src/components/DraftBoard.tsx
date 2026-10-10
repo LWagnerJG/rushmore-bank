@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { ClientMessage, PublicRoomState } from "@/shared/types";
 import { RULES } from "@/shared/rules";
 import { currentUpPlayerId } from "@/shared/engine/up-seat";
@@ -36,7 +36,6 @@ export function DraftBoard({
   isHost: boolean;
   send: (m: ClientMessage) => void;
 }) {
-  const activeCell = useRef<HTMLTableCellElement>(null);
   // One unique column per seat, rotated by starterOffset so the round's first
   // drafter is leftmost. Never derive from draftOrder prefix (duplicates seats).
   const seats = draftBoardSeats(state.seatOrder.length, state.starterOffset);
@@ -61,23 +60,12 @@ export function DraftBoard({
   }, []);
 
   // Reset scroll to the start whenever a new draft round begins (starterOffset
-  // rotates columns, so stale scroll position would hide the first drafter).
+  // rotates columns). No jump-to-column on cursor changes.
   useEffect(() => {
     if (density === "fit") return;
     const scroller = document.querySelector(".draft-board-scroll");
     if (scroller) scroller.scrollLeft = 0;
   }, [state.starterOffset, state.topicRound, density]);
-
-  useEffect(() => {
-    if (density === "fit") return; // no sideways scroll at 2–5
-    const cell = activeCell.current;
-    const scroller = cell?.closest(".draft-board-scroll");
-    if (cell && scroller)
-      scroller.scrollLeft = Math.max(
-        0,
-        cell.offsetLeft - scroller.clientWidth / 2 + cell.clientWidth / 2,
-      );
-  }, [state.draftCursor, redoTurn, density]);
 
   function requestRedo(turn: number, reason: "duplicate" | "invalid") {
     const pick = state.picks.find((p) => p.turnIndex === turn);
@@ -148,7 +136,8 @@ export function DraftBoard({
           }
         >
           <caption className="sr-only">
-            Exactly four picks per player. Snake order.
+            Exactly four picks per player. Snake order. Your column uses a
+            single solid tint.
           </caption>
           <thead>
             <tr>
@@ -156,12 +145,13 @@ export function DraftBoard({
                 const pid = state.seatOrder[seat];
                 const player = state.players.find((p) => p.id === pid);
                 const onClock = upId === pid;
+                const mine = pid === youId;
                 return (
                   <th
                     scope="col"
                     key={seat}
                     className={[
-                      pid === youId ? "is-you" : "",
+                      mine ? "is-you" : "",
                       onClock ? "draft-board-on-clock" : "",
                       onClock ? "draft-board-col-active" : "",
                     ]
@@ -171,13 +161,12 @@ export function DraftBoard({
                     <FitName
                       className="draft-board-name"
                       text={player?.name ?? ""}
-                      title={player?.name ?? undefined}
+                      title={
+                        mine
+                          ? `${player?.name ?? "You"} (you)`
+                          : (player?.name ?? undefined)
+                      }
                     />
-                    {pid === youId && (
-                      <span className="draft-board-you-label block font-semibold uppercase tracking-wide text-[var(--muted)]">
-                        You
-                      </span>
-                    )}
                   </th>
                 );
               })}
@@ -197,6 +186,7 @@ export function DraftBoard({
                       ? state.picks.find((p) => p.turnIndex === turn)
                       : undefined;
                   const pid = state.seatOrder[seat];
+                  const mine = pid === youId;
                   const colActive = upId === pid;
                   const current =
                     turn >= 0 &&
@@ -209,12 +199,12 @@ export function DraftBoard({
                   return (
                     <td
                       key={`${pass}-${seat}`}
-                      ref={current || isRedoTarget ? activeCell : undefined}
                       data-turn={turn >= 0 ? turn : undefined}
                       aria-current={current || isRedoTarget ? "step" : undefined}
                       className={[
                         "draft-board-cell",
                         colActive ? "draft-board-col-active" : "",
+                        mine && pick ? "draft-board-cell-mine" : "",
                         isRedoTarget || current
                           ? "draft-board-cell-live"
                           : hostFocused
@@ -250,7 +240,11 @@ export function DraftBoard({
                             }
                           >
                             <span
-                              className={`draft-board-cell-text font-bold`}
+                              className={
+                                mine
+                                  ? "draft-board-cell-text"
+                                  : "draft-board-cell-text font-bold"
+                              }
                             >
                               {pick.text}
                             </span>
@@ -269,9 +263,11 @@ export function DraftBoard({
                         ) : (
                           <p
                             className={`draft-board-cell-text ${
-                              pick || current || isRedoTarget
-                                ? "font-bold"
-                                : "text-[var(--muted)]"
+                              mine
+                                ? ""
+                                : pick || current || isRedoTarget
+                                  ? "font-bold"
+                                  : "text-[var(--muted)]"
                             }`}
                           >
                             {pick?.text ??
