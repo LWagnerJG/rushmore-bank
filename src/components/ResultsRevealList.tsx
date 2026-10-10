@@ -35,6 +35,7 @@ export function ResultsRevealList({
   currencyName,
   revealKey,
   showWinnerSweep = false,
+  onRevealDone,
 }: {
   ranked: Player[];
   youId: string;
@@ -43,6 +44,8 @@ export function ResultsRevealList({
   revealKey: string;
   /** GAME_RESULTS only — green sweep on winner row(s) after they appear last. */
   showWinnerSweep?: boolean;
+  /** Fires once when the last→first reveal finishes (or is skipped / restored). */
+  onRevealDone?: () => void;
 }) {
   const rows: Row[] = useMemo(() => {
     const standings = rankStandings(
@@ -77,6 +80,15 @@ export function ResultsRevealList({
   const timers = useRef<number[]>([]);
   const rowsRef = useRef(rows);
   rowsRef.current = rows;
+  const onRevealDoneRef = useRef(onRevealDone);
+  onRevealDoneRef.current = onRevealDone;
+  const notifiedDone = useRef(alreadyDone);
+
+  const notifyDone = () => {
+    if (notifiedDone.current) return;
+    notifiedDone.current = true;
+    onRevealDoneRef.current?.();
+  };
 
   const clearTimers = () => {
     timers.current.forEach((id) => window.clearTimeout(id));
@@ -99,10 +111,12 @@ export function ResultsRevealList({
       feedback("winner");
     }
     markRevealCompleted(revealKey);
+    notifyDone();
   };
 
   useEffect(() => {
     skipped.current = false;
+    notifiedDone.current = false;
     clearTimers();
 
     const latest = rowsRef.current;
@@ -111,6 +125,7 @@ export function ResultsRevealList({
       setDisplayValues([]);
       setDone(true);
       setSweepOn(false);
+      notifyDone();
       return;
     }
 
@@ -122,6 +137,7 @@ export function ResultsRevealList({
       setSweepOn(showWinnerSweep);
       markRevealCompleted(revealKey);
       if (firstShow && showWinnerSweep) feedback("winner");
+      notifyDone();
       return;
     }
 
@@ -174,6 +190,7 @@ export function ResultsRevealList({
             if (skipped.current) return;
             setDone(true);
             markRevealCompleted(revealKey);
+            notifyDone();
             if (showWinnerSweep) {
               setSweepOn(true);
               feedback("winner");
