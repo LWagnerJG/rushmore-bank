@@ -154,7 +154,7 @@ export function LobbyPanel({
 
       {you.isHost ? (
         <section className="lobby-host-tools">
-          <div className="lobby-start-slot">
+          <div className="lobby-start-slot phase-sticky-cta">
             <button
               type="button"
               data-diag="lobby-start"
