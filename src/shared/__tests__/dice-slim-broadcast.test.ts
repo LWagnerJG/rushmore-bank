@@ -28,29 +28,45 @@ function baseRoom() {
     },
   ];
   state.seatOrder = ["a", "b"];
-  state.selectedTopic = { id: "t1", text: "Best movies", scope: "entertainment" };
+  state.selectedTopic = {
+    id: "t1",
+    text: "Best movies",
+    scope: "entertainment",
+    scopeBoundary: "movies",
+  };
   state.picks = [
-    { id: "p1", playerId: "a", text: "Heat", turnIndex: 0 },
-    { id: "p2", playerId: "b", text: "Joker", turnIndex: 1 },
+    { playerId: "a", text: "Heat", pickIndex: 0, turnIndex: 0 },
+    { playerId: "b", text: "Joker", pickIndex: 0, turnIndex: 1 },
   ];
   state.takenNormalized = ["heat", "joker"];
   state.topicOptions = [
-    { id: "t1", text: "Best movies", scope: "entertainment" },
-    { id: "t2", text: "Best snacks", scope: "food" },
+    {
+      id: "t1",
+      text: "Best movies",
+      scope: "entertainment",
+      scopeBoundary: "movies",
+    },
+    {
+      id: "t2",
+      text: "Best snacks",
+      scope: "food",
+      scopeBoundary: "snacks",
+    },
   ];
   state.scoresLocked = true;
   state.scores = [
     {
       playerId: "a",
-      text: "Heat",
-      base: 20,
-      ai: 5,
       votes: 1,
-      earned: 30,
+      aiAward: 5,
+      topicFit: 4,
+      pickStrength: 4,
+      rosterQuality: 4,
       explanation: "A classic.",
+      earned: 30,
+      aiFallback: false,
     },
   ];
-  state.rushmoreWhy = { a: "A classic." };
   state.earnedThisRound = { a: 30, b: 22 };
   state.wagers = { a: 10, b: 5 };
   state.pots = { a: 10, b: 5 };
@@ -84,6 +100,7 @@ describe("dice slim broadcast", () => {
     const pub = projectPublicState(state, "a");
     expect(pub.picks).toHaveLength(2);
     expect(pub.topicOptions).toHaveLength(2);
+    expect(pub.rushmoreWhy.a).toBe("A classic.");
   });
 
   it("client merge restores omitted fields across dice ticks", () => {
