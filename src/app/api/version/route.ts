@@ -9,6 +9,9 @@ function buildSha(): string {
   const raw =
     process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA ||
     process.env.VERCEL_GIT_COMMIT_SHA ||
+    // Cloudflare Workers Builds / OpenNext CI inject these when set at build time.
+    process.env.CF_PAGES_COMMIT_SHA ||
+    process.env.GITHUB_SHA ||
     "local";
   return raw.slice(0, 8);
 }

@@ -1,0 +1,66 @@
+name: Deploy Beans Web (Cloudflare)
+
+# Redundant Next.js frontend on Cloudflare Workers (OpenNext).
+# Vercel remains the primary host; this worker is beans-web.*.workers.dev.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Deploy beans-web (OpenNext → Cloudflare Workers)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # Inlined into the client + /api/version at build time.
+          NEXT_PUBLIC_PARTYKIT_HOST: beans-party.beans-lwagner.workers.dev
+          NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
+          # Optional: used only when syncing wrangler secrets below.
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          JUDGE_SECRET: ${{ secrets.JUDGE_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CLOUDFLARE_API_TOKEN:-}" ] || [ -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]; then
+            echo "Skipping deploy: CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID secrets are not set."
+            exit 0
+          fi
+
+          echo "Building OpenNext worker (commit ${NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA:0:8})…"
+          npx opennextjs-cloudflare build --config wrangler.web.jsonc
+
+          # Sync runtime secrets from GitHub Actions secrets when present.
+          # Wrangler reads the secret value from stdin; empty/missing → skip.
+          put_secret() {
+            local name="$1"
+            local value="${2:-}"
+            if [ -z "$value" ]; then
+              echo "Secret $name not in GitHub secrets — skipping wrangler secret put."
+              return 0
+            fi
+            printf '%s' "$value" | npx wrangler secret put "$name" --config wrangler.web.jsonc
+            echo "Set wrangler secret: $name"
+          }
+
+          put_secret GEMINI_API_KEY "${GEMINI_API_KEY:-}"
+          put_secret GOOGLE_GENERATIVE_AI_API_KEY "${GOOGLE_GENERATIVE_AI_API_KEY:-}"
+          put_secret GROQ_API_KEY "${GROQ_API_KEY:-}"
+          put_secret JUDGE_SECRET "${JUDGE_SECRET:-}"
+
+          if [ -z "${GEMINI_API_KEY:-}" ] && [ -z "${GOOGLE_GENERATIVE_AI_API_KEY:-}" ] && [ -z "${GROQ_API_KEY:-}" ]; then
+            echo "::warning::No judge provider key in GitHub secrets (GEMINI_API_KEY / GOOGLE_GENERATIVE_AI_API_KEY / GROQ_API_KEY). /api/judge will fallback until one is set."
+          fi
+
+          npx opennextjs-cloudflare deploy --config wrangler.web.jsonc -- --keep-vars

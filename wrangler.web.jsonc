@@ -1,0 +1,44 @@
+/**
+ * OpenNext / Cloudflare Workers config for the Beans Next.js frontend.
+ *
+ * Separate from wrangler.jsonc (PartyServer `beans-party`).
+ *
+ * Deploy: npm run deploy:web
+ * Local preview: npm run preview:web
+ *
+ * Secrets (set via GitHub Actions or CLI):
+ *   npx wrangler secret put GEMINI_API_KEY --config wrangler.web.jsonc
+ *   npx wrangler secret put GOOGLE_GENERATIVE_AI_API_KEY --config wrangler.web.jsonc
+ *   npx wrangler secret put GROQ_API_KEY --config wrangler.web.jsonc
+ *   npx wrangler secret put JUDGE_SECRET --config wrangler.web.jsonc
+ *
+ * NEXT_PUBLIC_* vars are also injected at build time in CI so they are inlined
+ * into the client bundle; runtime vars below cover SSR / Route Handlers.
+ */
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "beans-web",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2025-06-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "beans-web"
+    }
+  ],
+  // Judge route wall-clock budget is ~14s; allow headroom on Workers Paid.
+  "limits": {
+    "cpu_ms": 30000
+  },
+  "vars": {
+    "NEXT_PUBLIC_PARTYKIT_HOST": "beans-party.beans-lwagner.workers.dev"
+  },
+  "observability": {
+    "enabled": true
+  }
+}
