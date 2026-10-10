@@ -123,7 +123,7 @@ export function LobbyPanel({
                 {you.isHost && p.id !== you.id && (
                   <button
                     type="button"
-                    className="min-h-[var(--tap-min)] min-w-[var(--tap-min)] rounded-md px-[var(--space-2)] type-meta font-bold text-[var(--muted)] hover:bg-[rgba(231,111,78,0.12)] hover:text-[var(--coral)]"
+                    className="min-h-[var(--tap-min)] min-w-[var(--tap-min)] rounded-md px-[var(--space-2)] type-meta font-bold text-[var(--muted)] hover:bg-[rgba(231,111,78,0.12)] hover:text-[var(--coral-ink)]"
                     aria-label={`Remove ${p.name}`}
                     onClick={() => {
                       if (
