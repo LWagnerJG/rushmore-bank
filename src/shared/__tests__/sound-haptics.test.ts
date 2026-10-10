@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const store = new Map<string, string>();
 const listeners = new Map<string, Set<EventListener>>();
+const docListeners = new Map<string, Set<EventListener>>();
 
 function dispatch(type: string, detail?: unknown) {
   const set = listeners.get(type);
@@ -23,7 +24,11 @@ vi.stubGlobal("window", {
     },
     clear: () => store.clear(),
   },
-  addEventListener: (type: string, fn: EventListener) => {
+  addEventListener: (
+    type: string,
+    fn: EventListener,
+    _opts?: unknown,
+  ) => {
     if (!listeners.has(type)) listeners.set(type, new Set());
     listeners.get(type)!.add(fn);
   },
@@ -39,9 +44,35 @@ vi.stubGlobal("window", {
 });
 
 let visibility: DocumentVisibilityState = "visible";
+const docRoot = {
+  appendChild: vi.fn(),
+  removeChild: vi.fn(),
+};
 vi.stubGlobal("document", {
   get visibilityState() {
     return visibility;
+  },
+  documentElement: docRoot,
+  createElement: (tag: string) => {
+    if (tag === "audio") {
+      return {
+        setAttribute: vi.fn(),
+        play: vi.fn(() => Promise.resolve()),
+        style: {},
+        src: "",
+        volume: 1,
+        currentTime: 0,
+        parentNode: docRoot,
+      };
+    }
+    return {};
+  },
+  addEventListener: (type: string, fn: EventListener) => {
+    if (!docListeners.has(type)) docListeners.set(type, new Set());
+    docListeners.get(type)!.add(fn);
+  },
+  removeEventListener: (type: string, fn: EventListener) => {
+    docListeners.get(type)?.delete(fn);
   },
 });
 
@@ -57,6 +88,10 @@ vi.stubGlobal(
   },
 );
 
+vi.stubGlobal("navigator", {
+  audioSession: { type: "auto" },
+});
+
 import {
   isSoundEnabled,
   setSoundEnabled,
@@ -67,6 +102,10 @@ import {
   playSfx,
   resetSfxState,
   sfxDebounceMs,
+  primeAudioSync,
+  enableSoundFromUserGesture,
+  isAudioUnlocked,
+  armGestureUnlock,
   type SfxKind,
 } from "@/lib/sfx";
 import { haptic, hapticPattern } from "@/lib/haptics";
@@ -89,6 +128,7 @@ const results = readFileSync(
   resolve(__dirname, "../../components/ResultsRevealList.tsx"),
   "utf8",
 );
+const sfxSrc = readFileSync(resolve(__dirname, "../../lib/sfx.ts"), "utf8");
 
 class FakeOscillator {
   type = "sine";
@@ -112,12 +152,27 @@ class FakeGain {
   disconnect = vi.fn();
 }
 
+class FakeBufferSource {
+  buffer: unknown = null;
+  connect = vi.fn();
+  disconnect = vi.fn();
+  start = vi.fn();
+  onended: (() => void) | null = null;
+}
+
 class FakeAudioContext {
-  state: AudioContextState = "running";
+  state: AudioContextState = "suspended";
   currentTime = 0;
+  sampleRate = 22050;
   destination = {};
   createOscillator = vi.fn(() => new FakeOscillator());
   createGain = vi.fn(() => new FakeGain());
+  createBuffer = vi.fn(
+    (_ch: number, _len: number, _rate: number) => ({}),
+  );
+  createBufferSource = vi.fn(() => new FakeBufferSource());
+  addEventListener = vi.fn();
+  removeEventListener = vi.fn();
   resume = vi.fn(async () => {
     this.state = "running";
   });
@@ -151,21 +206,25 @@ describe("sound prefs — off by default", () => {
     unsub();
   });
 
-  it("settings sheet has a single Sound toggle (not mute-default-on)", () => {
+  it("settings sheet has Sound toggle with clear off-by-default copy", () => {
     expect(settings).toMatch(/>Sound</);
     expect(settings).not.toMatch(/Sound FX/);
     expect(settings).toMatch(/isSoundEnabled/);
-    expect(settings).toMatch(/setSoundEnabled/);
+    expect(settings).toMatch(/enableSoundFromUserGesture/);
     expect(settings).toMatch(/aria-checked=\{soundOn\}/);
-    expect(settings).toMatch(/off by default/i);
+    expect(settings).toMatch(/Off by default|tap to enable/i);
   });
 });
 
-describe("WebAudio sfx", () => {
+describe("iOS unlock + WebAudio sfx", () => {
   beforeEach(() => {
     store.clear();
     resetSfxState();
     visibility = "visible";
+    listeners.clear();
+    docListeners.clear();
+    (navigator as unknown as { audioSession: { type: string } }).audioSession =
+      { type: "auto" };
     (window as unknown as { AudioContext: unknown }).AudioContext =
       FakeAudioContext;
     vi.stubGlobal("AudioContext", FakeAudioContext);
@@ -176,7 +235,7 @@ describe("WebAudio sfx", () => {
     store.clear();
   });
 
-  it("does not create AudioContext when sound is off", async () => {
+  it("does not create AudioContext when sound is off", () => {
     let built = 0;
     class SpyAC extends FakeAudioContext {
       constructor() {
@@ -185,15 +244,12 @@ describe("WebAudio sfx", () => {
       }
     }
     (window as unknown as { AudioContext: unknown }).AudioContext = SpyAC;
-    vi.stubGlobal("AudioContext", SpyAC);
     playSfx("bank");
-    await Promise.resolve();
-    await Promise.resolve();
     expect(isSoundEnabled()).toBe(false);
     expect(built).toBe(0);
   });
 
-  it("never plays when document is hidden", async () => {
+  it("never plays when document is hidden", () => {
     setSoundEnabled(true);
     visibility = "hidden";
     let built = 0;
@@ -205,14 +261,11 @@ describe("WebAudio sfx", () => {
     }
     (window as unknown as { AudioContext: unknown }).AudioContext = SpyAC;
     playSfx("winner");
-    await Promise.resolve();
-    await Promise.resolve();
     expect(built).toBe(0);
   });
 
-  it("plays when enabled, and debounces identical kinds", async () => {
+  it("primes sync inside a gesture: resume, silent buffer, silent html audio", () => {
     setSoundEnabled(true);
-    visibility = "visible";
     const contexts: FakeAudioContext[] = [];
     class SpyAC extends FakeAudioContext {
       constructor() {
@@ -221,22 +274,71 @@ describe("WebAudio sfx", () => {
       }
     }
     (window as unknown as { AudioContext: unknown }).AudioContext = SpyAC;
+
+    const audio = primeAudioSync();
+    expect(audio).not.toBeNull();
+    expect(contexts.length).toBe(1);
+    expect(contexts[0]?.resume).toHaveBeenCalled();
+    expect(contexts[0]?.createBufferSource).toHaveBeenCalled();
+    expect(contexts[0]?.createBufferSource.mock.results[0]?.value.start).toHaveBeenCalled();
+    expect(isAudioUnlocked()).toBe(true);
+    expect(
+      (navigator as unknown as { audioSession: { type: string } }).audioSession
+        .type,
+    ).toBe("playback");
+  });
+
+  it("enableSoundFromUserGesture plays an immediate confirm chime", () => {
+    setSoundEnabled(true);
+    const contexts: FakeAudioContext[] = [];
+    class SpyAC extends FakeAudioContext {
+      constructor() {
+        super();
+        this.state = "running";
+        contexts.push(this);
+      }
+    }
+    (window as unknown as { AudioContext: unknown }).AudioContext = SpyAC;
+
+    enableSoundFromUserGesture();
+    expect(contexts.length).toBe(1);
+    expect(isAudioUnlocked()).toBe(true);
+    // confirm = 2 oscillators (sine + triangle)
+    expect(contexts[0]!.createOscillator).toHaveBeenCalled();
+    expect(contexts[0]!.createOscillator.mock.calls.length).toBeGreaterThanOrEqual(
+      2,
+    );
+  });
+
+  it("arms pointerup/touchend/click listeners for unlock", () => {
+    armGestureUnlock();
+    expect(listeners.has("pointerup")).toBe(true);
+    expect(listeners.has("touchend")).toBe(true);
+    expect(listeners.has("click")).toBe(true);
+  });
+
+  it("plays when unlocked, and debounces identical kinds", () => {
+    setSoundEnabled(true);
+    const contexts: FakeAudioContext[] = [];
+    class SpyAC extends FakeAudioContext {
+      constructor() {
+        super();
+        this.state = "running";
+        contexts.push(this);
+      }
+    }
+    (window as unknown as { AudioContext: unknown }).AudioContext = SpyAC;
+    primeAudioSync();
     playSfx("dice_tick");
     playSfx("dice_tick");
     playSfx("dice_tick");
-    await Promise.resolve();
-    await Promise.resolve();
     expect(contexts.length).toBe(1);
     const oscCalls = contexts[0]?.createOscillator.mock.calls.length ?? 0;
-    // One tick = one oscillator; stacked calls would multiply.
+    // prime may not osc; one tick = one oscillator
     expect(oscCalls).toBe(1);
   });
 
   it("keeps every cue under 250ms in the synthesizer source", () => {
-    const sfxSrc = readFileSync(
-      resolve(__dirname, "../../lib/sfx.ts"),
-      "utf8",
-    );
     const durs = [...sfxSrc.matchAll(/dur:\s*(0\.\d+)/g)].map((m) =>
       Number(m[1]),
     );
@@ -246,7 +348,7 @@ describe("WebAudio sfx", () => {
     }
   });
 
-  it("covers required cue kinds", () => {
+  it("covers required cue kinds including confirm", () => {
     const kinds: SfxKind[] = [
       "your_turn",
       "dice_tick",
@@ -255,22 +357,22 @@ describe("WebAudio sfx", () => {
       "bust",
       "bank",
       "winner",
+      "confirm",
     ];
     for (const k of kinds) {
       expect(sfxDebounceMs(k)).toBeGreaterThan(0);
     }
   });
 
-  it("does not use HTML audio autoplay / silent-switch bypass hacks", () => {
-    const sfxSrc = readFileSync(
-      resolve(__dirname, "../../lib/sfx.ts"),
-      "utf8",
-    );
-    expect(sfxSrc).not.toMatch(/navigator\.audioSession/);
-    expect(sfxSrc).not.toMatch(/new Audio\(/);
-    expect(sfxSrc).not.toMatch(/HTMLAudioElement|\.play\(\s*\)/);
-    expect(sfxSrc).toMatch(/AudioContext/);
-    expect(sfxSrc).toMatch(/unlockAudioOnGesture|pointerdown/);
+  it("uses silent html audio + playback session for iOS silent switch", () => {
+    expect(sfxSrc).toMatch(/audioSession/);
+    expect(sfxSrc).toMatch(/playback/);
+    expect(sfxSrc).toMatch(/SILENT_WAV|data:audio\/wav/);
+    expect(sfxSrc).toMatch(/createBufferSource/);
+    expect(sfxSrc).toMatch(/pointerup|touchend/);
+    expect(sfxSrc).toMatch(/visibilitychange/);
+    expect(sfxSrc).toMatch(/interrupted/);
+    expect(sfxSrc).toMatch(/enableSoundFromUserGesture/);
   });
 });
 
@@ -335,7 +437,6 @@ describe("wiring", () => {
   it("dice scene uses playSfx / feedback (lazy)", () => {
     expect(diceScene).toMatch(/playSfx/);
     expect(diceScene).toMatch(/ensureAudio|feedback/);
-    expect(diceScene).not.toMatch(/new Audio\(/);
   });
 
   it("dice panel banks +beans via feedback", () => {

@@ -6,7 +6,7 @@ import {
   setSoundEnabled,
   subscribeSoundEnabled,
 } from "@/lib/sound-prefs";
-import { ensureAudio, unlockAudioOnGesture } from "@/lib/sfx";
+import { enableSoundFromUserGesture } from "@/lib/sfx";
 import type { ClientMessage, HostAiJudgeHealth, Phase } from "@/shared/types";
 import { RULES } from "@/shared/rules";
 import { HostAiJudgeCue } from "./HostAiJudgeCue";
@@ -119,7 +119,9 @@ export function SettingsSheet({
           <span className="settings-row-label">
             <span className="font-extrabold">Sound</span>
             <span className="text-xs text-[var(--muted)]">
-              Soft cues — off by default
+              {soundOn
+                ? "On — soft game cues"
+                : "Off by default — tap to enable"}
             </span>
           </span>
           <button
@@ -131,10 +133,8 @@ export function SettingsSheet({
               const next = !soundOn;
               setSoundOn(next);
               setSoundEnabled(next);
-              if (next) {
-                unlockAudioOnGesture();
-                void ensureAudio();
-              }
+              // Must prime AudioContext inside this tap (iOS gesture).
+              if (next) enableSoundFromUserGesture();
             }}
           >
             <span className="settings-toggle-knob" />
