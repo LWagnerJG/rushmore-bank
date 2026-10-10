@@ -368,28 +368,6 @@ export function RoomClient({
           <PlayerRail state={state} youId={youId} />
         </div>
       )}
-      {phase === "SCORE_REVEAL" && you.role === "player" && state ? (
-        <div
-          className="ready-wager-row -mx-4 mb-2 px-4"
-          inert={!connected ? true : undefined}
-          aria-disabled={!connected || undefined}
-        >
-          <div className="ready-wager-meta" aria-live="polite">
-            {state.bankBeansReadyCast}/{state.bankBeansReadyNeeded} ready
-          </div>
-          <button
-            type="button"
-            className={
-              "ready-wager-cta " +
-              (state.myBankBeansReady ? "ready-wager-cta-done" : "pulse-soft")
-            }
-            disabled={!connected || state.myBankBeansReady}
-            onClick={() => send({ type: "bank_the_beans" })}
-          >
-            {state.myBankBeansReady ? "Ready" : "Ready to wager"}
-          </button>
-        </div>
-      ) : null}
 
       <div className="room-phase-scroll relative min-h-0 flex-1">
         {!connected ? (
@@ -403,22 +381,25 @@ export function RoomClient({
           </div>
         ) : null}
         <div
-          className={connected ? undefined : "reconnect-dimmed"}
+          className={
+            connected ? "room-phase-fill" : "room-phase-fill reconnect-dimmed"
+          }
           inert={!connected ? true : undefined}
           aria-hidden={!connected || undefined}
         >
           {phase === "SCORE_REVEAL" ? (
-            <div className="phase-panel flex min-h-full flex-col pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <div className="phase-panel flex min-h-full flex-col pb-[var(--phase-pad-b)]">
               {body}
             </div>
           ) : (
             // key=phase remounts MotionSettle so enter runs once, then
             // .motion-settled strips transform/will-change (iOS soft-raster fix).
-            // min-h-full lets sticky primary CTAs pin to the scrollport bottom.
+            // .room-phase-fill grows the panel to the scrollport so the
+            // sticky primary CTAs rest at its bottom even on short content.
             <MotionSettle
               key={phase ?? "none"}
               motionClass="phase-enter"
-              className="phase-panel flex min-h-full flex-col pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+              className="phase-panel flex min-h-full flex-col pb-[var(--phase-pad-b)]"
             >
               {body}
             </MotionSettle>

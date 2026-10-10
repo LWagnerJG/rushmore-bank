@@ -110,54 +110,68 @@ export function ResultsPanel({
         </div>
       )}
 
+      {/* Docks stay direct children of the panel so they can stick over the list. */}
       {revealDone && you.isHost && !final && (
-        <div className="stack-sm">
-          <button
-            type="button"
-            className="btn-primary w-full"
-            disabled={drinkBlocked}
-            onClick={() => send({ type: "next_topic" })}
-          >
-            {drinkBlocked
-              ? "Waiting on drink…"
-              : isFinalRoundResults
-                ? "See final standings"
-                : state.topicRound === state.configuredTopicRounds - 1
-                  ? "Start final round"
-                  : "Next topic"}
-          </button>
+        <>
+          <div className="phase-sticky-cta">
+            <button
+              type="button"
+              className="btn-primary w-full"
+              disabled={drinkBlocked}
+              onClick={() => send({ type: "next_topic" })}
+            >
+              {drinkBlocked
+                ? "Waiting on drink…"
+                : isFinalRoundResults
+                  ? "See final standings"
+                  : state.topicRound === state.configuredTopicRounds - 1
+                    ? "Start final round"
+                    : "Next topic"}
+            </button>
+          </div>
           {!isFinalRoundResults && (
             <button
               type="button"
-              className="btn-secondary w-full"
+              className="btn-secondary dock-trailing w-full"
               onClick={() => send({ type: "end_game" })}
             >
               End game
             </button>
           )}
-        </div>
+        </>
       )}
 
       {revealDone && final && you.role === "player" && (
-        <div className="stack-sm endgame-rematch">
-          <button
-            type="button"
-            className="btn-primary endgame-rematch-btn w-full"
-            disabled={state.myRematchReady}
-            onClick={() => send({ type: "play_again" })}
+        <>
+          <div className="phase-sticky-cta">
+            <p
+              className="endgame-ready-count type-meta text-center tabular-nums text-[var(--muted)]"
+              aria-live="polite"
+            >
+              {state.rematchReadyCast}/{state.rematchReadyNeeded} ready
+            </p>
+            <button
+              type="button"
+              className={`btn-primary endgame-rematch-btn w-full${state.myRematchReady ? " btn-done" : ""}`}
+              disabled={state.myRematchReady}
+              onClick={() => send({ type: "play_again" })}
+            >
+              {state.myRematchReady ? (
+                <>
+                  Ready<span aria-hidden="true"> ✓</span>
+                </>
+              ) : (
+                "Rematch"
+              )}
+            </button>
+          </div>
+          <Link
+            href="/"
+            className="endgame-home dock-trailing type-meta text-center"
           >
-            {state.myRematchReady ? "Ready" : "Rematch"}
-          </button>
-          <p
-            className="endgame-ready-count type-meta text-center tabular-nums text-[var(--muted)]"
-            aria-live="polite"
-          >
-            {state.rematchReadyCast}/{state.rematchReadyNeeded} ready
-          </p>
-          <Link href="/" className="endgame-home type-meta text-center">
             Home
           </Link>
-        </div>
+        </>
       )}
 
       {revealDone && final && you.role !== "player" && (
