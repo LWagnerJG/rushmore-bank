@@ -22,6 +22,11 @@
    * #c05530 ≈ 4.5:1 against white; computed via WCAG relative-luminance formula.
    */
   --btn-bg: #c05530;
+  /* Top cream band under iOS black-translucent status zone.
+   * Slightly lighter than --bg so it matches body::before's #f7f3eb top stop. */
+  --safe-top-cream: #f7f3eb;
+  --safe-top-solid-extra: 14px;
+  --safe-top-fade: 32px;
 }
 
 html.party-on {
@@ -34,6 +39,7 @@ html.party-on {
   --party-glow: rgba(255, 107, 74, 0.12);
   /* Party mode btn-primary stays the same accessible dark coral */
   --btn-bg: #c05530;
+  --safe-top-cream: #fff8ec;
 }
 
 @theme inline {
@@ -162,26 +168,17 @@ html.party-on body::before {
 }
 
 /*
- * Room chrome: fully static paint band — logo, AI cue, LOBBY/beans.
- *
- * After #105 the phase panel (room code) went crisp, but Luke's iPhone still
- * showed a soft header while EXGL stayed sharp. That means the trap is local
- * to header.room-chrome (or a child that promotes the whole band):
- * 1) overflow:hidden on the header created a compositing root.
- * 2) Translucent rgba fills on .host-ai-chrome / Party pills inside that root
- *    soft-rasterized siblings (SVG + wordmark + LOBBY) at low device scale.
- * 3) Any shimmer / infinite opacity|transform animation in the header would
- *    keep the band promoted forever — forbidden here.
- *
- * Contract: solid backgrounds, plain ink text, no animation/transform/
- * will-change/filter/backdrop/mask/mix-blend/background-clip:text in chrome.
+ * Room chrome: logo, AI cue, LOBBY/beans. No bottom border / hard edge —
+ * cream comes from the safe-top band fade into the page background.
+ * Contract: no animation/transform/will-change/filter/backdrop/mask/
+ * mix-blend/background-clip:text on chrome descendants.
  */
 .room-chrome {
   position: relative;
-  /* visible — overflow:hidden was promoting a soft layer for the whole band */
   overflow: visible;
-  background: #f5f0e7;
-  border-color: #d9e0dc;
+  background: transparent;
+  border: none;
+  border-color: transparent;
   transform: none;
   filter: none;
   will-change: auto;
@@ -190,7 +187,6 @@ html.party-on body::before {
   opacity: 1;
 }
 
-/* Explicitly kill any frost/fade pseudo overlay on chrome (past ::before). */
 .room-chrome::before,
 .room-chrome::after {
   content: none !important;
@@ -201,10 +197,6 @@ html.party-on body::before {
   -webkit-mask-image: none !important;
 }
 
-/*
- * Hard static lock for every chrome descendant — iOS must not keep a
- * composited layer on the header after #105 settled the phase panel.
- */
 .room-chrome,
 .room-chrome * {
   animation: none !important;
@@ -219,7 +211,6 @@ html.party-on body::before {
   mix-blend-mode: normal !important;
   text-shadow: none !important;
   -webkit-text-stroke: 0 !important;
-  /* Kill gradient / clipped-text shimmer even if BrandMark shimmer sneaks in */
   -webkit-background-clip: border-box !important;
   background-clip: border-box !important;
 }
@@ -232,18 +223,37 @@ html.party-on body::before {
 }
 
 /*
- * Solid safe-area spacer under the notch / Dynamic Island.
- * Used by room chrome AND home/join shells so the body::before gradient
- * never reads as a top blur/fade cutting into brand or phase content.
+ * Top cream band (home / lobby / room): solid through the iOS status safe
+ * area + ~14px, then a long eased plain linear-gradient fade (~28px) into
+ * the page. No blur, mask, or backdrop — pushes header text below the
+ * native top-edge soft zone without a visible seam.
  */
 .room-chrome-safe,
 .app-safe-top {
-  height: env(safe-area-inset-top, 0px);
-  min-height: 0.5rem;
+  height: calc(
+    env(safe-area-inset-top, 0px) + var(--safe-top-solid-extra) +
+      var(--safe-top-fade)
+  );
+  min-height: calc(var(--safe-top-solid-extra) + var(--safe-top-fade));
   flex-shrink: 0;
-  background: #f5f0e7;
   pointer-events: none;
   opacity: 1;
+  background-color: transparent;
+  /* Eased ease-out stops over the fade length — plain gradient only */
+  background-image: linear-gradient(
+    to bottom,
+    var(--safe-top-cream) 0,
+    var(--safe-top-cream) calc(100% - var(--safe-top-fade)),
+    color-mix(in srgb, var(--safe-top-cream) 88%, transparent)
+      calc(100% - var(--safe-top-fade) * 0.78),
+    color-mix(in srgb, var(--safe-top-cream) 62%, transparent)
+      calc(100% - var(--safe-top-fade) * 0.5),
+    color-mix(in srgb, var(--safe-top-cream) 32%, transparent)
+      calc(100% - var(--safe-top-fade) * 0.28),
+    color-mix(in srgb, var(--safe-top-cream) 10%, transparent)
+      calc(100% - var(--safe-top-fade) * 0.12),
+    transparent 100%
+  );
   filter: none;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
@@ -253,26 +263,20 @@ html.party-on body::before {
 
 .room-chrome-body {
   position: relative;
-  background: #f5f0e7;
+  background: transparent;
   overflow: visible;
 }
 
 .room-chrome-top {
-  /* Keep logo + LOBBY on a simple flex — no transform/filter ancestors */
   position: relative;
   overflow: visible;
 }
 
 .room-chrome-party,
 html.party-on .room-chrome,
-html.party-on .room-chrome-safe,
-html.party-on .room-chrome-body,
-html.party-on .app-safe-top {
-  background: #fff8ec;
-}
-
-html.party-on .room-chrome {
-  border-color: #f0c4b0;
+html.party-on .room-chrome-body {
+  background: transparent;
+  border: none;
 }
 
 /* Solid chrome meta pills — no rgba translucent fills in the header band */

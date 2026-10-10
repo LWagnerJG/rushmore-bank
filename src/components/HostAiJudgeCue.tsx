@@ -5,10 +5,7 @@ import { hostAiCue } from "@/shared/host-ai-cue";
  * Host-only discreet AI judge health cue.
  * Wired to PartyKit `hostAiJudge` (last real judge job + pending + ready).
  * Always renders for hosts — never blank before round 1.
- *
- * Chrome variant is intentionally static (no pulse / opacity animation) —
- * an infinite transform/opacity animation next to BrandMark kept the whole
- * .room-chrome band soft-rasterized on iPhone after #105.
+ * Chrome variant stays static (no pulse / opacity animation).
  */
 export function HostAiJudgeCue({
   health,

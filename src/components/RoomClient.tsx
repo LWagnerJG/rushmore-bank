@@ -312,19 +312,10 @@ export function RoomClient({
     >
       <header
         className={
-          // Solid border colors only — rgba borders inside overflow/composite
-          // roots contributed to soft header rasterization on iPhone.
-          "room-chrome shrink-0 -mx-4 mb-3 border-b " +
+          "room-chrome shrink-0 -mx-4 mb-3 " +
           (partyOn ? "room-chrome-party" : "")
         }
       >
-        {/*
-          Safe-area spacer is a SEPARATE opaque strip from the brand/BANK row.
-          Putting pt-safe-area on the same stacking context as BrandMark made
-          iOS black-translucent soft-rasterize the whole chrome band (icon +
-          wordmark + BANK) while the native status bar stayed crisp. Admin
-          notice below stays outside that under-status paint path.
-        */}
         <div className="room-chrome-safe" aria-hidden="true" />
         <div className="room-chrome-body px-4 pb-2 pt-1">
           <div className="room-chrome-top flex items-start justify-between gap-3">

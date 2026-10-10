@@ -130,7 +130,6 @@ export default function HomePage() {
 
   return (
     <main className="app-shell app-shell-lock mx-auto flex max-w-md flex-col pt-0">
-      {/* Solid safe-area — no gradient bleed / fade under the status bar */}
       <div className="app-safe-top" aria-hidden="true" />
       <div className="app-shell-scroll flex min-h-0 flex-1 flex-col px-4 pb-[max(1.25rem,env(safe-area-inset-bottom),2.1rem)] pt-4">
         <MotionSettle

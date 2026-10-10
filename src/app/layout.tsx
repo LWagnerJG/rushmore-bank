@@ -73,7 +73,8 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: "Beans",
-    // Draw under the status bar so cream html/body fill the clock/notch area.
+    // Keep black-translucent (PWA install caches this). Cream safe-top band
+    // in CSS pushes chrome below iOS's native top-edge soft zone.
     statusBarStyle: "black-translucent",
   },
   openGraph: {
