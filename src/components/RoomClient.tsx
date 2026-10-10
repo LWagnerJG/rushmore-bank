@@ -328,7 +328,7 @@ export function RoomClient({
         }
       >
         <div className="room-chrome-safe" aria-hidden="true" />
-        <div className="room-chrome-body px-4 pb-2 pt-1">
+        <div className="room-chrome-body px-4 pb-1.5 pt-0">
           {/*
             Stable chrome row: brand (quiet) + end slot always same height so
             timer appear/disappear never shifts the topic hero below.
@@ -383,6 +383,7 @@ export function RoomClient({
         brand/BANK row — a remaining soft-rasterize path on iPhone after #88.
       */}
       {/* Results lists own scores — hide the rail on ROUND_RESULTS + GAME_RESULTS. */}
+      {/* Draft board headers are the roster — hide the score rail (all zeros). */}
       {/*
         No standings mid-vote: hidden (not unmounted) during voting so the
         chips' score-land still fires when Score reveal brings them back.
@@ -390,6 +391,8 @@ export function RoomClient({
       {state &&
         phase !== "LOBBY" &&
         phase !== "DICE" &&
+        phase !== "DRAFT" &&
+        phase !== "CORRECTION" &&
         phase !== "ROUND_RESULTS" &&
         phase !== "GAME_RESULTS" && (
         <div

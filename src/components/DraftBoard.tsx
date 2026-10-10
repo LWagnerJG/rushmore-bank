@@ -83,7 +83,7 @@ export function DraftBoard({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="draft-board">
       {canShowRedo && focusTurn != null && (
         <div className="draft-redo-bar" role="region" aria-label="Redo pick">
           <p className="text-sm font-extrabold">
@@ -261,6 +261,11 @@ export function DraftBoard({
                               </span>
                             )}
                           </button>
+                        ) : current && !pick && mine ? (
+                          <span
+                            className="draft-board-cell-caret"
+                            aria-hidden="true"
+                          />
                         ) : (
                           <p
                             className={`draft-board-cell-text ${
@@ -272,11 +277,7 @@ export function DraftBoard({
                             }`}
                           >
                             {pick?.text ??
-                              (current || isRedoTarget
-                                ? mine
-                                  ? "Your pick"
-                                  : "…"
-                                : "")}
+                              (current || isRedoTarget ? "…" : "")}
                           </p>
                         )}
                         {isRedoTarget && (
