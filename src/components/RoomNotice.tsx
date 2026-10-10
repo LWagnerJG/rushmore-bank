@@ -7,13 +7,23 @@ const DISMISS_MS = 2800;
 /**
  * Small, muted room notice that auto-dismisses.
  * Used for admin flashes like "Admin · added 2 fake players".
+ * Host-only by default — players never see admin chrome.
  */
-export function RoomNotice({ notice }: { notice: string | null | undefined }) {
+export function RoomNotice({
+  notice,
+  hostOnly = false,
+  isHost = false,
+}: {
+  notice: string | null | undefined;
+  hostOnly?: boolean;
+  isHost?: boolean;
+}) {
   const [shown, setShown] = useState<string | null>(null);
   const [leaving, setLeaving] = useState(false);
+  const allowed = !hostOnly || isHost;
 
   useEffect(() => {
-    if (!notice) {
+    if (!notice || !allowed) {
       setShown(null);
       setLeaving(false);
       return;
@@ -29,9 +39,9 @@ export function RoomNotice({ notice }: { notice: string | null | undefined }) {
       window.clearTimeout(leaveAt);
       window.clearTimeout(clearAt);
     };
-  }, [notice]);
+  }, [notice, allowed]);
 
-  if (!shown) return null;
+  if (!shown || !allowed) return null;
 
   return (
     <p

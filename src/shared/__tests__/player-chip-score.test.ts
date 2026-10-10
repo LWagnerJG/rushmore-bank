@@ -57,4 +57,10 @@ describe("room notice toast", () => {
     expect(notice).toMatch(/color:\s*var\(--muted\)/);
     expect(notice).not.toMatch(/var\(--coral\)/);
   });
+
+  it("hides admin notices from non-hosts", () => {
+    expect(roomSrc).toMatch(/hostOnly/);
+    expect(noticeSrc).toMatch(/hostOnly/);
+    expect(noticeSrc).toMatch(/!hostOnly \|\| isHost|allowed/);
+  });
 });

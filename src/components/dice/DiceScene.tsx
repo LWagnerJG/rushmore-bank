@@ -115,7 +115,7 @@ export function DiceScene({
   canRoll: boolean;
   onRoll: () => void;
   busted?: boolean;
-  /** Stronger pulse / TAP on the first roll of a turn. */
+  /** TAP chip on the first personal roll only. */
   firstRollHint?: boolean;
 }) {
   const audio = useRef<AudioContext | null>(null);
@@ -164,7 +164,7 @@ export function DiceScene({
   const paintD1 = tray.paintD1;
   const paintD2 = tray.paintD2;
 
-  // Settle punch / haptics once per rollId.
+  // Settle punch / haptics once per rollId — ≤240ms.
   useEffect(() => {
     if (!revealed || !rollId || authD1 == null || authD2 == null) return;
     if (settleRollId.current === rollId) return;
@@ -175,7 +175,7 @@ export function DiceScene({
       setPunch(true);
       haptic(busted ? "bust" : "settle");
     }, 0);
-    const clearPunch = window.setTimeout(() => setPunch(false), 700);
+    const clearPunch = window.setTimeout(() => setPunch(false), 240);
     return () => {
       window.clearTimeout(kick);
       window.clearTimeout(clearPunch);
@@ -231,10 +231,10 @@ export function DiceScene({
         ? `Dice show ${authD1} and ${authD2}, total ${total}`
         : "Two dice ready";
 
+  // One green tray for everyone; coral edge is the only your-turn signal.
   const trayClass = [
     "bean-dice-tray",
     canRoll ? "bean-dice-tray-armed" : "",
-    canRoll && firstRollHint ? "bean-dice-tray-first-hint" : "",
     rolling ? "bean-dice-tray-rolling" : "",
     punch ? "bean-dice-tray-punch" : "",
     busted && revealed ? "bean-dice-tray-bust" : "",
@@ -259,14 +259,18 @@ export function DiceScene({
         data-dice-scrambling={tray.scrambling ? "1" : "0"}
         data-dice-roll-id={tray.rollId ?? ""}
       >
-        <div className="bean-dice-pair" role="img" aria-hidden="true">
+        <div
+          className={`bean-dice-pair${punch && revealed ? " bean-dice-pair-settle" : ""}`}
+          role="img"
+          aria-hidden="true"
+        >
           <PipDie
             face={paintD1}
             index={0}
             tumbling={rolling && !reducedMotion}
             scrambling={tray.scrambling}
             settled={!tray.scrambling && paintD1 != null}
-            settlePunch={punch && revealed}
+            settlePunch={false}
           />
           <PipDie
             face={paintD2}
@@ -274,17 +278,12 @@ export function DiceScene({
             tumbling={rolling && !reducedMotion}
             scrambling={tray.scrambling}
             settled={!tray.scrambling && paintD2 != null}
-            settlePunch={punch && revealed}
+            settlePunch={false}
           />
         </div>
-        {canRoll && (
-          <span className={`bean-dice-hint ${firstRollHint ? "bean-dice-hint-first" : ""}`} aria-hidden="true">
+        {canRoll && firstRollHint && (
+          <span className="bean-dice-hint bean-dice-hint-first" aria-hidden="true">
             TAP
-          </span>
-        )}
-        {rolling && (
-          <span className="bean-dice-hint bean-dice-hint-rolling">
-            Rolling…
           </span>
         )}
       </button>
