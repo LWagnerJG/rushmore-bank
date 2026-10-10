@@ -419,16 +419,17 @@ export function RoomClient({
           </p>
         )}
         {phase === "SCORE_REVEAL" ? (
-          <div className="phase-panel flex min-h-full flex-col pb-[max(1.25rem,env(safe-area-inset-bottom),2.1rem)]">
+          <div className="phase-panel flex min-h-full flex-col pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             {body}
           </div>
         ) : (
           // key=phase remounts MotionSettle so enter runs once, then
           // .motion-settled strips transform/will-change (iOS soft-raster fix).
+          // min-h-full lets sticky primary CTAs pin to the scrollport bottom.
           <MotionSettle
             key={phase ?? "none"}
             motionClass="phase-enter"
-            className="phase-panel shrink-0 pb-[max(1.25rem,env(safe-area-inset-bottom),2.1rem)]"
+            className="phase-panel flex min-h-full flex-col pb-[max(0.75rem,env(safe-area-inset-bottom))]"
           >
             {body}
           </MotionSettle>

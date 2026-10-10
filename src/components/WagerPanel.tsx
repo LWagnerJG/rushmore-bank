@@ -97,18 +97,20 @@ export function WagerPanel({
             You’ll auto-pass the bank table this topic.
           </p>
         </header>
-        <button
-          type="button"
-          className="btn-primary w-full"
-          disabled={busy}
-          onClick={() => {
-            if (busy) return;
-            setBusy(true);
-            send({ type: "submit_wager", amount: 0 });
-          }}
-        >
-          {busy ? "Locking…" : "Continue"}
-        </button>
+        <div className="phase-sticky-cta">
+          <button
+            type="button"
+            className="btn-primary w-full"
+            disabled={busy}
+            onClick={() => {
+              if (busy) return;
+              setBusy(true);
+              send({ type: "submit_wager", amount: 0 });
+            }}
+          >
+            {busy ? "Locking…" : "Continue"}
+          </button>
+        </div>
       </div>
     );
   }
@@ -151,20 +153,22 @@ export function WagerPanel({
         />
       </section>
 
-      <button
-        type="button"
-        className="btn-primary w-full"
-        disabled={busy}
-        onClick={() => {
-          if (busy) return;
-          setBusy(true);
-          send({ type: "submit_wager", amount: clamped });
-        }}
-      >
-        {busy
-          ? "Locking…"
-          : `Risk ${clamped} bean${clamped === 1 ? "" : "s"}`}
-      </button>
+      <div className="phase-sticky-cta">
+        <button
+          type="button"
+          className="btn-primary w-full"
+          disabled={busy}
+          onClick={() => {
+            if (busy) return;
+            setBusy(true);
+            send({ type: "submit_wager", amount: clamped });
+          }}
+        >
+          {busy
+            ? "Locking…"
+            : `Risk ${clamped} bean${clamped === 1 ? "" : "s"}`}
+        </button>
+      </div>
     </div>
   );
 }
