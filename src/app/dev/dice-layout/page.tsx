@@ -42,8 +42,8 @@ function player(id: string, name: string, seat: number, host = false): Player {
 function baseState(): PublicRoomState {
   const players = [
     player(YOU_ID, "You", 0, true),
-    player(OTHER, "Sam", 1),
-    player(THIRD, "Alex", 2),
+    player(OTHER, "Bot Sam", 1),
+    player(THIRD, "Bot Ava", 2),
   ];
   return {
     code: "LAB1",
