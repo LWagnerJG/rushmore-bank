@@ -20,6 +20,7 @@ export function TopicPanel({
   const [custom, setCustom] = useState("");
   const [scope, setScope] = useState<TopicScope>("everyday");
   const [customOpen, setCustomOpen] = useState(false);
+  const [optionsOpen, setOptionsOpen] = useState(false);
   const myVote = state.myTopicVote;
   const seenKey = useRef<string | null>(null);
   const firstTopicScreen = state.topicRound === 0;
@@ -73,62 +74,88 @@ export function TopicPanel({
         {you.isHost && firstTopicScreen ? <HostAiPreGameStatus /> : null}
       </header>
 
-      {canPickRounds ? (
-        <div
-          className="topic-rounds-row"
-          role="group"
-          aria-label="Number of rounds"
-        >
-          <span className="topic-rounds-label">Rounds</span>
-          <div className="topic-rounds-chips">
-            {RULES.topicRoundsHostOptions.map((n) => {
-              const on = state.configuredTopicRounds === n;
-              return (
-                <button
-                  key={n}
-                  type="button"
-                  className={
-                    "topic-rounds-chip" + (on ? " topic-rounds-chip-on" : "")
-                  }
-                  aria-pressed={on}
-                  onClick={() => send({ type: "set_topic_rounds", rounds: n })}
-                >
-                  {n}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      ) : null}
-
       {you.isHost ? (
-        <div className="topic-vibe-row" role="group" aria-label="Topic vibes">
-          {(
-            [
-              ["all", "All"],
-              ["basic", "Basic"],
-              ["sports", "Sports"],
-              ["animals", "Animals"],
-              ["geography", "Geography"],
-            ] as const
-          ).map(([value, label]) => {
-            const on = (state.settings.topicVibe ?? "all") === value;
-            return (
-              <button
-                key={value}
-                type="button"
-                className={"topic-vibe-chip" + (on ? " topic-vibe-chip-on" : "")}
-                onClick={() =>
-                  send({
-                    type: "update_settings",
-                    settings: { topicVibe: value },
-                  })
-                }
+        <div className="topic-options">
+          <button
+            type="button"
+            className="topic-options-toggle"
+            aria-expanded={optionsOpen}
+            onClick={() => setOptionsOpen((o) => !o)}
+          >
+            <span>Options</span>
+            <span className="topic-options-caret" aria-hidden="true">
+              {optionsOpen ? "▴" : "▾"}
+            </span>
+          </button>
+          {optionsOpen ? (
+            <div className="topic-options-body">
+              {canPickRounds ? (
+                <div
+                  className="topic-rounds-row"
+                  role="group"
+                  aria-label="Number of rounds"
+                >
+                  <span className="topic-rounds-label">Rounds</span>
+                  <div className="topic-rounds-chips">
+                    {RULES.topicRoundsHostOptions.map((n) => {
+                      const on = state.configuredTopicRounds === n;
+                      return (
+                        <button
+                          key={n}
+                          type="button"
+                          className={
+                            "topic-rounds-chip" +
+                            (on ? " topic-rounds-chip-on" : "")
+                          }
+                          aria-pressed={on}
+                          onClick={() =>
+                            send({ type: "set_topic_rounds", rounds: n })
+                          }
+                        >
+                          {n}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
+
+              <div
+                className="topic-vibe-row"
+                role="group"
+                aria-label="Topic vibes"
               >
-                {label}
-              </button>
-            );
-          })}
+                {(
+                  [
+                    ["all", "All"],
+                    ["basic", "Basic"],
+                    ["sports", "Sports"],
+                    ["animals", "Animals"],
+                    ["geography", "Geography"],
+                  ] as const
+                ).map(([value, label]) => {
+                  const on = (state.settings.topicVibe ?? "all") === value;
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      className={
+                        "topic-vibe-chip" + (on ? " topic-vibe-chip-on" : "")
+                      }
+                      onClick={() =>
+                        send({
+                          type: "update_settings",
+                          settings: { topicVibe: value },
+                        })
+                      }
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : null}
 

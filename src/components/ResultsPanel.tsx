@@ -3,7 +3,6 @@
 import Link from "next/link";
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
 import { RULES } from "@/shared/rules";
-import { PartyModeSwitch } from "@/components/PartyModeSwitch";
 import { ResultsRevealList } from "@/components/ResultsRevealList";
 import { resultsRevealKey } from "@/lib/results-reveal";
 
@@ -102,18 +101,6 @@ export function ResultsPanel({
 
       {you.isHost && !final && (
         <div className="stack-sm">
-          {!isFinalRoundResults && (
-            <PartyModeSwitch
-              compact
-              on={state.settings.partyMode}
-              onChange={(next) =>
-                send({
-                  type: "update_settings",
-                  settings: { partyMode: next },
-                })
-              }
-            />
-          )}
           <button
             type="button"
             className="btn-primary w-full"
