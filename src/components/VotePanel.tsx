@@ -7,8 +7,26 @@ import { rosterDensity } from "@/shared/roster-density";
 import { cueYourTurn } from "@/lib/your-turn";
 import { RushmoreCard } from "@/components/RushmoreCard";
 import { TimerPill } from "@/components/TimerPill";
-import { WaitingRoster } from "@/components/WaitingRoster";
 import { nameWithYouSuffix } from "@/shared/you-label";
+
+/** One quiet wait line — no avatar strip, no second status, no busy-judge spinner copy. */
+export function voteWaitLine(opts: {
+  twoPlayer: boolean;
+  votesDone: boolean;
+  judging: boolean;
+  waitingCount: number;
+}): string | null {
+  const { twoPlayer, votesDone, judging, waitingCount } = opts;
+  if (twoPlayer) return "AI scoring…";
+  if (!votesDone && waitingCount > 0) {
+    return judging
+      ? `Waiting on ${waitingCount} · AI scoring next`
+      : `Waiting on ${waitingCount}`;
+  }
+  if (judging) return "AI scoring…";
+  if (votesDone) return "AI scoring next";
+  return null;
+}
 
 export function VotePanel({
   state,
@@ -39,6 +57,17 @@ export function VotePanel({
   /** Only show while the judge is actually running — not ready/idle. */
   const judging = state.judgeStatus === "pending";
   const canVote = you.role === "player" && !twoPlayer && !votesDone;
+  const done = new Set(state.humanVotedIds);
+  const waitingCount = state.seatOrder.filter((id) => {
+    const p = state.players.find((x) => x.id === id);
+    return p?.role === "player" && !done.has(id);
+  }).length;
+  const waitLine = voteWaitLine({
+    twoPlayer,
+    votesDone,
+    judging,
+    waitingCount,
+  });
 
   useEffect(() => {
     if (!canVote) return;
@@ -48,13 +77,7 @@ export function VotePanel({
   return (
     <div className={`roster-board space-y-3 roster-board-${density}`}>
       <div className="flex items-baseline justify-between gap-2">
-        <h2 className="type-display" role="status">
-          {twoPlayer
-            ? "The judge is deciding…"
-            : votesDone
-              ? "Votes in"
-              : "Vote"}
-        </h2>
+        <h2 className="type-display">Vote</h2>
         {!twoPlayer && !votesDone && state.phaseDeadlineAt ? (
           <TimerPill
             until={state.phaseDeadlineAt}
@@ -64,23 +87,9 @@ export function VotePanel({
         ) : null}
       </div>
 
-      {!twoPlayer ? (
-        <WaitingRoster
-          state={state}
-          youId={youId}
-          doneIds={state.humanVotedIds}
-          label={votesDone ? "Votes in" : "Waiting on votes"}
-        />
-      ) : null}
-
-      {judging ? (
-        <p
-          className="judge-working type-meta font-semibold text-[var(--muted)]"
-          role="status"
-          aria-live="polite"
-        >
-          <span className="judge-working-dot" aria-hidden="true" />
-          AI is calculating…
+      {waitLine ? (
+        <p className="vote-wait type-meta text-[var(--muted)]" role="status">
+          {waitLine}
         </p>
       ) : null}
       {state.judgeStatus === "failed" && (

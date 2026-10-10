@@ -60,13 +60,15 @@ export function PlayerRail({
         )
       : sortLeaderboard(playerList, youId);
   const upId = currentUpPlayerId(state);
+  // Pending +earned only while still pending on the bank. After wager lock,
+  // stones already include earned (bankedAfter / dice), so never show +N again
+  // — that was the ROUND_RESULTS rail vs list mismatch (e.g. 50 vs 48).
   const showEarned =
-    state.scoresLocked ||
-    state.phase === "SCORE_REVEAL" ||
-    state.phase === "WAGER_SELECTION" ||
-    state.phase === "VOTING_AND_JUDGING";
+    state.phase === "SCORE_REVEAL" || state.phase === "WAGER_SELECTION";
   const showPotSplit =
     state.phase === "WAGER_SELECTION" || state.phase === "DICE";
+  /** During wager the card owns "AT RISK" — rail chips stay number-only. */
+  const quietPotSplit = state.phase === "WAGER_SELECTION";
   const count = players.length;
   const fit = count > 0 && count <= 5;
   const few = count > 0 && count <= 3;
@@ -136,6 +138,7 @@ export function PlayerRail({
                   : undefined
               }
               showPotSplit={showPotSplit}
+              quietPotSplit={quietPotSplit}
               pot={pot}
               safe={safe}
               wagering={showPotSplit && (inDice || pot > 0)}
@@ -156,6 +159,7 @@ function PlayerChip({
   compact,
   chipRef,
   showPotSplit,
+  quietPotSplit,
   pot,
   safe,
   wagering,
@@ -168,6 +172,8 @@ function PlayerChip({
   compact?: boolean;
   chipRef?: RefObject<HTMLDivElement | null>;
   showPotSplit?: boolean;
+  /** Hide SAFE/RISKING labels — tiny muted nums only (wager phase). */
+  quietPotSplit?: boolean;
   pot: number;
   safe: number;
   wagering?: boolean;
@@ -223,11 +229,18 @@ function PlayerChip({
       </div>
       {showPotSplit ? (
         <div
-          className="player-chip-split"
+          className={[
+            "player-chip-split",
+            quietPotSplit ? "player-chip-split-quiet" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
           aria-label={`${safe} safe, ${pot} risking`}
         >
           <span className="player-chip-safe tabular-nums" title="Safe">
-            <span className="player-chip-split-label">Safe</span>
+            {quietPotSplit ? null : (
+              <span className="player-chip-split-label">Safe</span>
+            )}
             <span className="player-chip-split-num">{safe}</span>
           </span>
           <span
@@ -236,7 +249,9 @@ function PlayerChip({
             }`}
             title="Risking"
           >
-            <span className="player-chip-split-label">Risking</span>
+            {quietPotSplit ? null : (
+              <span className="player-chip-split-label">Risking</span>
+            )}
             <span className="player-chip-split-num">{pot}</span>
           </span>
         </div>
