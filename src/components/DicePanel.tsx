@@ -12,6 +12,7 @@ import {
 import { feedback } from "@/lib/feedback";
 import { cueYourTurn } from "@/lib/your-turn";
 import { RULES } from "@/shared/rules";
+import { youInlineSuffix } from "@/shared/you-label";
 
 function useSecondsLeft(until: number | null) {
   const [left, setLeft] = useState(0);
@@ -130,7 +131,7 @@ function TurnStrip({ seats }: { seats: SeatInfo[] }) {
         >
           <span className="dice-turn-chip-name" title={seat.name}>
             {seat.name}
-            {seat.you ? " · you" : ""}
+            {seat.you ? youInlineSuffix(seat.name) : ""}
           </span>
           <span className="dice-turn-chip-meta">
             <span className="dice-turn-chip-badge">{BADGE[seat.kind]}</span>

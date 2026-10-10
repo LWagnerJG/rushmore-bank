@@ -5,6 +5,7 @@ import type { Player, PublicRoomState } from "@/shared/types";
 import { currentUpPlayerId } from "@/shared/engine/up-seat";
 import { draftBoardSeats } from "@/shared/engine/snake";
 import { FitName } from "@/components/FitName";
+import { railChipTip, railYouLabel } from "@/shared/you-label";
 
 /** You first, then beans descending (seat as stable tiebreak). */
 export function sortLeaderboard(
@@ -155,10 +156,8 @@ function PlayerChip({
   safe: number;
   wagering?: boolean;
 }) {
-  const label = you ? "You" : player.name;
-  const tip = up
-    ? `${player.name} · on the clock`
-    : player.name;
+  const label = you ? railYouLabel() : player.name;
+  const tip = railChipTip(player.name, { you, up });
   const [land, setLand] = useState(false);
   const prevStones = useRef(player.stones);
   const prevEarned = useRef(earned);

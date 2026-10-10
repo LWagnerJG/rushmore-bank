@@ -6,6 +6,7 @@ import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
 import { RULES } from "@/shared/rules";
 import { shareInvite } from "@/lib/share-invite";
 import { HostAiPreGameStatus } from "@/components/HostAiPreGameStatus";
+import { nameWithYouSuffix } from "@/shared/you-label";
 
 export function LobbyPanel({
   state,
@@ -17,7 +18,6 @@ export function LobbyPanel({
   send: (m: ClientMessage) => void;
 }) {
   const [copied, setCopied] = useState(false);
-  const [showQR, setShowQR] = useState(false);
   const url =
     typeof window !== "undefined"
       ? `${window.location.origin}/room/${state.code}`
@@ -30,11 +30,26 @@ export function LobbyPanel({
     you.isHost && enough && players.length <= RULES.maxPlayers;
   const partyOn = state.settings.partyMode;
 
+  const markCopied = () => {
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1600);
+  };
+
   const share = async () => {
     const result = await shareInvite({ url, code: state.code });
-    if (result === "copied") {
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1600);
+    if (result === "copied") markCopied();
+  };
+
+  const copyLink = async () => {
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+        markCopied();
+      } else {
+        await share();
+      }
+    } catch {
+      await share();
     }
   };
 
@@ -46,46 +61,42 @@ export function LobbyPanel({
 
   return (
     <div className="lobby-layout stack">
-      <section className="panel lobby-invite stack text-center">
-        <p
+      <section className="panel lobby-invite">
+        <button
+          type="button"
           className="lobby-room-code type-display"
-          aria-label={`Room code ${state.code.split("").join(" ")}`}
+          onClick={() => void copyLink()}
+          aria-label={`Room code ${state.code.split("").join(" ")}. Tap to copy invite link.`}
         >
           {state.code}
-        </p>
-        <p className="type-meta text-[var(--muted)]">{statusText}</p>
+        </button>
 
-        <div className="stack-sm">
-          <button
-            type="button"
-            className="btn-primary lobby-share-btn w-full"
-            onClick={() => void share()}
-          >
-            {copied ? "Copied" : "Share"}
-          </button>
-          <button
-            type="button"
-            className="btn-secondary w-full"
-            onClick={() => setShowQR((v) => !v)}
-            aria-expanded={showQR}
-          >
-            {showQR ? "Hide QR" : "Show QR"}
-          </button>
+        <div className="lobby-qr" aria-label="Invite QR code">
+          <QRCodeSVG
+            value={url}
+            size={128}
+            bgColor="#f5f0e7"
+            fgColor="#23483e"
+            level="M"
+            marginSize={4}
+            title={`Join room ${state.code}`}
+          />
         </div>
 
-        {showQR && (
-          <div className="lobby-qr mx-auto w-fit rounded-2xl bg-white p-[var(--space-3)] shadow-sm">
-            <QRCodeSVG
-              value={url}
-              size={160}
-              bgColor="#ffffff"
-              fgColor="#23483E"
-            />
-          </div>
-        )}
+        <button
+          type="button"
+          className="btn-primary lobby-share-btn w-full"
+          onClick={() => void share()}
+        >
+          {copied ? "Copied" : "Share"}
+        </button>
+
+        <p className="lobby-invite-status type-meta text-[var(--muted)]">
+          {statusText}
+        </p>
       </section>
 
-      <section className="panel stack-sm">
+      <section className="panel stack-sm lobby-roster">
         <div className="flex items-baseline justify-between gap-[var(--space-2)]">
           <h2 className="type-body font-[family-name:var(--font-display)] font-extrabold">
             Who&rsquo;s in
@@ -94,13 +105,12 @@ export function LobbyPanel({
             {players.length}/{RULES.maxPlayers}
           </span>
         </div>
-        <ul className="stack-sm">
+        <ul className="stack-sm lobby-roster-list">
           {players.map((p) => (
             <li key={p.id} className="player-row">
               <span className="type-body font-extrabold">
                 {p.isHost ? "★ " : ""}
-                {p.name}
-                {p.id === you.id ? " (you)" : ""}
+                {p.id === you.id ? nameWithYouSuffix(p.name) : p.name}
                 {!p.connected && (
                   <span className="ml-[var(--space-1)] type-meta text-[var(--muted)]">
                     away

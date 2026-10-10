@@ -2,6 +2,7 @@
 
 import type { Player, PublicRoomState } from "@/shared/types";
 import { FitName } from "@/components/FitName";
+import { nameWithYouSuffix } from "@/shared/you-label";
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -52,7 +53,7 @@ export function WaitingRoster({
       <ul className="waiting-roster-avatars" aria-label="Players">
         {seated.map((p) => {
           const locked = done.has(p.id);
-          const name = p.id === youId ? `${p.name} (you)` : p.name;
+          const name = p.id === youId ? nameWithYouSuffix(p.name) : p.name;
           return (
             <li
               key={p.id}

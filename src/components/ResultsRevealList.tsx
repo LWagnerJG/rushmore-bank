@@ -13,6 +13,7 @@ import {
   WINNER_SWEEP_MS,
 } from "@/lib/results-reveal";
 import { feedback } from "@/lib/feedback";
+import { nameWithYouSuffix } from "@/shared/you-label";
 
 type Row = {
   id: string;
@@ -250,8 +251,7 @@ export function ResultsRevealList({
             ) : null}
             <span className="results-reveal-rank tabular-nums">{row.rank}</span>
             <span className="results-reveal-name">
-              {row.name}
-              {row.isYou ? " (you)" : ""}
+              {row.isYou ? nameWithYouSuffix(row.name) : row.name}
             </span>
             <span className="results-reveal-total tabular-nums">
               {shown ? displayValues[i] ?? 0 : "\u00a0"}
