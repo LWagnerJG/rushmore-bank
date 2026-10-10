@@ -1,0 +1,28 @@
+name: PartyServer health
+
+on:
+  schedule:
+    # ~9:05 AM America/New_York (just after judge-health at :00).
+    - cron: "5 13 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  party:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: PartyServer lobby broadcast
+        env:
+          PARTY_HOST: beans-party.beans-lwagner.workers.dev
+          HEALTH_TIMEOUT_MS: "15000"
+          HEALTH_STEP_MS: "8000"
+        run: npx tsx scripts/server-health.ts
