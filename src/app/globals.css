@@ -3796,7 +3796,7 @@ html.dice-your-turn::after {
   color: transparent;
 }
 .draft-turn-line-warn {
-  color: var(--btn-bg);
+  color: var(--coral-ink);
 }
 
 /* Composer: no outer card — one soft pill holds the field + Lock in. */

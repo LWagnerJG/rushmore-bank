@@ -86,7 +86,7 @@ describe("coral is decoration; coral ink is the text color", () => {
   });
 
   it("no CSS rule sets text in plain coral", () => {
-    expect(clean).not.toMatch(/(^|[;{\s])color:\s*var\(--(coral|accent)\)/);
+    expect(clean).not.toMatch(/(^|[;{\s])color:\s*var\(--(coral|accent|btn-bg)\)/);
     expect(clean).not.toMatch(/(^|[;{\s])color:\s*(#e76f4e|#ff6b4a)/i);
   });
 
@@ -106,7 +106,7 @@ describe("coral is decoration; coral ink is the text color", () => {
     }
   });
 
-  it("totals, deltas, the wager stake, Home's Edit and the error toast use coral ink at full strength", () => {
+  it("totals, deltas, the wager stake, Home's Edit, the toast and Taken use coral ink at full strength", () => {
     for (const sel of [
       ".earned-badge-num",
       ".results-reveal-total",
@@ -117,6 +117,7 @@ describe("coral is decoration; coral ink is the text color", () => {
       ".home-edit-name",
       ".a2hs-nudge-dismiss",
       ".error-toast",
+      ".draft-turn-line-warn",
     ]) {
       const body = rule(sel);
       expect(decl(body, "color"), sel).toBe("var(--coral-ink)");
@@ -135,7 +136,7 @@ describe("honest disabled buttons", () => {
   const disabledRules = [...clean.matchAll(/([^{}]+)\{([^{}]*)\}/g)].filter(
     ([, sel]) =>
       /:disabled|\[aria-disabled="true"\]/.test(sel) &&
-      /btn-|topic-custom-lock|dice-bank-cta/.test(sel),
+      /btn-|draft-pick-submit|topic-custom-lock|dice-bank-cta/.test(sel),
   );
 
   it("never fades a disabled button with opacity", () => {
@@ -169,6 +170,14 @@ describe("honest disabled buttons", () => {
     const bank = rule(".dice-bank-cta:disabled");
     expect(
       contrastRatio(solid(decl(bank, "color")), over(decl(bank, "background"), surfaces.panel)),
+    ).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("an empty Lock in keeps a 4.5:1 label on the composer pill", () => {
+    const pill = solid(decl(rule(".draft-composer-row"), "background"));
+    const empty = rule('.draft-pick-submit[aria-disabled="true"]');
+    expect(
+      contrastRatio(solid(decl(empty, "color")), over(decl(empty, "background"), pill)),
     ).toBeGreaterThanOrEqual(4.5);
   });
 
