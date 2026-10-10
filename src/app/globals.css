@@ -563,6 +563,12 @@ html.party-on .btn-primary {
   position: relative;
   overflow: hidden;
   isolation: isolate;
+  cursor: pointer;
+}
+
+.rushmore-card-disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
 }
 
 .rushmore-card-your-turn::before {
@@ -747,6 +753,19 @@ html.party-on .btn-primary {
 
 .earned-badge {
   animation: earned-in 420ms ease-out both;
+}
+.earned-badge-quiet {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+.earned-badge-num {
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  font-size: 1.15rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--coral);
+  opacity: 0.92;
 }
 
 @keyframes shimmer {
@@ -1231,9 +1250,27 @@ html.party-on .panel {
   padding: 0.4rem 0.5rem !important;
 }
 
+.rushmore-why-wrap {
+  margin-top: 0.55rem;
+}
+.rushmore-why-toggle {
+  min-height: var(--tap-min);
+  padding: 0.15rem 0;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+.rushmore-why-toggle:active {
+  opacity: 0.7;
+}
 .rushmore-why {
-  margin-top: 0.75rem;
-  padding-top: 0.65rem;
+  margin-top: 0.25rem;
+  padding-top: 0.55rem;
   border-top: 1px solid rgba(35, 72, 62, 0.08);
   font-size: 0.85rem;
   line-height: 1.45;
@@ -1366,65 +1403,26 @@ html.party-on .panel {
   border: 1.5px solid rgba(35, 72, 62, 0.08);
 }
 
-/* AT RISK / stay-safe piles — split lives on the slider track below */
-.wager-piles {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.55rem;
-}
-
-.wager-pile {
-  border-radius: 1rem;
-  padding: 0.65rem 0.5rem 0.7rem;
+/* One stake display — CTA carries Risk N */
+.wager-stake {
   text-align: center;
+  padding: 0.35rem 0.25rem 0.15rem;
 }
-
-.wager-pile-risk {
-  background: linear-gradient(
-    165deg,
-    rgba(255, 248, 236, 0.95),
-    rgba(231, 111, 78, 0.18)
-  );
-  border: 1.5px solid rgba(231, 111, 78, 0.28);
-}
-
-.wager-pile-safe {
-  background: linear-gradient(
-    165deg,
-    rgba(255, 255, 255, 0.85),
-    rgba(167, 215, 194, 0.35)
-  );
-  border: 1.5px solid rgba(35, 72, 62, 0.1);
-}
-
-.wager-pile-label {
-  font-size: 0.65rem;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.wager-pile-risk .wager-pile-label {
-  color: var(--coral);
-}
-
-.wager-pile-value {
-  margin-top: 0.15rem;
+.wager-stake-value {
   font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
-  font-size: clamp(2.35rem, 11vw, 3rem);
+  font-size: clamp(2.6rem, 12vw, 3.25rem);
   font-weight: 800;
   line-height: 0.95;
   letter-spacing: -0.03em;
-  color: var(--text);
-}
-
-.wager-pile-risk .wager-pile-value {
   color: var(--coral);
 }
-
-.wager-pile-safe .wager-pile-value {
-  color: #2f6b55;
+.wager-stake-label {
+  margin-top: 0.2rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 
 .wager-flow {
@@ -1444,36 +1442,13 @@ html.party-on .panel {
 }
 
 .wager-timer {
-  display: grid;
-  grid-template-columns: auto auto;
-  grid-template-rows: auto auto;
-  align-items: end;
-  justify-items: end;
-  column-gap: 0.2rem;
-  row-gap: 0.05rem;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
   flex: 0 0 auto;
-  min-width: 4.4rem;
-  min-height: 3rem;
-  padding: 0.35rem 0.6rem 0.38rem;
-  border-radius: 0.9rem;
-  background: linear-gradient(
-    160deg,
-    rgba(255, 255, 255, 0.96),
-    rgba(244, 201, 91, 0.32)
-  );
-  border: 2px solid rgba(35, 72, 62, 0.16);
-  box-shadow: 0 4px 14px rgba(35, 72, 62, 0.1);
-}
-
-.wager-timer-label {
-  grid-column: 1 / -1;
-  font-size: 0.58rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text);
-  text-align: right;
-  opacity: 0.72;
+  min-width: 3.2rem;
+  min-height: 2.75rem;
+  padding: 0.2rem 0.35rem;
 }
 
 .wager-timer-value {
@@ -1485,23 +1460,8 @@ html.party-on .panel {
   color: var(--coral);
 }
 
-.wager-timer-unit {
-  padding-bottom: 0.2rem;
-  font-size: 0.72rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--muted);
-}
-
 .wager-timer-urgent {
   animation: dice-timer-press 0.9s ease-in-out infinite;
-  background: linear-gradient(
-    160deg,
-    rgba(255, 248, 236, 0.98),
-    rgba(231, 111, 78, 0.3)
-  );
-  border-color: rgba(231, 111, 78, 0.55);
 }
 
 .wager-slider-block {

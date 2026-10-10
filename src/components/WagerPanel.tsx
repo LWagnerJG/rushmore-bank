@@ -118,10 +118,6 @@ export function WagerPanel({
       <header className="wager-header">
         <div className="wager-header-copy">
           <h2 className="type-display">Risk how many?</h2>
-          <p className="mt-[var(--space-1)] type-meta text-[var(--muted)]">
-            Earned {earned}
-            {banked > 0 ? ` · banked ${banked}` : ""}
-          </p>
         </div>
         {left !== null && (
           <div
@@ -130,26 +126,19 @@ export function WagerPanel({
             aria-live="polite"
             aria-label={`${left} seconds left`}
           >
-            <span className="wager-timer-label">Time</span>
-            <span className="wager-timer-value tabular-nums">{left}</span>
-            <span className="wager-timer-unit">s</span>
+            <span className="wager-timer-value tabular-nums">{left}s</span>
           </div>
         )}
       </header>
 
       <section className="wager-hero" aria-live="polite">
+        {/* One stake display — safe balance stays in slider ARIA + CTA */}
         <div
-          className="wager-piles"
+          className="wager-stake"
           aria-label={`${clamped} at risk, ${protectedBal} stay safe`}
         >
-          <div className="wager-pile wager-pile-risk">
-            <p className="wager-pile-label">At risk</p>
-            <p className="wager-pile-value tabular-nums">{clamped}</p>
-          </div>
-          <div className="wager-pile wager-pile-safe">
-            <p className="wager-pile-label">Stay safe</p>
-            <p className="wager-pile-value tabular-nums">{protectedBal}</p>
-          </div>
+          <p className="wager-stake-value tabular-nums">{clamped}</p>
+          <p className="wager-stake-label">at risk</p>
         </div>
 
         <WagerSlider
