@@ -1015,6 +1015,24 @@ html.party-on .brand-shimmer {
   padding-bottom: 0.5rem;
 }
 
+/* Lobby invite — room code big enough to read aloud; one big Share */
+.lobby-invite {
+  padding-block: var(--space-5);
+}
+
+.lobby-room-code {
+  font-size: clamp(2.5rem, 12vw, 3.5rem);
+  letter-spacing: 0.22em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  user-select: all;
+}
+
+.lobby-share-btn {
+  min-height: calc(var(--tap-min) + 8px);
+  font-size: 1.125rem;
+}
+
 .lobby-start-slot {
   /* FAB is ~2.5rem + gap; phase scroll already applies safe-area pb — don't double it */
   padding-bottom: 3.25rem;
