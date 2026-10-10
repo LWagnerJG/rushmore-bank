@@ -3,6 +3,7 @@
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
 import { RULES } from "@/shared/rules";
 import { PartyModeSwitch } from "@/components/PartyModeSwitch";
+import { ResultsRevealList } from "@/components/ResultsRevealList";
 
 export function ResultsPanel({
   state,
@@ -46,19 +47,12 @@ export function ResultsPanel({
             : `Round ${state.topicRound}/${state.configuredTopicRounds}`}
       </h2>
 
-      <ol className="stack-sm">
-        {ranked.map((p, i) => (
-          <li key={p.id} className="player-row type-body font-extrabold">
-            <span>
-              {i + 1}. {p.name}
-              {p.id === you.id ? " (you)" : ""}
-            </span>
-            <span className="text-[var(--coral)]">
-              {p.stones} {RULES.currencyName}
-            </span>
-          </li>
-        ))}
-      </ol>
+      <ResultsRevealList
+        ranked={ranked}
+        youId={you.id}
+        currencyName={RULES.currencyName}
+        revealKey={`${state.phase}:${state.topicRound}:${state.phaseRevision}`}
+      />
 
       {promptOpen && prompt?.kind === "lowest_drink" && (
         <div className="party-sip party-sip-quiet stack-sm">
