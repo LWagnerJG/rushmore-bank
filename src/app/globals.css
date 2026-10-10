@@ -380,6 +380,30 @@ html.party-on body::before {
 
 .room-chrome-topic {
   margin: 0.35rem 0 0;
+  text-wrap: balance;
+}
+.room-chrome-topic-long {
+  font-size: 1.375rem;
+  line-height: 1.15;
+}
+.room-chrome-topic-xlong {
+  font-size: 1.125rem;
+  line-height: 1.2;
+}
+
+/* Middle of the chrome row: admin notice, one line, no reflow */
+.room-chrome-status {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.room-chrome-status > * {
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Quiet in-room brand — chrome, not a headline */
@@ -443,6 +467,11 @@ html.party-on .room-chrome-body {
   /* Rail glow may paint outside chips; keep overflow visible HERE only */
   overflow: visible;
   position: relative;
+}
+
+/* Topic / draft: drop the rail slot's extra margin so the field stays high. */
+.room-rail-slot-tight {
+  margin-bottom: 0;
 }
 
 /*
@@ -952,12 +981,46 @@ html.party-on .brand-shimmer {
   padding: 1.15rem 1rem 1.05rem;
 }
 
+/*
+ * Home sits in the upper part of every phone (gap grows with height, capped)
+ * so the nickname / code row is always above the keyboard.
+ */
+.home-stack {
+  padding-top: clamp(0.5rem, calc((var(--app-h, 100dvh) - 620px) * 0.4), 4rem);
+}
+
+/* Field + action on one row, both exactly tap height */
+.home-field-row {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.home-field {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: var(--tap-min);
+  padding-block: 0;
+  text-align: center;
+}
+
+.home-field-go {
+  flex: 0 0 auto;
+  height: var(--tap-min);
+  padding-block: 0;
+  white-space: nowrap;
+  touch-action: manipulation;
+}
+
 .home-play-stack {
   display: flex;
   flex-direction: column;
 }
 
 .home-playing-as {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
   text-align: center;
 }
 
@@ -2271,13 +2334,16 @@ html.party-on .panel {
   font-weight: 800;
   min-width: 0;
   width: 100%;
+  /* FitName shrinks the inner text; the row height must not follow it. */
+  height: 1.15em;
 }
 
 .player-chip-name-leading {
   position: absolute;
   left: 0;
-  top: 50%;
-  transform: translateY(-50%);
+  /* Full row height whichever glyph (● up / ★ host) it holds. */
+  top: 0;
+  bottom: 0;
   display: flex;
   align-items: center;
   gap: 0.1rem;
@@ -2808,10 +2874,14 @@ html.party-on .player-rail-many::after {
   opacity: 0.72;
 }
 
-.topic-custom-form {
+.topic-custom-card {
   display: flex;
   flex-direction: column;
-  gap: 0.55rem;
+  gap: var(--space-2);
+  border-radius: 1.25rem;
+  padding: var(--space-3);
+  border: 1.5px solid rgba(231, 111, 78, 0.35);
+  background: var(--panel);
 }
 
 .topic-custom-label {
@@ -2822,20 +2892,41 @@ html.party-on .player-rail-many::after {
   color: var(--muted);
 }
 
+/* Field + action on one row, both exactly tap height */
 .topic-custom-row {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-2);
   align-items: stretch;
 }
 
+.topic-custom-input,
+.topic-custom-scope {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: var(--tap-min);
+  padding-block: 0;
+}
+
+.topic-custom-lock {
+  flex: 0 0 auto;
+  height: var(--tap-min);
+  padding-block: 0;
+  white-space: nowrap;
+  touch-action: manipulation;
+}
+.topic-custom-lock[aria-disabled="true"] {
+  opacity: 0.5;
+}
+
 .topic-custom-cancel {
-  align-self: flex-start;
+  flex: 0 0 auto;
+  min-height: var(--tap-min);
   font-size: 0.8rem;
   font-weight: 700;
   color: var(--muted);
   background: transparent;
   border: 0;
-  padding: 0.15rem 0;
+  padding: 0 var(--space-2);
 }
 
 /*
@@ -3598,67 +3689,116 @@ html.dice-your-turn::after {
   }
 }
 
-/* Draft status — body size under the topic hero; never a second display */
+/* Draft status — body size under the composer; one line, never wraps */
 .draft-turn-line {
   margin: 0;
-  padding: 0.1rem 0.05rem;
-  min-height: 1.4em;
+  padding: 0 0.05rem;
   font-size: var(--text-body);
   font-weight: 700;
   line-height: var(--leading-body);
   letter-spacing: -0.01em;
   color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .draft-turn-line-active {
   color: var(--text);
 }
+.draft-turn-line-warn {
+  color: var(--btn-bg);
+}
 
-/* Stash chips sit in a height-capped tray so the pick input never shifts. */
-.draft-stash-tray {
-  position: relative;
-  min-height: 3rem;
-  max-height: 5.5rem;
-  overflow-x: hidden;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+.draft-composer {
+  border-radius: 1.25rem;
+  background: #fff;
+  padding: var(--space-2);
+  border: 1.5px solid rgba(35, 72, 62, 0.16);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.8) inset,
+    0 8px 22px rgba(35, 72, 62, 0.1);
+}
+
+/* Field + compact CTA on one row, both exactly tap height. */
+.draft-composer-row {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-2);
+}
+
+/* Pick input: 16px floor (iOS zoom), fixed height, no layout chrome on type. */
+.draft-pick-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: var(--tap-min);
+  padding-block: 0;
+  padding-inline: 0.85rem;
+  border-radius: 0.8rem;
+  font-size: max(16px, 1rem) !important;
+}
+
+/* Fixed width: Lock in / Locking… / Stash it never resize the field. */
+.draft-pick-submit {
+  flex: 0 0 6.5rem;
+  height: var(--tap-min);
+  padding-block: 0;
+  padding-inline: 0.75rem;
+  border-radius: 0.8rem;
+  white-space: nowrap;
+  touch-action: manipulation;
+}
+.draft-pick-submit[aria-disabled="true"] {
+  opacity: 0.5;
+}
+.draft-pick-submit[aria-disabled="true"]:active {
+  transform: none;
+}
+
+.draft-stash {
+  margin-top: var(--space-2);
+  padding-inline: 0.15rem;
+}
+.draft-stash-meta {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .draft-stash-list {
-  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-1);
+  margin: var(--space-1) 0 0;
   padding: 0;
   list-style: none;
 }
-.draft-stash-count {
-  min-width: 4.5rem;
-  text-align: right;
+.draft-stash-item {
+  display: flex;
+  align-items: center;
+  max-width: 100%;
 }
-
-/* Pick input: 16px floor (iOS zoom), stable slot, no layout chrome on type. */
-.draft-pick-input {
-  font-size: max(16px, 1rem) !important;
-  min-height: var(--tap-min);
-}
-.draft-input-status {
-  margin: 0;
-  min-height: 1.35em;
-  font-size: 0.875rem;
-  font-weight: 700;
-  line-height: 1.35;
-  color: var(--text);
+.draft-stash-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: var(--tap-min);
+  border-radius: 0.5rem;
+  font-size: var(--text-body);
+  color: var(--muted);
+  touch-action: manipulation;
 }
 
 .draft-redo-bar {
   border-radius: 1rem;
   background: rgba(244, 201, 91, 0.35);
   padding: 0.75rem 0.85rem;
-}
-.stash-surface {
-  border-radius: 1.15rem;
-  background: #fff;
-  padding: 0.9rem 0.8rem 1rem;
-  border: 1.5px solid rgba(35, 72, 62, 0.16);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.8) inset,
-    0 8px 22px rgba(35, 72, 62, 0.1);
 }
 
 .stash-chip {
@@ -3677,7 +3817,7 @@ html.dice-your-turn::after {
     transform 120ms ease;
 }
 
-.stash-chip:active:not(:disabled) {
+.stash-chip:active:not([aria-disabled="true"]) {
   transform: scale(0.98);
 }
 
