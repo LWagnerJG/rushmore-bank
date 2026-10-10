@@ -152,16 +152,11 @@ export function rememberRoomSession(session: RoomSession) {
   rememberDisplayName(session.name);
 }
 
-/** Recall a still-fresh room membership (default 2h). */
-export function recallRoomSession(
+function parseRoomSession(
+  raw: string | null,
   roomCode: string,
-  maxAgeMs = 2 * 60 * 60 * 1000,
+  maxAgeMs: number,
 ): RoomSession | null {
-  if (typeof window === "undefined") return null;
-  if (wasRemovedFromRoom(roomCode)) return null;
-  const key = roomSessionKey(roomCode);
-  const raw =
-    window.sessionStorage.getItem(key) ?? window.localStorage.getItem(key);
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as RoomSession;
@@ -178,6 +173,98 @@ export function recallRoomSession(
   } catch {
     return null;
   }
+}
+
+/**
+ * Auto-resume membership for THIS tab only (sessionStorage).
+ * Never falls back to localStorage — that made a second tab steal the seat.
+ */
+export function recallRoomSession(
+  roomCode: string,
+  maxAgeMs = 2 * 60 * 60 * 1000,
+): RoomSession | null {
+  if (typeof window === "undefined") return null;
+  if (wasRemovedFromRoom(roomCode)) return null;
+  return parseRoomSession(
+    window.sessionStorage.getItem(roomSessionKey(roomCode)),
+    roomCode,
+    maxAgeMs,
+  );
+}
+
+/** Explicit Rejoin path may use the last localStorage membership. */
+export function recallRoomSessionForRejoin(
+  roomCode: string,
+  maxAgeMs = 2 * 60 * 60 * 1000,
+): RoomSession | null {
+  if (typeof window === "undefined") return null;
+  if (wasRemovedFromRoom(roomCode)) return null;
+  const key = roomSessionKey(roomCode);
+  return (
+    parseRoomSession(window.sessionStorage.getItem(key), roomCode, maxAgeMs) ??
+    parseRoomSession(window.localStorage.getItem(key), roomCode, maxAgeMs)
+  );
+}
+
+export type SeatLockHandle = {
+  /** True when another tab already claimed this playerId. */
+  contested: boolean;
+  release: () => void;
+};
+
+/**
+ * BroadcastChannel seat lock — second tab with the same playerId is contested
+ * so we do not open a reconnect war on one Party connection id.
+ */
+export function acquireSeatLock(
+  roomCode: string,
+  playerId: string,
+  onContested: () => void,
+): SeatLockHandle {
+  if (typeof window === "undefined" || typeof BroadcastChannel === "undefined") {
+    return { contested: false, release() {} };
+  }
+  const code = roomCode.toUpperCase();
+  const tabId = newGuestId();
+  const channel = new BroadcastChannel(`beans-seat:${code}`);
+  let contested = false;
+  let released = false;
+
+  const onMessage = (ev: MessageEvent) => {
+    const data = ev.data as {
+      type?: string;
+      playerId?: string;
+      tabId?: string;
+    };
+    if (!data || data.tabId === tabId) return;
+    if (data.playerId !== playerId) return;
+    if (data.type === "claim" || data.type === "ping") {
+      contested = true;
+      onContested();
+      channel.postMessage({ type: "busy", playerId, tabId });
+    }
+  };
+  channel.addEventListener("message", onMessage);
+  channel.postMessage({ type: "claim", playerId, tabId });
+  // Ask any existing holder to announce.
+  channel.postMessage({ type: "ping", playerId, tabId });
+
+  return {
+    get contested() {
+      return contested;
+    },
+    release() {
+      if (released) return;
+      released = true;
+      try {
+        channel.postMessage({ type: "release", playerId, tabId });
+        channel.removeEventListener("message", onMessage);
+        channel.close();
+      } catch {
+        /* ignore */
+      }
+    },
+  };
 }
 
 /** Clear remembered membership for this room (optional leave). */

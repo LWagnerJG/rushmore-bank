@@ -83,6 +83,7 @@ export function RoomClient({
     connected,
     joined,
     removed,
+    seatContested,
     join,
     send,
     defaultName,
@@ -92,7 +93,6 @@ export function RoomClient({
   });
   const [name, setName] = useState(presetName || defaultName);
   const [rejoinId] = useState(() => getLastPlayerIdForRejoin(code));
-  const autoJoinAttempted = useRef(false);
 
   function handleRejoin() {
     const id = getLastPlayerIdForRejoin(code);
@@ -103,12 +103,11 @@ export function RoomClient({
     window.location.assign(`/room/${code}${q}`);
   }
 
+  // Retry join on every connected rising edge (lost first join / flap).
   useEffect(() => {
-    if (autoJoinAttempted.current) return;
-    if (removed || wasRemovedFromRoom(code)) return;
+    if (removed || wasRemovedFromRoom(code) || seatContested) return;
     const clean = (presetName.trim() || sessionResume?.name || "").trim();
     if (!connected || joined || !clean) return;
-    autoJoinAttempted.current = true;
     join(
       clean,
       preferSpectate || sessionResume?.role === "spectator"
@@ -119,6 +118,7 @@ export function RoomClient({
     connected,
     joined,
     removed,
+    seatContested,
     code,
     presetName,
     preferSpectate,
@@ -389,7 +389,10 @@ export function RoomClient({
 
       <div className="room-phase-scroll min-h-0 flex-1">
         {!connected && (
-          <p className="mb-2 text-sm font-semibold text-[var(--muted)]">
+          <p
+            className="mb-1.5 text-xs font-semibold tracking-wide text-[var(--muted)] opacity-80"
+            aria-live="polite"
+          >
             Reconnecting…
           </p>
         )}

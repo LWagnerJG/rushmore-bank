@@ -8,6 +8,7 @@ import type {
   ServerMessage,
 } from "@/shared/types";
 import {
+  acquireSeatLock,
   allowRoomRejoin,
   getPartyHost,
   getStablePlayerId,
@@ -41,6 +42,51 @@ function friendlyPlayerError(raw: string | null | undefined): string | null {
   return text;
 }
 
+/** Stable key so double-taps reuse one actionId until the phase advances. */
+export function gestureKeyFor(
+  msg: ClientMessage,
+  phaseRevision: number,
+): string {
+  const rev = phaseRevision;
+  switch (msg.type) {
+    case "start":
+    case "spin_topics":
+    case "majority_reroll":
+    case "skip_review":
+    case "bank_the_beans":
+    case "next_topic":
+    case "play_again":
+    case "end_game":
+    case "advance":
+    case "host_pause":
+    case "host_resume":
+    case "host_extend":
+    case "roll":
+    case "pull_out":
+    case "bank_confirm_open":
+    case "bank_confirm_cancel":
+      return `${msg.type}:${rev}`;
+    case "vote_topic":
+      return `vote_topic:${rev}:${msg.topicId}`;
+    case "lock_in":
+      return `lock_in:${rev}:${msg.text}`;
+    case "submit_vote":
+      return `submit_vote:${rev}:${msg.targetPlayerId}`;
+    case "submit_wager":
+      return `submit_wager:${rev}:${msg.amount}`;
+    case "party_resolve":
+      return `party_resolve:${rev}:${msg.choice}`;
+    case "join":
+      return `join:${msg.name}:${msg.role ?? "player"}`;
+    case "admin_spawn_bots":
+      return `admin_spawn_bots:${rev}:${msg.count}`;
+    case "admin_jump_phase":
+      return `admin_jump_phase:${rev}:${msg.phase}`;
+    default:
+      return `${msg.type}:${rev}`;
+  }
+}
+
 export function useGameRoom(
   roomCode: string,
   options?: { preferredName?: string; preferSpectate?: boolean },
@@ -54,6 +100,8 @@ export function useGameRoom(
   const [connected, setConnected] = useState(false);
   const [joined, setJoined] = useState(false);
   const [removed, setRemoved] = useState(false);
+  const [seatContested, setSeatContested] = useState(false);
+  const seatContestedRef = useRef(false);
   const removedRef = useRef(wasRemovedFromRoom(code));
   const playerId = useMemo(() => getStablePlayerId(code), [code]);
   const pendingJoin = useRef<{
@@ -65,6 +113,8 @@ export function useGameRoom(
     role: "player" | "spectator";
   } | null>(null);
   const lastForceReconnectAt = useRef(0);
+  const gestureIds = useRef(new Map<string, string>());
+  const phaseRevisionRef = useRef(0);
 
   const setError = useCallback((msg: string | null) => {
     setErrorRaw(friendlyPlayerError(msg));
@@ -95,6 +145,17 @@ export function useGameRoom(
     membershipRef.current = pendingJoin.current;
   }, [preferredName, preferSpectate, code]);
 
+  // Multi-tab seat lock — another tab with the same playerId wins the war.
+  useEffect(() => {
+    if (removedRef.current) return;
+    const lock = acquireSeatLock(code, playerId, () => {
+      seatContestedRef.current = true;
+      setSeatContested(true);
+      setErrorRaw("This seat is open in another tab — use that tab or Rejoin.");
+    });
+    return () => lock.release();
+  }, [code, playerId]);
+
   const socket = usePartySocket({
     host: getPartyHost(),
     room: code,
@@ -108,7 +169,7 @@ export function useGameRoom(
     onOpen() {
       setConnected(true);
       setErrorRaw(null);
-      if (removedRef.current) return;
+      if (removedRef.current || seatContestedRef.current) return;
       const resume = pendingJoin.current ?? membershipRef.current;
       if (resume) {
         pendingJoin.current = resume;
@@ -135,6 +196,10 @@ export function useGameRoom(
         if (msg.type === "state" || msg.type === "joined") {
           setState(msg.state);
           setYouId(msg.youId);
+          if (msg.state.phaseRevision !== phaseRevisionRef.current) {
+            phaseRevisionRef.current = msg.state.phaseRevision;
+            gestureIds.current.clear();
+          }
           if (removedRef.current) return;
           const me = msg.state.players.find((p) => p.id === msg.youId);
           if (me) {
@@ -183,21 +248,17 @@ export function useGameRoom(
     }
   }, [socket]);
 
-  // Prompt reconnect when returning from another app / brief offline.
+  // Always force-reconnect on resume — iOS can leave readyState OPEN on a dead socket.
   useEffect(() => {
     const onVisible = () => {
       if (document.visibilityState !== "visible") return;
-      if (socket.readyState === WebSocket.OPEN) return;
       forceReconnect();
     };
     const onOnline = () => {
-      if (socket.readyState === WebSocket.OPEN) return;
       forceReconnect();
     };
-    const onPageShow = (ev: PageTransitionEvent) => {
-      if (ev.persisted || socket.readyState !== WebSocket.OPEN) {
-        forceReconnect();
-      }
+    const onPageShow = () => {
+      forceReconnect();
     };
     document.addEventListener("visibilitychange", onVisible);
     window.addEventListener("online", onOnline);
@@ -207,18 +268,29 @@ export function useGameRoom(
       window.removeEventListener("online", onOnline);
       window.removeEventListener("pageshow", onPageShow);
     };
-  }, [socket, forceReconnect]);
+  }, [forceReconnect]);
 
   const send = useCallback(
     (msg: ClientMessage) => {
+      if (seatContested) {
+        setErrorRaw("This seat is open in another tab — use that tab or Rejoin.");
+        return;
+      }
+      if (socket.readyState !== WebSocket.OPEN) {
+        setErrorRaw("Reconnecting…");
+        return;
+      }
       setErrorRaw(null);
-      const withId = {
-        ...msg,
-        actionId: msg.actionId ?? newActionId(),
-      };
+      const key = gestureKeyFor(msg, phaseRevisionRef.current);
+      let actionId = msg.actionId;
+      if (!actionId) {
+        actionId = gestureIds.current.get(key) ?? newActionId();
+        gestureIds.current.set(key, actionId);
+      }
+      const withId = { ...msg, actionId };
       socket.send(JSON.stringify(withId));
     },
-    [socket],
+    [socket, seatContested],
   );
 
   const join = useCallback(
@@ -226,6 +298,10 @@ export function useGameRoom(
       const clean = name.trim();
       if (!clean) {
         setErrorRaw("Enter a nickname");
+        return;
+      }
+      if (seatContested) {
+        setErrorRaw("This seat is open in another tab — use that tab or Rejoin.");
         return;
       }
       allowRoomRejoin(code);
@@ -247,7 +323,7 @@ export function useGameRoom(
         forceReconnect();
       }
     },
-    [send, socket, code, playerId, forceReconnect],
+    [send, socket, code, playerId, forceReconnect, seatContested],
   );
 
   // Host heartbeat for failover
@@ -271,6 +347,7 @@ export function useGameRoom(
     connected,
     joined,
     removed,
+    seatContested,
     join,
     send,
     defaultName: recallDisplayName(),
