@@ -396,7 +396,7 @@ html.party-on body::before {
 }
 
 .room-chrome-topic {
-  margin: 0.35rem 0 0;
+  margin: 0.2rem 0 0;
   text-wrap: balance;
 }
 .room-chrome-topic-long {
@@ -3792,9 +3792,10 @@ html.dice-your-turn::after {
   min-height: var(--tap-min);
   padding: 0 0 0 0.15rem;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.72);
+  background: color-mix(in srgb, #fff 78%, var(--bg));
   border: none;
   box-shadow: none;
+  filter: none;
 }
 
 /* Pick input: borderless inside the pill; 16px floor (iOS zoom). */
@@ -3804,18 +3805,21 @@ html.dice-your-turn::after {
   height: var(--tap-min);
   padding-block: 0;
   padding-inline: 0.95rem 0.5rem;
-  border: none;
+  -webkit-appearance: none;
+  appearance: none;
+  border: 0 !important;
   border-radius: 999px;
-  background: transparent;
-  box-shadow: none;
-  outline: none;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
   color: var(--text);
   font-size: max(16px, 1rem) !important;
 }
-.draft-pick-input:focus {
-  border: none;
-  box-shadow: none;
-  outline: none;
+.draft-pick-input:focus,
+.draft-pick-input:focus-visible {
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
 }
 .draft-pick-input::placeholder {
   color: var(--muted);
@@ -3952,10 +3956,11 @@ html.party-on .draft-pick-submit {
   overflow: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  border-radius: 0.85rem;
+  border-radius: 0.75rem;
   background: transparent;
   border: none;
-  box-shadow: none;
+  box-shadow: none !important;
+  filter: none;
   /* Grow with rows — no tall empty scrollport under a short board */
   max-height: none;
 }
@@ -3975,7 +3980,8 @@ html.party-on .draft-pick-submit {
   width: 100%;
   table-layout: fixed;
   border-collapse: separate;
-  border-spacing: 0;
+  /* Soft cream gutters instead of harsh grid lines */
+  border-spacing: 3px;
   text-align: left;
 }
 
@@ -4022,13 +4028,13 @@ html.party-on .draft-pick-submit {
   top: auto;
   z-index: auto;
   text-align: center;
-  /* Solid fill — backdrop-filter blur soft-rasterizes sibling chrome on iPad */
-  background: #f5f0e7;
+  /* Soft mint chip — solid fill, no blur (iPad soft-rasterize trap) */
+  background: rgba(167, 215, 194, 0.32);
 }
 
-/* Your column header — same single solid mint tint as own picks (no badge) */
+/* Your column header — warm tint so it reads against mint neighbors */
 .draft-board-table thead th.is-you {
-  background: #d8ebe2;
+  background: rgba(244, 201, 91, 0.28);
 }
 
 html.party-on .draft-board-table thead th {
@@ -4200,11 +4206,11 @@ html.party-on .draft-board-cell-mine {
 }
 
 .draft-board-cell-filled {
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.92);
 }
 
 .draft-board-cell-empty {
-  background: transparent;
+  background: rgba(255, 255, 255, 0.48);
 }
 
 .draft-board-cell-inner {
@@ -4793,16 +4799,18 @@ html.party-on .draft-board-cell-mine {
 
 .draft-board-table th,
 .draft-board-table td {
-  border-color: transparent;
+  border: 0 !important;
+  border-radius: 0.45rem;
 }
 .draft-board-table thead th {
-  background: rgba(167, 215, 194, 0.28);
+  background: rgba(167, 215, 194, 0.32);
 }
 .draft-board-cell-empty {
-  background: rgba(245, 240, 231, 0.72);
+  /* Readable as a slot on cream — not a ghost row */
+  background: rgba(255, 255, 255, 0.48);
 }
 .draft-board-cell-filled {
-  background: rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.92);
 }
 
 /* —— Final round cue: short phone-friendly beat before last topic —— */

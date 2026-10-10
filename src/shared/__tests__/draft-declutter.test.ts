@@ -33,7 +33,8 @@ describe("draft declutter (Luke iPhone DRAFT pass)", () => {
     expect(row).toMatch(/border-radius:\s*999px/);
     expect(row).toMatch(/box-shadow:\s*none/);
     const input = rule(".draft-pick-input");
-    expect(input).toMatch(/border:\s*none/);
+    expect(input).toMatch(/border:\s*0/);
+    expect(input).toMatch(/-webkit-appearance:\s*none/);
     expect(input).toMatch(/height:\s*var\(--tap-min\)/);
   });
 
