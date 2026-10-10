@@ -29,8 +29,11 @@ describe("FitName ResizeObserver hygiene", () => {
 });
 
 describe("Draft clock ticking", () => {
-  it("wakes once a second, never on a 250ms interval", () => {
+  it("updates via DOM once a second without setState every tick", () => {
     expect(room).toMatch(/<TimerPill[\s\S]*?until=\{state\.pickDeadlineAt\}/);
+    expect(pill).toMatch(/\.textContent\s*=/);
+    // No React state for the seconds value.
+    expect(pill).not.toMatch(/useState/);
     // One wake just past each second boundary; 250ms was pure churn.
     expect(countdown).toMatch(/setTimeout\(tick, \(ms % 1000 \|\| 1000\) \+ 20\)/);
     for (const src of [room, pill, countdown]) {

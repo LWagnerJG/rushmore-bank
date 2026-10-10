@@ -78,12 +78,19 @@ describe("one quiet timer", () => {
     }
   });
 
+  it("paints seconds straight into the DOM, never through React state", () => {
+    expect(pill).toMatch(/digits\.textContent = /);
+    expect(pill).not.toMatch(/useState|setInterval/);
+    expect(pill).toMatch(/return watchSecondsLeft\(until, paint\)/);
+  });
+
   it("ticks silently and announces once, when it turns urgent", () => {
     expect(pill).toMatch(/role="timer"/);
-    expect(pill).toMatch(/<span aria-hidden="true">/);
+    expect(pill).toMatch(/<span ref=\{digitsRef\} aria-hidden="true"/);
     expect(pill.match(/aria-live=/g)).toHaveLength(1);
     expect(pill).toMatch(/urgent \? `\$\{label\}: almost out of time` : ""/);
-    expect(pill).not.toMatch(/setInterval/);
+    // The cue is only rewritten when urgency flips, or it would re-announce.
+    expect(pill).toMatch(/if \(urgent === wasUrgent\) return;/);
     // Only whoever the clock is for hears it.
     expect(clocks.Vote).toMatch(/announce=\{canVote && !myVote\}/);
     expect(clocks.Dice).toMatch(/announce=\{myTurn && timerLive\}/);
