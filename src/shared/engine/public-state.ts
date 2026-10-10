@@ -117,10 +117,16 @@ export function projectPublicStateShared(
     const p = state.players.find((x) => x.id === pid);
     return p && p.role === "player" && p.connected;
   }).length;
-  const bankCast = Object.keys(state.bankBeansReady ?? {}).filter((pid) => {
-    const p = state.players.find((x) => x.id === pid);
-    return !!p?.connected && state.seatOrder.includes(pid);
-  }).length;
+  const bankBeansReadyIds = Object.keys(state.bankBeansReady ?? {}).filter(
+    (pid) => {
+      const p = state.players.find((x) => x.id === pid);
+      return !!p?.connected && state.seatOrder.includes(pid);
+    },
+  );
+  const bankCast = bankBeansReadyIds.length;
+  const humanVotedIds = Object.keys(state.humanVotes).filter((pid) =>
+    state.seatOrder.includes(pid),
+  );
 
   return {
     code: state.code,
@@ -156,6 +162,7 @@ export function projectPublicStateShared(
     correctionPickIndex: state.correctionPickIndex,
     humanVotesCast,
     humanVotesNeeded,
+    humanVotedIds,
     scores,
     scoresLocked: state.scoresLocked,
     judgeStatus: state.judgeStatus,
@@ -163,6 +170,7 @@ export function projectPublicStateShared(
     rushmoreWhy,
     bankBeansReadyCast: bankCast,
     bankBeansReadyNeeded: bankNeeded,
+    bankBeansReadyIds,
     earnedThisRound: { ...state.earnedThisRound },
     wagers: { ...state.wagers },
     wagerDeadlineAt: state.wagerDeadlineAt,

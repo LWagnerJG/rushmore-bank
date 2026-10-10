@@ -4,6 +4,7 @@ import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
 import { RULES } from "@/shared/rules";
 import { rosterDensity } from "@/shared/roster-density";
 import { RushmoreCard } from "@/components/RushmoreCard";
+import { WaitingRoster } from "@/components/WaitingRoster";
 
 function EarnedBadge({
   earned,
@@ -49,8 +50,6 @@ export function ScorePanel({
       : state.judgeNotice
         ? RULES.aiFallbackLabel
         : null;
-  const cast = state.bankBeansReadyCast;
-  const needed = state.bankBeansReadyNeeded;
   const density = rosterDensity(state.seatOrder.length);
 
   return (
@@ -93,16 +92,16 @@ export function ScorePanel({
         })}
       </div>
 
-      <p
-        className="text-center text-sm font-bold tabular-nums text-[var(--muted)]"
-        aria-live="polite"
-      >
-        {cast}/{needed} ready to wager
-      </p>
+      <WaitingRoster
+        state={state}
+        youId={you.id}
+        doneIds={state.bankBeansReadyIds}
+        label="Ready to wager"
+      />
       {you.isHost ? (
         <button
           type="button"
-          className="w-full text-center text-xs font-bold text-[var(--muted)] underline-offset-2 hover:underline"
+          className="w-full text-center type-meta font-bold text-[var(--muted)] underline-offset-2 hover:underline"
           onClick={() => send({ type: "advance" })}
         >
           Force wager (host)

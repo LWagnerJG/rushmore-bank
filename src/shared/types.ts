@@ -320,6 +320,8 @@ export interface PublicRoomState {
   correctionPickIndex: number | null;
   humanVotesCast: number;
   humanVotesNeeded: number;
+  /** Who has cast a vote (ids only — never voter→choice). */
+  humanVotedIds: string[];
   myHumanVote: string | null;
   scores: RosterScore[];
   scoresLocked: boolean;
@@ -338,6 +340,8 @@ export interface PublicRoomState {
   /** SCORE_REVEAL readiness for “Ready to wager” */
   bankBeansReadyCast: number;
   bankBeansReadyNeeded: number;
+  /** Who tapped ready (ids only). */
+  bankBeansReadyIds: string[];
   myBankBeansReady: boolean;
   earnedThisRound: Record<string, number>;
   wagers: Record<string, number>;

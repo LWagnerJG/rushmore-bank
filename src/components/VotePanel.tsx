@@ -6,6 +6,7 @@ import { RULES } from "@/shared/rules";
 import { rosterDensity } from "@/shared/roster-density";
 import { cueYourTurn } from "@/lib/your-turn";
 import { RushmoreCard } from "@/components/RushmoreCard";
+import { WaitingRoster } from "@/components/WaitingRoster";
 
 function Countdown({ until }: { until: number | null }) {
   const [left, setLeft] = useState(0);
@@ -67,57 +68,18 @@ export function VotePanel({
         ) : null}
       </div>
 
-      {twoPlayer ? (
-        <p className="text-sm text-[var(--muted)]">
-          Two players — AI scores both drafts (no vote needed).
-        </p>
-      ) : (
-        <div className="vote-live">
-          <div className="vote-live-row" role="status" aria-live="polite">
-            <span className="vote-live-count tabular-nums">
-              {state.humanVotesCast}
-              <span className="vote-live-of">/{state.humanVotesNeeded}</span>
-            </span>
-            <span className="vote-live-label">
-              {votesDone ? "voted · locking scores" : "voted"}
-            </span>
-          </div>
-          <div
-            className="vote-live-bar"
-            aria-hidden="true"
-          >
-            <span
-              className="vote-live-fill"
-              style={{
-                width: `${
-                  state.humanVotesNeeded > 0
-                    ? Math.min(
-                        100,
-                        Math.round(
-                          (100 * state.humanVotesCast) /
-                            state.humanVotesNeeded,
-                        ),
-                      )
-                    : 0
-                }%`,
-              }}
-            />
-          </div>
-          {!votesDone ? (
-            <p className="vote-live-hint">
-              Tap the best Mount Rushmore for this topic.
-            </p>
-          ) : (
-            <p className="vote-live-hint">
-              Rosters stay up while AI finishes scoring.
-            </p>
-          )}
-        </div>
-      )}
+      {!twoPlayer ? (
+        <WaitingRoster
+          state={state}
+          youId={youId}
+          doneIds={state.humanVotedIds}
+          label={votesDone ? "Votes in" : "Waiting on votes"}
+        />
+      ) : null}
 
       {judging ? (
         <p
-          className="judge-working text-sm font-semibold text-[var(--muted)]"
+          className="judge-working type-meta font-semibold text-[var(--muted)]"
           role="status"
           aria-live="polite"
         >

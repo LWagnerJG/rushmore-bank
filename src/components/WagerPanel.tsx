@@ -4,6 +4,7 @@ import { useEffect, useId, useState } from "react";
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
 import { clampWager, maxWager, wagerFromPreset } from "@/shared/engine/wager";
 import { WagerSlider } from "@/components/WagerSlider";
+import { WaitingRoster } from "@/components/WaitingRoster";
 
 export function WagerPanel({
   state,
@@ -36,10 +37,9 @@ export function WagerPanel({
       ? defaultAmt
       : clampWager(amount, earned, banked);
   const protectedBal = banked + earned - clamped;
-  const readyCast = Object.keys(state.wagers).filter((pid) =>
+  const wagerDoneIds = Object.keys(state.wagers).filter((pid) =>
     state.seatOrder.includes(pid),
-  ).length;
-  const readyNeeded = state.seatOrder.length;
+  );
   const nothingToRisk = max <= 0;
   const urgent = left !== null && left <= 5;
 
@@ -63,30 +63,28 @@ export function WagerPanel({
 
   if (you.role !== "player") {
     return (
-      <section className="panel space-y-2 text-center">
-        <p>Everyone is choosing how many beans to risk.</p>
-        <p className="text-sm font-bold tabular-nums text-[var(--muted)]">
-          {readyCast}/{readyNeeded} ready
-        </p>
-      </section>
+      <WaitingRoster
+        state={state}
+        youId={youId}
+        doneIds={wagerDoneIds}
+        label="Waiting on wagers"
+      />
     );
   }
 
   if (locked !== undefined) {
     return (
-      <section className="panel space-y-3 text-center" aria-live="polite">
-        <h2 className="type-display">
+      <div className="stack" aria-live="polite">
+        <h2 className="type-display text-center">
           {locked === 0 ? "Nothing to risk." : "You’re in."}
         </h2>
-        <p className="type-body">
-          {locked === 0
-            ? "No beans available — you’ll pass the bank table."
-            : `${locked} beans ready for your bank turn.`}
-        </p>
-        <p className="type-meta font-bold tabular-nums text-[var(--muted)]">
-          {readyCast}/{readyNeeded} ready
-        </p>
-      </section>
+        <WaitingRoster
+          state={state}
+          youId={youId}
+          doneIds={wagerDoneIds}
+          label="Waiting on wagers"
+        />
+      </div>
     );
   }
 

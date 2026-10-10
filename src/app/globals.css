@@ -2774,6 +2774,90 @@ html.party-on .player-row {
 
 /* .btn-party-sip / .btn-danger alias to .btn-primary (see button block above) */
 
+/* Waiting roster — avatars dim as players lock in; standings; no tips */
+.waiting-roster {
+  padding: var(--space-3) 0;
+}
+
+.waiting-roster-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.waiting-roster-avatars {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.waiting-roster-person {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 3.5rem;
+  max-width: 4.75rem;
+  transition: opacity var(--motion-fast) ease;
+}
+
+.waiting-roster-person-wait {
+  opacity: 1;
+}
+
+.waiting-roster-person-done {
+  opacity: 0.38;
+}
+
+.waiting-roster-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  border-radius: 999px;
+  background: #d8ebe2;
+  color: var(--text);
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--text-meta);
+  font-weight: 800;
+}
+
+.waiting-roster-person-wait .waiting-roster-avatar {
+  background: color-mix(in srgb, var(--coral) 22%, #fff);
+}
+
+.waiting-roster-name {
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+}
+
+.waiting-roster-standings {
+  padding-top: var(--space-2);
+  border-top: 1px solid rgba(35, 72, 62, 0.08);
+}
+
+.waiting-roster-stand-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-height: var(--tap-min);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .waiting-roster-person {
+    transition: none;
+  }
+}
+
 /* Results reveal — opacity/transform only; rows keep layout space */
 .results-reveal {
   cursor: pointer;

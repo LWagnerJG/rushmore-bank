@@ -10,6 +10,7 @@ import {
 import { loadStash, saveStash } from "@/lib/party";
 import { cueYourTurn } from "@/lib/your-turn";
 import { DraftBoard } from "@/components/DraftBoard";
+import { WaitingRoster } from "@/components/WaitingRoster";
 
 export function DraftPanel({
   state,
@@ -168,14 +169,12 @@ export function DraftPanel({
     state.phase === "CORRECTION"
       ? `Replace slot ${(state.correctionPickIndex ?? 0) + 1}/4 (${state.correctionReason ?? "redo"})`
       : myTurn
-        ? queue.length
-          ? "Tap a stash pick or type below"
-          : null
+        ? null
         : turnsAway < 0
-          ? "Your four are in — watch the board"
+          ? "Your four are in"
           : turnsAway === 1
-            ? "You’re next · stash picks while you wait"
-            : `You’re up in ${turnsAway} · stash picks while you wait`;
+            ? "You’re next"
+            : `You’re up in ${turnsAway}`;
 
   return (
     <div className="draft-panel space-y-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
@@ -203,6 +202,15 @@ export function DraftPanel({
         isHost={you.isHost}
         send={send}
       />
+
+      {!myTurn && you.role === "player" && turnId ? (
+        <WaitingRoster
+          state={state}
+          youId={youId}
+          doneIds={state.seatOrder.filter((pid) => pid !== turnId)}
+          label={`Waiting on ${turnPlayer?.name ?? "player"}`}
+        />
+      ) : null}
 
       {you.role === "player" && (
         <section className="stash-surface space-y-3" aria-label="Your stash">
