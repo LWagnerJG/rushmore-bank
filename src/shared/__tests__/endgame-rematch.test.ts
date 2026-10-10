@@ -10,6 +10,10 @@ const panel = readFileSync(
   resolve(__dirname, "../../components/ResultsPanel.tsx"),
   "utf8",
 );
+const list = readFileSync(
+  resolve(__dirname, "../../components/ResultsRevealList.tsx"),
+  "utf8",
+);
 const css = readFileSync(
   resolve(__dirname, "../../app/globals.css"),
   "utf8",
@@ -91,13 +95,16 @@ describe("endgame winner + rematch", () => {
     expect(server.state.gameOver).toBe(false);
   });
 
-  it("shows winner sweep + big Rematch with X ready (no confetti)", () => {
-    expect(panel).toMatch(/endgame-winner/);
-    expect(panel).toMatch(/endgame-winner-sweep/);
+  it("shows winner sweep on reveal rows + big Rematch with X ready (no confetti)", () => {
+    expect(list).toMatch(/endgame-winner-sweep/);
+    expect(list).toMatch(/showWinnerSweep/);
+    expect(list).toMatch(/results-reveal-row-winner/);
     expect(panel).toMatch(/Rematch/);
     expect(panel).toMatch(/rematchReadyCast/);
     expect(panel).toMatch(/play_again/);
+    expect(panel).toMatch(/endgame-home/);
     expect(panel).not.toMatch(/confetti|canvas-confetti|particle/i);
+    expect(panel).not.toMatch(/endgame-winner-kicker|endgame-winner-name/);
     expect(css).toMatch(/@keyframes\s+endgame-green-sweep/);
     const sweep =
       css.match(/@keyframes\s+endgame-green-sweep\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
@@ -105,5 +112,6 @@ describe("endgame winner + rematch", () => {
     expect(sweep).toMatch(/opacity/);
     expect(sweep).not.toMatch(/filter|blur/);
     expect(css).toMatch(/animation:\s*endgame-green-sweep\s+280ms/);
+    expect(css).toMatch(/\.endgame-rematch-btn[\s\S]*min-height:\s*calc\(var\(--tap-min\)/);
   });
 });

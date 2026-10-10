@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
 import { RULES } from "@/shared/rules";
 import { PartyModeSwitch } from "@/components/PartyModeSwitch";
 import { ResultsRevealList } from "@/components/ResultsRevealList";
+import { resultsRevealKey } from "@/lib/results-reveal";
 
 export function ResultsPanel({
   state,
@@ -17,7 +19,6 @@ export function ResultsPanel({
   const ranked = [...state.players]
     .filter((p) => p.role === "player")
     .sort((a, b) => b.stones - a.stones);
-  const winner = ranked[0] ?? null;
 
   const final = state.phase === "GAME_RESULTS";
   // True when we're showing the last round's results before final standings.
@@ -38,25 +39,20 @@ export function ResultsPanel({
     (prompt.targetPlayerIds.includes(you.id) || you.isHost);
   const drinkBlocked = promptOpen && prompt?.kind === "lowest_drink";
 
+  const revealKey = resultsRevealKey({
+    code: state.code,
+    createdAt: state.createdAt,
+    phase: state.phase,
+    topicRound: state.topicRound,
+  });
+
   return (
-    <div className="stack">
-      {final && winner ? (
-        <div className="endgame-winner" aria-live="polite">
-          <p className="endgame-winner-kicker type-meta">Winner</p>
-          <p className="endgame-winner-name type-display">{winner.name}</p>
-          <span className="endgame-winner-sweep" aria-hidden="true" />
-        </div>
-      ) : (
+    <div className="stack endgame-panel">
+      {!final ? (
         <h2 className="type-display">
           {isFinalRoundResults
             ? "Final round results"
             : `Round ${state.topicRound}/${state.configuredTopicRounds}`}
-        </h2>
-      )}
-
-      {final ? (
-        <h2 className="type-body font-[family-name:var(--font-display)] font-extrabold">
-          Final standings
         </h2>
       ) : null}
 
@@ -64,7 +60,8 @@ export function ResultsPanel({
         ranked={ranked}
         youId={you.id}
         currencyName={RULES.currencyName}
-        revealKey={`${state.phase}:${state.topicRound}:${state.phaseRevision}`}
+        revealKey={revealKey}
+        showWinnerSweep={final}
       />
 
       {promptOpen && prompt?.kind === "lowest_drink" && (
@@ -154,15 +151,21 @@ export function ResultsPanel({
             {state.myRematchReady ? "Ready" : "Rematch"}
           </button>
           <p
-            className="type-meta text-center tabular-nums text-[var(--muted)]"
+            className="endgame-ready-count type-meta text-center tabular-nums text-[var(--muted)]"
             aria-live="polite"
           >
             {state.rematchReadyCast}/{state.rematchReadyNeeded} ready
           </p>
-          <p className="type-meta text-center text-[var(--muted)]">
-            Same room &amp; players — no re-joins.
-          </p>
+          <Link href="/" className="endgame-home type-meta text-center">
+            Home
+          </Link>
         </div>
+      )}
+
+      {final && you.role !== "player" && (
+        <Link href="/" className="endgame-home type-meta text-center">
+          Home
+        </Link>
       )}
     </div>
   );
