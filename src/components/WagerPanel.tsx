@@ -75,15 +75,15 @@ export function WagerPanel({
   if (locked !== undefined) {
     return (
       <section className="panel space-y-3 text-center" aria-live="polite">
-        <h2 className="font-[family-name:var(--font-display)] text-xl font-extrabold">
+        <h2 className="type-display">
           {locked === 0 ? "Nothing to risk." : "You’re in."}
         </h2>
-        <p className="text-sm">
+        <p className="type-body">
           {locked === 0
             ? "No beans available — you’ll pass the bank table."
             : `${locked} beans ready for your bank turn.`}
         </p>
-        <p className="text-sm font-bold tabular-nums text-[var(--muted)]">
+        <p className="type-meta font-bold tabular-nums text-[var(--muted)]">
           {readyCast}/{readyNeeded} ready
         </p>
       </section>
@@ -94,16 +94,14 @@ export function WagerPanel({
     return (
       <div className="wager-flow space-y-5">
         <header className="space-y-1 text-center">
-          <h2 className="font-[family-name:var(--font-display)] text-2xl font-extrabold">
-            No beans to risk
-          </h2>
-          <p className="text-sm text-[var(--muted)]">
+          <h2 className="type-display">No beans to risk</h2>
+          <p className="type-meta text-[var(--muted)]">
             You’ll auto-pass the bank table this topic.
           </p>
         </header>
         <button
           type="button"
-          className="btn-danger w-full text-lg"
+          className="btn-primary w-full"
           disabled={busy}
           onClick={() => {
             if (busy) return;
@@ -121,10 +119,8 @@ export function WagerPanel({
     <div className="wager-flow space-y-4">
       <header className="wager-header">
         <div className="wager-header-copy">
-          <h2 className="font-[family-name:var(--font-display)] text-[1.65rem] font-extrabold leading-tight tracking-tight">
-            Risk how many?
-          </h2>
-          <p className="mt-1 text-sm text-[var(--muted)]">
+          <h2 className="type-display">Risk how many?</h2>
+          <p className="mt-[var(--space-1)] type-meta text-[var(--muted)]">
             Earned {earned}
             {banked > 0 ? ` · banked ${banked}` : ""}
           </p>
@@ -170,7 +166,7 @@ export function WagerPanel({
 
       <button
         type="button"
-        className="btn-danger w-full text-lg"
+        className="btn-primary w-full"
         disabled={busy}
         onClick={() => {
           if (busy) return;

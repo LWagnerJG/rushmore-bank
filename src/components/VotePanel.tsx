@@ -47,10 +47,7 @@ export function VotePanel({
   return (
     <div className={`roster-board space-y-3 roster-board-${density}`}>
       <div className="flex items-baseline justify-between gap-2">
-        <h2
-          className="font-[family-name:var(--font-display)] text-xl font-extrabold"
-          role="status"
-        >
+        <h2 className="type-display" role="status">
           {twoPlayer
             ? "The judge is deciding…"
             : votesDone
@@ -58,7 +55,7 @@ export function VotePanel({
               : "Vote"}
         </h2>
         {!twoPlayer && !votesDone ? (
-          <span className="text-sm font-bold tabular-nums text-[var(--muted)]">
+          <span className="type-meta font-bold tabular-nums text-[var(--muted)]">
             <Countdown until={state.phaseDeadlineAt} />
           </span>
         ) : null}

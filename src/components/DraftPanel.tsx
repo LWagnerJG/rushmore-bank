@@ -289,8 +289,8 @@ export function DraftPanel({
             type="button"
             className={
               myTurn
-                ? "btn-primary w-full text-lg"
-                : "btn-secondary w-full text-lg"
+                ? "btn-primary w-full"
+                : "btn-secondary w-full"
             }
             disabled={!canPrimary}
             onClick={() => primaryAction()}

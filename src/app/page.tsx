@@ -147,17 +147,15 @@ export default function HomePage() {
 
         {!canPlay ? (
           <section className="home-card home-card-step space-y-4">
-            <div className="space-y-1 text-center">
-              <h1 className="font-[family-name:var(--font-display)] text-xl font-extrabold tracking-tight">
-                What’s your name?
-              </h1>
-              <p className="text-sm text-[var(--muted)]">
+            <div className="stack-sm text-center">
+              <h1 className="type-display">What’s your name?</h1>
+              <p className="type-meta text-[var(--muted)]">
                 Pick a nickname to create or join a room.
               </p>
             </div>
             <input
               id="home-name"
-              className="field w-full !py-3 text-center text-base"
+              className="field w-full !py-3 text-center type-body"
               placeholder="Nickname"
               aria-label="Nickname"
               value={name}
@@ -171,13 +169,13 @@ export default function HomePage() {
               onKeyDown={(e) => e.key === "Enter" && confirmName()}
             />
             {nameError && (
-              <p className="text-center text-sm font-semibold text-[var(--coral)]">
+              <p className="type-meta text-center font-semibold text-[var(--coral)]">
                 {nameError}
               </p>
             )}
             <button
               type="button"
-              className="btn-primary w-full !min-h-12 text-base"
+              className="btn-primary w-full"
               onClick={confirmName}
             >
               Continue
@@ -187,14 +185,14 @@ export default function HomePage() {
           <MotionSettle
             motionClass="animate-rise"
             as="section"
-            className="home-play-stack space-y-4"
+            className="home-play-stack stack"
           >
             <div className="home-playing-as">
-              <p className="text-[0.65rem] font-extrabold uppercase tracking-[0.12em] text-[var(--muted)]">
+              <p className="type-meta font-extrabold uppercase tracking-[0.12em] text-[var(--muted)]">
                 Playing as
               </p>
-              <div className="mt-1 flex items-center justify-center gap-2">
-                <p className="font-[family-name:var(--font-display)] text-lg font-extrabold tracking-tight">
+              <div className="mt-[var(--space-1)] flex items-center justify-center gap-[var(--space-2)]">
+                <p className="type-body font-[family-name:var(--font-display)] font-extrabold tracking-tight">
                   {displayName}
                 </p>
                 <button
@@ -209,16 +207,16 @@ export default function HomePage() {
 
             <button
               type="button"
-              className="btn-primary w-full !min-h-12 text-base"
+              className="btn-primary w-full"
               onClick={create}
             >
               Create game
             </button>
 
             <div className="home-join-card">
-              <p className="home-join-card-kicker">Have a code?</p>
-              <p className="home-join-card-title">Join a room</p>
-              <div className="mt-3 flex gap-2">
+              <p className="home-join-card-kicker type-meta">Have a code?</p>
+              <p className="home-join-card-title type-body">Join a room</p>
+              <div className="mt-[var(--space-3)] flex gap-[var(--space-2)]">
                 <input
                   className="field home-join-code w-full !py-2.5 uppercase tracking-[0.28em]"
                   placeholder="CODE"
@@ -233,7 +231,7 @@ export default function HomePage() {
                 />
                 <button
                   type="button"
-                  className="btn-secondary home-join-go shrink-0 !min-h-12 px-4 text-sm"
+                  className="btn-secondary home-join-go shrink-0 px-[var(--space-4)]"
                   disabled={joining}
                   onClick={join}
                 >
@@ -241,7 +239,7 @@ export default function HomePage() {
                 </button>
               </div>
               {joinError && (
-                <p className="mt-2 text-sm font-semibold text-[var(--coral)]">
+                <p className="mt-[var(--space-2)] type-meta font-semibold text-[var(--coral)]">
                   {joinError}
                 </p>
               )}
