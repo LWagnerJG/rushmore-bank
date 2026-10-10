@@ -6,12 +6,8 @@ import {
   setSoundEnabled,
   subscribeSoundEnabled,
 } from "@/lib/sound-prefs";
-<<<<<<< HEAD
-import type { ClientMessage, HostAiJudgeHealth, Phase } from "@/shared/types";
-=======
 import { ensureAudio, unlockAudioOnGesture } from "@/lib/sfx";
-import type { HostAiJudgeHealth } from "@/shared/types";
->>>>>>> db9dc30 (feat(ui): subtle WebAudio sound + haptics, off by default)
+import type { ClientMessage, HostAiJudgeHealth, Phase } from "@/shared/types";
 import { HostAiJudgeCue } from "./HostAiJudgeCue";
 import { AdminTools, isAdminUnlocked } from "./AdminPanel";
 
