@@ -72,20 +72,19 @@ export function PlayerRail({
   const few = count > 0 && count <= 3;
   const many = count >= 6;
   const dense = count >= 8;
+  // Edge peeks when tiles can overflow (pot-split 4+, or 6+ seats).
+  const scrollable = many || (showPotSplit && count >= 4) || count >= 5;
   const upRef = useRef<HTMLDivElement | null>(null);
   const trackRef = useRef<HTMLDivElement | null>(null);
 
   // Scroll only the track (scrollIntoView can also nudge locked ancestors).
+  // Instant scroll — smooth scrolling contributed measurable in-game CLS.
   // Nobody up → back to the start so You isn't left off-screen from a
   // previous phase's scroll.
   useEffect(() => {
     const track = trackRef.current;
     if (!track) return;
-    const behavior: ScrollBehavior = window.matchMedia?.(
-      "(prefers-reduced-motion: reduce)",
-    ).matches
-      ? "auto"
-      : "smooth";
+    const behavior: ScrollBehavior = "auto";
     const chip = upRef.current;
     if (!chip) {
       track.scrollTo({ left: 0, behavior });
@@ -108,6 +107,7 @@ export function PlayerRail({
         many ? "player-rail-many" : "",
         dense ? "player-rail-dense" : "",
         showPotSplit ? "player-rail-pot-split" : "",
+        scrollable ? "player-rail-scrollable" : "",
       ]
         .filter(Boolean)
         .join(" ")}

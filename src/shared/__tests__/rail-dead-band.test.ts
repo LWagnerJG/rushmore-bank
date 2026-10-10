@@ -56,7 +56,10 @@ describe("player rail: no dead band", () => {
     expect(track).toMatch(/margin-inline:\s*-1rem/);
     expect(track).toMatch(/width:\s*auto/);
     expect(track).toMatch(/scroll-padding-inline:\s*1rem/);
-    expect(rule(".player-rail-many::after")).toMatch(/right:\s*-1rem/);
+    // Edge peeks may be grouped (.player-rail-scrollable::after, .player-rail-many::after).
+    expect(css).toMatch(
+      /\.player-rail-(?:scrollable|many)::after[\s\S]{0,200}right:\s*-1rem/,
+    );
     expect(rail).not.toMatch(/"player-rail mt-2"/);
   });
 
@@ -99,7 +102,8 @@ describe("player rail: calm up-seat", () => {
   it("scrolls only the track, back to the start when nobody is up", () => {
     expect(rail).not.toMatch(/\.scrollIntoView\(/);
     expect(rail).toMatch(/track\.scrollTo\(\{\s*left:\s*0/);
-    expect(rail).toMatch(/prefers-reduced-motion: reduce/);
+    // Instant scroll — smooth track scrolling was a CLS source on iPhone.
+    expect(rail).toMatch(/behavior:\s*ScrollBehavior\s*=\s*"auto"/);
   });
 
   it("keeps the You chip opaque so its white label stays AA", () => {

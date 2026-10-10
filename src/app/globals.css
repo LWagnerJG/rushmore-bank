@@ -2629,14 +2629,34 @@ html.party-on .panel {
   --player-chip-w: 7.25rem;
 }
 
+/*
+ * Edge peeks whenever the track can scroll (4+ pot-split, 6+ seats).
+ * Soft cream fade only — no blur, no hard band edge.
+ */
+.player-rail-scrollable::before,
+.player-rail-scrollable::after,
 .player-rail-many::after {
   content: "";
   pointer-events: none;
   position: absolute;
   top: 0;
-  right: -1rem;
   bottom: 0;
   width: 1.35rem;
+  z-index: 2;
+}
+
+.player-rail-scrollable::before {
+  left: -1rem;
+  background: linear-gradient(
+    90deg,
+    rgba(245, 240, 231, 0.98),
+    transparent
+  );
+}
+
+.player-rail-scrollable::after,
+.player-rail-many::after {
+  right: -1rem;
   background: linear-gradient(
     90deg,
     transparent,
@@ -2644,16 +2664,34 @@ html.party-on .panel {
   );
 }
 
-.player-rail-fit.player-rail-many::after {
-  display: none;
+html.party-on .player-rail-scrollable::before {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 248, 236, 0.98),
+    transparent
+  );
 }
 
+html.party-on .player-rail-scrollable::after,
 html.party-on .player-rail-many::after {
   background: linear-gradient(
     90deg,
     transparent,
     rgba(255, 248, 236, 0.96)
   );
+}
+
+/* Pot-split fours must shrink enough that You isn't half-clipped at rest */
+.player-rail-fit.player-rail-pot-split[data-count="4"] .player-chip {
+  --player-chip-w: min(5.55rem, calc((100cqi - 3 * 0.32rem) / 4));
+}
+
+.player-rail-fit.player-rail-pot-split[data-count="4"] .player-chip-split-label {
+  font-size: 0.48rem;
+}
+
+.player-rail-fit.player-rail-pot-split[data-count="4"] .player-chip-split-num {
+  font-size: 0.92rem;
 }
 
 /* Ultra-compact chips for 8–10 (scroll mode) */
