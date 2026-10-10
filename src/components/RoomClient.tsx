@@ -30,6 +30,8 @@ import { DicePanel } from "@/components/DicePanel";
 import { ResultsPanel } from "@/components/ResultsPanel";
 import { PlayerRail } from "@/components/PlayerRail";
 import { shouldFireFinalRoundCue } from "@/shared/final-round-cue";
+import { isSoundEnabled } from "@/lib/sound-prefs";
+import { armGestureUnlock } from "@/lib/sfx";
 
 function DraftBannerClock({
   until,
@@ -134,6 +136,10 @@ export function RoomClient({
 
   const phase: Phase | null = state?.phase ?? null;
   const partyOn = state?.settings.partyMode === true;
+  // If Sound was left on, arm the next tap to unlock AudioContext (iOS).
+  useEffect(() => {
+    if (isSoundEnabled()) armGestureUnlock();
+  }, []);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [diagOpen, setDiagOpen] = useState(() =>
     typeof window !== "undefined" &&

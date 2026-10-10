@@ -5,7 +5,13 @@
  */
 
 import { haptic, type HapticKind } from "@/lib/haptics";
-import { playSfx, type SfxKind, unlockAudioOnGesture } from "@/lib/sfx";
+import { isSoundEnabled } from "@/lib/sound-prefs";
+import {
+  armGestureUnlock,
+  playSfx,
+  primeAudioSync,
+  type SfxKind,
+} from "@/lib/sfx";
 
 export type FeedbackKind =
   | "your_turn"
@@ -26,9 +32,17 @@ const HAPTIC_MAP: Record<FeedbackKind, HapticKind> = {
   winner: "winner",
 };
 
-/** Fire sound (if enabled) + short vibrate. Fail-soft. */
+/**
+ * Fire sound (if enabled) + short vibrate. Fail-soft.
+ * When called from a tap handler, primes AudioContext in-gesture (iOS).
+ */
 export function feedback(kind: FeedbackKind): void {
-  unlockAudioOnGesture();
+  if (isSoundEnabled()) {
+    // Sync prime — no-ops harmlessly if already unlocked; critical on first tap.
+    primeAudioSync();
+  } else {
+    armGestureUnlock();
+  }
   playSfx(kind as SfxKind);
   haptic(HAPTIC_MAP[kind]);
 }
