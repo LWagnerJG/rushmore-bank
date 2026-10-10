@@ -70,9 +70,6 @@ export function TopicPanel({
             </button>
           ) : null}
         </div>
-        <p className="topic-sub">
-          Four from the bank — vote or write your own
-        </p>
         {you.isHost && firstTopicScreen ? <HostAiPreGameStatus /> : null}
       </header>
 
