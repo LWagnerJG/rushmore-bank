@@ -96,16 +96,11 @@ export default function WaitingLabPage() {
               scenario === "done" ? "Votes in" : "Waiting on votes"
             }
           />
-          <div className="mt-6 space-y-2">
-            <div className="panel">
-              <p className="font-bold">Bot Ava</p>
-              <p className="type-meta text-[var(--muted)]">Sample roster card</p>
-            </div>
-            <div className="panel">
-              <p className="font-bold">Wags (you)</p>
-              <p className="type-meta text-[var(--muted)]">Sample roster card</p>
-            </div>
-          </div>
+          {/* Spacer so the waiting block sits mid/low like vote/wait — no white panels */}
+          <div className="mt-8" aria-hidden="true" style={{ minHeight: "42vh" }} />
+          <p className="type-meta text-[var(--muted)]">
+            Bottom seam check · safe-area 34px
+          </p>
         </div>
       </div>
     </main>

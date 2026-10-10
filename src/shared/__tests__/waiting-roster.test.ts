@@ -140,14 +140,18 @@ describe("admin chrome", () => {
 });
 
 describe("bottom seam", () => {
-  it("keeps phase panels transparent and soft-bleeds into page bg", () => {
+  it("keeps phase panels transparent; page cream fills past the safe area", () => {
     const phase =
       css.match(/\.phase-panel\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
     expect(phase).toMatch(/background:\s*transparent/);
-    expect(css).toMatch(/\.app-shell::after/);
-    expect(css).toMatch(/48px \+ env\(safe-area-inset-bottom/);
     expect(css).toMatch(
       /body::before[\s\S]*?bottom:\s*calc\(\s*-80px/,
     );
+    expect(css).toMatch(
+      /body::before[\s\S]*?background-size:\s*100%\s*var\(--app-h/,
+    );
+    // No white/flat overlay band at the bottom
+    expect(css).not.toMatch(/html::after\s*\{/);
+    expect(css).not.toMatch(/\.app-shell::after\s*\{/);
   });
 });
