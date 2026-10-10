@@ -50,8 +50,9 @@ describe("MotionSettle wiring", () => {
   });
 
   it("room chrome BrandMark keeps shimmer off and solid wordmark path", () => {
-    expect(roomSrc).toMatch(/BrandMark\s+shimmer=\{false\}/);
-    expect(brandSrc).toMatch(/text-\[var\(--text\)\]/);
+    expect(roomSrc).toMatch(/BrandMark[^>]*shimmer=\{false\}/);
+    expect(roomSrc).toMatch(/BrandMark[^>]*chrome/);
+    expect(brandSrc).toMatch(/brand-mark-chrome-word|text-\[var\(--text\)\]/);
     expect(brandSrc).toMatch(/shapeRendering="auto"/);
   });
 

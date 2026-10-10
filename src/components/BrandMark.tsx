@@ -1,6 +1,11 @@
 export function BrandMark({
   large = false,
   /**
+   * Quiet in-room chrome: small bean + 15–16px semibold muted wordmark.
+   * Not a headline — Home keeps `large` for the hero brand.
+   */
+  chrome = false,
+  /**
    * Gradient clipped-text shimmer. MUST stay off in room chrome — animated
    * `background-clip: text` soft-rasterizes the whole header band on iOS
    * (icon + LOBBY + phase line) while the native status bar stays crisp.
@@ -9,19 +14,23 @@ export function BrandMark({
   onLogoTap,
 }: {
   large?: boolean;
+  chrome?: boolean;
   shimmer?: boolean;
   /** Fired when the bean icon is tapped (not the wordmark). */
   onLogoTap?: () => void;
 }) {
-  const wordClass =
-    "font-[family-name:var(--font-display)] font-extrabold tracking-tight " +
-    (shimmer ? "brand-shimmer " : "text-[var(--text)] ") +
-    (large ? "text-6xl" : "text-2xl");
+  const logoSize = large ? 72 : chrome ? 22 : 36;
+  const wordClass = chrome
+    ? "brand-mark-chrome-word"
+    : "font-[family-name:var(--font-display)] font-extrabold tracking-tight " +
+      (shimmer ? "brand-shimmer " : "text-[var(--text)] ") +
+      (large ? "text-6xl" : "text-2xl");
 
   return (
     <div
       className={
-        "inline-flex items-center gap-3" +
+        "inline-flex items-center " +
+        (chrome ? "brand-mark-chrome gap-1.5" : "gap-3") +
         (shimmer ? "" : " room-brand-mark-static")
       }
       aria-label="Beans"
@@ -41,8 +50,8 @@ export function BrandMark({
       >
         <svg
           viewBox="0 0 128 128"
-          width={large ? 72 : 36}
-          height={large ? 72 : 36}
+          width={logoSize}
+          height={logoSize}
           aria-hidden="true"
           style={{ display: "block" }}
           shapeRendering="auto"

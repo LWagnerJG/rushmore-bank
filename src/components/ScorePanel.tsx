@@ -41,7 +41,7 @@ export function ScorePanel({
       <div className="flex items-baseline justify-between gap-2">
         <h2 className="type-display">Beans earned</h2>
         {notice ? (
-          <p className="max-w-[55%] text-right text-[0.7rem] font-semibold leading-snug text-[var(--muted)]">
+          <p className="max-w-[55%] type-meta text-right text-[var(--muted)]">
             {notice}
           </p>
         ) : null}

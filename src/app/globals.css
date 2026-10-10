@@ -302,6 +302,80 @@ html.party-on body::before {
 .room-chrome-top {
   position: relative;
   overflow: visible;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  /* Stable row height — timer pill / Lobby / spacer share one slot */
+  min-height: var(--tap-min);
+}
+
+.room-chrome-brand {
+  display: flex;
+  align-items: center;
+  min-height: var(--tap-min);
+}
+
+.room-chrome-end {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  min-height: var(--tap-min);
+  min-width: 3.25rem;
+}
+
+.room-chrome-end-spacer {
+  display: block;
+  width: 2.75rem;
+  height: 1.75rem;
+}
+
+.room-chrome-phase {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.room-chrome-topic {
+  margin: 0.35rem 0 0;
+}
+
+/* Quiet in-room brand — chrome, not a headline */
+.brand-mark-chrome {
+  min-height: var(--tap-min);
+}
+.brand-mark-chrome-word {
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.9375rem; /* 15px */
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: var(--muted);
+}
+
+/* Draft timer — secondary chip; coral in last 10s (color only, no pulse) */
+.draft-timer-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.75rem;
+  min-height: 1.75rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: var(--text-meta);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--muted);
+  background: rgba(35, 72, 62, 0.08);
+}
+.draft-timer-pill-urgent {
+  color: var(--coral);
+  background: rgba(231, 111, 78, 0.14);
 }
 
 .room-chrome-party,
@@ -1704,17 +1778,18 @@ html.party-on .panel {
 
 .dice-up-title {
   font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
-  font-size: clamp(1.15rem, 4.6vw, 1.35rem);
+  font-size: var(--text-display);
   font-weight: 800;
-  line-height: 1.1;
-  letter-spacing: -0.01em;
+  line-height: var(--leading-display);
+  letter-spacing: -0.02em;
   transition: color 200ms ease, opacity 200ms ease;
 }
 
 .dice-up-status {
   margin-top: 0.12rem;
-  font-size: 0.78rem;
-  font-weight: 700;
+  font-size: var(--text-meta);
+  font-weight: 600;
+  line-height: var(--leading-meta);
   letter-spacing: 0.02em;
   color: var(--muted);
   transition: opacity 200ms ease, color 200ms ease;
@@ -2575,16 +2650,17 @@ html.party-on .player-rail-many::after {
 
 .topic-title {
   font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
-  font-size: 1.45rem;
+  font-size: var(--text-display);
   font-weight: 800;
-  line-height: 1.15;
-  letter-spacing: -0.01em;
+  line-height: var(--leading-display);
+  letter-spacing: -0.02em;
 }
 
 .topic-sub {
   margin-top: 0.15rem;
-  font-size: 0.88rem;
+  font-size: var(--text-meta);
   font-weight: 600;
+  line-height: var(--leading-meta);
   color: var(--muted);
 }
 
@@ -3493,15 +3569,14 @@ html.dice-your-turn::after {
   }
 }
 
-/* Draft — one concise status line above the board */
+/* Draft status — body size under the topic hero; never a second display */
 .draft-turn-line {
   margin: 0;
   padding: 0.1rem 0.05rem;
   min-height: 1.4em;
-  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
-  font-size: 1.05rem;
-  font-weight: 800;
-  line-height: 1.25;
+  font-size: var(--text-body);
+  font-weight: 700;
+  line-height: var(--leading-body);
   letter-spacing: -0.01em;
   color: var(--muted);
 }
