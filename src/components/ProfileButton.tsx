@@ -29,7 +29,7 @@ export function ProfileButton({
       onClick={onClick}
     >
       <span className="profile-btn-mark" aria-hidden="true">
-        <BeanAvatar id={id} seed={name || "bean"} size={28} />
+        <BeanAvatar id={id} seed={name || "bean"} size={28} priority />
       </span>
     </button>
   );

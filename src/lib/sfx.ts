@@ -243,12 +243,18 @@ export function resumeAudioSync(): AudioContext | null {
 export function armGestureUnlock(): void {
   if (typeof window === "undefined" || gestureBound) return;
   gestureBound = true;
+  const types = ["pointerup", "touchend", "click"] as const;
   const unlock = () => {
     if (!isSoundEnabled()) return;
     primeAudioSync();
+    // Drop capture listeners after the first successful unlock — they were
+    // sticky for the whole session and fired on every tap.
+    for (const type of types) {
+      window.removeEventListener(type, unlock, { capture: true });
+    }
   };
   // touchend/pointerup/click — iOS is picky about which event carries the gesture.
-  for (const type of ["pointerup", "touchend", "click"] as const) {
+  for (const type of types) {
     window.addEventListener(type, unlock, { capture: true, passive: true });
   }
 }
