@@ -24,6 +24,7 @@ describe("bean avatars", () => {
     expect(normalizeAvatarId("top-hat")).toBe("top-hat");
     expect(BEAN_AVATAR_IDS).toContain(normalizeAvatarId("nope", "seed-x"));
     expect(beanAvatarSrc("star")).toMatch(/^\/avatars\/star\.webp\?v=\d+$/);
+    expect(beanAvatarSrc("star")).toMatch(/\?v=5\b/);
   });
 
   it("ships WebP files for every id", () => {
@@ -50,6 +51,7 @@ describe("bean avatars", () => {
     expect(sheet).not.toMatch(/Pick a bean for your profile/);
     expect(css).toMatch(/grid-template-columns:\s*repeat\(4,/);
     expect(css).toMatch(/box-shadow:\s*inset 0 0 0 2\.5px var\(--coral\)/);
+    expect(css).toMatch(/\.avatar-picker-bean\s*\{[\s\S]*?width:\s*80%/);
     expect(profileBtn).toMatch(/BeanAvatar/);
     expect(home).toMatch(/home-playing-avatar/);
     expect(home).toMatch(/BeanAvatar/);
