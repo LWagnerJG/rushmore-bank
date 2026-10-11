@@ -14,23 +14,29 @@ import { isSoundEnabled } from "@/lib/sound-prefs";
 
 export type SfxKind =
   | "your_turn"
+  | "lock_in"
+  | "timer_tick"
   | "dice_tick"
   | "dice_settle"
   | "beans_land"
   | "bust"
   | "bank"
+  | "reveal"
   | "winner"
   | "confirm";
 
 /** Per-kind debounce so identical events never stack (ticks/settles/etc.). */
 const KIND_DEBOUNCE_MS: Record<SfxKind, number> = {
   your_turn: 400,
-  dice_tick: 120,
+  lock_in: 280,
+  timer_tick: 180,
+  dice_tick: 100,
   dice_settle: 200,
   beans_land: 200,
-  bust: 250,
+  bust: 280,
   bank: 300,
-  winner: 800,
+  reveal: 220,
+  winner: 900,
   confirm: 200,
 };
 
@@ -332,163 +338,236 @@ function tone(
   };
 }
 
-/** All durations under 250ms. Warm / soft / short. */
+/**
+ * Cohesive warm palette — gains stay low so layered tones never clip.
+ * Every individual `dur` stays ≤250ms (enforced by sound-haptics tests).
+ */
 function synthesize(audio: AudioContext, kind: SfxKind): void {
   const t = audio.currentTime;
   switch (kind) {
     case "confirm":
+      // Soft two-note chime when Sound is toggled on.
       tone(audio, {
         type: "sine",
-        freq: 660,
+        freq: 698,
         start: t,
-        dur: 0.08,
-        gain: 0.035,
+        dur: 0.09,
+        gain: 0.032,
       });
       tone(audio, {
         type: "triangle",
         freq: 880,
-        start: t + 0.06,
-        dur: 0.1,
-        gain: 0.025,
+        start: t + 0.07,
+        dur: 0.12,
+        gain: 0.022,
       });
       break;
     case "your_turn":
       tone(audio, {
         type: "sine",
-        freq: 440,
-        freqEnd: 660,
+        freq: 392,
+        freqEnd: 523,
         start: t,
+        dur: 0.11,
+        gain: 0.03,
+      });
+      tone(audio, {
+        type: "triangle",
+        freq: 659,
+        start: t + 0.07,
         dur: 0.12,
+        gain: 0.02,
+      });
+      break;
+    case "lock_in":
+      // Crisp “locked” confirm — short ascending fifth.
+      tone(audio, {
+        type: "sine",
+        freq: 494,
+        start: t,
+        dur: 0.07,
         gain: 0.028,
       });
       tone(audio, {
         type: "triangle",
+        freq: 740,
+        start: t + 0.055,
+        dur: 0.11,
+        gain: 0.024,
+      });
+      break;
+    case "timer_tick":
+      // Quiet urgent ticks for the last 5 seconds.
+      tone(audio, {
+        type: "sine",
+        freq: 880,
+        start: t,
+        dur: 0.045,
+        gain: 0.016,
+      });
+      tone(audio, {
+        type: "triangle",
         freq: 660,
-        start: t + 0.06,
-        dur: 0.1,
-        gain: 0.018,
+        freqEnd: 440,
+        start: t + 0.02,
+        dur: 0.05,
+        gain: 0.01,
       });
       break;
     case "dice_tick":
+      // Soft wooden rattle — slight random pitch per tumble frame.
       tone(audio, {
         type: "triangle",
-        freq: 500 + Math.random() * 160,
-        freqEnd: 220,
+        freq: 420 + Math.random() * 220,
+        freqEnd: 180,
         start: t,
-        dur: 0.04,
-        gain: 0.011,
+        dur: 0.038,
+        gain: 0.012,
       });
       break;
     case "dice_settle":
       tone(audio, {
         type: "triangle",
-        freq: 280,
-        freqEnd: 110,
+        freq: 260,
+        freqEnd: 96,
         start: t,
-        dur: 0.11,
-        gain: 0.045,
+        dur: 0.12,
+        gain: 0.04,
       });
       tone(audio, {
         type: "sine",
-        freq: 620,
-        freqEnd: 400,
-        start: t + 0.035,
-        dur: 0.12,
-        gain: 0.022,
+        freq: 580,
+        freqEnd: 360,
+        start: t + 0.04,
+        dur: 0.13,
+        gain: 0.02,
       });
       break;
     case "beans_land":
       tone(audio, {
         type: "sine",
-        freq: 520,
+        freq: 540,
         start: t,
         dur: 0.08,
-        gain: 0.03,
+        gain: 0.028,
       });
       tone(audio, {
         type: "triangle",
-        freq: 780,
-        freqEnd: 640,
+        freq: 810,
+        freqEnd: 620,
         start: t + 0.05,
         dur: 0.12,
-        gain: 0.022,
+        gain: 0.02,
       });
       break;
     case "bust": {
-      // Punchy thump + absurd buzzer — still ≤250ms total.
+      // Bean Buster: low thump + short buzzer — still ≤250ms per tone.
       tone(audio, {
         type: "sine",
-        freq: 110,
-        freqEnd: 42,
+        freq: 100,
+        freqEnd: 38,
         start: t,
-        dur: 0.14,
-        gain: 0.09,
+        dur: 0.15,
+        gain: 0.08,
       });
       tone(audio, {
         type: "triangle",
-        freq: 70,
-        freqEnd: 36,
-        start: t + 0.015,
+        freq: 64,
+        freqEnd: 32,
+        start: t + 0.02,
         dur: 0.16,
-        gain: 0.055,
+        gain: 0.048,
       });
-      // Harsh buzzer sting
       tone(audio, {
         type: "square",
-        freq: 180,
-        freqEnd: 95,
-        start: t + 0.04,
-        dur: 0.18,
-        gain: 0.028,
+        freq: 170,
+        freqEnd: 90,
+        start: t + 0.05,
+        dur: 0.17,
+        gain: 0.022,
         gainEnd: 0.0001,
       });
       tone(audio, {
         type: "sawtooth",
-        freq: 240,
-        freqEnd: 140,
-        start: t + 0.05,
-        dur: 0.16,
-        gain: 0.016,
+        freq: 220,
+        freqEnd: 130,
+        start: t + 0.06,
+        dur: 0.15,
+        gain: 0.014,
       });
       break;
     }
     case "bank":
-      tone(audio, {
-        type: "sine",
-        freq: 500,
-        start: t,
-        dur: 0.09,
-        gain: 0.028,
-      });
-      tone(audio, {
-        type: "sine",
-        freq: 750,
-        start: t + 0.07,
-        dur: 0.12,
-        gain: 0.024,
-      });
-      break;
-    case "winner":
+      // Soft cha-ching: sparkle up a major arpeggio.
       tone(audio, {
         type: "sine",
         freq: 523,
         start: t,
-        dur: 0.1,
+        dur: 0.07,
+        gain: 0.026,
+      });
+      tone(audio, {
+        type: "sine",
+        freq: 659,
+        start: t + 0.055,
+        dur: 0.08,
+        gain: 0.024,
+      });
+      tone(audio, {
+        type: "triangle",
+        freq: 784,
+        start: t + 0.11,
+        dur: 0.12,
+        gain: 0.02,
+      });
+      break;
+    case "reveal":
+      // Soft “pop” as each score row unveils.
+      tone(audio, {
+        type: "sine",
+        freq: 610,
+        freqEnd: 480,
+        start: t,
+        dur: 0.08,
+        gain: 0.022,
+      });
+      tone(audio, {
+        type: "triangle",
+        freq: 920,
+        start: t + 0.04,
+        dur: 0.09,
+        gain: 0.014,
+      });
+      break;
+    case "winner":
+      // Short fanfare — C major sparkle, still under 250ms per tone.
+      tone(audio, {
+        type: "sine",
+        freq: 523,
+        start: t,
+        dur: 0.09,
         gain: 0.03,
       });
       tone(audio, {
         type: "sine",
         freq: 659,
-        start: t + 0.08,
+        start: t + 0.07,
         dur: 0.1,
         gain: 0.028,
       });
       tone(audio, {
         type: "triangle",
         freq: 784,
-        start: t + 0.15,
+        start: t + 0.14,
         dur: 0.12,
-        gain: 0.022,
+        gain: 0.024,
+      });
+      tone(audio, {
+        type: "sine",
+        freq: 1047,
+        start: t + 0.2,
+        dur: 0.14,
+        gain: 0.018,
       });
       break;
   }

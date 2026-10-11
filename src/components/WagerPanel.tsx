@@ -6,6 +6,7 @@ import { clampWager, maxWager, wagerFromPreset } from "@/shared/engine/wager";
 import { TimerPill } from "@/components/TimerPill";
 import { WagerSlider } from "@/components/WagerSlider";
 import { WaitingRoster } from "@/components/WaitingRoster";
+import { feedback } from "@/lib/feedback";
 
 export function WagerPanel({
   state,
@@ -92,6 +93,7 @@ export function WagerPanel({
             onClick={() => {
               if (busy) return;
               setBusy(true);
+              feedback("lock_in");
               send({ type: "submit_wager", amount: 0 });
             }}
           >
@@ -141,6 +143,7 @@ export function WagerPanel({
           onClick={() => {
             if (busy) return;
             setBusy(true);
+            feedback("lock_in");
             send({ type: "submit_wager", amount: clamped });
           }}
         >

@@ -15,20 +15,26 @@ import {
 
 export type FeedbackKind =
   | "your_turn"
+  | "lock_in"
+  | "timer_tick"
   | "dice_tick"
   | "dice_settle"
   | "beans_land"
   | "bust"
   | "bank"
+  | "reveal"
   | "winner";
 
 const HAPTIC_MAP: Record<FeedbackKind, HapticKind> = {
   your_turn: "your_turn",
+  lock_in: "dice_settle",
+  timer_tick: "dice_tick",
   dice_tick: "dice_tick",
   dice_settle: "dice_settle",
   beans_land: "beans_land",
   bust: "bust",
   bank: "bank",
+  reveal: "beans_land",
   winner: "winner",
 };
 

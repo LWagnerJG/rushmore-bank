@@ -30,10 +30,130 @@ import {
   type BeanAvatarId,
 } from "@/shared/bean-avatars";
 
-type SheetPanel = "main" | "host" | "admin" | "avatar";
+type SheetPanel = "main" | "host" | "admin";
+/** Home may still pass "avatar" — opens main with the picker expanded. */
+type InitialPanel = SheetPanel | "avatar";
 
 const SHEET_OPEN_CLASS = "settings-sheet-open";
 const DISMISS_PX = 96;
+const NAME_MAX = 18;
+
+function PencilIcon({ className = "profile-sheet-pencil" }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 16 16"
+      width="14"
+      height="14"
+      aria-hidden="true"
+    >
+      <path
+        d="M11.7 1.6a1.4 1.4 0 0 1 2 2L5.4 11.9 2 12.8l.9-3.4L11.7 1.6Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+/** Inline nickname edit — Enter / blur save (lobby rename parity). */
+function ProfileNameEdit({
+  name,
+  canEdit,
+  lockedHint,
+  onRename,
+}: {
+  name: string;
+  canEdit: boolean;
+  lockedHint: string;
+  onRename?: (next: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(name);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (!editing) setDraft(name);
+  }, [name, editing]);
+
+  useEffect(() => {
+    if (!editing) return;
+    const el = inputRef.current;
+    if (!el) return;
+    el.focus();
+    el.select();
+  }, [editing]);
+
+  function commit() {
+    const clean = draft.trim();
+    setEditing(false);
+    if (!clean || clean === name.trim()) {
+      setDraft(name);
+      return;
+    }
+    onRename?.(clean);
+  }
+
+  if (!canEdit || !onRename) {
+    return (
+      <div className="profile-sheet-identity min-w-0">
+        <p className="profile-sheet-name font-[family-name:var(--font-display)]">
+          {name}
+        </p>
+        {lockedHint ? (
+          <p className="profile-sheet-locked-hint">{lockedHint}</p>
+        ) : null}
+      </div>
+    );
+  }
+
+  if (editing) {
+    return (
+      <div className="profile-sheet-identity min-w-0">
+        <input
+          ref={inputRef}
+          className="profile-sheet-name-input font-[family-name:var(--font-display)]"
+          value={draft}
+          maxLength={NAME_MAX}
+          aria-label="Your nickname"
+          autoComplete="nickname"
+          enterKeyHint="done"
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={() => commit()}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              (e.target as HTMLInputElement).blur();
+            } else if (e.key === "Escape") {
+              e.preventDefault();
+              setDraft(name);
+              setEditing(false);
+            }
+          }}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="profile-sheet-identity min-w-0">
+      <button
+        type="button"
+        className="profile-sheet-name-btn"
+        onClick={() => setEditing(true)}
+        aria-label={`Edit your nickname (currently ${name})`}
+      >
+        <span className="profile-sheet-name font-[family-name:var(--font-display)]">
+          {name}
+        </span>
+        <PencilIcon />
+      </button>
+    </div>
+  );
+}
 
 export function SettingsSheet({
   open,
@@ -50,7 +170,10 @@ export function SettingsSheet({
   drafting = false,
   pickPaused = false,
   nickname,
-  /** When opening, jump to this panel (e.g. home avatar tap → picker). */
+  rename,
+  canRename = true,
+  rosterLocked = false,
+  /** When opening, jump to this panel (or expand avatar picker). */
   initialPanel = "main",
 }: {
   open: boolean;
@@ -67,7 +190,11 @@ export function SettingsSheet({
   drafting?: boolean;
   pickPaused?: boolean;
   nickname?: string;
-  initialPanel?: SheetPanel;
+  /** Lobby / home rename — same server path as #162 when wired from RoomClient. */
+  rename?: (name: string) => void;
+  canRename?: boolean;
+  rosterLocked?: boolean;
+  initialPanel?: InitialPanel;
 }) {
   void _roomCode; // Lobby already shows the code — keep out of the sheet.
   const [soundOn, setSoundOn] = useState(() =>
@@ -77,6 +204,7 @@ export function SettingsSheet({
   const [stats, setStats] = useState<ProfileStats>(emptyProfileStats);
   const [displayName, setDisplayName] = useState("");
   const [panel, setPanel] = useState<SheetPanel>("main");
+  const [avatarOpen, setAvatarOpen] = useState(false);
   const [avatarId, setAvatarId] = useState<BeanAvatarId>(() =>
     typeof window !== "undefined" ? loadAvatarId() : "aviator",
   );
@@ -93,11 +221,18 @@ export function SettingsSheet({
   useEffect(() => {
     if (!open) {
       setPanel("main");
+      setAvatarOpen(false);
       setDragY(0);
       setDragging(false);
       return;
     }
-    setPanel(initialPanel);
+    if (initialPanel === "avatar") {
+      setPanel("main");
+      setAvatarOpen(true);
+    } else {
+      setPanel(initialPanel);
+      setAvatarOpen(false);
+    }
     return subscribeSoundEnabled(setSoundOn);
   }, [open, initialPanel]);
 
@@ -131,6 +266,10 @@ export function SettingsSheet({
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
+        if (avatarOpen) {
+          setAvatarOpen(false);
+          return;
+        }
         if (panel !== "main") {
           setPanel("main");
           return;
@@ -140,7 +279,7 @@ export function SettingsSheet({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose, panel]);
+  }, [open, onClose, panel, avatarOpen]);
 
   useEffect(() => {
     if (!open) return;
@@ -160,6 +299,9 @@ export function SettingsSheet({
   const showHostOptions = isHost;
   const rate = winRatePct(stats);
   const hasGames = stats.gamesPlayed > 0;
+  const nameEditable = Boolean(rename) && canRename && !rosterLocked;
+  const nameLockedHint =
+    rename && (!canRename || rosterLocked) ? "Change after the game" : "";
 
   function onTouchStart(e: React.TouchEvent) {
     const t = e.touches[0];
@@ -201,6 +343,18 @@ export function SettingsSheet({
         }
       : undefined;
 
+  function pickAvatar(id: BeanAvatarId) {
+    setAvatarId(id);
+    saveAvatarId(id);
+    send?.({ type: "set_avatar", avatarId: id });
+    setAvatarOpen(false);
+  }
+
+  function onRenameCommit(next: string) {
+    setDisplayName(next);
+    rename?.(next);
+  }
+
   return createPortal(
     <div
       className="settings-sheet-backdrop"
@@ -233,18 +387,23 @@ export function SettingsSheet({
                     type="button"
                     className="profile-sheet-avatar-btn"
                     aria-label="Change avatar"
-                    onClick={() => setPanel("avatar")}
+                    aria-expanded={avatarOpen}
+                    onClick={() => setAvatarOpen((v) => !v)}
                   >
                     <BeanAvatar id={avatarId} seed={displayName} size={56} />
                   </button>
-                  <div className="profile-sheet-identity min-w-0">
-                    <p className="profile-sheet-name font-[family-name:var(--font-display)]">
-                      {displayName}
-                    </p>
+                  <div className="profile-sheet-identity-wrap min-w-0">
+                    <ProfileNameEdit
+                      name={displayName}
+                      canEdit={nameEditable}
+                      lockedHint={nameLockedHint}
+                      onRename={rename ? onRenameCommit : undefined}
+                    />
                     <button
                       type="button"
                       className="profile-sheet-change"
-                      onClick={() => setPanel("avatar")}
+                      aria-expanded={avatarOpen}
+                      onClick={() => setAvatarOpen((v) => !v)}
                     >
                       Change avatar
                     </button>
@@ -258,6 +417,36 @@ export function SettingsSheet({
                 >
                   <span aria-hidden="true">×</span>
                 </button>
+              </div>
+
+              <div
+                className={`avatar-picker-expand ${avatarOpen ? "avatar-picker-expand-open" : ""}`}
+                aria-hidden={!avatarOpen}
+              >
+                {avatarOpen ? (
+                  <div
+                    className="avatar-picker-grid"
+                    role="listbox"
+                    aria-label="Bean avatars"
+                  >
+                    {BEAN_AVATAR_IDS.map((id) => {
+                      const selected = id === avatarId;
+                      return (
+                        <button
+                          key={id}
+                          type="button"
+                          role="option"
+                          aria-selected={selected}
+                          className={`avatar-picker-cell ${selected ? "avatar-picker-cell-on" : ""}`}
+                          title={BEAN_AVATAR_LABELS[id]}
+                          onClick={() => pickAvatar(id)}
+                        >
+                          <BeanAvatar id={id} size={40} />
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : null}
               </div>
 
               {hasGames ? (
@@ -438,58 +627,6 @@ export function SettingsSheet({
                   playerCount={playerCount}
                   botCountInRoom={botCountInRoom}
                 />
-              </div>
-            </>
-          ) : null}
-
-          {panel === "avatar" ? (
-            <>
-              <div className="profile-sheet-top">
-                <button
-                  type="button"
-                  className="settings-panel-back"
-                  onClick={() => setPanel("main")}
-                >
-                  ‹ Avatar
-                </button>
-                <button
-                  type="button"
-                  className="settings-sheet-close"
-                  aria-label="Close"
-                  onClick={onClose}
-                >
-                  <span aria-hidden="true">×</span>
-                </button>
-              </div>
-              <p className="type-meta text-[var(--muted)] profile-avatar-hint">
-                Pick a bean for your profile.
-              </p>
-              <div
-                className="avatar-picker-grid"
-                role="listbox"
-                aria-label="Bean avatars"
-              >
-                {BEAN_AVATAR_IDS.map((id) => {
-                  const selected = id === avatarId;
-                  return (
-                    <button
-                      key={id}
-                      type="button"
-                      role="option"
-                      aria-selected={selected}
-                      className={`avatar-picker-cell ${selected ? "avatar-picker-cell-on" : ""}`}
-                      title={BEAN_AVATAR_LABELS[id]}
-                      onClick={() => {
-                        setAvatarId(id);
-                        saveAvatarId(id);
-                        send?.({ type: "set_avatar", avatarId: id });
-                        setPanel("main");
-                      }}
-                    >
-                      <BeanAvatar id={id} size={40} />
-                    </button>
-                  );
-                })}
               </div>
             </>
           ) : null}

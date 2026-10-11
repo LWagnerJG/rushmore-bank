@@ -184,6 +184,7 @@ export function ResultsRevealList({
         setRevealedCount(step + 1);
         const row = latest[rowIndex];
         if (!row) return;
+        feedback("reveal");
         runCountUp(rowIndex, row.stones, sched.countMs);
         if (step + 1 >= latest.length) {
           const doneId = window.setTimeout(() => {

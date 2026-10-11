@@ -101,13 +101,25 @@ async function openProfile(page: Page, preferMain = true) {
     timeout: 10000,
   });
   if (preferMain) {
-    const back = page.getByRole("button", { name: /^‹\s*Avatar$/ });
-    if (await back.isVisible().catch(() => false)) {
-      await back.click();
+    // Collapse inline avatar expand if home opened with picker expanded.
+    const change = page.getByRole("button", { name: /^Change avatar$/ });
+    const grid = page.locator(".avatar-picker-grid");
+    if (
+      (await grid.isVisible().catch(() => false)) &&
+      (await change.isVisible().catch(() => false))
+    ) {
+      await change.click();
       await page.waitForTimeout(250);
     }
   }
-  await page.waitForTimeout(400);
+  await page
+    .waitForFunction(() => {
+      const s = document.querySelector(".settings-sheet") as HTMLElement | null;
+      if (!s) return false;
+      return Math.abs(window.innerHeight - s.getBoundingClientRect().bottom) < 2;
+    }, { timeout: 3000 })
+    .catch(() => undefined);
+  await page.waitForTimeout(200);
 }
 
 async function main() {
@@ -191,6 +203,21 @@ async function main() {
     const sheetDest = path.join(OUT, `sheet-redesign-open-${vp.label}.png`);
     await page.screenshot({ path: sheetDest, fullPage: false });
     console.log("wrote", sheetDest);
+
+    // Name editing open (Luke follow-up evidence)
+    const nameBtn = page.getByRole("button", {
+      name: /Edit your nickname/i,
+    });
+    if (await nameBtn.isVisible().catch(() => false)) {
+      await nameBtn.click();
+      await page.waitForSelector(".profile-sheet-name-input", { timeout: 5000 });
+      await page.waitForTimeout(200);
+      const editDest = path.join(OUT, `sheet-name-editing-${vp.label}.png`);
+      await page.screenshot({ path: editDest, fullPage: false });
+      console.log("wrote", editDest);
+      await page.locator(".profile-sheet-name-input").blur();
+      await page.waitForTimeout(200);
+    }
 
     // Expand Admin so it's visible (was clipped before)
     const admin = page.getByRole("button", { name: /^Admin$/ });
