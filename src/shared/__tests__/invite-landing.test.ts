@@ -10,7 +10,7 @@ const srcDir = resolve(__dirname, "../..");
 const read = (p: string) => readFileSync(resolve(srcDir, p), "utf8");
 const room = read("components/RoomClient.tsx");
 const hook = read("hooks/useGameRoom.ts");
-const home = read("app/page.tsx");
+const home = read("components/HomePage.tsx");
 const css = read("app/globals.css");
 const joinScreens = room.slice(
   room.indexOf("if (!joined || !you) {"),

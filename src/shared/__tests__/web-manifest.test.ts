@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  CREATE_START_URL,
   buildWebManifest,
+  createManifestHref,
   roomManifestHref,
   roomStartUrl,
 } from "../web-manifest";
@@ -23,5 +25,16 @@ describe("room-scoped web manifest", () => {
     expect(room.start_url).toBe("/join/ABCD");
     expect(room.scope).toBe("/");
     expect(room.display).toBe("standalone");
+  });
+
+  it("points create-install at /?create=1 without changing the app id", () => {
+    const create = buildWebManifest(null, { create: true });
+    expect(create.start_url).toBe(CREATE_START_URL);
+    expect(create.id).toBe(buildWebManifest(null).id);
+    expect(createManifestHref(true)).toBe("/manifest.webmanifest?create=1");
+    expect(createManifestHref(false)).toBe("/manifest.webmanifest");
+    expect(buildWebManifest("ABCD", { create: true }).start_url).toBe(
+      "/join/ABCD",
+    );
   });
 });

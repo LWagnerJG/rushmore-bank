@@ -26,6 +26,15 @@ describe("GET /manifest.webmanifest", () => {
     expect(body.scope).toBe("/");
   });
 
+  it("points create=1 at /?create=1", async () => {
+    const res = await GET(
+      new Request("http://localhost/manifest.webmanifest?create=1"),
+    );
+    const body = await res.json();
+    expect(body.start_url).toBe("/?create=1");
+    expect(body.id).toBe("/?icon=v3");
+  });
+
   it("ignores short or empty room codes", async () => {
     const short = await GET(
       new Request("http://localhost/manifest.webmanifest?room=AB"),

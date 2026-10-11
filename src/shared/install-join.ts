@@ -2,6 +2,9 @@ import { normalizeRoomCode } from "@/shared/types";
 
 export const CONTINUE_IN_BROWSER_COUNT_KEY = "beans:continue-in-browser-count";
 export const INSTALL_JOIN_CONSUMED_KEY = "beans:install-join-consumed";
+export const CREATE_INTENT_KEY = "create";
+export const CONTINUE_CREATE_KEY = "beans:continue-in-browser:create";
+export const CREATE_INTENT_CONSUMED_KEY = "beans:install-create-consumed";
 
 export function invitePath(code: string): string {
   return `/join/${normalizeRoomCode(code)}`;
@@ -52,6 +55,50 @@ export function rememberContinuedInBrowser(
     storage.setItem(continueSessionKey(code), "1");
   } catch {
     /* private mode */
+  }
+}
+
+export function hasContinuedCreateInBrowser(
+  storage: Pick<Storage, "getItem"> | null = defaultSession(),
+): boolean {
+  if (!storage) return false;
+  try {
+    return storage.getItem(CONTINUE_CREATE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function rememberContinuedCreateInBrowser(
+  storage: Pick<Storage, "setItem"> | null = defaultSession(),
+): void {
+  if (!storage) return;
+  try {
+    storage.setItem(CONTINUE_CREATE_KEY, "1");
+  } catch {
+    /* private mode */
+  }
+}
+
+export function isCreateIntentConsumed(
+  storage: Pick<Storage, "getItem"> | null = defaultLocal(),
+): boolean {
+  if (!storage) return false;
+  try {
+    return storage.getItem(CREATE_INTENT_CONSUMED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function markCreateIntentConsumed(
+  storage: Pick<Storage, "getItem" | "setItem"> | null = defaultLocal(),
+): void {
+  if (!storage) return;
+  try {
+    storage.setItem(CREATE_INTENT_CONSUMED_KEY, "1");
+  } catch {
+    /* ignore */
   }
 }
 

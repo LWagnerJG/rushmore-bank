@@ -20,6 +20,7 @@ describe("POST /api/metrics/install-continue", () => {
     expect(await res.json()).toEqual({ ok: true });
     expect(spy).toHaveBeenCalledWith("[beans] continue-in-browser", {
       room: "ABCD",
+      intent: null,
       count: 3,
     });
   });

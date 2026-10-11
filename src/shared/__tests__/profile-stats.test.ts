@@ -124,7 +124,7 @@ describe("profile initials", () => {
 
 describe("profile chrome wiring", () => {
   it("homes and rooms open one Profile control into the merged sheet", () => {
-    const home = read("app/page.tsx");
+    const home = read("components/HomePage.tsx");
     const room = read("components/RoomClient.tsx");
     const sheet = read("components/SettingsSheet.tsx");
     const brand = read("components/BrandMark.tsx");

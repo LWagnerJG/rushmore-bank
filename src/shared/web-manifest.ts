@@ -29,6 +29,15 @@ export function roomManifestHref(roomRaw?: string | null): string {
     : "/manifest.webmanifest";
 }
 
+/** After install-to-host, the icon opens home and auto-runs Create once. */
+export const CREATE_START_URL = "/?create=1";
+
+export function createManifestHref(create = false): string {
+  return create
+    ? "/manifest.webmanifest?create=1"
+    : "/manifest.webmanifest";
+}
+
 export type BeansWebManifest = {
   id: string;
   name: string;
@@ -50,14 +59,20 @@ export type BeansWebManifest = {
   }>;
 };
 
-export function buildWebManifest(roomRaw?: string | null): BeansWebManifest {
+export function buildWebManifest(
+  roomRaw?: string | null,
+  opts?: { create?: boolean },
+): BeansWebManifest {
   const v = WEB_MANIFEST_ICON_V;
+  const roomUrl = roomStartUrl(roomRaw);
+  const startUrl =
+    roomUrl === "/" && opts?.create ? CREATE_START_URL : roomUrl;
   return {
     id: `/?icon=v${v}`,
     name: "Beans",
     short_name: "Beans",
     description: "Draft four. Bank beans. Party game for the living room.",
-    start_url: roomStartUrl(roomRaw),
+    start_url: startUrl,
     scope: "/",
     display: "standalone",
     display_override: ["standalone", "minimal-ui"],

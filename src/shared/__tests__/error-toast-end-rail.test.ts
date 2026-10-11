@@ -15,7 +15,7 @@ const toast = readFileSync(
   resolve(__dirname, "../../components/ErrorToast.tsx"),
   "utf8",
 );
-const home = readFileSync(resolve(__dirname, "../../app/page.tsx"), "utf8");
+const home = readFileSync(resolve(__dirname, "../../components/HomePage.tsx"), "utf8");
 const css = readFileSync(resolve(__dirname, "../../app/globals.css"), "utf8");
 const hook = readFileSync(
   resolve(__dirname, "../../hooks/useGameRoom.ts"),
