@@ -59,48 +59,21 @@ async function injectStandaloneSafeArea(
       }
       const style = document.createElement("style");
       style.setAttribute("data-shot-safe-area", "1");
+      // Emulate iOS safe-area on the sheet only — never stretch the
+      // backdrop height (that reintroduces flex-end clipping).
       style.textContent = `
         :root {
           --sat: ${top}px;
           --sab: ${bottom}px;
         }
-        html {
-          padding: env(safe-area-inset-top, ${top}px)
-            env(safe-area-inset-right, 0px)
-            env(safe-area-inset-bottom, ${bottom}px)
-            env(safe-area-inset-left, 0px);
-        }
-      `;
-      // Also force env() via CSS variables for browsers that ignore viewport-fit
-      const force = document.createElement("style");
-      force.textContent = `
         .settings-sheet {
           padding-bottom: calc(16px + ${bottom}px) !important;
         }
-        .settings-sheet-backdrop {
-          height: calc(100dvh + 200px + ${bottom}px) !important;
-        }
-        .app-shell, .phase-chrome, .topbar {
-          /* ensure status-bar clearance visible in shots */
-        }
       `;
       document.documentElement.appendChild(style);
-      document.documentElement.appendChild(force);
     },
     { top: safeTop, bottom: safeBottom, key: ADMIN_UNLOCK_KEY },
   );
-
-  await page.addStyleTag({
-    content: `
-      :root {
-        --shot-safe-top: ${safeTop}px;
-        --shot-safe-bottom: ${safeBottom}px;
-      }
-      .settings-sheet {
-        padding-bottom: calc(16px + ${safeBottom}px) !important;
-      }
-    `,
-  });
 }
 
 async function dismissContinue(page: Page) {
