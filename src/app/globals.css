@@ -4917,9 +4917,6 @@ html.settings-sheet-open body::before {
   .settings-sheet-backdrop {
     align-items: center;
   }
-  .settings-sheet {
-    margin-bottom: 0;
-  }
 }
 .settings-sheet {
   position: relative;
@@ -4937,6 +4934,11 @@ html.settings-sheet-open body::before {
   flex-direction: column;
   gap: var(--section-gap);
   animation: profile-sheet-in var(--motion-fast) ease both;
+}
+@media (min-width: 640px) {
+  .settings-sheet {
+    margin-bottom: 0;
+  }
 }
 @keyframes profile-sheet-in {
   from {
