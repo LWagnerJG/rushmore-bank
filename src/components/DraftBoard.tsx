@@ -132,13 +132,17 @@ export function DraftBoard({
           className={`draft-board-table draft-board-density-${density}`}
           style={
             density === "fit"
-              ? { width: "100%", minWidth: 0 }
+              ? {
+                  // Match CSS gutter cancel so inline width doesn't pin to 100%
+                  width: "calc(100% + 2 * var(--space-2))",
+                  minWidth: 0,
+                }
               : { minWidth: Math.max(260, seats.length * colW) }
           }
         >
           <caption className="sr-only">
-            Exactly four picks per player. Snake order. Your column uses a
-            single solid tint.
+            Exactly four picks per player. Snake order. Your column is marked
+            softly in the header; your picks use a single solid tint.
           </caption>
           <thead>
             <tr>
@@ -261,23 +265,21 @@ export function DraftBoard({
                               </span>
                             )}
                           </button>
-                        ) : current && !pick && mine ? (
-                          <span
-                            className="draft-board-cell-caret"
-                            aria-hidden="true"
-                          />
+                        ) : current && !pick ? (
+                          <p className="draft-board-cell-text draft-board-cell-placeholder">
+                            {`Pick ${pass + 1}`}
+                          </p>
                         ) : (
                           <p
                             className={`draft-board-cell-text ${
                               mine
                                 ? ""
-                                : pick || current || isRedoTarget
+                                : pick || isRedoTarget
                                   ? "font-bold"
                                   : "text-[var(--muted)]"
                             }`}
                           >
-                            {pick?.text ??
-                              (current || isRedoTarget ? "…" : "")}
+                            {pick?.text ?? (isRedoTarget ? "…" : "")}
                           </p>
                         )}
                         {isRedoTarget && (

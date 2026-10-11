@@ -4307,26 +4307,33 @@ html.dice-your-turn::after {
   }
 }
 
-/* Draft panel — tight stack under chrome; composer stays in the upper half */
+/* Draft panel — fills the phase column; composer stays above the board */
 /*
  * Draft stack: 12px between visible siblings (matches topic→composer).
  * Quiet your-turn omits the status line so composer→board stays one 12px gap.
+ * Panel grows with the phase fill so the board can claim leftover height.
  */
 .draft-panel {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  flex: 1 1 auto;
+  min-height: 100%;
+  width: 100%;
 }
 .draft-board {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
 }
 
 /* Draft status — body size under the composer; one line, never wraps */
 .draft-turn-line {
   margin: 0;
-  padding: 0 0.05rem;
+  padding: 0;
   font-size: var(--text-body);
   font-weight: 700;
   line-height: var(--leading-body);
@@ -4345,6 +4352,8 @@ html.dice-your-turn::after {
 
 /* Composer: no outer card — one soft pill holds the field + Lock in. */
 .draft-composer {
+  flex: 0 0 auto;
+  width: 100%;
   border-radius: 0;
   background: transparent;
   padding: 0;
@@ -4352,15 +4361,18 @@ html.dice-your-turn::after {
   box-shadow: none;
 }
 
-/* Field + compact CTA on one 44px row, both exactly tap height. */
+/*
+ * One clean pill: field + inset coral Lock in. No second outer shape,
+ * no double border / shadow. Row stays ≥ --tap-min for keyboard contracts.
+ */
 .draft-composer-row {
   display: flex;
-  align-items: stretch;
+  align-items: center;
   gap: var(--space-1);
   min-height: var(--tap-min);
-  padding: 0 0 0 0.15rem;
+  padding: var(--space-1);
   border-radius: 999px;
-  background: color-mix(in srgb, #fff 78%, var(--bg));
+  background: #fff;
   border: none;
   box-shadow: none;
   filter: none;
@@ -4370,9 +4382,10 @@ html.dice-your-turn::after {
 .draft-pick-input {
   flex: 1 1 auto;
   min-width: 0;
-  height: var(--tap-min);
+  height: calc(var(--tap-min) - 2 * var(--space-1));
+  min-height: calc(var(--tap-min) - 2 * var(--space-1));
   padding-block: 0;
-  padding-inline: 0.95rem 0.5rem;
+  padding-inline: 0.85rem 0.35rem;
   -webkit-appearance: none;
   appearance: none;
   border: 0 !important;
@@ -4396,19 +4409,23 @@ html.dice-your-turn::after {
 
 /* Fixed width: Lock in / Locking… / Stash it never resize the field. */
 .draft-pick-submit {
-  flex: 0 0 6.5rem;
-  height: var(--tap-min);
+  flex: 0 0 5.85rem;
+  height: calc(var(--tap-min) - 2 * var(--space-1));
+  min-height: calc(var(--tap-min) - 2 * var(--space-1));
   padding-block: 0;
-  padding-inline: 0.75rem;
+  padding-inline: 0.85rem;
+  border: none !important;
   border-radius: 999px;
   white-space: nowrap;
   touch-action: manipulation;
   box-shadow: none !important;
+  font-size: var(--text-meta);
+  font-weight: 800;
 }
 html.party-on .draft-pick-submit {
   box-shadow: none !important;
 }
-/* Empty: calm muted fill — not washed-out coral. Ready: full coral. */
+/* Empty: calm muted fill — not washed-out coral. Ready: white on coral. */
 .draft-pick-submit[aria-disabled="true"] {
   background: rgba(35, 72, 62, 0.08);
   color: var(--muted);
@@ -4423,18 +4440,21 @@ html.party-on .draft-pick-submit {
 }
 .draft-pick-submit.btn-your-turn:not([aria-disabled="true"]),
 .draft-pick-submit.btn-primary:not([aria-disabled="true"]) {
-  background: var(--btn-bg);
+  background: var(--coral);
   color: #fff;
+}
+.draft-pick-submit.btn-your-turn:not([aria-disabled="true"])::before {
+  background: var(--btn-bg);
 }
 .draft-pick-submit.btn-secondary:not([aria-disabled="true"]) {
   background: rgba(35, 72, 62, 0.1);
-  border: none;
+  border: none !important;
   color: var(--text);
 }
 
 .draft-stash {
   margin-top: var(--space-2);
-  padding-inline: 0.15rem;
+  padding-inline: 0;
 }
 .draft-stash-meta {
   margin: 0;
@@ -4524,33 +4544,50 @@ html.party-on .draft-pick-submit {
   overflow: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  border-radius: 0.75rem;
+  border-radius: 0;
   background: transparent;
   border: none;
   box-shadow: none !important;
   filter: none;
-  /* Grow with rows — no tall empty scrollport under a short board */
+  width: 100%;
   max-height: none;
 }
 
-/* 2–5 players: full board visible on phone — no horizontal scroll */
+/* 2–5 players: full board visible — stretch to fill leftover phase height */
 .draft-board-scroll-fit {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-x: hidden;
   overflow-y: visible;
+  display: flex;
+  flex-direction: column;
 }
 
 .draft-board-scroll-snug,
 .draft-board-scroll-dense {
-  max-height: min(50vh, 22rem);
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: min(58vh, 28rem);
 }
 
 .draft-board-table {
-  width: 100%;
+  /*
+   * Grow past the scrollport by one border-spacing on each side, then pull
+   * back with negative margin so outer cell edges share --page-pad-x with
+   * the composer. Inline width on .draft-board-density-fit must match.
+   */
+  width: calc(100% + 2 * var(--space-2));
+  margin-inline: calc(-1 * var(--space-2));
   table-layout: fixed;
   border-collapse: separate;
-  /* Soft cream gutters instead of harsh grid lines */
-  border-spacing: 3px;
+  border-spacing: var(--space-2) var(--space-2);
   text-align: left;
+}
+
+.draft-board-scroll-fit .draft-board-table {
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 100%;
 }
 
 /*
@@ -4586,8 +4623,9 @@ html.party-on .draft-pick-submit {
   display: block;
   width: 100%;
   max-width: 100%;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.15;
+  letter-spacing: -0.01em;
 }
 
 .draft-board-table thead th {
@@ -4596,21 +4634,27 @@ html.party-on .draft-pick-submit {
   top: auto;
   z-index: auto;
   text-align: center;
-  /* Soft mint chip — solid fill, no blur (iPad soft-rasterize trap) */
-  background: rgba(167, 215, 194, 0.32);
+  /* Quiet label — no bulky tinted bar */
+  background: transparent;
+  color: var(--muted);
+  font-weight: 700;
 }
 
-/* Your column header — warm tint so it reads against mint neighbors */
+/* Your column — soft warm mark, lighter than a solid bar */
 .draft-board-table thead th.is-you {
-  background: rgba(244, 201, 91, 0.28);
+  background: color-mix(in srgb, var(--yellow) 20%, transparent);
+  color: var(--text);
+  font-weight: 800;
 }
 
 html.party-on .draft-board-table thead th {
-  background: #fff8ec;
+  background: transparent;
+  color: var(--muted);
 }
 
 html.party-on .draft-board-table thead th.is-you {
-  background: #d8ebe2;
+  background: color-mix(in srgb, var(--mint) 28%, transparent);
+  color: var(--text);
 }
 
 /* Own picks: one solid tint only — no stacked bold / badge / extra color */
@@ -4652,32 +4696,39 @@ html.party-on .draft-board-cell-mine {
 
 .draft-board-density-fit th,
 .draft-board-density-cozy th {
-  padding: 0.22rem 0.18rem;
-  font-size: 0.68rem;
+  padding: 0.3rem 0.5rem 0.15rem;
+  font-size: 0.75rem;
 }
 
 /* Dynamic name gutters when few seats share the phone width */
 .draft-board-scroll-fit[data-seats="2"] .draft-board-density-fit th,
 .draft-board-scroll-fit[data-seats="3"] .draft-board-density-fit th {
-  padding: 0.28rem 0.4rem;
-  font-size: 0.75rem;
+  padding: 0.35rem 0.65rem 0.2rem;
+  font-size: 0.8125rem;
 }
 
 .draft-board-scroll-fit[data-seats="2"] .draft-board-name,
 .draft-board-scroll-fit[data-seats="3"] .draft-board-name {
-  margin-inline: 0.1rem;
+  margin-inline: 0;
 }
 
 .draft-board-scroll-fit[data-seats="2"] .draft-board-density-fit td,
 .draft-board-scroll-fit[data-seats="3"] .draft-board-density-fit td {
-  padding: 0.22rem 0.4rem;
+  padding: 0.55rem 0.7rem;
 }
 
 .draft-board-density-fit td,
 .draft-board-density-cozy td {
-  height: 2.35rem;
-  padding: 0.18rem 0.18rem;
-  font-size: 0.7rem;
+  /* Grow with the table — min keeps rows from collapsing when short */
+  height: auto;
+  min-height: 3.1rem;
+  padding: 0.5rem 0.6rem;
+  font-size: 0.8125rem;
+  vertical-align: middle;
+}
+
+.draft-board-scroll-fit .draft-board-density-fit tbody tr {
+  height: 25%;
 }
 
 .draft-board-density-fit .draft-board-cell-text {
@@ -4687,14 +4738,16 @@ html.party-on .draft-board-cell-mine {
 }
 
 .draft-board-density-snug th {
-  padding: 0.22rem 0.24rem;
-  font-size: 0.68rem;
+  padding: 0.28rem 0.4rem 0.12rem;
+  font-size: 0.7rem;
 }
 
 .draft-board-density-snug td {
-  height: 2.25rem;
-  padding: 0.18rem 0.24rem;
-  font-size: 0.68rem;
+  height: auto;
+  min-height: 2.85rem;
+  padding: 0.45rem 0.45rem;
+  font-size: 0.75rem;
+  vertical-align: middle;
 }
 
 .draft-board-density-snug .draft-board-you-label {
@@ -4703,15 +4756,17 @@ html.party-on .draft-board-cell-mine {
 }
 
 .draft-board-density-dense th {
-  padding: 0.18rem 0.18rem;
-  font-size: 0.58rem;
+  padding: 0.22rem 0.28rem 0.1rem;
+  font-size: 0.62rem;
 }
 
 .draft-board-density-dense td {
-  height: 2.05rem;
-  padding: 0.14rem 0.18rem;
-  font-size: 0.58rem;
-  line-height: 1.15;
+  height: auto;
+  min-height: 2.55rem;
+  padding: 0.35rem 0.35rem;
+  font-size: 0.68rem;
+  line-height: 1.2;
+  vertical-align: middle;
 }
 
 .draft-board-density-dense .draft-board-you-label {
@@ -4723,62 +4778,49 @@ html.party-on .draft-board-cell-mine {
   box-shadow: none;
 }
 
+/* Active column: quiet wash on body cells only — headers stay light */
 .draft-board-col-active {
-  background: rgba(244, 201, 91, 0.14);
-  transition: background 220ms ease;
+  background: transparent;
+}
+.draft-board-table tbody td.draft-board-col-active:not(.draft-board-cell-live):not(
+    .draft-board-cell-mine
+  ) {
+  background: color-mix(in srgb, var(--yellow) 10%, transparent);
 }
 
 .draft-board-table thead th.draft-board-col-active {
-  background: rgba(244, 201, 91, 0.38);
+  background: color-mix(in srgb, var(--yellow) 16%, transparent);
+  color: var(--text);
   box-shadow: none;
-  transition: background 220ms ease;
 }
 
 .draft-board-table thead th.is-you.draft-board-col-active {
-  background: rgba(244, 201, 91, 0.5);
+  background: color-mix(in srgb, var(--yellow) 26%, transparent);
 }
 
 .draft-board-cell-live {
-  background: color-mix(in srgb, var(--yellow) 55%, #fff) !important;
+  background: color-mix(in srgb, var(--yellow) 36%, #fff) !important;
   position: relative;
 }
 
-/* Soft caret in the empty current cell — opacity only, no blur/shadow */
-.draft-board-cell-caret {
-  display: block;
-  width: 0.14rem;
-  height: 1.1em;
-  border-radius: 1px;
-  background: var(--text);
-  opacity: 0.55;
-  animation: draft-cell-caret 1100ms ease-in-out infinite;
-}
-@keyframes draft-cell-caret {
-  0%,
-  100% {
-    opacity: 0.2;
-  }
-  50% {
-    opacity: 0.7;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .draft-board-cell-caret {
-    animation: none;
-    opacity: 0.55;
-  }
+/* Soft “Pick N” cue — no fake caret */
+.draft-board-cell-placeholder {
+  color: color-mix(in srgb, var(--text) 42%, var(--muted));
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .draft-board-cell-focus {
-  background: rgba(244, 201, 91, 0.45) !important;
+  background: rgba(244, 201, 91, 0.4) !important;
 }
 
 .draft-board-cell-filled {
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.94);
 }
 
 .draft-board-cell-empty {
-  background: rgba(255, 255, 255, 0.48);
+  /* Faint slot — not a heavy cream block */
+  background: rgba(255, 255, 255, 0.32);
 }
 
 .draft-board-cell-inner {
@@ -4786,8 +4828,10 @@ html.party-on .draft-board-cell-mine {
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
-  gap: 0.1rem;
+  gap: 0.15rem;
   min-height: 100%;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .draft-board-pick-hit {
@@ -4814,8 +4858,10 @@ html.party-on .draft-board-cell-mine {
 .draft-board-cell-text {
   overflow-wrap: anywhere;
   word-break: break-word;
-  line-height: 1.2;
+  line-height: 1.3;
   flex: 1 1 auto;
+  margin: 0;
+  width: 100%;
 }
 
 /* Host/admin: affordance only on the selected cell — never a REDO wall */
@@ -5708,17 +5754,14 @@ html.settings-sheet-open body {
 .draft-board-table th,
 .draft-board-table td {
   border: 0 !important;
-  border-radius: 0.45rem;
-}
-.draft-board-table thead th {
-  background: rgba(167, 215, 194, 0.32);
+  border-radius: 0.55rem;
 }
 .draft-board-cell-empty {
-  /* Readable as a slot on cream — not a ghost row */
-  background: rgba(255, 255, 255, 0.48);
+  /* Faint slot — not a heavy cream block */
+  background: rgba(255, 255, 255, 0.32);
 }
 .draft-board-cell-filled {
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.94);
 }
 
 /* —— BEAN BUSTER stamp: abrupt full-viewport rubber stamp on bust —— */

@@ -16,8 +16,9 @@ describe("you-label + font trim", () => {
   it("shows You on the draft board column for the local player", () => {
     expect(board).toMatch(/railYouLabel\(\)/);
     expect(board).toMatch(/mine \? railYouLabel\(\)/);
-    // Live cell uses a caret — no duplicated "Your pick" cell text
-    expect(board).toMatch(/draft-board-cell-caret/);
+    // Live cell uses a Pick N placeholder — no duplicated "Your pick" text
+    expect(board).toMatch(/draft-board-cell-placeholder/);
+    expect(board).not.toMatch(/draft-board-cell-caret/);
     expect(board).not.toMatch(/"Your pick"/);
   });
 

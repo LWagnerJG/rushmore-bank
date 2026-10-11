@@ -29,8 +29,14 @@ describe("draft pick keyboard contracts", () => {
 
   it("keeps the field and submit on one fixed-height row, 16px+ text", () => {
     expect(rule(".draft-pick-input")).toMatch(/font-size:\s*max\(\s*16px/);
-    expect(rule(".draft-pick-input")).toMatch(/height:\s*var\(--tap-min\)/);
-    expect(rule(".draft-pick-submit")).toMatch(/height:\s*var\(--tap-min\)/);
+    // One pill ≥ --tap-min; field + inset Lock in share the inner height.
+    expect(rule(".draft-composer-row")).toMatch(/min-height:\s*var\(--tap-min\)/);
+    expect(rule(".draft-pick-input")).toMatch(
+      /height:\s*calc\(\s*var\(--tap-min\)/,
+    );
+    expect(rule(".draft-pick-submit")).toMatch(
+      /height:\s*calc\(\s*var\(--tap-min\)/,
+    );
     expect(rule(".draft-pick-submit")).toMatch(/flex:\s*0 0 /);
     expect(rule(".draft-turn-line")).toMatch(/white-space:\s*nowrap/);
   });
