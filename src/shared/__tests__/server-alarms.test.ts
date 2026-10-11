@@ -33,7 +33,7 @@ function game() {
 async function reconnect(server: QuarryServer, id = "B") {
   const conn = { id, send() {} } as unknown as Connection;
   server.onClose(conn, 1000, "", true);
-  server.onConnect(conn);
+  await server.onConnect(conn);
   await server.persist();
 }
 

@@ -351,7 +351,8 @@ export class QuarryServer extends Server<Env> {
       }
       this.ensureHost();
     }
-    this.startHostCheckLoop();
+        this.startHostCheckLoop();
+    await this.ensureDiceDeadline();
     await this.persist();
   }
 
@@ -934,7 +935,7 @@ export class QuarryServer extends Server<Env> {
     return true;
   }
 
-  onConnect(conn: Connection) {
+  async onConnect(conn: Connection) {
     const playerId = conn.id;
     this.clearLeaveTimer(playerId);
     this.emptySince = null;
@@ -947,7 +948,16 @@ export class QuarryServer extends Server<Env> {
     if (existing) {
       existing.connected = true;
       this.ensureHost();
-      void this.persist().then(() => this.broadcastState());
+    }
+    // Lost dice_anim (hibernate, stale context, past-deadline setAlarm)
+    // used to leave COMMITTED unrevealed forever. Resolve on every wake.
+    const recovered = await this.ensureDiceDeadline();
+    if (existing) {
+      await this.persist();
+      this.broadcastState();
+    } else if (recovered) {
+      await this.persist();
+      this.broadcastState();
     } else {
       this.sendSnapshot(conn);
     }
@@ -985,28 +995,32 @@ export class QuarryServer extends Server<Env> {
   }
 
   async onAlarm() {
-    const payload = this.alarmPayload;
-    if (!payload) return;
-
-    // Recover stuck COMMITTED rolls if the settle alarm was lost.
-    if (
-      this.state.phase === "DICE" &&
-      this.state.diceSubphase === "COMMITTED" &&
-      this.state.lastDice &&
-      !this.state.lastDice.revealed &&
-      Date.now() >= this.state.lastDice.animSettleAt &&
-      payload.kind !== "dice_anim" &&
-      payload.kind !== "dice_settle_hold"
-    ) {
-      this.alarmPayload = null;
-      await this.afterDiceAnim();
+    // Any wake: if the tumble window is over, reveal. Do this before the
+    // context check — a stale dice_anim used to clearAlarm() and never land.
+    if (await this.recoverOverdueDiceRoll()) {
       await this.persist();
       this.broadcastState();
       this.nudgeBots();
       return;
     }
 
+    const payload = this.alarmPayload;
+    if (!payload) {
+      await this.ensureDiceDeadline();
+      return;
+    }
+
     if (!payload.context || payload.context !== this.alarmOwner(payload.kind)?.context) {
+      if (
+        this.state.phase === "DICE" &&
+        this.state.diceSubphase === "COMMITTED" &&
+        this.state.lastDice &&
+        !this.state.lastDice.revealed
+      ) {
+        await this.ensureDiceDeadline();
+        await this.persist();
+        return;
+      }
       await this.clearAlarm();
       return;
     }
@@ -1075,7 +1089,12 @@ export class QuarryServer extends Server<Env> {
         return;
       }
       if (msg.type === "resync") {
-        this.sendSnapshot(sender);
+        if (await this.ensureDiceDeadline()) {
+          await this.persist();
+          this.broadcastState();
+        } else {
+          this.sendSnapshot(sender);
+        }
         return;
       }
       if (msg.type === "host_heartbeat") {
@@ -2484,6 +2503,55 @@ export class QuarryServer extends Server<Env> {
       kind: "dice_anim",
       revision: this.state.phaseRevision,
     });
+  }
+
+  /** COMMITTED + unrevealed past animSettleAt — the roll that never lands. */
+  committedDiceOverdue(now = Date.now()): boolean {
+    return (
+      this.state.phase === "DICE" &&
+      this.state.diceSubphase === "COMMITTED" &&
+      !!this.state.lastDice &&
+      !this.state.lastDice.revealed &&
+      now >= this.state.lastDice.animSettleAt
+    );
+  }
+
+  /** Reveal + settle-hold if the anim deadline has passed. */
+  async recoverOverdueDiceRoll(now = Date.now()): Promise<boolean> {
+    if (!this.committedDiceOverdue(now)) return false;
+    await this.afterDiceAnim();
+    return true;
+  }
+
+  /**
+   * Auto-resolve an overdue COMMITTED roll, or re-arm a lost dice_anim clock.
+   * Returns true when this call revealed the roll.
+   */
+  async ensureDiceDeadline(now = Date.now()): Promise<boolean> {
+    if (
+      this.state.phase !== "DICE" ||
+      this.state.diceSubphase !== "COMMITTED" ||
+      !this.state.lastDice ||
+      this.state.lastDice.revealed
+    ) {
+      return false;
+    }
+    if (now >= this.state.lastDice.animSettleAt) {
+      await this.afterDiceAnim();
+      return true;
+    }
+    const owner = this.alarmOwner("dice_anim");
+    const armed =
+      this.alarmPayload?.kind === "dice_anim" &&
+      this.alarmPayload.context === owner?.context &&
+      this.alarmPayload.deadlineAt === this.state.lastDice.animSettleAt;
+    if (!armed) {
+      await this.setAlarmAt(this.state.lastDice.animSettleAt, {
+        kind: "dice_anim",
+        revision: this.state.phaseRevision,
+      });
+    }
+    return false;
   }
 
   /** Apply committed roll outcome + mark revealed (idempotent). */

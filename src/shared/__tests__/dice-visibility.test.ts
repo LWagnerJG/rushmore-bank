@@ -14,15 +14,18 @@ const dieFace = readFileSync(
   "utf8",
 );
 
-describe("dice faces always show a number", () => {
-  it("paints a face numeral on every die and the settled sum on the tray", () => {
-    expect(scene).toMatch(/bean-pip-die-num/);
-    expect(scene).toMatch(/data-die-number=\{paint\.face\}/);
-    expect(scene).toMatch(/bean-dice-sum/);
-    expect(scene).toMatch(/data-dice-sum=\{total\}/);
+describe("dice faces are pips-only with one landed total", () => {
+  it("paints large pips and a centered total under the tray — no corner chips", () => {
+    expect(scene).toMatch(/DIE_PIP_CLASS|bean-pip-die-pip/);
+    expect(scene).toMatch(/bean-dice-landed-total/);
+    expect(scene).toMatch(/data-dice-landed-total=\{total\}/);
     expect(scene).toMatch(/data-dice-d1/);
     expect(scene).toMatch(/data-dice-d2/);
     expect(scene).toMatch(/data-dice-total/);
+    expect(scene).not.toMatch(/bean-pip-die-num/);
+    expect(scene).not.toMatch(/data-die-number/);
+    expect(scene).not.toMatch(/bean-dice-sum/);
+    expect(scene).toMatch(/r="8\.4"/);
   });
 
   it("never paints a blank tumbling die while waiting for the first scramble tick", () => {
@@ -30,27 +33,30 @@ describe("dice faces always show a number", () => {
     expect(dieFace).toMatch(/Never paint a blank die mid-tumble/);
   });
 
-  it("keeps face numbers and the result at full opacity (no both/forwards)", () => {
-    const num =
-      css.match(/\.bean-pip-die-num\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
-    const sum = css.match(/\.bean-dice-sum\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
-    expect(num).toMatch(/opacity:\s*1/);
-    expect(sum).toMatch(/opacity:\s*1/);
-    expect(num).not.toMatch(/forwards|\bboth\b/);
-    expect(sum).not.toMatch(/forwards|\bboth\b/);
+  it("keeps pips and the landed total at full opacity (no both/forwards)", () => {
+    const pip =
+      css.match(/\.bean-pip-die-pip\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
+    const total =
+      css.match(/\.bean-dice-landed-total\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
+    expect(pip).toMatch(/fill:\s*#10261f/);
+    expect(total).toMatch(/opacity:\s*1/);
+    expect(total).not.toMatch(/forwards|\bboth\b/);
     expect(css).not.toMatch(
       /\.dice-result-fresh[\s\S]{0,80}animation:[^;]*\bboth\b/,
     );
     expect(css).not.toMatch(
       /\.dice-result-bust[\s\S]{0,200}animation:[^;]*\bboth\b/,
     );
-    expect(css).toMatch(/pointer:\s*coarse[\s\S]*bean-pip-die-num[\s\S]*opacity:\s*1/);
+    expect(css).toMatch(
+      /pointer:\s*coarse[\s\S]*bean-pip-die-pip[\s\S]*opacity:\s*1/,
+    );
   });
 
-  it("uses high-contrast ink for the face numeral on cream", () => {
-    expect(contrastRatio("#1c3a32", "#fff8ec")).toBeGreaterThanOrEqual(7);
-    expect(css).toMatch(/\.bean-pip-die-num[\s\S]*background:\s*#1c3a32/);
-    expect(css).toMatch(/\.bean-pip-die-num[\s\S]*color:\s*#fff8ec/);
+  it("uses high-contrast ink for pips on cream", () => {
+    expect(contrastRatio("#10261f", "#fff8ec")).toBeGreaterThanOrEqual(7);
+    expect(contrastRatio("#10261f", "#fffdf6")).toBeGreaterThanOrEqual(7);
+    expect(css).toMatch(/\.bean-pip-die-pip[\s\S]*fill:\s*#10261f/);
+    expect(css).toMatch(/\.bean-pip-die-body[\s\S]*fill:\s*#fff8ec/);
   });
 
   it("keeps the ticker under the tray so it cannot cover faces", () => {

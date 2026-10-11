@@ -2,7 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { PublicDiceBroadcast } from "@/shared/types";
-import { resolveDicePresentPhase } from "@/shared/engine/dice-present";
+import {
+  diceHardLandAt,
+  resolveDicePresentPhase,
+} from "@/shared/engine/dice-present";
 import {
   DIE_PIP_CLASS,
   diePaintModel,
@@ -62,12 +65,20 @@ function PipDie({
     >
       <svg viewBox="0 0 80 80" className="bean-pip-die-svg">
         <rect
-          x="3"
-          y="3"
-          width="74"
-          height="74"
-          rx="12"
+          x="4"
+          y="4"
+          width="72"
+          height="72"
+          rx="16"
           className="bean-pip-die-body"
+        />
+        <rect
+          x="7"
+          y="7"
+          width="66"
+          height="66"
+          rx="13"
+          className="bean-pip-die-face"
         />
         {/* Replace-only: map from one validated face. Keys force full remount on face change. */}
         {paint.pipSlots.map((pip) => {
@@ -77,19 +88,14 @@ function PipDie({
             <circle
               key={`${paint.face}-${pip}`}
               className={DIE_PIP_CLASS}
-              cx={22 + col * 18}
-              cy={22 + row * 18}
-              r="7"
+              cx={18 + col * 22}
+              cy={18 + row * 22}
+              r="8.4"
               data-pip-slot={pip}
             />
           );
         })}
       </svg>
-      {paint.face != null ? (
-        <span className="bean-pip-die-num" data-die-number={paint.face}>
-          {paint.face}
-        </span>
-      ) : null}
     </div>
   );
 }
@@ -124,6 +130,7 @@ export function DiceScene({
   const lastTick = useRef(0);
   const settleRollId = useRef<string | null>(null);
   const [punch, setPunch] = useState(false);
+  const [hardSnap, setHardSnap] = useState(false);
   const [scramble, setScramble] = useState<{ d1: DieFace; d2: DieFace } | null>(
     null,
   );
@@ -134,13 +141,26 @@ export function DiceScene({
   );
   const rolling = phase.kind === "tumbling";
   const revealed = phase.kind === "settled";
+
+  // Never wait on animationend — hidden tabs and prefers-reduced-motion skip
+  // it. Faces land the frame they arrive; past the hard deadline we freeze
+  // the scramble so the tray cannot tumble forever.
+  useEffect(() => {
+    if (!rolling || !broadcast) {
+      setHardSnap(false);
+      return;
+    }
+    const delay = Math.max(0, diceHardLandAt(broadcast) - Date.now());
+    const id = window.setTimeout(() => setHardSnap(true), delay);
+    return () => window.clearTimeout(id);
+  }, [rolling, broadcast]);
   const rollId = phase.kind === "idle" ? null : phase.rollId;
   const scrambleSeed = phase.kind === "tumbling" ? phase.seed : 0;
 
   // Scramble via React state + validated faces — never imperative SVG appends.
   // When not tumbling, tray ignores scramble (no sync setState clear → no cascade).
   useEffect(() => {
-    if (!rolling || reducedMotion) return;
+    if (!rolling || reducedMotion || hardSnap) return;
     const started = performance.now();
     const tick = () => {
       const n = Math.max(
@@ -152,7 +172,7 @@ export function DiceScene({
     tick();
     const id = window.setInterval(tick, SCRAMBLE_TICK_MS);
     return () => window.clearInterval(id);
-  }, [rolling, rollId, reducedMotion, scrambleSeed]);
+  }, [rolling, rollId, reducedMotion, scrambleSeed, hardSnap]);
 
   const tray = resolveTrayPaint(
     phase,
@@ -261,31 +281,42 @@ export function DiceScene({
           <PipDie
             face={paintD1}
             index={0}
-            tumbling={rolling && !reducedMotion}
-            scrambling={tray.scrambling}
-            settled={!tray.scrambling && paintD1 != null}
+            tumbling={rolling && !reducedMotion && !hardSnap}
+            scrambling={tray.scrambling && !hardSnap}
+            settled={revealed || (hardSnap && paintD1 != null)}
             settlePunch={false}
           />
           <PipDie
             face={paintD2}
             index={1}
-            tumbling={rolling && !reducedMotion}
-            scrambling={tray.scrambling}
-            settled={!tray.scrambling && paintD2 != null}
+            tumbling={rolling && !reducedMotion && !hardSnap}
+            scrambling={tray.scrambling && !hardSnap}
+            settled={revealed || (hardSnap && paintD2 != null)}
             settlePunch={false}
           />
         </div>
-        {revealed && total != null ? (
-          <span className="bean-dice-sum" data-dice-sum={total} aria-hidden="true">
-            {total}
-          </span>
-        ) : null}
         {canRoll && firstRollHint && (
           <span className="bean-dice-hint bean-dice-hint-first" aria-hidden="true">
             TAP
           </span>
         )}
       </button>
+      {revealed && total != null ? (
+        <p
+          className="bean-dice-landed-total"
+          data-dice-landed-total={total}
+          data-dice-sum={total}
+        >
+          {total}
+        </p>
+      ) : (
+        <p
+          className="bean-dice-landed-total bean-dice-landed-total-empty"
+          aria-hidden="true"
+        >
+          {"\u00a0"}
+        </p>
+      )}
     </div>
   );
 }

@@ -86,9 +86,9 @@ export function replaceDieFacePips(
     const row = Math.floor(pip / 3);
     const c = doc.createElementNS(ns, "circle");
     c.setAttribute("class", DIE_PIP_CLASS);
-    c.setAttribute("cx", String(22 + col * 18));
-    c.setAttribute("cy", String(22 + row * 18));
-    c.setAttribute("r", "7");
+    c.setAttribute("cx", String(18 + col * 22));
+    c.setAttribute("cy", String(18 + row * 22));
+    c.setAttribute("r", "8.4");
     c.setAttribute("data-pip-slot", String(pip));
     el.appendChild(c);
   }

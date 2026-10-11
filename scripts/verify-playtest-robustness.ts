@@ -1,7 +1,8 @@
 /**
  * Multi-client Playwright WebKit regressions for Luke's playtest bugs:
- * sticky host across setOffline, dice face numbers for watcher + roller,
- * resync after background/foreground and slow-3G-style delay.
+ * sticky host across setOffline, dice land (not stuck tumbling) for
+ * watcher + roller across background/foreground and mid-roll reconnect,
+ * resync after slow-3G-style delay.
  *
  *   npx wrangler dev --ip 127.0.0.1 --port 8787
  *   NEXT_PUBLIC_PARTYKIT_HOST=127.0.0.1:8787 npx next build && npx next start -p 3100
@@ -10,7 +11,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { webkit, type Browser, type BrowserContext, type Page } from "playwright";
-import { sleep } from "./smoke-lib";
+import { ADMIN_PIN, SmokeClient, sleep } from "./smoke-lib";
 
 const BASE = (process.env.BASE_URL || "http://127.0.0.1:3100").replace(/\/$/, "");
 const OUT = process.env.OUT_DIR || "/tmp/playtest-robustness";
@@ -91,30 +92,48 @@ async function background(page: Page) {
   );
 }
 
-async function assertDiceNumbers(page: Page, d1: number, d2: number) {
+async function assertDiceLanded(page: Page, d1?: number, d2?: number) {
   const tray = page.locator(".bean-dice-tray");
   await tray.waitFor({ timeout: 15000 });
-  await expectVisibleNumber(page, `[data-die-number="${d1}"]`);
-  await expectVisibleNumber(page, `[data-die-number="${d2}"]`);
-  await expectVisibleNumber(page, `[data-dice-sum="${d1 + d2}"]`);
-  const opacity = Number(
-    await page
-      .locator(".bean-pip-die-num")
-      .first()
-      .evaluate("el => Number(getComputedStyle(el).opacity)"),
+  await page.waitForFunction(
+    `(() => {
+      const t = document.querySelector(".bean-dice-tray");
+      if (!t) return false;
+      const phase = t.getAttribute("data-dice-phase");
+      const a = Number(t.getAttribute("data-dice-d1"));
+      const b = Number(t.getAttribute("data-dice-d2"));
+      return phase === "settled" && a >= 1 && a <= 6 && b >= 1 && b <= 6;
+    })()`,
+    { timeout: 15000 },
   );
-  if (opacity < 0.99) {
-    throw new Error(`die numeral opacity ${opacity} (must stay 1)`);
+  const d1Attr = Number(await tray.getAttribute("data-dice-d1"));
+  const d2Attr = Number(await tray.getAttribute("data-dice-d2"));
+  if (d1 != null && d1Attr !== d1) {
+    throw new Error(`expected d1=${d1}, got ${d1Attr}`);
+  }
+  if (d2 != null && d2Attr !== d2) {
+    throw new Error(`expected d2=${d2}, got ${d2Attr}`);
+  }
+  const pip0 = Number(
+    await page.locator('[data-die-index="0"]').getAttribute("data-pip-count"),
+  );
+  const pip1 = Number(
+    await page.locator('[data-die-index="1"]').getAttribute("data-pip-count"),
+  );
+  if (pip0 !== d1Attr || pip1 !== d2Attr) {
+    throw new Error(`pip counts ${pip0}+${pip1} !== faces ${d1Attr}+${d2Attr}`);
+  }
+  const total = d1Attr + d2Attr;
+  const sumSel = `[data-dice-sum="${total}"], [data-dice-landed-total="${total}"]`;
+  const sum = page.locator(sumSel).first();
+  await sum.waitFor({ state: "visible", timeout: 8000 });
+  if ((await page.locator(".bean-dice-tray").getAttribute("data-dice-phase")) !== "settled") {
+    throw new Error("tray left settled after land check");
   }
 }
 
-async function expectVisibleNumber(page: Page, sel: string) {
-  const loc = page.locator(sel).first();
-  await loc.waitFor({ state: "visible", timeout: 10000 });
-  const box = await loc.boundingBox();
-  if (!box || box.width < 8 || box.height < 8) {
-    throw new Error(`${sel} not painted (${JSON.stringify(box)})`);
-  }
+async function assertDiceNumbers(page: Page, d1: number, d2: number) {
+  await assertDiceLanded(page, d1, d2);
 }
 
 async function diceLab(browser: Browser) {
@@ -125,23 +144,94 @@ async function diceLab(browser: Browser) {
       timeout: 60000,
     });
     await page.getByRole("button", { name: "Settled" }).click();
-    await assertDiceNumbers(page, 5, 2);
+    await assertDiceLanded(page, 5, 2);
     await shot(page, "dice-settled-numbers.png");
 
     await page.getByRole("button", { name: "Your turn" }).click();
-    await assertDiceNumbers(page, 3, 4);
+    await assertDiceLanded(page, 3, 4);
     await shot(page, "dice-your-turn-numbers.png");
 
     await page.getByRole("button", { name: "Watching" }).click();
     await page.locator(".bean-dice-tray").waitFor();
-    // Watcher uses the same pip + numeral renderer (idle 1/1).
-    const nums = page.locator(".bean-pip-die-num");
-    await nums.first().waitFor({ state: "visible", timeout: 8000 });
-    const count = await nums.count();
-    if (count < 2) throw new Error(`watcher dice numerals missing (${count})`);
+    const pips = page.locator(".bean-pip-die-pip");
+    await pips.first().waitFor({ state: "visible", timeout: 8000 });
+    if ((await pips.count()) < 2) {
+      throw new Error("watcher dice pips missing");
+    }
     await shot(page, "dice-watching-numbers.png");
   } finally {
     await ctx.close();
+  }
+}
+
+async function diceStuckRoll(browser: Browser) {
+  const code = roomCode();
+  const partyHost =
+    process.env.PARTY_HOST ||
+    process.env.NEXT_PUBLIC_PARTYKIT_HOST ||
+    "127.0.0.1:8787";
+  const ctrl = new SmokeClient(partyHost, code, `ctrl-${Date.now()}`, "Ctrl");
+  const { ctx: rollerCtx, page: roller } = await newPage(browser);
+  const { ctx: watchCtx, page: watch } = await newPage(browser);
+  try {
+    await ctrl.connect();
+    await ctrl.join("player");
+
+    await roller.goto(`${BASE}/room/${code}?name=Luke`, {
+      waitUntil: "domcontentloaded",
+      timeout: 60000,
+    });
+    await watch.goto(`${BASE}/room/${code}?name=Ava`, {
+      waitUntil: "domcontentloaded",
+      timeout: 60000,
+    });
+    await roller.locator(".lobby-roster").waitFor({ timeout: 30000 });
+    await watch.locator(".lobby-roster").waitFor({ timeout: 30000 });
+
+    ctrl.send({ type: "admin_jump_phase", phase: "DICE", pin: ADMIN_PIN });
+    await ctrl.wait(() => ctrl.state?.phase === "DICE", 20000, "dice phase");
+
+    await roller.locator(".bean-dice-tray").waitFor({ timeout: 20000 });
+    await watch.locator(".bean-dice-tray").waitFor({ timeout: 20000 });
+
+    const turnId = ctrl.diceTurnId();
+    if (turnId === ctrl.youId) {
+      ctrl.send({ type: "roll" });
+    } else {
+      const lukeUp = await roller.locator(".dice-up-title").innerText();
+      const page = /your roll/i.test(lukeUp) ? roller : watch;
+      await page.locator(".bean-dice-tray").click();
+    }
+
+    await ctrl.wait(
+      () => ctrl.state?.diceSubphase === "COMMITTED",
+      10000,
+      "committed",
+    );
+
+    // Mid-roll: watcher goes to background, other WebKit drops the socket.
+    await background(watch);
+    await rollerCtx.setOffline(true);
+
+    await sleep(2400 + 1500 + 900);
+
+    await rollerCtx.setOffline(false);
+    await foreground(watch);
+
+    await assertDiceLanded(roller);
+    await assertDiceLanded(watch);
+    if (
+      (await roller.locator(".bean-dice-tray").getAttribute("data-dice-phase")) ===
+      "tumbling"
+    ) {
+      throw new Error("roller still tumbling after hard-land window");
+    }
+    await shot(roller, "dice-landed-after-reconnect.png");
+    await shot(watch, "dice-landed-after-bg.png");
+  } finally {
+    ctrl.close();
+    await rollerCtx.close();
+    await watchCtx.close();
   }
 }
 
@@ -231,6 +321,7 @@ async function main() {
   try {
     for (const [name, fn] of [
       ["dice-lab-numbers", () => diceLab(browser)],
+      ["dice-stuck-roll", () => diceStuckRoll(browser)],
       ["host-offline-resync", () => hostStickyAndNetwork(browser)],
     ] as const) {
       try {
