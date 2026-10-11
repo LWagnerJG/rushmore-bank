@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   isSoundEnabled,
   setSoundEnabled,
@@ -30,6 +31,8 @@ import {
 } from "@/shared/bean-avatars";
 
 type SheetPanel = "main" | "host" | "admin" | "avatar";
+
+const SHEET_OPEN_CLASS = "settings-sheet-open";
 
 export function SettingsSheet({
   open,
@@ -75,6 +78,12 @@ export function SettingsSheet({
   const [avatarId, setAvatarId] = useState<BeanAvatarId>(() =>
     typeof window !== "undefined" ? loadAvatarId() : "classic",
   );
+
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!open) {
@@ -125,7 +134,22 @@ export function SettingsSheet({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose, panel]);
 
-  if (!open) return null;
+  // iOS: cream seam under the home indicator comes from html/body paint
+  // showing through when the sheet is nested inside transformed ancestors.
+  // Portal to body + dim html/body while open closes that gap.
+  useEffect(() => {
+    if (!open) return;
+    const root = document.documentElement;
+    const { body } = document;
+    root.classList.add(SHEET_OPEN_CLASS);
+    body.classList.add(SHEET_OPEN_CLASS);
+    return () => {
+      root.classList.remove(SHEET_OPEN_CLASS);
+      body.classList.remove(SHEET_OPEN_CLASS);
+    };
+  }, [open]);
+
+  if (!open || !mounted) return null;
 
   async function copyCode() {
     if (!roomCode) return;
@@ -144,7 +168,7 @@ export function SettingsSheet({
   const rate = winRatePct(stats);
   const hasGames = stats.gamesPlayed > 0;
 
-  return (
+  return createPortal(
     <div
       className="settings-sheet-backdrop"
       role="presentation"
@@ -440,6 +464,7 @@ export function SettingsSheet({
           </>
         ) : null}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

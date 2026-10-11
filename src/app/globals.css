@@ -4794,55 +4794,44 @@ html.party-on .draft-board-cell-mine {
 
 /* —— Polish ship: settings / spectator / faint TAP —— */
 /*
- * Full-viewport dim: iOS layout viewport can end above the home indicator, so
- * inset:0 alone leaves a cream seam. Pin to 100lvh/100dvh/--app-h and extend
- * the paint layer past both safe-area edges (same strategy as body::before).
+ * Full-viewport dim (ported to document.body from SettingsSheet).
+ * Real iOS leaves a cream band under the home indicator when the sheet is
+ * nested under transformed ancestors — portal + html/body dim + bottom bleed.
  */
+html.settings-sheet-open,
+html.settings-sheet-open body {
+  background-color: #2a4a40 !important;
+  background-image: none !important;
+}
+html.settings-sheet-open body::before {
+  display: none !important;
+}
 .settings-sheet-backdrop {
   position: fixed;
+  inset: 0;
   top: 0;
   right: 0;
-  bottom: 0;
+  /* Bleed past the home-indicator / safe-area so cream never peeks */
+  bottom: -120px;
   left: 0;
-  inset: 0;
   width: 100%;
-  height: 100lvh;
-  height: 100dvh;
-  height: var(--app-h, 100dvh);
-  min-height: 100lvh;
-  min-height: 100dvh;
-  min-height: var(--app-h, 100dvh);
+  height: calc(100lvh + env(safe-area-inset-bottom, 0px) + 120px);
+  height: calc(100dvh + env(safe-area-inset-bottom, 0px) + 120px);
+  min-height: calc(100lvh + env(safe-area-inset-bottom, 0px) + 120px);
   z-index: 60;
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  /* Transparent shell — paint lives on ::before so it can overscan */
-  background: transparent;
+  background: rgba(35, 72, 62, 0.42);
   padding: 1rem;
   padding-top: max(1rem, env(safe-area-inset-top, 0px));
-  padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+  /* Keep sheet clear of the home indicator; extra bottom is the bleed zone */
+  padding-bottom: calc(1rem + 120px + env(safe-area-inset-bottom, 0px));
   box-sizing: border-box;
-  /* Must NOT overflow:hidden — that clips the ::before overscan past inset:0 */
   overflow: visible;
 }
 .settings-sheet-backdrop::before {
-  content: "";
-  /* Fixed to the viewport so a short inset:0 parent cannot leave a cream seam */
-  position: fixed;
-  left: 0;
-  right: 0;
-  top: calc(-80px - env(safe-area-inset-top, 0px));
-  height: calc(
-    var(--app-h, 100dvh) + 160px + env(safe-area-inset-top, 0px) +
-      env(safe-area-inset-bottom, 0px)
-  );
-  min-height: calc(
-    100lvh + 160px + env(safe-area-inset-top, 0px) +
-      env(safe-area-inset-bottom, 0px)
-  );
-  background: rgba(35, 72, 62, 0.28);
-  pointer-events: none;
-  z-index: 0;
+  content: none;
 }
 @media (min-width: 640px) {
   .settings-sheet-backdrop {
