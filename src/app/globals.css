@@ -1835,13 +1835,13 @@ html.party-on .panel {
   flex-direction: column;
   gap: 0.65rem;
   /*
-   * Everything on the dice screen except the tray is ~434px tall, so on a
-   * short phone the tray takes what's left and Your beans + Bank stay on
-   * screen. One height for every beat: arming your turn never moves Bank.
+   * Everything on the dice screen except the tray is ~468px tall (ticker +
+   * pinned roller + stage chrome/result/Bank), so on a short phone the tray
+   * takes what's left and Bank stays on screen. One height for every beat.
    */
   --dice-tray-h: clamp(
     188px,
-    calc(100svh - env(safe-area-inset-top, 0px) - var(--phase-pad-b) - 434px),
+    calc(100svh - env(safe-area-inset-top, 0px) - var(--phase-pad-b) - 468px),
     260px
   );
   /* Clears the TAP chip above and fits two dice across a 320px phone */
@@ -1855,7 +1855,10 @@ html.party-on .panel {
 
 .dice-zone-strip {
   margin: 0 -0.15rem;
-  min-height: 3.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-height: 5.5rem;
 }
 
 .dice-zone-stage {
@@ -2215,10 +2218,264 @@ html.party-on .panel {
 }
 
 /*
- * Compact horizontal turn strip (phone-first).
- * Seat order left→right; UP / NEXT / pot / banked / bust stay obvious.
- * Never shows a “TABLE” hub.
+ * Score ticker — seamless translateX loop, cream edge fade (mask only).
+ * Touch pauses; prefers-reduced-motion → static wrap (no duplicate set).
  */
+.dice-ticker {
+  position: relative;
+  overflow: hidden;
+  margin: 0;
+  padding: 0.15rem 0;
+  min-height: 1.65rem;
+  touch-action: pan-y;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    #000 10%,
+    #000 90%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    #000 10%,
+    #000 90%,
+    transparent 100%
+  );
+}
+
+.dice-ticker-track {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+  animation-name: dice-ticker-scroll;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-duration: 28s;
+}
+
+.dice-ticker-paused .dice-ticker-track {
+  animation-play-state: paused;
+}
+
+.dice-ticker-set {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: baseline;
+  gap: 1.1rem;
+  margin: 0;
+  padding: 0 0.7rem;
+  list-style: none;
+}
+
+.dice-ticker-item {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  white-space: nowrap;
+  opacity: 0.72;
+  transition: opacity 200ms ease;
+}
+
+.dice-ticker-item-up {
+  opacity: 1;
+}
+
+.dice-ticker-item-you {
+  opacity: 0.92;
+}
+
+.dice-ticker-item-busted {
+  opacity: 0.42;
+  transition: opacity 250ms ease;
+}
+
+.dice-ticker-item-banked {
+  opacity: 0.55;
+}
+
+.dice-bust-flash .dice-ticker-item-busted {
+  opacity: 0.38;
+}
+
+.dice-ticker-name {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.dice-ticker-item-up .dice-ticker-name,
+.dice-ticker-item-you .dice-ticker-name {
+  color: var(--text);
+  font-weight: 800;
+}
+
+.dice-ticker-beans {
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.dice-ticker-static .dice-ticker-track {
+  animation: none;
+  transform: none;
+  width: 100%;
+  will-change: auto;
+}
+
+.dice-ticker-static .dice-ticker-set {
+  flex-wrap: wrap;
+  row-gap: 0.25rem;
+  padding: 0 0.1rem;
+}
+
+.dice-ticker-static {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+@keyframes dice-ticker-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dice-ticker-track {
+    animation: none !important;
+    transform: none !important;
+    width: 100%;
+    will-change: auto;
+  }
+  .dice-ticker-set {
+    flex-wrap: wrap;
+    row-gap: 0.25rem;
+  }
+  .dice-ticker {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}
+
+/*
+ * Pinned current roller — calm coral hero, separate from the ticker.
+ * Transform/opacity only; no hard rules or blur.
+ */
+.dice-pinned-roller {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 3.35rem;
+  padding: 0.5rem 0.85rem 0.55rem;
+  border-radius: 1.15rem;
+  background: linear-gradient(
+    110deg,
+    rgba(231, 111, 78, 0.16),
+    rgba(255, 252, 245, 0.94) 45%,
+    rgba(167, 215, 194, 0.2)
+  );
+  box-shadow: 0 8px 20px rgba(231, 111, 78, 0.07);
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+
+.dice-pinned-roller-you {
+  background: linear-gradient(
+    110deg,
+    rgba(231, 111, 78, 0.22),
+    rgba(255, 248, 236, 0.96) 48%,
+    rgba(167, 215, 194, 0.22)
+  );
+}
+
+.dice-pinned-roller-busted {
+  opacity: 0.72;
+}
+
+.dice-pinned-roller-who {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.08rem;
+}
+
+.dice-pinned-roller-kicker {
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--coral-ink);
+}
+
+.dice-pinned-roller-name {
+  margin: 0;
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(1.25rem, 5.5vw, 1.55rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dice-pinned-roller-scores {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.15rem;
+}
+
+.dice-pinned-roller-total {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(1.35rem, 6vw, 1.7rem);
+  font-weight: 800;
+  line-height: 1;
+  color: var(--text);
+}
+
+.dice-pinned-roller-total .dice-bean-glyph {
+  width: 1rem;
+  height: 1rem;
+}
+
+.dice-pinned-roller-pot {
+  margin: 0;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3rem;
+}
+
+.dice-pinned-roller-pot-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--coral-ink);
+  opacity: 0.85;
+}
+
+.dice-pinned-roller-pot-value {
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--coral-ink);
+}
+
+/* Legacy turn-strip chips — kept for older markup / tests */
 .dice-turn-strip {
   display: flex;
   flex-wrap: nowrap;
@@ -2252,56 +2509,15 @@ html.party-on .panel {
   scroll-snap-align: center;
   line-height: 1.15;
   opacity: 0.62;
-  transition:
-    border-color 180ms ease,
-    background 180ms ease,
-    box-shadow 180ms ease,
-    opacity 180ms ease;
 }
 
 .dice-turn-chip-name {
   font-size: 0.78rem;
   font-weight: 800;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  overflow-wrap: anywhere;
-  word-break: break-word;
-  white-space: normal;
-  line-height: 1.15;
-}
-.dice-turn-chip-split {
-  display: flex;
-  flex-direction: column;
-  gap: 0.05rem;
-}
-.dice-turn-chip-safe,
-.dice-turn-chip-pot {
-  display: flex;
-  align-items: baseline;
-  gap: 0.2rem;
-  font-size: 0.68rem;
-  font-weight: 800;
-  color: var(--text);
-}
-.dice-turn-chip-split-label {
-  font-size: 0.55rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--muted);
-  opacity: 0.7;
-}
-.dice-turn-chip-num {
-  font-variant-numeric: tabular-nums;
 }
 
-.dice-turn-chip-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 0.05rem;
+.dice-turn-chip-num {
+  font-variant-numeric: tabular-nums;
 }
 
 .dice-turn-chip-badge {
@@ -2312,49 +2528,22 @@ html.party-on .panel {
   color: var(--muted);
 }
 
-.dice-turn-chip-up {
-  opacity: 1;
-  background: linear-gradient(
-    160deg,
-    rgba(255, 255, 255, 0.96),
-    rgba(167, 215, 194, 0.55)
-  );
-  border-color: rgba(126, 185, 150, 0.75);
-  box-shadow: 0 0 0 2px rgba(167, 215, 194, 0.4);
-}
-
-.dice-turn-chip-up .dice-turn-chip-badge {
-  color: var(--text);
-}
-
-.dice-turn-chip-next {
-  opacity: 0.78;
-}
-
-.dice-turn-chip-next .dice-turn-chip-badge {
-  color: var(--muted);
-}
-
-.dice-turn-chip-banked {
-  opacity: 0.55;
-}
-
 .dice-turn-chip-busted {
   opacity: 0.42;
-  transition: opacity 250ms ease;
 }
 
-.dice-turn-chip-busted .dice-turn-chip-badge {
-  color: var(--coral-ink);
-}
-
-/* Bust: fade only that player's strip card — never the whole rail/stage */
 .dice-bust-flash .dice-turn-chip-busted {
   opacity: 0.38;
 }
 
-.dice-turn-chip-you:not(.dice-turn-chip-up) {
-  border-color: rgba(231, 111, 78, 0.28);
+.dice-turn-chip-safe,
+.dice-turn-chip-pot {
+  display: flex;
+  align-items: baseline;
+  gap: 0.2rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: var(--text);
 }
 
 .player-chip {

@@ -155,8 +155,10 @@ function scenarioState(scenario: Scenario): PublicRoomState {
   const s = baseState();
   switch (scenario) {
     case "watching":
-      s.diceTurnSeat = 1; // Sam up
+      s.diceTurnSeat = 1; // Bot Sam up
       s.pots[YOU_ID] = 0;
+      s.pots[OTHER] = 18;
+      s.protectedStones[OTHER] = 22;
       s.diceIdleDeadlineAt = Date.now() + 12000;
       s.lastDice = null;
       break;

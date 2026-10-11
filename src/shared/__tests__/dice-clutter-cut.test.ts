@@ -30,16 +30,18 @@ describe("dice clutter-cut", () => {
     expect(room).not.toMatch(/phase === "DICE"\s*\?\s*"mt-0\.5/);
   });
 
-  it("labels the viewer's bean total; shows the roller only when it isn't you", () => {
+  it("keeps Your beans under the tray only while watching; pinned owns the roller", () => {
+    expect(dice).toMatch(/showYourBeansUnder/);
     expect(dice).toMatch(/Your beans/);
     expect(dice).toMatch(/dice-your-beans/);
-    expect(dice).toMatch(/dice-roller-beans/);
-    expect(dice).toMatch(/!myTurn && roller/);
+    expect(dice).toMatch(/PinnedRoller/);
+    expect(dice).toMatch(/ScoreTicker/);
+    expect(dice).not.toMatch(/dice-roller-beans/);
     expect(dice).toMatch(/seatBeanTotal/);
-    // No second hero copy — Pot amount stays on the Bank CTA only
+    // No second hero copy — Pot amount on Bank CTA + pinned at-risk
     expect(dice).not.toMatch(/>Pot</);
     expect(dice).not.toMatch(/>Safe</);
-    expect(dice).not.toMatch(/Your pot|Your safe|at risk/);
+    expect(dice).not.toMatch(/Your pot|Your safe/);
     expect(dice).not.toMatch(/→ total/);
   });
 
@@ -96,12 +98,12 @@ describe("dice clutter-cut", () => {
     expect(die1).not.toMatch(/#f4c95b/);
   });
 
-  it("bust fades only the busted strip card; no 2s linger on the stage", () => {
+  it("bust fades only the busted ticker item; no 2s linger on the stage", () => {
     expect(dice).toMatch(/dice-bust-flash/);
     expect(dice).not.toMatch(/dice-bust-linger/);
     expect(css).not.toMatch(/bust-linger-pulse/);
     expect(css).toMatch(/dice-bust-flash\s+250ms|dice-bust-flash 250ms/);
-    expect(css).toMatch(/\.dice-bust-flash \.dice-turn-chip-busted/);
+    expect(css).toMatch(/\.dice-bust-flash \.dice-ticker-item-busted/);
   });
 
   it("keeps admin notice host-only", () => {
