@@ -4,6 +4,7 @@
  * Deploy with: npx wrangler deploy  (see wrangler.jsonc)
  */
 import { routePartykitRequest, Server, type Connection } from "partyserver";
+import { ProfileHub } from "./profile-hub";
 import {
   emptyRoomState,
   normalizePick,
@@ -258,12 +259,15 @@ const ROOM_ABANDON_MS = 15 * 60 * 1000;
 
 export type Env = {
   Main: DurableObjectNamespace<QuarryServer>;
+  Profiles: DurableObjectNamespace<ProfileHub>;
   JUDGE_URL?: string;
   JUDGE_SECRET?: string;
   /** Optional. When set, non-host admin calls must present this pin. Host always allowed. */
   ADMIN_PIN?: string;
   NEXT_PUBLIC_APP_URL?: string;
 };
+
+export { ProfileHub };
 
 export class QuarryServer extends Server<Env> {
   state: RoomState = emptyRoomState("ROOM");
@@ -3600,6 +3604,11 @@ export class QuarryServer extends Server<Env> {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
+    const url = new URL(request.url);
+    if (url.pathname === "/profiles" || url.pathname.startsWith("/profiles/")) {
+      const id = env.Profiles.idFromName("hub");
+      return env.Profiles.get(id).fetch(request);
+    }
     return (
       (await routePartykitRequest(request, env)) ||
       new Response("Not Found", { status: 404 })

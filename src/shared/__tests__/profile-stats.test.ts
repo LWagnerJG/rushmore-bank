@@ -57,6 +57,7 @@ describe("profile stats persistence", () => {
       gamesPlayed: 1,
       bestScore: 42,
       winStreak: 1,
+      totalBeans: 42,
     });
     expect(recordGameResult({ clientId, gameId, score: 99, won: true })).toBe(
       null,
@@ -140,6 +141,8 @@ describe("profile chrome wiring", () => {
     expect(sheet).toMatch(/Host options/);
     expect(sheet).toMatch(/Party Mode/);
     expect(sheet).not.toMatch(/Off by default/);
+    expect(sheet).toMatch(/pullProfileStatsFromServer/);
+    expect(sheet).not.toMatch(/Move stats|restore stats|Restore by code/i);
     expect(brand).not.toMatch(/aria-label=\{onLogoTap \? "Settings"/);
     expect(hook).toMatch(/recordGameResult/);
     expect(hook).toMatch(/GAME_RESULTS/);

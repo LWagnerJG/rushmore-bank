@@ -14,9 +14,15 @@
   "compatibility_date": "2025-06-01",
   "compatibility_flags": ["nodejs_compat"],
   "durable_objects": {
-    "bindings": [{ "name": "Main", "class_name": "QuarryServer" }]
+    "bindings": [
+      { "name": "Main", "class_name": "QuarryServer" },
+      { "name": "Profiles", "class_name": "ProfileHub" }
+    ]
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["QuarryServer"] }],
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["QuarryServer"] },
+    { "tag": "v2", "new_sqlite_classes": ["ProfileHub"] }
+  ],
   "vars": {
     "JUDGE_URL": "https://beans-game.vercel.app"
   }

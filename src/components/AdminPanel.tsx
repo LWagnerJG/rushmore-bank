@@ -9,6 +9,10 @@ import {
 import { RULES } from "@/shared/rules";
 import { BOT_MAX_PER_ADD, parseBotCountDraft } from "@/shared/admin-bots";
 import { ADMIN_UNLOCK_KEY } from "@/lib/admin-session";
+import {
+  fetchAdminProfileSummary,
+  type AdminProfileRow,
+} from "@/lib/profile-stats";
 
 const ADMIN_KEY = ADMIN_UNLOCK_KEY;
 
@@ -52,6 +56,10 @@ export function AdminTools({
   const [botCountDraft, setBotCountDraft] = useState("2");
   const [lastAdded, setLastAdded] = useState<number | null>(null);
   const [servingLine, setServingLine] = useState<string | null>(null);
+  const [cloudProfiles, setCloudProfiles] = useState<{
+    profileCount: number;
+    top: AdminProfileRow[];
+  } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const slotsLeft = Math.max(0, RULES.maxPlayers - playerCount);
@@ -81,6 +89,10 @@ export function AdminTools({
       } catch {
         /* ignore */
       }
+    })();
+    void (async () => {
+      const summary = await fetchAdminProfileSummary();
+      if (!cancelled) setCloudProfiles(summary);
     })();
     return () => {
       cancelled = true;
@@ -174,6 +186,30 @@ export function AdminTools({
           {lastAdded !== null ? ` Last added ${lastAdded}.` : ""}
         </p>
       </div>
+
+      {cloudProfiles ? (
+        <div className="admin-cloud-stats">
+          <p className="text-[0.7rem] font-extrabold uppercase tracking-wide text-[var(--muted)]">
+            Cloud profiles · {cloudProfiles.profileCount}
+          </p>
+          {cloudProfiles.top.length === 0 ? (
+            <p className="text-[0.65rem] text-[var(--muted)]">No games synced yet.</p>
+          ) : (
+            <ul className="admin-cloud-list">
+              {cloudProfiles.top.slice(0, 5).map((row) => (
+                <li key={row.deviceId}>
+                  <span className="font-bold">
+                    {row.nickname?.trim() || row.deviceId.slice(0, 8)}
+                  </span>
+                  <span className="text-[var(--muted)]">
+                    {row.wins}W · {row.gamesPlayed}G · best {row.bestScore}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ) : null}
 
       {servingLine ? (
         <p className="admin-serving type-meta text-[var(--muted)]">{servingLine}</p>
