@@ -6,10 +6,13 @@
  * - Icons/images: stale-while-revalidate
  * - /api/version: never cache
  * - skipWaiting + clients.claim on activate; wipe old cache buckets
+ * - Bound cache size so network-first JS/CSS cannot grow forever on iPhone
  */
 
-/* Bump when shipping compositor/CSS fixes so installed PWAs drop old bundles. */
-const CACHE = "beans-shell-v4";
+/* Bump when shipping compositor/CSS/SW policy fixes so installed PWAs drop old bundles. */
+const CACHE = "beans-shell-v5";
+/** Cap shell cache entries (HTML + JS/CSS + icons). Oldest trimmed first. */
+const MAX_CACHE_ENTRIES = 80;
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
@@ -45,6 +48,17 @@ function isCodeAsset(url) {
   );
 }
 
+async function putBounded(cache, request, response) {
+  await cache.put(request, response);
+  const keys = await cache.keys();
+  if (keys.length <= MAX_CACHE_ENTRIES) return;
+  const overflow = keys.length - MAX_CACHE_ENTRIES;
+  for (let i = 0; i < overflow; i++) {
+    const oldest = keys[i];
+    if (oldest) await cache.delete(oldest);
+  }
+}
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
@@ -69,7 +83,7 @@ self.addEventListener("fetch", (event) => {
           const fresh = await fetch(request, { cache: "no-store" });
           const copy = fresh.clone();
           const cache = await caches.open(CACHE);
-          void cache.put(request, copy);
+          void putBounded(cache, request, copy);
           return fresh;
         } catch {
           const cached = await caches.match(request);
@@ -91,7 +105,7 @@ self.addEventListener("fetch", (event) => {
           const fresh = await fetch(request);
           if (fresh.ok) {
             const cache = await caches.open(CACHE);
-            void cache.put(request, fresh.clone());
+            void putBounded(cache, request, fresh.clone());
           }
           return fresh;
         } catch {
@@ -114,7 +128,7 @@ self.addEventListener("fetch", (event) => {
       const cached = await cache.match(request);
       const network = fetch(request)
         .then((res) => {
-          if (res.ok) void cache.put(request, res.clone());
+          if (res.ok) void putBounded(cache, request, res.clone());
           return res;
         })
         .catch(() => cached);

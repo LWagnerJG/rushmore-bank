@@ -14,11 +14,14 @@ export function BeanAvatar({
   seed,
   size = 28,
   className = "",
+  /** Prefer high for the always-visible profile mark; picker stays low. */
+  priority = false,
 }: {
   id?: string | null;
   seed?: string;
   size?: number;
   className?: string;
+  priority?: boolean;
 }) {
   const resolved: BeanAvatarId = normalizeAvatarId(id, seed ?? "bean");
   const label = BEAN_AVATAR_LABELS[resolved];
@@ -36,7 +39,9 @@ export function BeanAvatar({
         width={size}
         height={size}
         draggable={false}
-        decoding="async"
+        decoding={priority ? "sync" : "async"}
+        loading={priority ? "eager" : "lazy"}
+        fetchPriority={priority ? "high" : "low"}
       />
     </span>
   );
