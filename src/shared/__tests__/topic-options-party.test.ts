@@ -24,7 +24,7 @@ describe("topic host Options tuck", () => {
     expect(topic).toMatch(/topic-rounds-chip/);
     expect(topic).toMatch(/topic-vibe-chip/);
     // Collapsed by default — optionsOpen starts false
-    expect(topic).toMatch(/useState\(false\)/);
+    expect(topic).toMatch(/const \[optionsOpen, setOptionsOpen\] = useState\(false\)/);
     const toggle = css.match(/\.topic-options-toggle\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
     expect(toggle).toMatch(/min-height:\s*var\(--tap-min\)/);
     expect(toggle).not.toMatch(/blur\s*\(/);

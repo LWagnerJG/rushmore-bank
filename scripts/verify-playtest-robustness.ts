@@ -314,6 +314,89 @@ async function hostStickyAndNetwork(browser: Browser) {
   }
 }
 
+async function assertChipOn(page: Page, sel: string, label: string) {
+  const pressed = await page.locator(sel).getAttribute("aria-pressed");
+  if (pressed !== "true") {
+    throw new Error(`${label} not selected (aria-pressed=${pressed})`);
+  }
+}
+
+async function topicReselect(browser: Browser) {
+  const code = roomCode();
+  const { ctx: hostCtx, page: host } = await newPage(browser);
+  const { ctx: guestCtx, page: guest } = await newPage(browser);
+  try {
+    await host.goto(`${BASE}/room/${code}?name=Luke`, {
+      waitUntil: "domcontentloaded",
+      timeout: 60000,
+    });
+    await guest.goto(`${BASE}/room/${code}?name=Ava`, {
+      waitUntil: "domcontentloaded",
+      timeout: 60000,
+    });
+    await host.locator(".lobby-roster").waitFor({ timeout: 30000 });
+    await guest.locator(".lobby-roster").waitFor({ timeout: 30000 });
+
+    await host.getByRole("button", { name: /Start/i }).click();
+    await host.locator(".topic-layout").waitFor({ timeout: 20000 });
+    await guest.locator(".topic-layout").waitFor({ timeout: 20000 });
+
+    const toggle = host.locator(".topic-options-toggle");
+    await toggle.click();
+    await host.locator(".topic-options-body").waitFor();
+
+    for (const n of [4, 5, 6, 3, 5]) {
+      await host.locator(`.topic-rounds-chip[data-rounds="${n}"]`).click();
+      await host.waitForFunction(
+        `document.querySelector('.topic-rounds-chip[data-rounds="${n}"]')?.getAttribute('aria-pressed') === 'true'`,
+        { timeout: 8000 },
+      );
+      await assertChipOn(
+        host,
+        `.topic-rounds-chip[data-rounds="${n}"]`,
+        `rounds ${n}`,
+      );
+    }
+
+    for (const vibe of ["sports", "basic", "all", "geography", "sports"]) {
+      await host.locator(`.topic-vibe-chip[data-vibe="${vibe}"]`).click();
+      await host.waitForFunction(
+        `document.querySelector('.topic-vibe-chip[data-vibe="${vibe}"]')?.getAttribute('aria-pressed') === 'true'`,
+        { timeout: 8000 },
+      );
+      await assertChipOn(
+        host,
+        `.topic-vibe-chip[data-vibe="${vibe}"]`,
+        `vibe ${vibe}`,
+      );
+    }
+
+    // Pick a topic, then change rounds again — must still land.
+    const choice = host.locator(".topic-choice").first();
+    await choice.click();
+    await host.locator(".topic-choice-selected").waitFor({ timeout: 8000 });
+    await host.locator('.topic-rounds-chip[data-rounds="6"]').click();
+    await host.waitForFunction(
+      `document.querySelector('.topic-rounds-chip[data-rounds="6"]')?.getAttribute('aria-pressed') === 'true'`,
+      { timeout: 8000 },
+    );
+
+    // Options must close and reopen.
+    await toggle.click();
+    if (await host.locator(".topic-options-body").count()) {
+      throw new Error("Options stayed open after toggle close");
+    }
+    await toggle.click();
+    await host.locator(".topic-options-body").waitFor({ timeout: 5000 });
+    await assertChipOn(host, '.topic-rounds-chip[data-rounds="6"]', "rounds 6 after reopen");
+
+    await shot(host, "topic-reselect-host.png");
+  } finally {
+    await hostCtx.close();
+    await guestCtx.close();
+  }
+}
+
 async function main() {
   mkdirSync(OUT, { recursive: true });
   const browser = await webkit.launch();
@@ -322,6 +405,7 @@ async function main() {
     for (const [name, fn] of [
       ["dice-lab-numbers", () => diceLab(browser)],
       ["dice-stuck-roll", () => diceStuckRoll(browser)],
+      ["topic-reselect", () => topicReselect(browser)],
       ["host-offline-resync", () => hostStickyAndNetwork(browser)],
     ] as const) {
       try {
