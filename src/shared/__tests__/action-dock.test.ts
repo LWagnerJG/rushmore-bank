@@ -294,7 +294,8 @@ describe("docks can travel the whole screen", () => {
     expect(rootToken(css, "phase-pad-b")).toBe(
       "max(0.75rem, env(safe-area-inset-bottom, 0px))",
     );
-    expect(room.match(/phase-panel flex min-h-full flex-col pb-\[var\(--phase-pad-b\)\]/g)).toHaveLength(2);
+    // One phase-panel wrapper (MotionSettle covers every phase including scores).
+    expect(room.match(/phase-panel flex min-h-full flex-col pb-\[var\(--phase-pad-b\)\]/g)).toHaveLength(1);
     expect(css).toMatch(
       /\.phase-sticky-cta:last-child\s*\{\s*margin-bottom:\s*calc\(-1 \* var\(--phase-pad-b\)\);/,
     );

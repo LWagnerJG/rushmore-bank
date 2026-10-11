@@ -100,11 +100,9 @@ describe("iOS chrome + keyboard CSS contracts", () => {
   });
 
   it("does not leave enter animations with fill-mode forwards/both", () => {
+    // Home + phase share one rule (unified 200ms screen-enter).
     expect(css).toMatch(
-      /\.animate-rise\s*\{[\s\S]*?animation-fill-mode:\s*none/,
-    );
-    expect(css).toMatch(
-      /\.phase-enter\s*\{[\s\S]*?animation-fill-mode:\s*none/,
+      /\.animate-rise,\s*\n?\s*\.phase-enter\s*\{[\s\S]*?animation-fill-mode:\s*none/,
     );
     expect(css).toMatch(
       /\.score-land\s*\{[\s\S]*?animation-fill-mode:\s*none/,
@@ -115,9 +113,11 @@ describe("iOS chrome + keyboard CSS contracts", () => {
     );
     const decls = (block: string) =>
       block.replace(/\/\*[\s\S]*?\*\//g, "").match(/animation[^;]*;/g) ?? [];
-    const riseBlock = css.match(/\.animate-rise\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
-    const phaseBlock = css.match(/\.phase-enter\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
-    for (const d of [...decls(riseBlock), ...decls(phaseBlock)]) {
+    const enterBlock =
+      css.match(
+        /\.animate-rise,\s*\n?\s*\.phase-enter\s*\{[\s\S]*?\n\}/,
+      )?.[0] ?? "";
+    for (const d of decls(enterBlock)) {
       expect(d).not.toMatch(/forwards|\bboth\b/);
     }
   });
