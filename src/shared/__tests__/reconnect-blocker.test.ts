@@ -19,11 +19,12 @@ describe("fast reconnect + interaction block", () => {
     expect(hook).toMatch(/connectionTimeout:\s*2_500/);
   });
 
-  it("force-reconnects on close and on failed send", () => {
+  it("force-reconnects on close and queues sends while CONNECTING", () => {
     expect(hook).toMatch(/onClose\(\)\s*\{[\s\S]*setErrorRaw\("Reconnecting…"/);
     expect(hook).toMatch(/socket\.reconnect\(\)/);
+    expect(hook).toMatch(/enqueueWhileConnecting/);
     expect(hook).toMatch(
-      /readyState !== WebSocket\.OPEN[\s\S]*forceReconnect\(\)/,
+      /readyState !== WebSocket\.CONNECTING[\s\S]*forceReconnect\(\)/,
     );
   });
 

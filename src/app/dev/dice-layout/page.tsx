@@ -121,6 +121,7 @@ function baseState(): PublicRoomState {
     bustedPlayerIdsThisRound: [],
     phaseDeadlineAt: null,
     hostLastSeenAt: Date.now(),
+    stateVersion: 1,
     gameOver: false,
     notice: null,
   };

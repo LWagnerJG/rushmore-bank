@@ -218,6 +218,7 @@ export function projectPublicStateShared(
     bustedPlayerIdsThisRound: [...(state.bustedPlayerIdsThisRound ?? [])],
     phaseDeadlineAt: state.phaseDeadlineAt,
     hostLastSeenAt: state.hostLastSeenAt,
+    stateVersion: state.stateVersion ?? 0,
     gameOver: state.gameOver,
     notice: state.notice,
   };

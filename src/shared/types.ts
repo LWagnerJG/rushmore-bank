@@ -280,6 +280,8 @@ export interface RoomState {
   } | null;
   phaseDeadlineAt: number | null;
   hostLastSeenAt: number;
+  /** Monotonic broadcast sequence — increments on every room fanout. */
+  stateVersion: number;
   processedActionIds: string[];
   gameOver: boolean;
   notice: string | null;
@@ -371,6 +373,8 @@ export interface PublicRoomState {
   bustedPlayerIdsThisRound: string[];
   phaseDeadlineAt: number | null;
   hostLastSeenAt: number;
+  /** Monotonic broadcast sequence (gaps → client resync). */
+  stateVersion: number;
   gameOver: boolean;
   notice: string | null;
 }
@@ -411,6 +415,10 @@ export type ClientMessage =
   | { type: "bank_the_beans"; actionId?: string }
   | { type: "advance"; actionId?: string }
   | { type: "host_heartbeat"; actionId?: string }
+  /** Full-state pull when the client detects a seq gap or resumes. */
+  | { type: "resync"; lastVersion?: number; actionId?: string }
+  /** RTT + dead-socket probe. Server replies `pong` and does not persist. */
+  | { type: "ping"; t: number; actionId?: string }
   | { type: "skip_review"; actionId?: string }
   /** Host-only: remove a player from the lobby before the game starts. */
   | { type: "remove_player"; playerId: string; actionId?: string }
@@ -431,9 +439,10 @@ export type ClientMessage =
     };
 
 export type ServerMessage =
-  | { type: "state"; state: PublicRoomState; youId: string }
+  | { type: "state"; state: PublicRoomState; youId: string; seq?: number }
   | { type: "error"; message: string; code?: "REMOVED_FROM_LOBBY" }
-  | { type: "joined"; youId: string; state: PublicRoomState };
+  | { type: "joined"; youId: string; state: PublicRoomState; seq?: number }
+  | { type: "pong"; t: number; serverT: number };
 
 export function phaseLabel(phase: Phase): string {
   switch (phase) {
@@ -560,6 +569,7 @@ export function emptyRoomState(code: string): RoomState {
     checkpoint: null,
     phaseDeadlineAt: null,
     hostLastSeenAt: Date.now(),
+    stateVersion: 0,
     processedActionIds: [],
     gameOver: false,
     notice: null,

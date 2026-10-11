@@ -10,6 +10,9 @@ export function mergePublicState(
   next: PublicRoomState,
 ): PublicRoomState {
   if (!prev) return next;
+  const prevV = prev.stateVersion ?? 0;
+  const nextV = next.stateVersion ?? 0;
+  if (nextV > 0 && prevV > 0 && nextV < prevV) return prev;
   if (next.phase !== "DICE") return next;
   // Only merge when we already had a richer snapshot from this room.
   if (prev.code !== next.code) return next;
