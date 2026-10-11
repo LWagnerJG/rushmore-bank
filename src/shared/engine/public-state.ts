@@ -4,11 +4,25 @@
 import type {
   DiceBroadcast,
   HostAiJudgeHealth,
+  Phase,
   PublicDiceBroadcast,
   PublicRoomState,
   RoomState,
 } from "../types";
 import { RULES } from "../rules";
+
+/**
+ * Phases whose UI never reads draft picks / judge scores / topic cards.
+ * Server omits those arrays; clients merge from the prior snapshot.
+ */
+export function phaseOmitsDraftJudgePayload(phase: Phase): boolean {
+  return (
+    phase === "DICE" ||
+    phase === "WAGER_SELECTION" ||
+    phase === "ROUND_RESULTS" ||
+    phase === "GAME_RESULTS"
+  );
+}
 
 function stripDiceForPublic(dice: DiceBroadcast | null): PublicDiceBroadcast | null {
   if (!dice) return null;
@@ -141,9 +155,11 @@ export function projectPublicStateShared(
     .filter((p) => !!state.rematchReady?.[p.id])
     .map((p) => p.id);
 
-  // Dice turns rebroadcast often (roll / settle / next seat). Strip heavy
-  // draft+judge payloads — clients merge from the prior snapshot (see useGameRoom).
-  const diceSlim = state.phase === "DICE";
+  // Late-round phases rebroadcast often (wager locks, dice ticks, rematch).
+  // Strip heavy draft+judge payloads — clients merge from the prior snapshot.
+  const payloadSlim = phaseOmitsDraftJudgePayload(state.phase);
+  // Topic cards are only rendered during TOPIC_SELECTION.
+  const topicSlim = state.phase !== "TOPIC_SELECTION";
 
   return {
     code: state.code,
@@ -157,8 +173,8 @@ export function projectPublicStateShared(
     configuredTopicRounds: state.configuredTopicRounds,
     // usedTopicIds / draftOptions / full ledger / checkpoint stay server-side —
     // they were unused by the UI and dominated late-game WS payloads.
-    topicOptions: diceSlim ? [] : state.topicOptions.map((t) => ({ ...t })),
-    topicVoteCounts: diceSlim ? {} : topicVoteCounts,
+    topicOptions: topicSlim ? [] : state.topicOptions.map((t) => ({ ...t })),
+    topicVoteCounts: topicSlim ? {} : topicVoteCounts,
     selectedTopic: state.selectedTopic ? { ...state.selectedTopic } : null,
     topicRerollsUsed: state.topicRerollsUsed,
     seenTopicCount: Array.isArray(state.seenTopicIds)
@@ -168,8 +184,8 @@ export function projectPublicStateShared(
     starterOffset: state.starterOffset,
     draftCursor: state.draftCursor,
     draftOrder: [...state.draftOrder],
-    picks: diceSlim ? [] : state.picks.map((p) => ({ ...p })),
-    takenNormalized: diceSlim ? [] : [...state.takenNormalized],
+    picks: payloadSlim ? [] : state.picks.map((p) => ({ ...p })),
+    takenNormalized: payloadSlim ? [] : [...state.takenNormalized],
     draftOptionsStatus: state.draftOptionsStatus,
     pickDeadlineAt: state.pickDeadlineAt,
     pickPaused: state.pickPaused,
@@ -179,15 +195,15 @@ export function projectPublicStateShared(
     correctionPickIndex: state.correctionPickIndex,
     humanVotesCast,
     humanVotesNeeded,
-    humanVotedIds: diceSlim ? [] : humanVotedIds,
-    scores: diceSlim ? [] : scores,
+    humanVotedIds: payloadSlim ? [] : humanVotedIds,
+    scores: payloadSlim ? [] : scores,
     scoresLocked: state.scoresLocked,
     judgeStatus: state.judgeStatus,
     judgeNotice: state.judgeNotice,
-    rushmoreWhy: diceSlim ? {} : rushmoreWhy,
+    rushmoreWhy: payloadSlim ? {} : rushmoreWhy,
     bankBeansReadyCast: bankCast,
     bankBeansReadyNeeded: bankNeeded,
-    bankBeansReadyIds: diceSlim ? [] : bankBeansReadyIds,
+    bankBeansReadyIds: payloadSlim ? [] : bankBeansReadyIds,
     rematchReadyCast: rematchReadyIds.length,
     rematchReadyNeeded: rematchPool.length,
     rematchReadyIds,

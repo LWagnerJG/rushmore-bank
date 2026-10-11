@@ -2,6 +2,8 @@
  * Shared PartySocket helpers for programmatic smokes against PartyServer.
  */
 import PartySocket from "partysocket";
+import { mergePublicState } from "../src/shared/engine/merge-public-state";
+import type { PublicRoomState } from "../src/shared/types";
 
 export const DEFAULT_PARTY_HOST = "beans-party.beans-lwagner.workers.dev";
 /** Optional worker ADMIN_PIN; host-only admin works when unset (local wrangler). */
@@ -91,7 +93,12 @@ export class SmokeClient {
         return;
       }
       if (msg.type === "state" || msg.type === "joined") {
-        if (msg.state) this.state = msg.state;
+        if (msg.state) {
+          this.state = mergePublicState(
+            this.state as PublicRoomState | null,
+            msg.state as PublicRoomState,
+          ) as PublicState;
+        }
         if (msg.youId) this.youId = msg.youId;
         this.wake();
       }

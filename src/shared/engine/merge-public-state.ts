@@ -1,9 +1,10 @@
 import type { PublicRoomState } from "../types";
+import { phaseOmitsDraftJudgePayload } from "./public-state";
 
 /**
  * Merge a server public snapshot onto the previous client snapshot.
- * During DICE the server omits heavy draft/judge fields (empty arrays /
- * objects) so WS payloads stay small — restore them from `prev`.
+ * Late-round phases omit heavy draft/judge fields (empty arrays / objects)
+ * so WS payloads stay small — restore them from `prev`.
  */
 export function mergePublicState(
   prev: PublicRoomState | null,
@@ -13,7 +14,7 @@ export function mergePublicState(
   const prevV = prev.stateVersion ?? 0;
   const nextV = next.stateVersion ?? 0;
   if (nextV > 0 && prevV > 0 && nextV < prevV) return prev;
-  if (next.phase !== "DICE") return next;
+  if (!phaseOmitsDraftJudgePayload(next.phase)) return next;
   // Only merge when we already had a richer snapshot from this room.
   if (prev.code !== next.code) return next;
 
