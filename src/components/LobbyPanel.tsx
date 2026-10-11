@@ -5,6 +5,7 @@ import { QRCodeSVG } from "qrcode.react";
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
 import { RULES } from "@/shared/rules";
 import { shareInvite } from "@/lib/share-invite";
+import { inviteUrl } from "@/shared/install-join";
 import { HostAiPreGameStatus } from "@/components/HostAiPreGameStatus";
 import { StatsMergePrompt } from "@/components/StatsMergePrompt";
 import { BeanAvatar } from "@/components/BeanAvatar";
@@ -130,8 +131,8 @@ export function LobbyPanel({
   const [copied, setCopied] = useState(false);
   const url =
     typeof window !== "undefined"
-      ? `${window.location.origin}/room/${state.code}`
-      : `${RULES.productionUrl}/room/${state.code}`;
+      ? inviteUrl(window.location.origin, state.code)
+      : inviteUrl(RULES.productionUrl, state.code);
 
   useEffect(() => {
     const deviceId = getStableClientId();

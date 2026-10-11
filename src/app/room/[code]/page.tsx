@@ -1,5 +1,19 @@
+import type { Metadata } from "next";
 import { normalizeRoomCode } from "@/shared/types";
-import { RoomClient } from "@/components/RoomClient";
+import { roomManifestHref } from "@/shared/web-manifest";
+import { JoinRoomEntry } from "@/components/JoinRoomEntry";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ code: string }>;
+}): Promise<Metadata> {
+  const { code: raw } = await params;
+  return {
+    title: `Room ${normalizeRoomCode(raw)}`,
+    manifest: roomManifestHref(raw),
+  };
+}
 
 export default async function RoomPage({
   params,
@@ -12,7 +26,7 @@ export default async function RoomPage({
   const sp = await searchParams;
   const code = normalizeRoomCode(raw);
   return (
-    <RoomClient
+    <JoinRoomEntry
       code={code}
       presetName={sp.name ?? ""}
       preferSpectate={sp.spectate === "1"}
