@@ -9,3 +9,6 @@
 
 /site.webmanifest
   Cache-Control: public,max-age=0,must-revalidate
+
+/manifest.webmanifest
+  Cache-Control: public,max-age=0,must-revalidate

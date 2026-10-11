@@ -38,7 +38,7 @@ export const metadata: Metadata = {
   },
   description,
   applicationName: "Beans",
-  manifest: `/site.webmanifest?v=${ICON_V}`,
+  manifest: "/manifest.webmanifest",
   icons: {
     icon: [
       { url: `/favicon.ico?v=${ICON_V}`, sizes: "any" },

@@ -109,6 +109,20 @@ export default function HomePage() {
     if (!profileOpen) setAvatarId(loadAvatarId());
   }, [profileOpen]);
 
+  // Full navigation so iOS fetches the room-scoped manifest (not a client route).
+  useEffect(() => {
+    try {
+      const room = normalizeRoomCode(
+        new URLSearchParams(window.location.search).get("room") ?? "",
+      );
+      if (room.length === 4) {
+        window.location.replace(`/join/${room}`);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   // Durable device id + pull cloud stats (no login).
   useEffect(() => {
     void (async () => {

@@ -27,6 +27,7 @@
     "cf-typegen": "wrangler types --config wrangler.web.jsonc --env-interface CloudflareEnv cloudflare-env.d.ts",
     "verify:dice": "tsx scripts/verify-dice-settle.ts",
     "verify:web": "tsx scripts/verify-beans-web.ts",
+    "verify:install": "tsx scripts/verify-install-join.ts",
     "test:playtest": "tsx scripts/verify-playtest-robustness.ts"
   },
   "dependencies": {
