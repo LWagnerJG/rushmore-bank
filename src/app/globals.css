@@ -4977,9 +4977,9 @@ html.party-on .draft-board-cell-mine {
 }
 .profile-stats {
   display: grid;
-  grid-template-columns: 1.15fr repeat(4, 1fr);
-  gap: var(--space-2);
-  padding: 0.15rem 0 0.1rem;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2) var(--space-3);
+  padding: 0.2rem 0 0.15rem;
 }
 .profile-stat {
   display: flex;

@@ -217,6 +217,12 @@ export function SettingsSheet({
                   </span>
                   <span className="profile-stat-label">Streak</span>
                 </div>
+                <div className="profile-stat">
+                  <span className="profile-stat-value tabular-nums">
+                    {stats.totalBeans}
+                  </span>
+                  <span className="profile-stat-label">Beans</span>
+                </div>
               </div>
             ) : (
               <p className="profile-stats-empty" aria-label="All-time stats">
