@@ -10,7 +10,11 @@
  * - BEAN BUSTER / result readout must use the same revealed rollId as the tray.
  */
 import type { DiceSubphase, PublicDiceBroadcast } from "../types";
+import { RULES } from "../rules";
 import { rollNetBeansAdded } from "./dice";
+
+/** After `animSettleAt`, the client must land within this many ms. */
+export const DICE_HARD_LAND_MS = RULES.diceHardLandMs;
 
 export type DicePresentPhase =
   | { kind: "idle"; d1: number; d2: number }
@@ -194,6 +198,58 @@ export function resolveDicePresentPhase(
     startedAt: broadcast.animStartedAt,
     settleAt: broadcast.animSettleAt,
   };
+}
+
+/** Instant the server was supposed to reveal this roll. */
+export function diceRevealDueAt(
+  broadcast: Pick<PublicDiceBroadcast, "animSettleAt">,
+): number {
+  return broadcast.animSettleAt;
+}
+
+/** Instant the client must have landed (or snapped) this roll. */
+export function diceHardLandAt(
+  broadcast: Pick<PublicDiceBroadcast, "animSettleAt">,
+): number {
+  return broadcast.animSettleAt + DICE_HARD_LAND_MS;
+}
+
+/**
+ * True when faces are still secret past the server settle time.
+ * Client must resync — it cannot invent a face.
+ */
+export function diceRevealOverdue(
+  broadcast: PublicDiceBroadcast | null | undefined,
+  now: number,
+): boolean {
+  if (!broadcast) return false;
+  if (authoritativeFaces(broadcast)) return false;
+  return now >= diceRevealDueAt(broadcast);
+}
+
+/** True once the hard-land window has elapsed (snap if faces exist; keep nudging if not). */
+export function diceHardLandOverdue(
+  broadcast: PublicDiceBroadcast | null | undefined,
+  now: number,
+): boolean {
+  if (!broadcast) return false;
+  return now >= diceHardLandAt(broadcast);
+}
+
+/**
+ * ms until the next client nudge (settle due, then hard land).
+ * `0` = nudge now. `null` = already landed / no roll.
+ */
+export function diceNextNudgeDelayMs(
+  broadcast: PublicDiceBroadcast | null | undefined,
+  now: number,
+): number | null {
+  if (!broadcast || authoritativeFaces(broadcast)) return null;
+  const due = diceRevealDueAt(broadcast);
+  const hard = diceHardLandAt(broadcast);
+  if (now >= hard) return 0;
+  if (now >= due) return hard - now;
+  return due - now;
 }
 
 /** @deprecated Kept for older tests; 2D tray no longer uses progress caps. */

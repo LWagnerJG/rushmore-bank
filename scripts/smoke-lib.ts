@@ -38,6 +38,13 @@ export type PublicState = {
   diceSubphase?: string;
   diceTurnSeat?: number;
   diceActiveIds?: string[];
+  lastDice?: {
+    rollId: string;
+    revealed?: boolean;
+    d1?: number;
+    d2?: number;
+    animSettleAt?: number;
+  } | null;
   pots?: Record<string, number>;
   personalRollCounts?: Record<string, number>;
   gameOver?: boolean;

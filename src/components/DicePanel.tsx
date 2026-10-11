@@ -6,6 +6,10 @@ import { DiceScene } from "@/components/dice/DiceScene";
 import { TimerPill } from "@/components/TimerPill";
 import { classifyPullOut } from "@/shared/engine/banking";
 import {
+  authoritativeFaces,
+  diceHardLandAt,
+  diceNextNudgeDelayMs,
+  diceRevealOverdue,
   liveReadoutRoll,
   resolveDiceReadout,
   type DiceReadoutRoll,
@@ -294,6 +298,38 @@ export function DicePanel({
   );
   const last = state.lastDice;
   const liveRoll = liveReadoutRoll(last);
+
+  // If the settle broadcast never arrives (lost alarm, hidden tab, reduced
+  // motion skipping animationend), poke the server at settleAt and again at
+  // settleAt + hard-land. The server auto-resolves overdue COMMITTED rolls.
+  useEffect(() => {
+    if (!last || last.revealed || authoritativeFaces(last)) return;
+    let timer: number | undefined;
+    const nudge = () => send({ type: "resync" });
+    const arm = (at: number) => {
+      const delay = Math.max(0, at - Date.now());
+      timer = window.setTimeout(() => {
+        nudge();
+        const hard = diceHardLandAt(last);
+        if (Date.now() < hard) arm(hard);
+      }, delay);
+    };
+    const first = diceNextNudgeDelayMs(last, Date.now());
+    if (first != null) arm(Date.now() + first);
+    const onVis = () => {
+      if (document.visibilityState !== "visible") return;
+      if (diceRevealOverdue(last, Date.now())) nudge();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("pageshow", onVis);
+    window.addEventListener("focus", onVis);
+    return () => {
+      if (timer != null) window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("pageshow", onVis);
+      window.removeEventListener("focus", onVis);
+    };
+  }, [last, send]);
 
   // Sticky prior roll for tumble gaps — adjust during render so SETTLED never
   // paints a stale sticky bust/total for one frame (React-approved pattern).

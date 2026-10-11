@@ -2,7 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { PublicDiceBroadcast } from "@/shared/types";
-import { resolveDicePresentPhase } from "@/shared/engine/dice-present";
+import {
+  diceHardLandAt,
+  resolveDicePresentPhase,
+} from "@/shared/engine/dice-present";
 import {
   DIE_PIP_CLASS,
   diePaintModel,
@@ -124,6 +127,7 @@ export function DiceScene({
   const lastTick = useRef(0);
   const settleRollId = useRef<string | null>(null);
   const [punch, setPunch] = useState(false);
+  const [hardSnap, setHardSnap] = useState(false);
   const [scramble, setScramble] = useState<{ d1: DieFace; d2: DieFace } | null>(
     null,
   );
@@ -134,13 +138,26 @@ export function DiceScene({
   );
   const rolling = phase.kind === "tumbling";
   const revealed = phase.kind === "settled";
+
+  // Never wait on animationend — hidden tabs and prefers-reduced-motion skip
+  // it. Faces land the frame they arrive; past the hard deadline we freeze
+  // the scramble so the tray cannot tumble forever.
+  useEffect(() => {
+    if (!rolling || !broadcast) {
+      setHardSnap(false);
+      return;
+    }
+    const delay = Math.max(0, diceHardLandAt(broadcast) - Date.now());
+    const id = window.setTimeout(() => setHardSnap(true), delay);
+    return () => window.clearTimeout(id);
+  }, [rolling, broadcast]);
   const rollId = phase.kind === "idle" ? null : phase.rollId;
   const scrambleSeed = phase.kind === "tumbling" ? phase.seed : 0;
 
   // Scramble via React state + validated faces — never imperative SVG appends.
   // When not tumbling, tray ignores scramble (no sync setState clear → no cascade).
   useEffect(() => {
-    if (!rolling || reducedMotion) return;
+    if (!rolling || reducedMotion || hardSnap) return;
     const started = performance.now();
     const tick = () => {
       const n = Math.max(
@@ -152,7 +169,7 @@ export function DiceScene({
     tick();
     const id = window.setInterval(tick, SCRAMBLE_TICK_MS);
     return () => window.clearInterval(id);
-  }, [rolling, rollId, reducedMotion, scrambleSeed]);
+  }, [rolling, rollId, reducedMotion, scrambleSeed, hardSnap]);
 
   const tray = resolveTrayPaint(
     phase,
@@ -261,17 +278,17 @@ export function DiceScene({
           <PipDie
             face={paintD1}
             index={0}
-            tumbling={rolling && !reducedMotion}
-            scrambling={tray.scrambling}
-            settled={!tray.scrambling && paintD1 != null}
+            tumbling={rolling && !reducedMotion && !hardSnap}
+            scrambling={tray.scrambling && !hardSnap}
+            settled={revealed || (hardSnap && paintD1 != null)}
             settlePunch={false}
           />
           <PipDie
             face={paintD2}
             index={1}
-            tumbling={rolling && !reducedMotion}
-            scrambling={tray.scrambling}
-            settled={!tray.scrambling && paintD2 != null}
+            tumbling={rolling && !reducedMotion && !hardSnap}
+            scrambling={tray.scrambling && !hardSnap}
+            settled={revealed || (hardSnap && paintD2 != null)}
             settlePunch={false}
           />
         </div>

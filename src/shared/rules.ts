@@ -81,6 +81,11 @@ export const RULES = {
   diceIdleBankSeconds: 15,
   /** Shared tumble duration before authoritative reveal */
   diceAnimMs: 2400,
+  /**
+   * Client hard-land window after the server settle time. If the reveal
+   * broadcast is late or an animationend never fires, snap by this deadline.
+   */
+  diceHardLandMs: 1500,
   /** Hold SETTLED faces on screen before next READY / seat advance (kills settle-then-jump) */
   diceSettleHoldMs: 1100,
   /** Extra linger after BEAN BUSTER before next seat (intentional beat + fade) */
