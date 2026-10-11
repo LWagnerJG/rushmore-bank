@@ -192,7 +192,11 @@ async function hostStickyAndNetwork(browser: Browser) {
       );
     }
 
-    const avaIsHost = await guest.locator(".lobby-rename-host").count();
+    // Host star on *other* players also uses .lobby-rename-host — only the
+    // guest's own rename control means Ava stole host.
+    const avaIsHost = await guest
+      .locator(".lobby-rename-btn .lobby-rename-host")
+      .count();
     if (avaIsHost > 0) {
       throw new Error("guest stole host during the 2.5s offline blip");
     }
@@ -205,7 +209,9 @@ async function hostStickyAndNetwork(browser: Browser) {
     await sleep(400);
     await foreground(guest);
     await guest.locator(".lobby-roster").waitFor({ timeout: 15000 });
-    const avaIsHostAfterFg = await guest.locator(".lobby-rename-host").count();
+    const avaIsHostAfterFg = await guest
+      .locator(".lobby-rename-btn .lobby-rename-host")
+      .count();
     if (avaIsHostAfterFg > 0) {
       throw new Error("guest became host after background/foreground");
     }
