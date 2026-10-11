@@ -31,6 +31,7 @@ import { mergePublicState } from "@/shared/engine/merge-public-state";
 import {
   classifyStateVersion,
   enqueueWhileConnecting,
+  flushQueuedSends,
   makePing,
   pingRttMs,
   shouldApplyState,
@@ -259,20 +260,12 @@ export function useGameRoom(
           } satisfies ClientMessage),
         );
       }
-      const queued = outgoingQueueRef.current;
-      outgoingQueueRef.current = [];
-      for (const msg of queued) {
-        if (msg.type === "join" && resume) continue;
-        try {
-          socket.send(JSON.stringify(msg));
-        } catch {
-          outgoingQueueRef.current = enqueueWhileConnecting(
-            outgoingQueueRef.current,
-            msg,
-          );
-          break;
-        }
-      }
+      const queued = outgoingQueueRef.current.filter(
+        (msg) => !(msg.type === "join" && resume),
+      );
+      outgoingQueueRef.current = flushQueuedSends(queued, (msg) => {
+        socket.send(JSON.stringify(msg));
+      });
     },
     onClose() {
       setConnected(false);
@@ -307,7 +300,9 @@ export function useGameRoom(
         }
         if (msg.type === "state" || msg.type === "joined") {
           const incoming = versionFromMessage(msg);
-          const gap = classifyStateVersion(stateVersionRef.current, incoming);
+          const gap = classifyStateVersion(stateVersionRef.current, incoming, {
+            allowEqual: Boolean(msg.resync),
+          });
           if (!shouldApplyState(gap)) return;
           if (shouldRequestResync(gap)) {
             try {

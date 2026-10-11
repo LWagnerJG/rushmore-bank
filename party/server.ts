@@ -575,9 +575,17 @@ export class QuarryServer extends Server<Env> {
     });
   }
 
+  /** Increment + persist the seq, then fan out. Persist first so a DO wake
+   * cannot reuse the last delivered sequence (clients would reject it). */
   broadcastState() {
     this.state.stateVersion = (this.state.stateVersion ?? 0) + 1;
-    const seq = this.state.stateVersion;
+    void this.persist();
+    this.fanoutState();
+  }
+
+  /** Send the current version to every socket. Does not bump or persist. */
+  fanoutState() {
+    const seq = this.state.stateVersion ?? 0;
     // Project shared fields once; overlay recipient-private fields per conn.
     const shared = projectPublicStateShared(this.state, {
       gracePlayerIds: this.gracePlayerIds(),
@@ -611,10 +619,10 @@ export class QuarryServer extends Server<Env> {
     const seq = this.state.stateVersion ?? 0;
     const state = this.publicStateFor(conn.id);
     if (kind === "joined") {
-      this.send(conn, { type: "joined", youId: conn.id, state, seq });
+      this.send(conn, { type: "joined", youId: conn.id, state, seq, resync: true });
       return;
     }
-    this.send(conn, { type: "state", youId: conn.id, state, seq });
+    this.send(conn, { type: "state", youId: conn.id, state, seq, resync: true });
   }
 
   ensureHost() {
@@ -1081,8 +1089,9 @@ export class QuarryServer extends Server<Env> {
       }
       await this.handle(msg, sender.id, sender);
       this.recordAction(msg.actionId);
+      this.state.stateVersion = (this.state.stateVersion ?? 0) + 1;
       await this.persist();
-      this.broadcastState();
+      this.fanoutState();
       this.nudgeBots();
     } catch (e) {
       // Prefer short game-rule messages; never leak stacks / infra to clients.

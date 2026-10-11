@@ -449,9 +449,22 @@ export type ClientMessage =
     };
 
 export type ServerMessage =
-  | { type: "state"; state: PublicRoomState; youId: string; seq?: number }
+  | {
+      type: "state";
+      state: PublicRoomState;
+      youId: string;
+      seq?: number;
+      /** Point-to-point snapshot — apply even when seq equals last applied. */
+      resync?: boolean;
+    }
   | { type: "error"; message: string; code?: "REMOVED_FROM_LOBBY" }
-  | { type: "joined"; youId: string; state: PublicRoomState; seq?: number }
+  | {
+      type: "joined";
+      youId: string;
+      state: PublicRoomState;
+      seq?: number;
+      resync?: boolean;
+    }
   | { type: "pong"; t: number; serverT: number };
 
 export function phaseLabel(phase: Phase): string {

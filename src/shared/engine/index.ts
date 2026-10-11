@@ -99,6 +99,7 @@ export {
   pingRttMs,
   socketLooksDead,
   enqueueWhileConnecting,
+  flushQueuedSends,
   SYNC_PING_MS,
   SYNC_DEAD_SOCKET_MS,
 } from "./sync-protocol";
