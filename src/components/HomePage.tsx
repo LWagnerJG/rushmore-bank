@@ -32,7 +32,11 @@ import { InstallJoinScreen, JoinSplash } from "@/components/InstallJoinScreen";
 import { normalizeRoomCode, randomRoomCode } from "@/shared/types";
 import { RULES } from "@/shared/rules";
 import { ADMIN_UNLOCK_KEY } from "@/lib/admin-session";
-import { recallDisplayName, rememberDisplayName } from "@/lib/party";
+import {
+  clearRoomSession,
+  recallDisplayName,
+  rememberDisplayName,
+} from "@/lib/party";
 import { hydrateStableClientId } from "@/lib/client-id";
 import { loadAvatarId } from "@/lib/avatar-prefs";
 import { pullProfileStatsFromServer } from "@/lib/profile-stats";
@@ -222,6 +226,7 @@ export function HomePage({ createIntent = false }: { createIntent?: boolean }) {
         room = randomRoomCode();
       }
       markCreateIntentConsumed();
+      clearRoomSession(room);
       router.push(`/room/${room}?name=${encodeURIComponent(hostName)}`);
     } catch (err) {
       creatingRef.current = false;

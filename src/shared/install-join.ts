@@ -171,6 +171,23 @@ function readConsumed(
   }
 }
 
+export type MissingRoomAction = "enter" | "ended" | "home";
+
+/**
+ * Installed-app missing-room gate.
+ *
+ * A brand-new host room is `exists: false` until the socket connects — that
+ * is not "ended". Only a nameless install start_url (`/join/ABCD`) should
+ * show the ended screen or silently return home.
+ */
+export function missingRoomAction(input: {
+  namedEntry: boolean;
+  consumed: boolean;
+}): MissingRoomAction {
+  if (input.namedEntry) return "enter";
+  return input.consumed ? "home" : "ended";
+}
+
 export async function fetchRoomExists(
   code: string,
   fetchImpl: typeof fetch = fetch,
