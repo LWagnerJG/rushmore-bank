@@ -329,7 +329,7 @@ export function DicePanel({
       window.removeEventListener("pageshow", onVis);
       window.removeEventListener("focus", onVis);
     };
-  }, [last, send]);
+  }, [last?.rollId, last?.revealed, last?.animSettleAt, last, send]);
 
   // Sticky prior roll for tumble gaps — adjust during render so SETTLED never
   // paints a stale sticky bust/total for one frame (React-approved pattern).

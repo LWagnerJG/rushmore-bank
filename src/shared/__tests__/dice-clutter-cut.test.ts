@@ -50,6 +50,8 @@ describe("dice clutter-cut", () => {
     expect(scene).not.toMatch(/Rolling…/);
     expect(dice).not.toMatch(/is rolling/);
     expect(dice).not.toMatch(/pot wiped|Pot wiped|TAP TO ROLL/);
+    expect(scene).not.toMatch(/bean-pip-die-num|bean-dice-sum/);
+    expect(scene).toMatch(/bean-dice-landed-total/);
   });
 
   it("uses one Bean Buster banner line plus full-viewport stamp", () => {

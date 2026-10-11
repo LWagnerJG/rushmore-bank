@@ -65,12 +65,20 @@ function PipDie({
     >
       <svg viewBox="0 0 80 80" className="bean-pip-die-svg">
         <rect
-          x="3"
-          y="3"
-          width="74"
-          height="74"
-          rx="12"
+          x="4"
+          y="4"
+          width="72"
+          height="72"
+          rx="16"
           className="bean-pip-die-body"
+        />
+        <rect
+          x="7"
+          y="7"
+          width="66"
+          height="66"
+          rx="13"
+          className="bean-pip-die-face"
         />
         {/* Replace-only: map from one validated face. Keys force full remount on face change. */}
         {paint.pipSlots.map((pip) => {
@@ -80,19 +88,14 @@ function PipDie({
             <circle
               key={`${paint.face}-${pip}`}
               className={DIE_PIP_CLASS}
-              cx={22 + col * 18}
-              cy={22 + row * 18}
-              r="7"
+              cx={18 + col * 22}
+              cy={18 + row * 22}
+              r="8.4"
               data-pip-slot={pip}
             />
           );
         })}
       </svg>
-      {paint.face != null ? (
-        <span className="bean-pip-die-num" data-die-number={paint.face}>
-          {paint.face}
-        </span>
-      ) : null}
     </div>
   );
 }
@@ -292,17 +295,28 @@ export function DiceScene({
             settlePunch={false}
           />
         </div>
-        {revealed && total != null ? (
-          <span className="bean-dice-sum" data-dice-sum={total} aria-hidden="true">
-            {total}
-          </span>
-        ) : null}
         {canRoll && firstRollHint && (
           <span className="bean-dice-hint bean-dice-hint-first" aria-hidden="true">
             TAP
           </span>
         )}
       </button>
+      {revealed && total != null ? (
+        <p
+          className="bean-dice-landed-total"
+          data-dice-landed-total={total}
+          data-dice-sum={total}
+        >
+          {total}
+        </p>
+      ) : (
+        <p
+          className="bean-dice-landed-total bean-dice-landed-total-empty"
+          aria-hidden="true"
+        >
+          {"\u00a0"}
+        </p>
+      )}
     </div>
   );
 }

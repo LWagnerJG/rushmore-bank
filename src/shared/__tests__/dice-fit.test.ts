@@ -102,13 +102,15 @@ describe("dice screen fits a 375×667 phone", () => {
 });
 
 describe("dice paint", () => {
-  it("draws the die shadow without a filter", () => {
+  it("draws the die with transform/opacity only — no shadow, filter, or blur", () => {
     expect(clean).not.toMatch(/drop-shadow\(/);
     for (const body of rulesFor(css, "bean-pip-die")) {
       expect(body).not.toMatch(/(?:^|[;\s])(?:-webkit-)?filter\s*:\s*(?!none)/);
+      expect(body).not.toMatch(/box-shadow/);
     }
-    expect(decl(rule(".bean-pip-die::before"), "box-shadow")).toMatch(/rgba\(16, 45, 37/);
+    expect(clean).not.toMatch(/\.bean-pip-die::before/);
     expect(scene).not.toMatch(/filter=|<filter|feGaussianBlur|feDropShadow/);
+    expect(scene).not.toMatch(/bean-pip-die-num|bean-dice-sum/);
   });
 
   it("prints the bust line in coral ink, with headroom over AA for its large type", () => {
