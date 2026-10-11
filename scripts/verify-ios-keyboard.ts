@@ -758,6 +758,11 @@ async function roomLinkScenario(browser: Browser, p: Profile, dir: string) {
     });
     await continueInBrowser.waitFor({ state: "visible", timeout: 8000 });
     await continueInBrowser.click();
+    await page.locator(ROOM_NAME.input).waitFor();
+    // RoomClient autofocuses the nickname; start from a closed keyboard.
+    await blurField(page);
+    await waitKeyboard(page, false).catch(() => undefined);
+    await sleep(500);
     const closed = await openField(page, ROOM_NAME, dir, "room-name", null);
     const typed = await typeWhileTracing(page, ROOM_NAME, TYPED);
     const end = await sample(page, ROOM_NAME);
