@@ -18,6 +18,9 @@ import { normalizeRoomCode, randomRoomCode } from "@/shared/types";
 import { RULES } from "@/shared/rules";
 import { ADMIN_UNLOCK_KEY } from "@/lib/admin-session";
 import { recallDisplayName, rememberDisplayName } from "@/lib/party";
+import { hydrateStableClientId } from "@/lib/client-id";
+import { pullProfileStatsFromServer } from "@/lib/profile-stats";
+import { StatsMergePrompt } from "@/components/StatsMergePrompt";
 
 const ADMIN_KEY = ADMIN_UNLOCK_KEY;
 const ADMIN_DISPLAY_NAME = "Admin";
@@ -94,6 +97,15 @@ export default function HomePage() {
       setName(saved);
       setNameReady(true);
     }
+  }, []);
+
+  // Durable device id + pull cloud stats (no login).
+  useEffect(() => {
+    void (async () => {
+      const id = await hydrateStableClientId();
+      const nick = recallDisplayName().trim();
+      await pullProfileStatsFromServer(id, nick || undefined);
+    })();
   }, []);
 
   const displayName = name.trim() || (adminUnlocked ? ADMIN_DISPLAY_NAME : "");
@@ -228,6 +240,8 @@ export default function HomePage() {
               {RULES.tagline}
             </p>
           </header>
+
+          {canPlay ? <StatsMergePrompt nickname={displayName} /> : null}
 
         {!canPlay ? (
           <section className="home-card home-card-step stack-sm">

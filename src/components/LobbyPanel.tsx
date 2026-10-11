@@ -6,7 +6,13 @@ import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
 import { RULES } from "@/shared/rules";
 import { shareInvite } from "@/lib/share-invite";
 import { HostAiPreGameStatus } from "@/components/HostAiPreGameStatus";
+import { StatsMergePrompt } from "@/components/StatsMergePrompt";
 import { nameWithYouSuffix } from "@/shared/you-label";
+import { getStableClientId } from "@/lib/client-id";
+import {
+  pullProfileStatsFromServer,
+  sightProfileNickname,
+} from "@/lib/profile-stats";
 
 const NAME_MAX = 18;
 
@@ -126,6 +132,18 @@ export function LobbyPanel({
       ? `${window.location.origin}/room/${state.code}`
       : `${RULES.productionUrl}/room/${state.code}`;
 
+  useEffect(() => {
+    const deviceId = getStableClientId();
+    const nickname = you.name.trim();
+    if (!nickname) return;
+    void pullProfileStatsFromServer(deviceId, nickname);
+    void sightProfileNickname({
+      deviceId,
+      nickname,
+      roomCode: state.code,
+    });
+  }, [you.name, state.code]);
+
   const players = state.players.filter((p) => p.role === "player");
   const spectators = state.players.filter((p) => p.role === "spectator");
   const enough = players.length >= RULES.minPlayers;
@@ -164,6 +182,7 @@ export function LobbyPanel({
 
   return (
     <div className="lobby-layout stack">
+      <StatsMergePrompt nickname={you.name} />
       <section className="panel lobby-invite">
         <div className="lobby-invite-row">
           <button

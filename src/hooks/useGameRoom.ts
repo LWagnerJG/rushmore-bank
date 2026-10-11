@@ -290,6 +290,7 @@ export function useGameRoom(
                 gameId: gameResultId(msg.state.code, msg.state.createdAt),
                 score: me.stones,
                 won: isGameWinner(msg.state.players, msg.youId),
+                nickname: me.name,
               });
             }
           }

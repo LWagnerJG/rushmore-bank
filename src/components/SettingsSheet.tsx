@@ -15,10 +15,12 @@ import { profileInitials } from "@/lib/profile-initials";
 import {
   emptyProfileStats,
   loadProfileStats,
+  pullProfileStatsFromServer,
   subscribeProfileStats,
   winRatePct,
   type ProfileStats,
 } from "@/lib/profile-stats";
+import { resolveStableClientId } from "@/lib/client-id";
 import { recallDisplayName } from "@/lib/party";
 
 type SheetPanel = "main" | "host" | "admin";
@@ -89,7 +91,13 @@ export function SettingsSheet({
     const name = nickname?.trim() || recallDisplayName().trim() || "Player";
     setDisplayName(name);
     setStats(loadProfileStats());
-    return subscribeProfileStats(setStats);
+    const unsub = subscribeProfileStats(setStats);
+    void (async () => {
+      const id = await resolveStableClientId();
+      const next = await pullProfileStatsFromServer(id, name);
+      setStats(next);
+    })();
+    return unsub;
   }, [open, nickname]);
 
   useEffect(() => {

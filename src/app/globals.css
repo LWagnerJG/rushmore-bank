@@ -4933,6 +4933,45 @@ html.party-on .draft-board-cell-mine {
   line-height: 1.3;
   opacity: 0.85;
 }
+.admin-cloud-stats {
+  margin-top: 0.35rem;
+  display: grid;
+  gap: 0.35rem;
+}
+.admin-cloud-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.25rem;
+}
+.admin-cloud-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.7rem;
+  line-height: 1.25;
+}
+.stats-merge-prompt {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--mint) 28%, #fff);
+}
+.stats-merge-copy {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 650;
+  line-height: 1.35;
+  color: var(--text);
+}
+.stats-merge-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  justify-content: flex-end;
+}
 .admin-tools {
   margin-top: 0;
   padding-top: 0;
