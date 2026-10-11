@@ -18,7 +18,6 @@ export function HostAiJudgeCue({
     <div className="settings-row host-ai-row" role="status" aria-label={detail}>
       <span className="settings-row-label">
         <span className="font-extrabold">AI judge</span>
-        <span className="text-xs text-[var(--muted)]">{detail}</span>
       </span>
       <span className={`host-ai-chip host-ai-chip-${status}`}>{label}</span>
     </div>

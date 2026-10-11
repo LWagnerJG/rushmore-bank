@@ -58,6 +58,8 @@ async function openProfile(page: Page) {
 
 async function readWins(page: Page): Promise<number> {
   const dialog = page.locator('[role="dialog"][aria-label="Profile"]');
+  const empty = dialog.locator(".profile-stats-empty");
+  if (await empty.isVisible().catch(() => false)) return 0;
   const hero = dialog.locator(".profile-stat-hero .profile-stat-value");
   await hero.waitFor({ state: "visible", timeout: 5000 });
   const text = (await hero.textContent())?.trim() ?? "0";
@@ -89,7 +91,8 @@ async function createRoomAndReachResults(page: Page) {
   await page.waitForSelector("text=Lobby", { timeout: 20000 });
 
   await openProfile(page);
-  // Add bots via admin tools
+  // Admin tools live behind the nested Admin disclosure
+  await page.getByRole("button", { name: /^Admin$/ }).click();
   const botInput = page.locator('label:has-text("Add bots") input');
   await botInput.waitFor({ state: "visible", timeout: 8000 });
   await botInput.fill("2");

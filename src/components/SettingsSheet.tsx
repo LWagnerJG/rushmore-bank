@@ -21,6 +21,8 @@ import {
 } from "@/lib/profile-stats";
 import { recallDisplayName } from "@/lib/party";
 
+type SheetPanel = "main" | "host" | "admin";
+
 export function SettingsSheet({
   open,
   onClose,
@@ -61,9 +63,13 @@ export function SettingsSheet({
   const [adminUnlocked, setAdminUnlocked] = useState(false);
   const [stats, setStats] = useState<ProfileStats>(emptyProfileStats);
   const [displayName, setDisplayName] = useState("");
+  const [panel, setPanel] = useState<SheetPanel>("main");
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      setPanel("main");
+      return;
+    }
     return subscribeSoundEnabled(setSoundOn);
   }, [open]);
 
@@ -80,7 +86,7 @@ export function SettingsSheet({
 
   useEffect(() => {
     if (!open) return;
-    const name = (nickname?.trim() || recallDisplayName().trim() || "Player");
+    const name = nickname?.trim() || recallDisplayName().trim() || "Player";
     setDisplayName(name);
     setStats(loadProfileStats());
     return subscribeProfileStats(setStats);
@@ -89,11 +95,17 @@ export function SettingsSheet({
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        if (panel !== "main") {
+          setPanel("main");
+          return;
+        }
+        onClose();
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+  }, [open, onClose, panel]);
 
   if (!open) return null;
 
@@ -110,7 +122,9 @@ export function SettingsSheet({
 
   // Host-only admin tools; PIN unlock still required.
   const showAdmin = isHost && adminUnlocked && !!send;
+  const showHostOptions = isHost;
   const rate = winRatePct(stats);
+  const hasGames = stats.gamesPlayed > 0;
 
   return (
     <div
@@ -125,164 +139,228 @@ export function SettingsSheet({
         aria-label="Profile"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="profile-sheet-top">
-          <div className="profile-sheet-header">
-            <span className="profile-sheet-avatar" aria-hidden="true">
-              {profileInitials(displayName)}
-            </span>
-            <div className="profile-sheet-identity min-w-0">
-              <p className="profile-sheet-name font-[family-name:var(--font-display)]">
-                {displayName}
+        {panel === "main" ? (
+          <>
+            <div className="profile-sheet-top">
+              <div className="profile-sheet-header">
+                <span className="profile-sheet-avatar" aria-hidden="true">
+                  {profileInitials(displayName)}
+                </span>
+                <div className="profile-sheet-identity min-w-0">
+                  <p className="profile-sheet-name font-[family-name:var(--font-display)]">
+                    {displayName}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="text-sm font-bold text-[var(--muted)]"
+                onClick={onClose}
+              >
+                Close
+              </button>
+            </div>
+
+            {hasGames ? (
+              <div className="profile-stats" aria-label="All-time stats">
+                <div className="profile-stat profile-stat-hero">
+                  <span className="profile-stat-value tabular-nums">
+                    {stats.wins}
+                  </span>
+                  <span className="profile-stat-label">Wins</span>
+                </div>
+                <div className="profile-stat">
+                  <span className="profile-stat-value tabular-nums">
+                    {stats.gamesPlayed}
+                  </span>
+                  <span className="profile-stat-label">Games</span>
+                </div>
+                <div className="profile-stat">
+                  <span className="profile-stat-value tabular-nums">
+                    {rate}%
+                  </span>
+                  <span className="profile-stat-label">Win rate</span>
+                </div>
+                <div className="profile-stat">
+                  <span className="profile-stat-value tabular-nums">
+                    {stats.bestScore}
+                  </span>
+                  <span className="profile-stat-label">Best</span>
+                </div>
+                <div className="profile-stat">
+                  <span className="profile-stat-value tabular-nums">
+                    {stats.winStreak}
+                  </span>
+                  <span className="profile-stat-label">Streak</span>
+                </div>
+              </div>
+            ) : (
+              <p className="profile-stats-empty" aria-label="All-time stats">
+                No games yet
               </p>
-              <p className="type-meta text-[var(--muted)]">Your profile</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            className="text-sm font-bold text-[var(--muted)]"
-            onClick={onClose}
-          >
-            Close
-          </button>
-        </div>
+            )}
 
-        <div className="profile-stats" aria-label="All-time stats">
-          <div className="profile-stat profile-stat-hero">
-            <span className="profile-stat-value tabular-nums">{stats.wins}</span>
-            <span className="profile-stat-label">Wins</span>
-          </div>
-          <div className="profile-stat">
-            <span className="profile-stat-value tabular-nums">
-              {stats.gamesPlayed}
-            </span>
-            <span className="profile-stat-label">Games</span>
-          </div>
-          <div className="profile-stat">
-            <span className="profile-stat-value tabular-nums">{rate}%</span>
-            <span className="profile-stat-label">Win rate</span>
-          </div>
-          <div className="profile-stat">
-            <span className="profile-stat-value tabular-nums">
-              {stats.bestScore}
-            </span>
-            <span className="profile-stat-label">Best</span>
-          </div>
-          <div className="profile-stat">
-            <span className="profile-stat-value tabular-nums">
-              {stats.winStreak}
-            </span>
-            <span className="profile-stat-label">Streak</span>
-          </div>
-        </div>
-
-        <p className="profile-settings-kicker type-meta text-[var(--muted)]">
-          Settings
-        </p>
-
-        <div className="settings-row">
-          <span className="settings-row-label">
-            <span className="font-extrabold">Sound</span>
-            <span className="text-xs text-[var(--muted)]">
-              {soundOn
-                ? "On — soft game cues"
-                : "Off by default — tap to enable"}
-            </span>
-          </span>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={soundOn}
-            className={`settings-toggle ${soundOn ? "settings-toggle-on" : ""}`}
-            onClick={() => {
-              const next = !soundOn;
-              setSoundOn(next);
-              setSoundEnabled(next);
-              // Must prime AudioContext inside this tap (iOS gesture).
-              if (next) enableSoundFromUserGesture();
-            }}
-          >
-            <span className="settings-toggle-knob" />
-            <span className="sr-only">{soundOn ? "On" : "Off"}</span>
-          </button>
-        </div>
-
-        {roomCode ? (
-          <div className="settings-row">
-            <span className="settings-row-label">
-              <span className="font-extrabold">Room code</span>
-              <span className="font-[family-name:var(--font-display)] text-xl font-extrabold tracking-[0.18em]">
-                {roomCode}
+            <div className="settings-row">
+              <span className="settings-row-label">
+                <span className="font-extrabold">Sound</span>
               </span>
-            </span>
-            <button
-              type="button"
-              className="btn-secondary shrink-0 px-[var(--space-3)]"
-              onClick={() => void copyCode()}
-            >
-              {copied ? "Copied" : "Copy"}
-            </button>
-          </div>
-        ) : null}
-
-        {isHost && onPartyChange ? (
-          <div className="settings-row">
-            <span className="settings-row-label">
-              <span className="font-extrabold">Party Mode</span>
-              <span className="text-xs text-[var(--muted)]">
-                Drink prompts after bust &amp; low beans
-              </span>
-            </span>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={partyOn}
-              className={`settings-toggle ${partyOn ? "settings-toggle-on" : ""}`}
-              onClick={() => onPartyChange(!partyOn)}
-            >
-              <span className="settings-toggle-knob" />
-              <span className="sr-only">{partyOn ? "On" : "Off"}</span>
-            </button>
-          </div>
-        ) : null}
-
-        {isHost ? <HostAiJudgeCue health={hostAiJudge} /> : null}
-
-        {isHost && drafting && send ? (
-          <div className="settings-row">
-            <span className="settings-row-label">
-              <span className="font-extrabold">Draft clock</span>
-              <span className="text-xs text-[var(--muted)]">
-                Pause or add time
-              </span>
-            </span>
-            <div className="flex shrink-0 gap-2">
               <button
                 type="button"
-                className="btn-secondary px-[var(--space-3)]"
-                onClick={() =>
-                  send({ type: pickPaused ? "host_resume" : "host_pause" })
-                }
+                role="switch"
+                aria-checked={soundOn}
+                className={`settings-toggle ${soundOn ? "settings-toggle-on" : ""}`}
+                onClick={() => {
+                  const next = !soundOn;
+                  setSoundOn(next);
+                  setSoundEnabled(next);
+                  // Must prime AudioContext inside this tap (iOS gesture).
+                  if (next) enableSoundFromUserGesture();
+                }}
               >
-                {pickPaused ? "Resume" : "Pause"}
+                <span className="settings-toggle-knob" />
+                <span className="sr-only">{soundOn ? "On" : "Off"}</span>
+              </button>
+            </div>
+
+            {roomCode ? (
+              <div className="settings-row">
+                <span className="settings-row-label">
+                  <span className="font-extrabold">Room code</span>
+                  <span className="font-[family-name:var(--font-display)] text-xl font-extrabold tracking-[0.18em]">
+                    {roomCode}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  className="btn-secondary shrink-0 px-[var(--space-3)]"
+                  onClick={() => void copyCode()}
+                >
+                  {copied ? "Copied" : "Copy"}
+                </button>
+              </div>
+            ) : null}
+
+            {showHostOptions ? (
+              <button
+                type="button"
+                className="settings-nav-row"
+                onClick={() => setPanel("host")}
+              >
+                <span className="font-extrabold">Host options</span>
+                <span className="settings-nav-chevron" aria-hidden="true">
+                  ›
+                </span>
+              </button>
+            ) : null}
+
+            {showAdmin ? (
+              <button
+                type="button"
+                className="settings-nav-row"
+                onClick={() => setPanel("admin")}
+              >
+                <span className="font-extrabold">Admin</span>
+                <span className="settings-nav-chevron" aria-hidden="true">
+                  ›
+                </span>
+              </button>
+            ) : null}
+          </>
+        ) : null}
+
+        {panel === "host" ? (
+          <>
+            <div className="profile-sheet-top">
+              <button
+                type="button"
+                className="settings-panel-back"
+                onClick={() => setPanel("main")}
+              >
+                ‹ Host options
               </button>
               <button
                 type="button"
-                className="btn-secondary px-[var(--space-3)]"
-                onClick={() => send({ type: "host_extend" })}
+                className="text-sm font-bold text-[var(--muted)]"
+                onClick={onClose}
               >
-                +{RULES.hostExtendSeconds}s
+                Close
               </button>
             </div>
-          </div>
+
+            {onPartyChange ? (
+              <div className="settings-row">
+                <span className="settings-row-label">
+                  <span className="font-extrabold">Party Mode</span>
+                </span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={partyOn}
+                  className={`settings-toggle ${partyOn ? "settings-toggle-on" : ""}`}
+                  onClick={() => onPartyChange(!partyOn)}
+                >
+                  <span className="settings-toggle-knob" />
+                  <span className="sr-only">{partyOn ? "On" : "Off"}</span>
+                </button>
+              </div>
+            ) : null}
+
+            <HostAiJudgeCue health={hostAiJudge} />
+
+            {drafting && send ? (
+              <div className="settings-row">
+                <span className="settings-row-label">
+                  <span className="font-extrabold">Draft clock</span>
+                </span>
+                <div className="flex shrink-0 gap-2">
+                  <button
+                    type="button"
+                    className="btn-secondary px-[var(--space-3)]"
+                    onClick={() =>
+                      send({ type: pickPaused ? "host_resume" : "host_pause" })
+                    }
+                  >
+                    {pickPaused ? "Resume" : "Pause"}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-secondary px-[var(--space-3)]"
+                    onClick={() => send({ type: "host_extend" })}
+                  >
+                    +{RULES.hostExtendSeconds}s
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </>
         ) : null}
 
-        {showAdmin ? (
-          <AdminTools
-            send={send}
-            currentPhase={currentPhase}
-            playerCount={playerCount}
-            botCountInRoom={botCountInRoom}
-          />
+        {panel === "admin" && showAdmin && send ? (
+          <>
+            <div className="profile-sheet-top">
+              <button
+                type="button"
+                className="settings-panel-back"
+                onClick={() => setPanel("main")}
+              >
+                ‹ Admin
+              </button>
+              <button
+                type="button"
+                className="text-sm font-bold text-[var(--muted)]"
+                onClick={onClose}
+              >
+                Close
+              </button>
+            </div>
+
+            <AdminTools
+              send={send}
+              currentPhase={currentPhase}
+              playerCount={playerCount}
+              botCountInRoom={botCountInRoom}
+            />
+          </>
         ) : null}
       </div>
     </div>

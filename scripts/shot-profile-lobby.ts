@@ -43,6 +43,24 @@ async function main() {
   const dest = path.join(OUT, "profile-sheet-lobby-390x844.png");
   await page.screenshot({ path: dest, fullPage: false });
   console.log("wrote", dest);
+
+  // Nested Host options + Admin for declutter shots
+  await page.getByRole("button", { name: /^Host options$/ }).click();
+  await page.waitForTimeout(300);
+  await page.screenshot({
+    path: path.join(OUT, "profile-sheet-host-390x844.png"),
+    fullPage: false,
+  });
+  await page.getByRole("button", { name: /Host options/ }).click();
+  await page.waitForTimeout(200);
+  await page.getByRole("button", { name: /^Admin$/ }).click();
+  await page.waitForSelector("label:has-text('Jump phase')", { timeout: 8000 });
+  await page.waitForTimeout(400);
+  await page.screenshot({
+    path: path.join(OUT, "profile-sheet-admin-390x844.png"),
+    fullPage: false,
+  });
+  console.log("wrote nested host/admin shots");
   await browser.close();
 }
 

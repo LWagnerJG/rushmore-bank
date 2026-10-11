@@ -139,6 +139,7 @@ async function checkHomeCreateBots(page: Page): Promise<string> {
   await profileBtn.waitFor({ state: "visible", timeout: 20_000 });
   await profileBtn.click();
 
+  await page.getByRole("button", { name: /^Admin$/ }).click();
   const addBots = page.getByRole("button", { name: /^Add$/ });
   await addBots.first().waitFor({ state: "visible", timeout: 10_000 });
   await addBots.first().click();

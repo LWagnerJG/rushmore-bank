@@ -52,9 +52,14 @@ async function openSettings(page: Page) {
   });
 }
 
-async function jumpPhase(page: Page, phaseLabel: string) {
+async function openAdmin(page: Page) {
   await openSettings(page);
-  const select = page.locator('select').filter({ has: page.locator(`option:has-text("${phaseLabel}")`) }).first();
+  await page.getByRole("button", { name: /^Admin$/ }).click();
+  await page.waitForSelector("label:has-text('Jump phase')", { timeout: 8000 });
+}
+
+async function jumpPhase(page: Page, phaseLabel: string) {
+  await openAdmin(page);
   // Prefer label match on option text
   const jump = page.locator("label:has-text('Jump phase') select");
   await jump.selectOption({ label: phaseLabel });
@@ -64,7 +69,7 @@ async function jumpPhase(page: Page, phaseLabel: string) {
 }
 
 async function addBots(page: Page, count = 2) {
-  await openSettings(page);
+  await openAdmin(page);
   const input = page.locator('label:has-text("Add bots") input');
   await input.fill(String(count));
   await page.getByRole("button", { name: /^Add$/ }).click();
