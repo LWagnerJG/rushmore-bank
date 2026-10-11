@@ -46,8 +46,8 @@ async function createRoom(page: Page) {
 }
 
 async function openSettings(page: Page) {
-  await page.getByRole("button", { name: "Settings" }).click();
-  await page.waitForSelector('[role="dialog"][aria-label="Settings"]', {
+  await page.getByRole("button", { name: "Profile" }).click();
+  await page.waitForSelector('[role="dialog"][aria-label="Profile"]', {
     timeout: 8000,
   });
 }

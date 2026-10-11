@@ -20,6 +20,12 @@ import {
   rememberRoomSession,
   wasRemovedFromRoom,
 } from "@/lib/party";
+import { getStableClientId } from "@/lib/client-id";
+import {
+  gameResultId,
+  isGameWinner,
+  recordGameResult,
+} from "@/lib/profile-stats";
 import { mergePublicState } from "@/shared/engine/merge-public-state";
 
 /** Map infra / transport failures to player-safe copy. Never mention PartyKit. */
@@ -277,6 +283,15 @@ export function useGameRoom(
               playerId: msg.youId,
               at: Date.now(),
             });
+            // Device-local all-time stats — once per gameId (reconnect-safe).
+            if (msg.state.phase === "GAME_RESULTS" && role === "player") {
+              recordGameResult({
+                clientId: getStableClientId(),
+                gameId: gameResultId(msg.state.code, msg.state.createdAt),
+                score: me.stones,
+                won: isGameWinner(msg.state.players, msg.youId),
+              });
+            }
           }
         } else if (msg.type === "error") {
           // The text check also works with servers deployed before the code field.

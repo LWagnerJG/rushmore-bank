@@ -114,8 +114,8 @@ async function checkHomeCreateBots(page: Page): Promise<string> {
   await page.getByText(/Draft four/i).first().waitFor({ state: "visible", timeout: 30_000 });
   await page.getByLabel("Beans").first().waitFor({ state: "visible", timeout: 15_000 });
 
-  // Unlock admin on home (5 taps on bean logo) so SettingsSheet shows AdminTools.
-  const homeLogo = page.getByRole("button", { name: "Settings" }).first();
+  // Unlock admin on home (5 taps on bean logo) so Profile sheet shows AdminTools.
+  const homeLogo = page.getByRole("button", { name: "Beans logo" }).first();
   for (let i = 0; i < 5; i++) await homeLogo.click();
   await page.getByText(/Admin unlocked/i).first().waitFor({ state: "visible", timeout: 5_000 });
 
@@ -133,11 +133,11 @@ async function checkHomeCreateBots(page: Page): Promise<string> {
   const code = roomMatch[1]!.toUpperCase();
   console.log("created room", code);
 
-  // Wait for lobby / connection, then open settings via room logo tap.
+  // Wait for lobby / connection, then open profile (merged settings).
   await page.waitForTimeout(1500);
-  const roomLogo = page.getByRole("button", { name: "Settings" }).first();
-  await roomLogo.waitFor({ state: "visible", timeout: 20_000 });
-  await roomLogo.click();
+  const profileBtn = page.getByRole("button", { name: "Profile" }).first();
+  await profileBtn.waitFor({ state: "visible", timeout: 20_000 });
+  await profileBtn.click();
 
   const addBots = page.getByRole("button", { name: /^Add$/ });
   await addBots.first().waitFor({ state: "visible", timeout: 10_000 });

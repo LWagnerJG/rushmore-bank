@@ -11,6 +11,15 @@ import type { ClientMessage, HostAiJudgeHealth, Phase } from "@/shared/types";
 import { RULES } from "@/shared/rules";
 import { HostAiJudgeCue } from "./HostAiJudgeCue";
 import { AdminTools, isAdminUnlocked } from "./AdminPanel";
+import { profileInitials } from "@/lib/profile-initials";
+import {
+  emptyProfileStats,
+  loadProfileStats,
+  subscribeProfileStats,
+  winRatePct,
+  type ProfileStats,
+} from "@/lib/profile-stats";
+import { recallDisplayName } from "@/lib/party";
 
 export function SettingsSheet({
   open,
@@ -26,6 +35,7 @@ export function SettingsSheet({
   botCountInRoom = 0,
   drafting = false,
   pickPaused = false,
+  nickname,
 }: {
   open: boolean;
   onClose: () => void;
@@ -41,12 +51,16 @@ export function SettingsSheet({
   botCountInRoom?: number;
   drafting?: boolean;
   pickPaused?: boolean;
+  /** Display name for the profile header (falls back to stored nickname). */
+  nickname?: string;
 }) {
   const [soundOn, setSoundOn] = useState(() =>
     typeof window !== "undefined" ? isSoundEnabled() : false,
   );
   const [copied, setCopied] = useState(false);
   const [adminUnlocked, setAdminUnlocked] = useState(false);
+  const [stats, setStats] = useState<ProfileStats>(emptyProfileStats);
+  const [displayName, setDisplayName] = useState("");
 
   useEffect(() => {
     if (!open) return;
@@ -63,6 +77,14 @@ export function SettingsSheet({
     if (!open) return;
     setAdminUnlocked(isAdminUnlocked());
   }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const name = (nickname?.trim() || recallDisplayName().trim() || "Player");
+    setDisplayName(name);
+    setStats(loadProfileStats());
+    return subscribeProfileStats(setStats);
+  }, [open, nickname]);
 
   useEffect(() => {
     if (!open) return;
@@ -88,6 +110,7 @@ export function SettingsSheet({
 
   // Host-only admin tools; PIN unlock still required.
   const showAdmin = isHost && adminUnlocked && !!send;
+  const rate = winRatePct(stats);
 
   return (
     <div
@@ -99,13 +122,21 @@ export function SettingsSheet({
         className="settings-sheet"
         role="dialog"
         aria-modal="true"
-        aria-label="Settings"
+        aria-label="Profile"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="font-[family-name:var(--font-display)] text-lg font-extrabold">
-            Settings
-          </h2>
+        <div className="profile-sheet-top">
+          <div className="profile-sheet-header">
+            <span className="profile-sheet-avatar" aria-hidden="true">
+              {profileInitials(displayName)}
+            </span>
+            <div className="profile-sheet-identity min-w-0">
+              <p className="profile-sheet-name font-[family-name:var(--font-display)]">
+                {displayName}
+              </p>
+              <p className="type-meta text-[var(--muted)]">Your profile</p>
+            </div>
+          </div>
           <button
             type="button"
             className="text-sm font-bold text-[var(--muted)]"
@@ -114,6 +145,39 @@ export function SettingsSheet({
             Close
           </button>
         </div>
+
+        <div className="profile-stats" aria-label="All-time stats">
+          <div className="profile-stat profile-stat-hero">
+            <span className="profile-stat-value tabular-nums">{stats.wins}</span>
+            <span className="profile-stat-label">Wins</span>
+          </div>
+          <div className="profile-stat">
+            <span className="profile-stat-value tabular-nums">
+              {stats.gamesPlayed}
+            </span>
+            <span className="profile-stat-label">Games</span>
+          </div>
+          <div className="profile-stat">
+            <span className="profile-stat-value tabular-nums">{rate}%</span>
+            <span className="profile-stat-label">Win rate</span>
+          </div>
+          <div className="profile-stat">
+            <span className="profile-stat-value tabular-nums">
+              {stats.bestScore}
+            </span>
+            <span className="profile-stat-label">Best</span>
+          </div>
+          <div className="profile-stat">
+            <span className="profile-stat-value tabular-nums">
+              {stats.winStreak}
+            </span>
+            <span className="profile-stat-label">Streak</span>
+          </div>
+        </div>
+
+        <p className="profile-settings-kicker type-meta text-[var(--muted)]">
+          Settings
+        </p>
 
         <div className="settings-row">
           <span className="settings-row-label">
