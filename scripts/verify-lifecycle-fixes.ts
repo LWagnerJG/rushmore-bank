@@ -9,8 +9,11 @@ import {
   sleep,
   SmokeClient,
 } from "./smoke-lib";
+import { HOST_DISCONNECT_GRACE_MS } from "../src/shared/engine/host-sticky";
 
 const HOST = resolvePartyHost();
+/** Grace must elapse before /exists flips false; add a small settle buffer. */
+const ZOMBIE_WAIT_MS = HOST_DISCONNECT_GRACE_MS + 5_000;
 
 async function main() {
   // 1) Start race: disconnect then Start → 2 seats
@@ -51,10 +54,17 @@ async function main() {
     await a.waitPhase("TOPIC_SELECTION", 15000);
     a.close();
     b.close();
-    await sleep(10000);
+    await sleep(ZOMBIE_WAIT_MS);
     const res = await fetch(`http://${HOST}/parties/main/${room}`);
-    const body = (await res.json()) as { exists: boolean; playerCount: number };
+    const body = (await res.json()) as {
+      exists: boolean;
+      playerCount: number;
+      phase?: string;
+    };
     if (body.exists) throw new Error(`zombie exists: ${JSON.stringify(body)}`);
+    if (body.phase && body.phase !== "LOBBY") {
+      throw new Error(`zombie phase not wiped: ${JSON.stringify(body)}`);
+    }
     console.log("OK zombie-exists", body);
   }
 
