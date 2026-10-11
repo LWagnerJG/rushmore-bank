@@ -205,9 +205,7 @@ async function main() {
     console.log("wrote", sheetDest);
 
     // Name editing open (Luke follow-up evidence)
-    const nameBtn = page.getByRole("button", {
-      name: /Edit your nickname/i,
-    });
+    const nameBtn = page.locator(".profile-sheet-name-btn");
     if (await nameBtn.isVisible().catch(() => false)) {
       await nameBtn.click();
       await page.waitForSelector(".profile-sheet-name-input", { timeout: 5000 });
