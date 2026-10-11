@@ -41,6 +41,7 @@ import {
   SYNC_DEAD_SOCKET_MS,
   SYNC_PING_MS,
 } from "@/shared/engine/sync-protocol";
+import { publishRoomSnapshot } from "@/lib/room-store";
 
 /** Map infra / transport failures to player-safe copy. Never mention PartyKit. */
 function friendlyPlayerError(raw: string | null | undefined): string | null {
@@ -568,6 +569,12 @@ export function useGameRoom(
   }, [state?.players, youId, connected, removed, send]);
 
   const you = state?.players.find((p) => p.id === youId) ?? null;
+
+  // Publish for selector subscribers (chrome / closed sheets) so they can
+  // skip React work when their slice did not change.
+  useEffect(() => {
+    publishRoomSnapshot({ state, youId });
+  }, [state, youId]);
 
   return {
     state,

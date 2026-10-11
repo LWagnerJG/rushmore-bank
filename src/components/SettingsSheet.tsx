@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { settingsSheetPropsAreEqual } from "@/lib/room-render-guards";
 import {
   isSoundEnabled,
   setSoundEnabled,
@@ -35,7 +36,7 @@ type SheetPanel = "main" | "host" | "admin" | "avatar";
 const SHEET_OPEN_CLASS = "settings-sheet-open";
 const DISMISS_PX = 96;
 
-export function SettingsSheet({
+function SettingsSheetImpl({
   open,
   onClose,
   roomCode: _roomCode,
@@ -499,3 +500,6 @@ export function SettingsSheet({
     document.body,
   );
 }
+
+/** Skip re-renders while closed — room broadcasts must not wake the sheet. */
+export const SettingsSheet = memo(SettingsSheetImpl, settingsSheetPropsAreEqual);
