@@ -407,7 +407,7 @@ describe("haptics — short pulses", () => {
     const vibrate = vi.fn(() => true);
     vi.stubGlobal("navigator", { vibrate });
     haptic("bust");
-    expect(vibrate).toHaveBeenCalledWith(20);
+    expect(vibrate).toHaveBeenCalledWith([18, 40, 22]);
   });
 });
 

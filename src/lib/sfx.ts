@@ -414,24 +414,44 @@ function synthesize(audio: AudioContext, kind: SfxKind): void {
         gain: 0.022,
       });
       break;
-    case "bust":
+    case "bust": {
+      // Punchy thump + absurd buzzer — still ≤250ms total.
       tone(audio, {
         type: "sine",
-        freq: 95,
-        freqEnd: 48,
+        freq: 110,
+        freqEnd: 42,
         start: t,
-        dur: 0.18,
-        gain: 0.055,
+        dur: 0.14,
+        gain: 0.09,
       });
       tone(audio, {
         type: "triangle",
         freq: 70,
-        freqEnd: 40,
-        start: t + 0.02,
+        freqEnd: 36,
+        start: t + 0.015,
         dur: 0.16,
-        gain: 0.03,
+        gain: 0.055,
+      });
+      // Harsh buzzer sting
+      tone(audio, {
+        type: "square",
+        freq: 180,
+        freqEnd: 95,
+        start: t + 0.04,
+        dur: 0.18,
+        gain: 0.028,
+        gainEnd: 0.0001,
+      });
+      tone(audio, {
+        type: "sawtooth",
+        freq: 240,
+        freqEnd: 140,
+        start: t + 0.05,
+        dur: 0.16,
+        gain: 0.016,
       });
       break;
+    }
     case "bank":
       tone(audio, {
         type: "sine",

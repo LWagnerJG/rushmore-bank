@@ -52,10 +52,11 @@ describe("dice clutter-cut", () => {
     expect(dice).not.toMatch(/pot wiped|Pot wiped|TAP TO ROLL/);
   });
 
-  it("uses one Bean Buster banner line", () => {
+  it("uses one Bean Buster banner line plus full-viewport stamp", () => {
     expect(dice).toMatch(/Bean Buster · Pot gone/);
     expect(dice).not.toMatch(/dice-result-bust-title">BEAN BUSTER/);
     expect(dice).not.toMatch(/dice-result-note/);
+    expect(dice).toMatch(/BeanBusterStamp/);
   });
 
   it("cuts ghost Bank label but reserves CTA height", () => {
