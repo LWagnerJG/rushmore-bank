@@ -11,6 +11,22 @@ export function inviteUrl(origin: string, code: string): string {
   return `${origin.replace(/\/$/, "")}${invitePath(code)}`;
 }
 
+/** Parse `?room=ABCD` without putting URLSearchParams in the home page module. */
+export function roomFromSearch(search: string): string {
+  const raw = search.startsWith("?") ? search.slice(1) : search;
+  for (const part of raw.split("&")) {
+    const [key, value = ""] = part.split("=");
+    if (key === "room") {
+      try {
+        return normalizeRoomCode(decodeURIComponent(value));
+      } catch {
+        return "";
+      }
+    }
+  }
+  return "";
+}
+
 function continueSessionKey(code: string): string {
   return `beans:continue-in-browser:${normalizeRoomCode(code)}`;
 }

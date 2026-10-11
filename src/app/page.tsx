@@ -14,6 +14,7 @@ import { DiagPanel } from "@/components/DiagPanel";
 import { MotionSettle } from "@/components/MotionSettle";
 import { BeanAvatar } from "@/components/BeanAvatar";
 import { SettingsSheet } from "@/components/SettingsSheet";
+import { roomFromSearch } from "@/shared/install-join";
 import { normalizeRoomCode, randomRoomCode } from "@/shared/types";
 import { RULES } from "@/shared/rules";
 import { ADMIN_UNLOCK_KEY } from "@/lib/admin-session";
@@ -112,9 +113,7 @@ export default function HomePage() {
   // Full navigation so iOS fetches the room-scoped manifest (not a client route).
   useEffect(() => {
     try {
-      const room = normalizeRoomCode(
-        new URLSearchParams(window.location.search).get("room") ?? "",
-      );
+      const room = roomFromSearch(window.location.search);
       if (room.length === 4) {
         window.location.replace(`/join/${room}`);
       }

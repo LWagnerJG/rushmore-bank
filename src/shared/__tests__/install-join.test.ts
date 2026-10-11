@@ -5,6 +5,7 @@ import {
   hasContinuedInBrowser,
   invitePath,
   inviteUrl,
+  roomFromSearch,
   isInstallJoinConsumed,
   markInstallJoinConsumed,
   readContinueInBrowserCount,
@@ -35,6 +36,12 @@ describe("invite URLs", () => {
     expect(inviteUrl("https://beans-web.example", "ABCD")).toBe(
       "https://beans-web.example/join/ABCD",
     );
+  });
+
+  it("reads ?room= from a search string", () => {
+    expect(roomFromSearch("?room=ab-cd")).toBe("ABCD");
+    expect(roomFromSearch("diag=1&room=WXYZ")).toBe("WXYZ");
+    expect(roomFromSearch("?foo=1")).toBe("");
   });
 });
 
