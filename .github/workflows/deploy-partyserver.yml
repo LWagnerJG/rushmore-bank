@@ -32,4 +32,4 @@ jobs:
             echo "Add both as GitHub Actions secrets, then re-run this workflow (or run npx wrangler deploy locally)."
             exit 0
           fi
-          npx wrangler deploy
+          npx wrangler deploy --config wrangler.jsonc
