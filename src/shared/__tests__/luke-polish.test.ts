@@ -103,9 +103,9 @@ describe("vote: one quiet waiting signal", () => {
 });
 
 describe("score source: pending +earned only before wager applies", () => {
-  it("shows +earned on SCORE_REVEAL but never after stones absorb it", () => {
+  it("shows +earned on SCORE_REVEAL; wager folds earned into one total", () => {
     expect(railSrc).toMatch(
-      /state\.phase === "SCORE_REVEAL" \|\| state\.phase === "WAGER_SELECTION"/,
+      /const showEarned = state\.phase === "SCORE_REVEAL"/,
     );
     expect(railSrc).not.toMatch(/scoresLocked\s*\|\|/);
 
@@ -132,19 +132,23 @@ describe("score source: pending +earned only before wager applies", () => {
   });
 });
 
-describe("wager rail: quiet SAFE/RISKING copy", () => {
-  it("hides Safe/Risking labels on the rail during wager; numbers stay muted", () => {
+describe("wager rail: one clear total (no unlabeled split)", () => {
+  it("shows a single total on wager — Safe/Risking stay on the dice rail", () => {
     const s = baseRoom("WAGER_SELECTION");
     s.pots = { a: 10, b: 0, c: 5 };
     s.protectedStones = { a: 40, b: 50, c: 30 };
+    s.diceActiveIds = ["a", "b", "c"];
     const state = projectPublicState(s, "a");
     const html = renderToStaticMarkup(
       createElement(PlayerRail, { state, youId: "a" }),
     );
-    expect(html).toMatch(/player-chip-split-quiet/);
+    expect(html).not.toMatch(/player-chip-split/);
     expect(html).not.toMatch(/>Safe</);
     expect(html).not.toMatch(/>Risking</);
-    expect(css).toMatch(/\.player-chip-split-quiet/);
+    expect(html).toMatch(/player-chip-stones/);
+    // You tile uses on-coral text (AA on btn-bg)
+    expect(css).toMatch(/--on-coral/);
+    expect(css).toMatch(/\.player-chip-you[^{]*\{[^}]*color:\s*var\(--on-coral\)/);
   });
 });
 

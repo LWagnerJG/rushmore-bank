@@ -258,7 +258,7 @@ export function RoomClient({
       return (
         <main className="app-shell app-shell-lock mx-auto flex max-w-md flex-col pt-0">
           <div className="app-safe-top" aria-hidden="true" />
-          <div className="app-shell-scroll flex min-h-0 flex-1 flex-col gap-4 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4">
+          <div className="app-shell-scroll flex min-h-0 flex-1 flex-col gap-[var(--page-gap)] px-[var(--page-pad-x)] pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[var(--space-2)]">
             <BrandMark chrome shimmer={false} onLogoTap={handleLogoTap} />
             <h1 className="type-display">Room {code}</h1>
             <p className="type-meta text-[var(--muted)]">
@@ -276,7 +276,7 @@ export function RoomClient({
     return (
       <main className="app-shell app-shell-lock mx-auto flex max-w-md flex-col pt-0">
         <div className="app-safe-top" aria-hidden="true" />
-        <div className="app-shell-scroll flex min-h-0 flex-1 flex-col gap-4 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4">
+        <div className="app-shell-scroll flex min-h-0 flex-1 flex-col gap-[var(--page-gap)] px-[var(--page-pad-x)] pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[var(--space-2)]">
           <BrandMark chrome shimmer={false} onLogoTap={handleLogoTap} />
           <h1 className="type-display">Room {code}</h1>
           <p className="type-meta text-[var(--muted)]">
@@ -336,18 +336,18 @@ export function RoomClient({
         // Lock the shell; scroll lives in .room-phase-scroll below the chrome.
         // Scrolling the whole flex main + shrinkable animate-rise child let the
         // cream safe-area padding read as an opaque band over Topic vibes.
-        "app-shell app-shell-lock mx-auto flex max-w-md flex-col px-4 pt-0"
+        "app-shell app-shell-lock mx-auto flex max-w-md flex-col px-[var(--page-pad-x)] pt-0"
       }
     >
       <header
         className={
-          "room-chrome shrink-0 -mx-4 " +
-          (inputPhase ? "" : "mb-3 ") +
+          "room-chrome shrink-0 -mx-[var(--page-pad-x)] " +
+          (inputPhase ? "" : "mb-[var(--space-2)] ") +
           (partyOn ? "room-chrome-party" : "")
         }
       >
         <div className="room-chrome-safe" aria-hidden="true" />
-        <div className="room-chrome-body px-4 pb-1.5 pt-0">
+        <div className="room-chrome-body px-[var(--page-pad-x)] pb-[var(--space-1)] pt-0">
           {/*
             Stable chrome row: brand (quiet) + end slot always same height so
             timer appear/disappear never shifts the topic hero below.
@@ -419,8 +419,8 @@ export function RoomClient({
         phase !== "GAME_RESULTS" && (
         <div
           className={
-            "room-rail-slot -mx-4 px-4 " +
-            (inputPhase ? "room-rail-slot-tight" : "mb-2")
+            "room-rail-slot -mx-[var(--page-pad-x)] px-[var(--page-pad-x)] " +
+            (inputPhase ? "room-rail-slot-tight" : "mb-[var(--space-2)]")
           }
           hidden={phase === "VOTING_AND_JUDGING"}
         >

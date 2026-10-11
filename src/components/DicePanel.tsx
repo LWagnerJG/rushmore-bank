@@ -107,7 +107,8 @@ function ScoreTicker({
   reducedMotion: boolean;
 }) {
   const [paused, setPaused] = useState(false);
-  const durationSec = Math.max(22, seats.length * 7);
+  // ~1.9× prior speed (was max(22, n*7)); still readable on phone.
+  const durationSec = Math.max(12, seats.length * 3.75);
 
   const items = seats.map((seat) => (
     <li

@@ -1,14 +1,19 @@
+/**
+ * Shared Beans logo — one size on every screen (home, lobby, in-game).
+ * Icon via --brand-icon-size (30px); wordmark via --brand-word-size.
+ */
 export function BrandMark({
-  large = false,
   /**
-   * Quiet in-room chrome: small bean + 15–16px semibold muted wordmark.
-   * Not a headline — Home keeps `large` for the hero brand.
+   * @deprecated Kept for call-site compat; size is always the shared token.
+   */
+  large: _large = false,
+  /**
+   * Quiet in-room chrome styling (muted wordmark). Same size as home.
    */
   chrome = false,
   /**
    * Gradient clipped-text shimmer. MUST stay off in room chrome — animated
-   * `background-clip: text` soft-rasterizes the whole header band on iOS
-   * (icon + LOBBY + phase line) while the native status bar stays crisp.
+   * `background-clip: text` soft-rasterizes the whole header band on iOS.
    */
   shimmer = true,
   onLogoTap,
@@ -19,18 +24,17 @@ export function BrandMark({
   /** Fired when the bean icon is tapped (not the wordmark). */
   onLogoTap?: () => void;
 }) {
-  const logoSize = large ? 72 : chrome ? 22 : 36;
+  void _large;
   const wordClass = chrome
-    ? "brand-mark-chrome-word"
-    : "font-[family-name:var(--font-display)] font-extrabold tracking-tight " +
-      (shimmer ? "brand-shimmer " : "text-[var(--text)] ") +
-      (large ? "text-6xl" : "text-2xl");
+    ? "brand-mark-word brand-mark-chrome-word"
+    : "brand-mark-word font-[family-name:var(--font-display)] font-extrabold tracking-tight " +
+      (shimmer ? "brand-shimmer " : "text-[var(--text)] ");
 
   return (
     <div
       className={
-        "inline-flex items-center " +
-        (chrome ? "brand-mark-chrome gap-1.5" : "gap-3") +
+        "brand-mark inline-flex items-center gap-[0.45rem] " +
+        (chrome ? "brand-mark-chrome" : "") +
         (shimmer ? "" : " room-brand-mark-static")
       }
       aria-label="Beans"
@@ -49,9 +53,10 @@ export function BrandMark({
         onClick={onLogoTap}
       >
         <svg
+          className="brand-mark-icon"
           viewBox="0 0 128 128"
-          width={logoSize}
-          height={logoSize}
+          width={30}
+          height={30}
           aria-hidden="true"
           style={{ display: "block" }}
           shapeRendering="auto"

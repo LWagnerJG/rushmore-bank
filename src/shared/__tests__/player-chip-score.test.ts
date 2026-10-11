@@ -38,7 +38,7 @@ describe("player chip score tiles", () => {
   it("uses accessible coral fill for the You tile", () => {
     const you = css.match(/\.player-chip-you\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
     expect(you).toMatch(/background:\s*var\(--btn-bg\)/);
-    expect(you).toMatch(/color:\s*#fff/);
+    expect(you).toMatch(/color:\s*var\(--on-coral\)|#fff/);
   });
 
   it("keeps tabular numerals on stones and earned", () => {
