@@ -105,7 +105,7 @@ function roomAt(phase: Phase, tweak: (s: RoomState) => void = () => {}) {
 function viewOf(s: RoomState, youId: string) {
   const state: PublicRoomState = projectPublicState(s, youId);
   const you = state.players.find((p) => p.id === youId)!;
-  return { state, you, send: () => {} };
+  return { state, you, send: () => {}, rename: () => {} };
 }
 
 function revealed(s: RoomState) {

@@ -1097,6 +1097,9 @@ export class QuarryServer extends Server<Env> {
           });
         }
         return;
+      case "rename":
+        this.handleRename(id, msg.name);
+        return;
       case "host_heartbeat": {
         const p = this.state.players.find((x) => x.id === id);
         if (p?.isHost) this.state.hostLastSeenAt = Date.now();
@@ -1197,13 +1200,56 @@ export class QuarryServer extends Server<Env> {
     }
   }
 
+  /** Shared nickname rules for join + lobby rename. */
+  cleanNickname(name: string): string {
+    return name.trim().slice(0, 18);
+  }
+
+  assertNicknameAvailable(clean: string, exceptId?: string) {
+    if (!clean) throw new Error("Enter a nickname");
+    const needle = clean.toLowerCase();
+    const taken = this.state.players.some(
+      (p) =>
+        p.id !== exceptId &&
+        p.role === "player" &&
+        p.name.trim().toLowerCase() === needle,
+    );
+    if (taken) throw new Error("Name taken — pick another");
+  }
+
+  /**
+   * Lobby-only rename. Same id / host / seat; rejects empty + duplicates.
+   * Locked once the game starts (rosterLocked), including rematch until LOBBY.
+   */
+  handleRename(id: string, name: string) {
+    if (this.state.rosterLocked || this.state.phase !== "LOBBY") {
+      throw new Error("Can't rename after the game starts");
+    }
+    const me = this.state.players.find((p) => p.id === id);
+    if (!me) throw new Error("Join first");
+    if (me.role !== "player") throw new Error("Spectators can't rename");
+    const clean = this.cleanNickname(name);
+    this.assertNicknameAvailable(clean, id);
+    if (me.name === clean) return;
+    me.name = clean;
+    bump(this.state);
+  }
+
   handleJoin(id: string, name: string, role: "player" | "spectator") {
-    const clean = name.trim().slice(0, 18);
+    const clean = this.cleanNickname(name);
     if (!clean) throw new Error("Enter a nickname");
 
     this.clearLeaveTimer(id);
     const existing = this.state.players.find((p) => p.id === id);
     if (existing) {
+      // Reconnect / re-join with same id — allow a nickname update in lobby only.
+      if (
+        !this.state.rosterLocked &&
+        existing.role === "player" &&
+        clean.toLowerCase() !== existing.name.trim().toLowerCase()
+      ) {
+        this.assertNicknameAvailable(clean, id);
+      }
       existing.name = clean;
       existing.connected = true;
       this.ensureHost();
@@ -1238,12 +1284,7 @@ export class QuarryServer extends Server<Env> {
 
     // Lobby: reject duplicate display names (case-insensitive).
     if (role === "player" && !this.state.rosterLocked) {
-      const needle = clean.toLowerCase();
-      const taken = this.state.players.some(
-        (p) =>
-          p.role === "player" && p.name.trim().toLowerCase() === needle,
-      );
-      if (taken) throw new Error("Name taken — pick another");
+      this.assertNicknameAvailable(clean);
     }
 
     const playerCount = this.state.players.filter((p) => p.role === "player")

@@ -1445,6 +1445,66 @@ html.party-on .brand-shimmer {
   padding: 0.4rem 0.75rem;
 }
 
+.lobby-roster .player-row-you {
+  background: color-mix(in srgb, rgba(231, 111, 78, 0.08) 70%, rgba(255, 255, 255, 0.55));
+}
+
+/* Inline lobby rename — 44px tap target, quiet pencil, no extra CTA chrome */
+.lobby-rename-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: var(--tap-min);
+  min-width: var(--tap-min);
+  margin: -0.2rem 0;
+  padding: 0.35rem 0.45rem 0.35rem 0.15rem;
+  border: 0;
+  border-radius: 0.65rem;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.lobby-rename-btn:active {
+  opacity: 0.8;
+}
+
+.lobby-rename-host {
+  flex-shrink: 0;
+  font-weight: 800;
+}
+
+.lobby-rename-text {
+  min-width: 0;
+}
+
+.lobby-rename-pencil {
+  flex-shrink: 0;
+  color: var(--muted);
+  opacity: 0.72;
+}
+
+.lobby-rename-btn:hover .lobby-rename-pencil,
+.lobby-rename-btn:focus-visible .lobby-rename-pencil {
+  color: var(--coral-ink);
+  opacity: 1;
+}
+
+.lobby-rename-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: var(--tap-min);
+  margin: -0.2rem 0;
+  padding: 0.35rem 0.55rem;
+  border-radius: 0.65rem;
+  border: 1.5px solid color-mix(in srgb, var(--coral) 45%, transparent);
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--text);
+  outline: none;
+  box-shadow: none;
+}
+
 .lobby-layout.stack {
   gap: var(--space-3);
 }

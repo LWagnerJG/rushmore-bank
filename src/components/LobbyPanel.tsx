@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
 import { RULES } from "@/shared/rules";
@@ -8,14 +8,117 @@ import { shareInvite } from "@/lib/share-invite";
 import { HostAiPreGameStatus } from "@/components/HostAiPreGameStatus";
 import { nameWithYouSuffix } from "@/shared/you-label";
 
+const NAME_MAX = 18;
+
+function PencilIcon() {
+  return (
+    <svg
+      className="lobby-rename-pencil"
+      viewBox="0 0 16 16"
+      width="14"
+      height="14"
+      aria-hidden="true"
+    >
+      <path
+        d="M11.7 1.6a1.4 1.4 0 0 1 2 2L5.4 11.9 2 12.8l.9-3.4L11.7 1.6Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+/** Tap-to-edit own lobby nickname — saves on Enter / blur. */
+function LobbyOwnName({
+  name,
+  isHost,
+  onRename,
+}: {
+  name: string;
+  isHost: boolean;
+  onRename: (next: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(name);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (!editing) setDraft(name);
+  }, [name, editing]);
+
+  useEffect(() => {
+    if (!editing) return;
+    const el = inputRef.current;
+    if (!el) return;
+    el.focus();
+    el.select();
+  }, [editing]);
+
+  function commit() {
+    const clean = draft.trim();
+    setEditing(false);
+    if (!clean || clean === name.trim()) {
+      setDraft(name);
+      return;
+    }
+    onRename(clean);
+  }
+
+  if (editing) {
+    return (
+      <input
+        ref={inputRef}
+        className="lobby-rename-input type-body font-extrabold"
+        value={draft}
+        maxLength={NAME_MAX}
+        aria-label="Your nickname"
+        autoComplete="nickname"
+        enterKeyHint="done"
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => commit()}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            (e.target as HTMLInputElement).blur();
+          } else if (e.key === "Escape") {
+            e.preventDefault();
+            setDraft(name);
+            setEditing(false);
+          }
+        }}
+      />
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      className="lobby-rename-btn"
+      onClick={() => setEditing(true)}
+      aria-label={`Edit your nickname (currently ${name})`}
+    >
+      {isHost ? <span className="lobby-rename-host">★</span> : null}
+      <span className="lobby-rename-text type-body font-extrabold">
+        {nameWithYouSuffix(name)}
+      </span>
+      <PencilIcon />
+    </button>
+  );
+}
+
 export function LobbyPanel({
   state,
   you,
   send,
+  rename,
 }: {
   state: PublicRoomState;
   you: Player;
   send: (m: ClientMessage) => void;
+  rename: (name: string) => void;
 }) {
   const [copied, setCopied] = useState(false);
   const url =
@@ -109,16 +212,32 @@ export function LobbyPanel({
         </div>
         <ul className="stack-sm lobby-roster-list">
           {players.map((p) => (
-            <li key={p.id} className="player-row">
-              <span className="type-body font-extrabold">
-                {p.isHost ? "★ " : ""}
-                {p.id === you.id ? nameWithYouSuffix(p.name) : p.name}
-                {!p.connected && (
-                  <span className="ml-[var(--space-1)] type-meta text-[var(--muted)]">
-                    away
-                  </span>
-                )}
-              </span>
+            <li
+              key={p.id}
+              className={[
+                "player-row",
+                p.id === you.id ? "player-row-you" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              {p.id === you.id ? (
+                <LobbyOwnName
+                  name={p.name}
+                  isHost={p.isHost}
+                  onRename={rename}
+                />
+              ) : (
+                <span className="type-body font-extrabold">
+                  {p.isHost ? "★ " : ""}
+                  {p.name}
+                  {!p.connected && (
+                    <span className="ml-[var(--space-1)] type-meta text-[var(--muted)]">
+                      away
+                    </span>
+                  )}
+                </span>
+              )}
               <span className="stack-row">
                 {you.isHost && p.id !== you.id && (
                   <button
