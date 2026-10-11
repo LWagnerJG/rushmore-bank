@@ -115,7 +115,7 @@ BASE_URL=http://127.0.0.1:3100 PARTY_HOST=127.0.0.1:8787 npm run test:ios-keyboa
 
 ## Room session auto-rejoin
 
-Membership (`code`, nickname, role, player id) is remembered in session+local storage for ~2h. Returning to the room URL (or foregrounding the tab) auto-rejoins / forces PartySocket reconnect without hunting for Rejoin. Soft-disconnect grace (~8s) still holds the mid-game seat; matching id cancels it on connect.
+Membership (`code`, nickname, role, player id) is remembered in session+local storage for ~2h. Returning to the room URL (or foregrounding the tab) auto-rejoins / forces PartySocket reconnect without hunting for Rejoin. Soft-disconnect grace (~45s) still holds the mid-game seat and the host gavel; matching id cancels it on connect.
 
 A new tab (or a relaunched PWA) has no session membership, so it shows the join form. If local storage still holds a player membership for the room (`rejoinOffer`), the form is prefilled with that nickname, and Join game under that nickname reloads onto the old seat's id. First-time visitors get an empty form; the join form renders only after hydration.
 

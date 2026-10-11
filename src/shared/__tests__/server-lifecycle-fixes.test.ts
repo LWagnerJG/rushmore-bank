@@ -6,6 +6,7 @@ import type { Connection } from "partyserver";
 import { afterEach, beforeEach, describe, it, vi } from "vitest";
 import { createTestServer } from "../../../test/party-server-harness";
 import { projectPublicState } from "../engine/public-state";
+import { HOST_DISCONNECT_GRACE_MS } from "../engine/host-sticky";
 
 const START = 1_910_000_000_000;
 
@@ -62,7 +63,7 @@ describe("server lifecycle fixes", () => {
     await server.handleVote("A", "B");
     await server.handleVote("B", "A");
     server.onClose({ id: "A", send() {} } as unknown as Connection, 1000, "", true);
-    await vi.advanceTimersByTimeAsync(8_000);
+    await vi.advanceTimersByTimeAsync(HOST_DISCONNECT_GRACE_MS);
     await Promise.resolve();
     await Promise.resolve();
     await server.maybeFinalizeAfterJudge();
@@ -90,7 +91,7 @@ describe("server lifecycle fixes", () => {
     server.state.seatOrder = ["A", "B", "C"];
     server.state.rematchReady = { A: true, B: true };
     server.onClose({ id: "C", send() {} } as unknown as Connection, 1000, "", true);
-    await vi.advanceTimersByTimeAsync(8_000);
+    await vi.advanceTimersByTimeAsync(HOST_DISCONNECT_GRACE_MS);
     await Promise.resolve();
     await Promise.resolve();
     assert.equal(server.state.phase, "LOBBY");
@@ -211,7 +212,7 @@ describe("server lifecycle fixes", () => {
       );
     }
     assert.equal(server.roomAppearsActive(), true, "grace still active");
-    await vi.advanceTimersByTimeAsync(8_000);
+    await vi.advanceTimersByTimeAsync(HOST_DISCONNECT_GRACE_MS);
     await Promise.resolve();
     await Promise.resolve();
     assert.equal(server.roomAppearsActive(), false);

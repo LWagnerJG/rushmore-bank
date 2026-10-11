@@ -89,3 +89,10 @@ export {
   type TrayPaintModel,
 } from "./die-face";
 export { currentUpPlayerId } from "./up-seat";
+export {
+  HOST_DISCONNECT_GRACE_MS,
+  hostIsHeld,
+  nextHostId,
+  shouldBumpRevisionOnDisconnect,
+  disconnectGraceMs,
+} from "./host-sticky";
