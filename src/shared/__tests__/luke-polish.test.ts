@@ -156,6 +156,20 @@ describe("settings: spacing instead of hard dividers", () => {
     const admin = rulesFor(css, ".admin-tools").join("\n");
     expect(admin).not.toMatch(/border-top/);
     expect(settingsSrc).toMatch(/settings-row/);
+    expect(settingsSrc).toMatch(/Host options/);
+    expect(settingsSrc).toMatch(/setPanel\("admin"\)|setPanel\('admin'\)/);
+  });
+
+  it("covers the full viewport including safe-area with the sheet backdrop", () => {
+    const backdrop = rulesFor(css, ".settings-sheet-backdrop").join("\n");
+    expect(backdrop).toMatch(/inset:\s*0/);
+    expect(backdrop).toMatch(/100lvh|100dvh/);
+    expect(backdrop).toMatch(/overflow:\s*visible/);
+    expect(backdrop).not.toMatch(/overflow:\s*hidden/);
+    expect(css).toMatch(/\.settings-sheet-backdrop::before/);
+    const paint = rulesFor(css, ".settings-sheet-backdrop::before").join("\n");
+    expect(paint).toMatch(/safe-area-inset-bottom/);
+    expect(paint).toMatch(/safe-area-inset-top/);
   });
 });
 

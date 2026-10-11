@@ -5,7 +5,50 @@ export type VersionPayload = {
   partyHost: string;
   /** ISO timestamp when this payload was generated (server). */
   generatedAt: string;
+  /** Hosting surface: Cloudflare, Vercel, or a hostname fallback. */
+  platform: string;
 };
+
+/**
+ * Resolve which host is serving the web app.
+ * Prefers BEANS_PLATFORM / CF_PAGES / VERCEL, then hostname heuristics.
+ */
+export function resolveServingPlatform(input: {
+  beansPlatform?: string | null;
+  cfPages?: string | null;
+  vercel?: string | null;
+  vercelEnv?: string | null;
+  host?: string | null;
+}): string {
+  const explicit = input.beansPlatform?.trim();
+  if (explicit) {
+    const lower = explicit.toLowerCase();
+    if (lower === "cloudflare") return "Cloudflare";
+    if (lower === "vercel") return "Vercel";
+    return explicit;
+  }
+  if (input.cfPages === "1" || input.cfPages === "true") return "Cloudflare";
+  if (
+    input.vercel === "1" ||
+    input.vercel === "true" ||
+    (input.vercelEnv != null && input.vercelEnv !== "")
+  ) {
+    return "Vercel";
+  }
+  const host = (input.host ?? "").trim().toLowerCase();
+  if (!host) return "unknown";
+  if (
+    host.includes("workers.dev") ||
+    host.includes("pages.dev") ||
+    host.includes("cloudflare")
+  ) {
+    return "Cloudflare";
+  }
+  if (host.includes("vercel.app") || host.includes("vercel")) {
+    return "Vercel";
+  }
+  return host;
+}
 
 export type StaleReason = "build" | "party-host" | null;
 

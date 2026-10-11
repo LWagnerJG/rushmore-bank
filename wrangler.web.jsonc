@@ -34,7 +34,8 @@
   // Note: do not set limits.cpu_ms — Free plan rejects it (API 100328).
   // Judge wall-clock budget is enforced in route.ts (REQUEST_BUDGET_MS).
   "vars": {
-    "NEXT_PUBLIC_PARTYKIT_HOST": "beans-party.beans-lwagner.workers.dev"
+    "NEXT_PUBLIC_PARTYKIT_HOST": "beans-party.beans-lwagner.workers.dev",
+    "BEANS_PLATFORM": "Cloudflare"
   },
   "observability": {
     "enabled": true

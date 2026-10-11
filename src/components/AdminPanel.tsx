@@ -51,6 +51,7 @@ export function AdminTools({
 }) {
   const [botCountDraft, setBotCountDraft] = useState("2");
   const [lastAdded, setLastAdded] = useState<number | null>(null);
+  const [servingLine, setServingLine] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const slotsLeft = Math.max(0, RULES.maxPlayers - playerCount);
@@ -63,6 +64,28 @@ export function AdminTools({
     return () => window.clearTimeout(t);
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch(`/api/version?t=${Date.now()}`, {
+          cache: "no-store",
+        });
+        if (!res.ok) return;
+        const data = (await res.json()) as {
+          platform?: string;
+          sha?: string;
+        };
+        if (cancelled || !data.platform || !data.sha) return;
+        setServingLine(`Served by ${data.platform} · build ${data.sha}`);
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   function commitAdd() {
     if (!canAdd || parsed === null) return;
     const count = Math.min(parsed, slotsLeft);
@@ -151,6 +174,10 @@ export function AdminTools({
           {lastAdded !== null ? ` Last added ${lastAdded}.` : ""}
         </p>
       </div>
+
+      {servingLine ? (
+        <p className="admin-serving type-meta text-[var(--muted)]">{servingLine}</p>
+      ) : null}
     </div>
   );
 }

@@ -135,8 +135,11 @@ describe("profile chrome wiring", () => {
     expect(room).toMatch(/nickname=\{profileName\}/);
     expect(sheet).toMatch(/aria-label="Profile"/);
     expect(sheet).toMatch(/profile-stats/);
+    expect(sheet).toMatch(/No games yet/);
     expect(sheet).toMatch(/>Sound</);
+    expect(sheet).toMatch(/Host options/);
     expect(sheet).toMatch(/Party Mode/);
+    expect(sheet).not.toMatch(/Off by default/);
     expect(brand).not.toMatch(/aria-label=\{onLogoTap \? "Settings"/);
     expect(hook).toMatch(/recordGameResult/);
     expect(hook).toMatch(/GAME_RESULTS/);
@@ -146,6 +149,8 @@ describe("profile chrome wiring", () => {
     const css = read("app/globals.css");
     expect(css).toMatch(/\.profile-btn\s*\{/);
     expect(css).toMatch(/\.profile-stats\s*\{/);
+    expect(css).toMatch(/\.settings-sheet-backdrop::before/);
+    expect(css).toMatch(/100lvh/);
     const btnBlock = css.slice(css.indexOf(".profile-btn {"), css.indexOf(".home-header-row"));
     expect(btnBlock).not.toMatch(/backdrop-filter|filter:\s*blur/);
     const statsBlock = css.slice(

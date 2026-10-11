@@ -55,10 +55,12 @@ async function main() {
     await page.waitForTimeout(350);
     const dest = path.join(OUT, `profile-sheet-open-${vp.label}.png`);
     await page.screenshot({ path: dest, fullPage: false });
-    const wins = await page
-      .locator(".profile-stat-hero .profile-stat-value")
-      .textContent();
-    console.log("wrote", dest, "wins", wins?.trim());
+    const winsEl = page.locator(".profile-stat-hero .profile-stat-value");
+    const emptyEl = page.locator(".profile-stats-empty");
+    const wins = (await winsEl.count())
+      ? (await winsEl.textContent())?.trim()
+      : (await emptyEl.textContent())?.trim();
+    console.log("wrote", dest, "wins", wins);
     await context.close();
   }
   await browser.close();

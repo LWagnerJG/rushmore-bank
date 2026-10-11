@@ -206,13 +206,13 @@ describe("sound prefs — off by default", () => {
     unsub();
   });
 
-  it("settings sheet has Sound toggle with clear off-by-default copy", () => {
+  it("settings sheet has Sound toggle without helper subtitles", () => {
     expect(settings).toMatch(/>Sound</);
     expect(settings).not.toMatch(/Sound FX/);
     expect(settings).toMatch(/isSoundEnabled/);
     expect(settings).toMatch(/enableSoundFromUserGesture/);
     expect(settings).toMatch(/aria-checked=\{soundOn\}/);
-    expect(settings).toMatch(/Off by default|tap to enable/i);
+    expect(settings).not.toMatch(/Off by default|tap to enable/i);
   });
 });
 
