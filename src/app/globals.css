@@ -1518,10 +1518,11 @@ html.party-on .brand-shimmer {
   min-height: var(--tap-min);
   font-size: 1.0625rem;
   width: 100%;
+  margin-top: 0.15rem;
 }
 
 .lobby-invite-status {
-  margin: 0;
+  margin: 0.55rem 0 0;
   line-height: 1.25;
   text-align: center;
 }
@@ -1535,8 +1536,20 @@ html.party-on .brand-shimmer {
 }
 
 .lobby-roster .player-row {
+  justify-content: flex-start;
   min-height: var(--tap-min);
   padding: 0.4rem 0.75rem;
+  gap: 0.55rem;
+}
+
+.lobby-roster .player-row > .stack-row {
+  margin-left: auto;
+}
+
+.lobby-roster .lobby-rename-btn,
+.lobby-roster .player-row > .type-body {
+  flex: 0 1 auto;
+  justify-content: flex-start;
 }
 
 .lobby-roster .player-row-you {

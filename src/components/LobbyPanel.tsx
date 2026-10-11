@@ -261,8 +261,8 @@ export function LobbyPanel({
                   )}
                 </span>
               )}
-              <span className="stack-row">
-                {you.isHost && p.id !== you.id && (
+              {you.isHost && p.id !== you.id ? (
+                <span className="stack-row">
                   <button
                     type="button"
                     className="min-h-[var(--tap-min)] min-w-[var(--tap-min)] rounded-md px-[var(--space-2)] type-meta font-bold text-[var(--muted)] hover:bg-[rgba(231,111,78,0.12)] hover:text-[var(--coral-ink)]"
@@ -279,8 +279,8 @@ export function LobbyPanel({
                   >
                     Remove
                   </button>
-                )}
-              </span>
+                </span>
+              ) : null}
             </li>
           ))}
           {players.length === 0 && (
