@@ -128,13 +128,10 @@ async function openProfile(page: Page, preferMain = true) {
     timeout: 10000,
   });
   if (preferMain) {
-    const back = page.getByRole("button", { name: /Avatar/i }).first();
+    const back = page.getByRole("button", { name: /^‹\s*Avatar$/ });
     if (await back.isVisible().catch(() => false)) {
-      const label = (await back.textContent())?.trim() ?? "";
-      if (/‹|Avatar/.test(label)) {
-        await back.click();
-        await page.waitForTimeout(250);
-      }
+      await back.click();
+      await page.waitForTimeout(250);
     }
   }
   await page.waitForTimeout(400);
