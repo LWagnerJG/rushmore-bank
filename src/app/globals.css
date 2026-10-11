@@ -1653,13 +1653,14 @@ html.party-on .brand-shimmer {
 }
 
 .lobby-roster .lobby-rename-btn {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   justify-content: flex-start;
   align-items: center;
   margin: 0;
   padding: 0.2rem 0.2rem 0.2rem 0;
   min-width: 0;
   width: auto;
+  max-width: 100%;
   text-align: left;
 }
 
@@ -4995,7 +4996,7 @@ html.settings-sheet-open body {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  padding: 0.35rem 1.15rem 0.5rem;
+  padding: 0.35rem 1.15rem 0.85rem;
   display: flex;
   flex-direction: column;
   gap: 0.85rem;

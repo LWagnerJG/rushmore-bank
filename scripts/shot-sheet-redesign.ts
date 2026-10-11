@@ -115,18 +115,28 @@ async function dismissContinue(page: Page) {
   }
 }
 
-async function openProfile(page: Page) {
+async function openProfile(page: Page, preferMain = true) {
   const profile = page.getByRole("button", { name: /^Profile$/ });
   if (await profile.isVisible().catch(() => false)) {
     await profile.click();
   } else {
-    // Home nickname-row avatar
-    const avatar = page.locator(".home-playing-avatar, [aria-label='Profile']").first();
-    await avatar.click();
+    // Home nickname-row avatar opens the avatar panel by design —
+    // open it, then step back to main when we want the profile sheet.
+    await page.locator(".home-playing-avatar").first().click();
   }
   await page.waitForSelector('[role="dialog"][aria-label="Profile"]', {
     timeout: 10000,
   });
+  if (preferMain) {
+    const back = page.getByRole("button", { name: /Avatar/i }).first();
+    if (await back.isVisible().catch(() => false)) {
+      const label = (await back.textContent())?.trim() ?? "";
+      if (/‹|Avatar/.test(label)) {
+        await back.click();
+        await page.waitForTimeout(250);
+      }
+    }
+  }
   await page.waitForTimeout(400);
 }
 
