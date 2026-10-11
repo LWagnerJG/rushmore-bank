@@ -471,6 +471,9 @@ export function RoomClient({
         onClose={() => setSettingsOpen(false)}
         roomCode={code}
         nickname={profileName}
+        rename={rename}
+        canRename={phase === "LOBBY" && !state?.rosterLocked}
+        rosterLocked={Boolean(state?.rosterLocked)}
         isHost={you?.isHost ?? false}
         partyOn={partyOn}
         hostAiJudge={you?.isHost ? state?.hostAiJudge : undefined}

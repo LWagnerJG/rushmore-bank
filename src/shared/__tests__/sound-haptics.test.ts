@@ -351,17 +351,31 @@ describe("iOS unlock + WebAudio sfx", () => {
   it("covers required cue kinds including confirm", () => {
     const kinds: SfxKind[] = [
       "your_turn",
+      "lock_in",
+      "timer_tick",
       "dice_tick",
       "dice_settle",
       "beans_land",
       "bust",
       "bank",
+      "reveal",
       "winner",
       "confirm",
     ];
     for (const k of kinds) {
       expect(sfxDebounceMs(k)).toBeGreaterThan(0);
     }
+  });
+
+  it("keeps Sound device-local — never in room messages or host settings", () => {
+    const types = readFileSync(
+      resolve(__dirname, "../types.ts"),
+      "utf8",
+    );
+    expect(types).not.toMatch(/soundEnabled|sound_on|soundOn/);
+    expect(SOUND_ENABLED_KEY).toBe("beans:sound-enabled");
+    expect(settings).toMatch(/setSoundEnabled\(next\)/);
+    expect(settings).not.toMatch(/type:\s*["']update_settings["'][\s\S]*sound/i);
   });
 
   it("uses silent html audio + playback session for iOS silent switch", () => {

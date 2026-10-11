@@ -503,6 +503,12 @@ export function HomePage({ createIntent = false }: { createIntent?: boolean }) {
           setProfilePanel("main");
         }}
         nickname={displayName || name || "Player"}
+        rename={(next) => {
+          rememberDisplayName(next);
+          setName(next);
+          setNameReady(true);
+        }}
+        canRename
         initialPanel={profilePanel}
       />
       {showDiag && <DiagPanel onClose={() => setDiagClosed(true)} />}

@@ -9,6 +9,7 @@ import {
 } from "@/shared/types";
 import { loadStash, saveStash } from "@/lib/party";
 import { cueYourTurn } from "@/lib/your-turn";
+import { feedback } from "@/lib/feedback";
 import { draftStatusLine } from "@/lib/draft-status";
 import { DraftBoard } from "@/components/DraftBoard";
 
@@ -132,6 +133,7 @@ export function DraftPanel({
     pending.current = { text: clean, turn: state.draftCursor };
     setSelection(clean);
     setBusy(true);
+    feedback("lock_in");
     send({ type: "lock_in", text: clean });
   }
 
