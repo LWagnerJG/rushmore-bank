@@ -21,7 +21,11 @@ export function TopicPanel({
   const [scope, setScope] = useState<TopicScope>("everyday");
   const [customOpen, setCustomOpen] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
-  /** Instant chip paint — ignore a stale server echo while a tap is in flight. */
+  /**
+   * Last tap wins. Do not clear when the server matches — a late
+   * configuredTopicRounds / topicVibe echo of an older chip would
+   * snap the highlight backwards and look stuck.
+   */
   const [pendingRounds, setPendingRounds] = useState<number | null>(null);
   const [pendingVibe, setPendingVibe] = useState<string | null>(null);
   const myVote = state.myTopicVote;
@@ -30,21 +34,6 @@ export function TopicPanel({
   const canPickRounds = you.isHost && firstTopicScreen;
   const shownRounds = pendingRounds ?? state.configuredTopicRounds;
   const shownVibe = pendingVibe ?? (state.settings.topicVibe ?? "all");
-
-  useEffect(() => {
-    if (pendingRounds != null && state.configuredTopicRounds === pendingRounds) {
-      setPendingRounds(null);
-    }
-  }, [state.configuredTopicRounds, pendingRounds]);
-
-  useEffect(() => {
-    if (
-      pendingVibe != null &&
-      (state.settings.topicVibe ?? "all") === pendingVibe
-    ) {
-      setPendingVibe(null);
-    }
-  }, [state.settings.topicVibe, pendingVibe]);
 
   // Animate only on reroll (options change after first paint) — never on land.
   useEffect(() => {
