@@ -5,6 +5,7 @@ import { createTestServer } from "../../../test/party-server-harness";
 import {
   classifyStateVersion,
   enqueueWhileConnecting,
+  flushQueuedSends,
   makePing,
   makePong,
   pingRttMs,
@@ -15,6 +16,7 @@ import {
   SYNC_DEAD_SOCKET_MS,
   SYNC_PING_MS,
 } from "../engine/sync-protocol";
+import type { RoomState } from "../types";
 import { mergePublicState } from "../engine/merge-public-state";
 import { projectPublicState } from "../engine/public-state";
 import { emptyRoomState } from "../types";
@@ -26,6 +28,7 @@ describe("state version gaps", () => {
     expect(classifyStateVersion(null, 1)).toBe("first");
     expect(classifyStateVersion(3, 4)).toBe("ok");
     expect(classifyStateVersion(4, 4)).toBe("stale");
+    expect(classifyStateVersion(4, 4, { allowEqual: true })).toBe("ok");
     expect(classifyStateVersion(4, 3)).toBe("stale");
     expect(classifyStateVersion(4, 6)).toBe("gap");
     expect(shouldRequestResync("gap")).toBe(true);
@@ -57,6 +60,16 @@ describe("state version gaps", () => {
     q = enqueueWhileConnecting(q, "c", 3);
     q = enqueueWhileConnecting(q, "d", 3);
     expect(q).toEqual(["b", "c", "d"]);
+  });
+
+  it("keeps the failed send and the unsent tail", () => {
+    const sent: string[] = [];
+    const leftover = flushQueuedSends(["a", "b", "c", "d"], (item) => {
+      if (item === "c") throw new Error("closed");
+      sent.push(item);
+    });
+    expect(sent).toEqual(["a", "b"]);
+    expect(leftover).toEqual(["c", "d"]);
   });
 
   it("merge ignores a stale lower stateVersion", () => {
@@ -159,6 +172,45 @@ describe("PartyServer seq / ping / resync", () => {
     const state = sent[0]?.state as { phaseRevision: number; stateVersion: number };
     expect(state.phaseRevision).toBe(server.state.phaseRevision);
     expect(state.stateVersion).toBe(v);
+    expect(sent[0]?.resync).toBe(true);
+  });
+
+  it("persists the broadcast seq so a Durable Object wake does not reuse it", async () => {
+    const sent: Array<Record<string, unknown>> = [];
+    const conn = {
+      id: "A",
+      send(payload: string) {
+        sent.push(JSON.parse(payload) as Record<string, unknown>);
+      },
+    } as unknown as Connection;
+    const { server, saved } = createTestServer("WAKE1", { connections: [conn] });
+    server.state.players = [
+      {
+        id: "A",
+        name: "A",
+        seat: 0,
+        connected: true,
+        isHost: true,
+        role: "player",
+        stones: 0,
+        joinedAt: 1,
+      },
+    ];
+    server.broadcastState();
+    await server.persist();
+    expect(server.state.stateVersion).toBe(1);
+    expect((saved.get("state") as RoomState).stateVersion).toBe(1);
+
+    const { server: woke } = createTestServer("WAKE1", {
+      saved,
+      connections: [conn],
+    });
+    await woke.onStart();
+    expect(woke.state.stateVersion).toBe(1);
+    sent.length = 0;
+    woke.broadcastState();
+    expect(woke.state.stateVersion).toBe(2);
+    expect(sent[0]?.seq).toBe(2);
   });
 });
 
@@ -182,5 +234,7 @@ describe("client hook wires gap resync, queue, and heartbeat", () => {
     expect(hook).toMatch(/enqueueWhileConnecting/);
     expect(hook).toMatch(/readyState !== WebSocket\.CONNECTING/);
     expect(hook).toMatch(/outgoingQueueRef/);
+    expect(hook).toMatch(/flushQueuedSends/);
+    expect(hook).toMatch(/allowEqual: Boolean\(msg\.resync\)/);
   });
 });
