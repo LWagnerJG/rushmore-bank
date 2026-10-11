@@ -49,6 +49,8 @@ export function SettingsSheet({
   drafting = false,
   pickPaused = false,
   nickname,
+  /** When opening, jump to this panel (e.g. home avatar tap → picker). */
+  initialPanel = "main",
 }: {
   open: boolean;
   onClose: () => void;
@@ -66,6 +68,7 @@ export function SettingsSheet({
   pickPaused?: boolean;
   /** Display name for the profile header (falls back to stored nickname). */
   nickname?: string;
+  initialPanel?: SheetPanel;
 }) {
   const [soundOn, setSoundOn] = useState(() =>
     typeof window !== "undefined" ? isSoundEnabled() : false,
@@ -90,8 +93,9 @@ export function SettingsSheet({
       setPanel("main");
       return;
     }
+    setPanel(initialPanel);
     return subscribeSoundEnabled(setSoundOn);
-  }, [open]);
+  }, [open, initialPanel]);
 
   useEffect(() => {
     if (!open) return;

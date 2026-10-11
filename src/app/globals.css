@@ -1232,8 +1232,39 @@ html.party-on .brand-shimmer {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-1);
-  text-align: center;
+  gap: 0.45rem;
+  text-align: left;
+}
+
+.home-playing-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2.75rem;
+  height: 2.75rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.home-playing-avatar:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--mint) 70%, #23483e);
+  outline-offset: 2px;
+}
+
+.home-playing-label {
+  margin: 0;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.home-playing-as-prefix {
+  font-weight: 600;
 }
 
 .home-edit-name {

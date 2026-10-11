@@ -33,9 +33,10 @@ describe("bean avatars", () => {
     }
   });
 
-  it("keeps avatars only on profile button + sheet picker", () => {
+  it("keeps avatars only on profile surfaces (home name row, room btn, picker)", () => {
     const sheet = read("components/SettingsSheet.tsx");
     const profileBtn = read("components/ProfileButton.tsx");
+    const home = read("app/page.tsx");
     const lobby = read("components/LobbyPanel.tsx");
     const rail = read("components/PlayerRail.tsx");
     const waiting = read("components/WaitingRoster.tsx");
@@ -43,7 +44,11 @@ describe("bean avatars", () => {
     const server = readFileSync(resolve(rootDir, "party/server.ts"), "utf8");
     expect(sheet).toMatch(/avatar-picker-grid/);
     expect(sheet).toMatch(/set_avatar/);
+    expect(sheet).toMatch(/initialPanel/);
     expect(profileBtn).toMatch(/BeanAvatar/);
+    expect(home).toMatch(/home-playing-avatar/);
+    expect(home).toMatch(/BeanAvatar/);
+    expect(home).not.toMatch(/ProfileButton/);
     expect(lobby).not.toMatch(/BeanAvatar/);
     expect(rail).not.toMatch(/BeanAvatar/);
     expect(waiting).not.toMatch(/BeanAvatar/);
