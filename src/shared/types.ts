@@ -167,6 +167,20 @@ export interface PartyPrompt {
   acknowledgedPlayerIds?: string[];
 }
 
+/** Compact archive of one finished topic round — for shareable end cards. */
+export interface RoundRecapRoster {
+  playerId: string;
+  playerName: string;
+  picks: string[];
+}
+
+export interface RoundRecap {
+  round: number;
+  topicId: string;
+  topicText: string;
+  rosters: RoundRecapRoster[];
+}
+
 export interface HostSettings {
   /**
    * Legacy field — ignored. Shortlist is always `RULES.topicShortlistSize` (4).
@@ -276,6 +290,8 @@ export interface RoomState {
   ledger: LedgerEntry[];
   /** Player ids busted this dice phase (public; replaces full ledger fanout). */
   bustedPlayerIdsThisRound: string[];
+  /** Finished rounds (topic + each player's 4 picks) for end-of-game share. */
+  roundRecaps: RoundRecap[];
   checkpoint: {
     stones: Record<string, number>;
     topicRound: number;
@@ -373,6 +389,8 @@ export interface PublicRoomState {
   diceIdlePauseRemainingMs: number | null;
   /** Ids busted this dice phase (replaces broadcasting the full ledger). */
   bustedPlayerIdsThisRound: string[];
+  /** Finished rounds for the shareable end card (omitted during dice slim). */
+  roundRecaps: RoundRecap[];
   phaseDeadlineAt: number | null;
   hostLastSeenAt: number;
   /** Monotonic broadcast sequence (gaps → client resync). */
@@ -589,6 +607,7 @@ export function emptyRoomState(code: string): RoomState {
     diceIdlePauseRemainingMs: null,
     ledger: [],
     bustedPlayerIdsThisRound: [],
+    roundRecaps: [],
     checkpoint: null,
     phaseDeadlineAt: null,
     hostLastSeenAt: Date.now(),

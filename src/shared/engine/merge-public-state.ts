@@ -41,6 +41,10 @@ export function mergePublicState(
       next.bankBeansReadyIds.length > 0
         ? next.bankBeansReadyIds
         : prev.bankBeansReadyIds,
+    roundRecaps:
+      (next.roundRecaps?.length ?? 0) > 0
+        ? next.roundRecaps
+        : (prev.roundRecaps ?? []),
     selectedTopic: next.selectedTopic ?? prev.selectedTopic,
   };
 }
