@@ -58,6 +58,9 @@ describe("topic reselect contracts", () => {
     expect(hook).toMatch(/update_settings:\$\{rev\}:\$\{vibe\}/);
     expect(topic).toMatch(/pendingRounds/);
     expect(topic).toMatch(/pendingVibe/);
+    expect(topic).toMatch(/Last tap wins/);
+    expect(topic).not.toMatch(/setPendingRounds\(null\)/);
+    expect(topic).not.toMatch(/setPendingVibe\(null\)/);
     expect(topic).toMatch(/data-rounds=\{n\}/);
     expect(topic).toMatch(/data-vibe=\{value\}/);
     expect(topic).not.toMatch(/topic-rounds-chip[\s\S]{0,400}disabled/);
