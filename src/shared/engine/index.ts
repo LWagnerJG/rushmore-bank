@@ -90,6 +90,19 @@ export {
 } from "./die-face";
 export { currentUpPlayerId } from "./up-seat";
 export {
+  classifyStateVersion,
+  shouldRequestResync,
+  shouldApplyState,
+  versionFromMessage,
+  makePing,
+  makePong,
+  pingRttMs,
+  socketLooksDead,
+  enqueueWhileConnecting,
+  SYNC_PING_MS,
+  SYNC_DEAD_SOCKET_MS,
+} from "./sync-protocol";
+export {
   HOST_DISCONNECT_GRACE_MS,
   hostIsHeld,
   nextHostId,

@@ -27,6 +27,18 @@ import {
   recordGameResult,
 } from "@/lib/profile-stats";
 import { mergePublicState } from "@/shared/engine/merge-public-state";
+import {
+  classifyStateVersion,
+  enqueueWhileConnecting,
+  makePing,
+  pingRttMs,
+  shouldApplyState,
+  shouldRequestResync,
+  socketLooksDead,
+  versionFromMessage,
+  SYNC_DEAD_SOCKET_MS,
+  SYNC_PING_MS,
+} from "@/shared/engine/sync-protocol";
 
 /** Map infra / transport failures to player-safe copy. Never mention PartyKit. */
 function friendlyPlayerError(raw: string | null | undefined): string | null {
@@ -149,6 +161,10 @@ export function useGameRoom(
   const gestureIds = useRef(new Map<string, string>());
   const phaseRevisionRef = useRef(0);
   const suppressRaceUntilRef = useRef(0);
+  const stateVersionRef = useRef<number | null>(null);
+  const outgoingQueueRef = useRef<ClientMessage[]>([]);
+  const lastPongAtRef = useRef<number | null>(null);
+  const lastRttMsRef = useRef<number | null>(null);
 
   const setError = useCallback((msg: string | null) => {
     const next = friendlyPlayerError(msg);
@@ -214,6 +230,7 @@ export function useGameRoom(
     maxRetries: Infinity,
     onOpen() {
       reconnectAttemptRef.current = 0;
+      lastPongAtRef.current = Date.now();
       if (reconnectTimerRef.current) {
         clearTimeout(reconnectTimerRef.current);
         reconnectTimerRef.current = null;
@@ -232,6 +249,27 @@ export function useGameRoom(
             actionId: newActionId(),
           } satisfies ClientMessage),
         );
+      } else if (stateVersionRef.current != null) {
+        socket.send(
+          JSON.stringify({
+            type: "resync",
+            lastVersion: stateVersionRef.current ?? undefined,
+          } satisfies ClientMessage),
+        );
+      }
+      const queued = outgoingQueueRef.current;
+      outgoingQueueRef.current = [];
+      for (const msg of queued) {
+        if (msg.type === "join" && resume) continue;
+        try {
+          socket.send(JSON.stringify(msg));
+        } catch {
+          outgoingQueueRef.current = enqueueWhileConnecting(
+            outgoingQueueRef.current,
+            msg,
+          );
+          break;
+        }
       }
     },
     onClose() {
@@ -260,7 +298,28 @@ export function useGameRoom(
     onMessage(event) {
       try {
         const msg = JSON.parse(String(event.data)) as ServerMessage;
+        if (msg.type === "pong") {
+          lastPongAtRef.current = Date.now();
+          lastRttMsRef.current = pingRttMs(msg);
+          return;
+        }
         if (msg.type === "state" || msg.type === "joined") {
+          const incoming = versionFromMessage(msg);
+          const gap = classifyStateVersion(stateVersionRef.current, incoming);
+          if (!shouldApplyState(gap)) return;
+          if (shouldRequestResync(gap)) {
+            try {
+              socket.send(
+                JSON.stringify({
+                  type: "resync",
+                  lastVersion: stateVersionRef.current ?? undefined,
+                } satisfies ClientMessage),
+              );
+            } catch {
+              /* onOpen will resync */
+            }
+          }
+          if (incoming != null) stateVersionRef.current = incoming;
           setState((prev) => mergePublicState(prev, msg.state));
           setYouId(msg.youId);
           if (msg.state.phaseRevision !== phaseRevisionRef.current) {
@@ -330,55 +389,103 @@ export function useGameRoom(
     }
   }, [socket]);
 
-  // Always force-reconnect on resume — iOS can leave readyState OPEN on a dead socket.
-  useEffect(() => {
-    const onVisible = () => {
-      if (document.visibilityState !== "visible") return;
-      forceReconnect();
-    };
-    const onOnline = () => {
-      forceReconnect();
-    };
-    const onPageShow = () => {
-      forceReconnect();
-    };
-    document.addEventListener("visibilitychange", onVisible);
-    window.addEventListener("online", onOnline);
-    window.addEventListener("pageshow", onPageShow);
-    return () => {
-      document.removeEventListener("visibilitychange", onVisible);
-      window.removeEventListener("online", onOnline);
-      window.removeEventListener("pageshow", onPageShow);
-      if (reconnectTimerRef.current) {
-        clearTimeout(reconnectTimerRef.current);
-        reconnectTimerRef.current = null;
-      }
-    };
-  }, [forceReconnect]);
-
   const send = useCallback(
     (msg: ClientMessage) => {
       if (seatContested) {
         setErrorRaw("This seat is open in another tab — use that tab.");
         return;
       }
+      const transport =
+        msg.type === "ping" || msg.type === "resync"
+          ? msg
+          : (() => {
+              const key = gestureKeyFor(msg, phaseRevisionRef.current);
+              let actionId = msg.actionId;
+              if (!actionId) {
+                actionId = gestureIds.current.get(key) ?? newActionId();
+                gestureIds.current.set(key, actionId);
+              }
+              return { ...msg, actionId };
+            })();
       if (socket.readyState !== WebSocket.OPEN) {
-        setErrorRaw("Reconnecting…");
-        forceReconnect();
+        outgoingQueueRef.current = enqueueWhileConnecting(
+          outgoingQueueRef.current,
+          transport,
+        );
+        if (msg.type !== "ping") setErrorRaw("Reconnecting…");
+        if (socket.readyState !== WebSocket.CONNECTING) forceReconnect();
         return;
       }
       setErrorRaw(null);
-      const key = gestureKeyFor(msg, phaseRevisionRef.current);
-      let actionId = msg.actionId;
-      if (!actionId) {
-        actionId = gestureIds.current.get(key) ?? newActionId();
-        gestureIds.current.set(key, actionId);
-      }
-      const withId = { ...msg, actionId };
-      socket.send(JSON.stringify(withId));
+      socket.send(JSON.stringify(transport));
     },
     [socket, seatContested, forceReconnect],
   );
+
+  // Resume: resync immediately. Only tear down the socket when it looks dead
+  // (iOS can leave readyState OPEN on a corpse — ping/pong catches that).
+  useEffect(() => {
+    const resume = () => {
+      const open =
+        typeof WebSocket !== "undefined" &&
+        socket.readyState === WebSocket.OPEN;
+      if (open && !socketLooksDead(lastPongAtRef.current)) {
+        send({
+          type: "resync",
+          lastVersion: stateVersionRef.current ?? undefined,
+        });
+        send(makePing());
+        return;
+      }
+      forceReconnect();
+    };
+    const onVisible = () => {
+      if (document.visibilityState !== "visible") return;
+      resume();
+    };
+    const onOnline = () => {
+      resume();
+    };
+    const onPageShow = () => {
+      resume();
+    };
+    const onFocus = () => {
+      resume();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("online", onOnline);
+    window.addEventListener("pageshow", onPageShow);
+    window.addEventListener("focus", onFocus);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("pageshow", onPageShow);
+      window.removeEventListener("focus", onFocus);
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+    };
+  }, [forceReconnect, send, socket]);
+
+  useEffect(() => {
+    if (!connected || removed) return;
+    const tick = () => {
+      if (socketLooksDead(lastPongAtRef.current, Date.now(), SYNC_DEAD_SOCKET_MS)) {
+        forceReconnect();
+        return;
+      }
+      if (
+        typeof WebSocket !== "undefined" &&
+        socket.readyState === WebSocket.OPEN
+      ) {
+        send(makePing());
+      }
+    };
+    lastPongAtRef.current = Date.now();
+    const t = setInterval(tick, SYNC_PING_MS);
+    return () => clearInterval(t);
+  }, [connected, removed, send, socket, forceReconnect]);
 
   const join = useCallback(
     (name: string, role: "player" | "spectator" = "player") => {
@@ -404,13 +511,9 @@ export function useGameRoom(
         playerId,
         at: Date.now(),
       });
-      if (socket.readyState === WebSocket.OPEN) {
-        send({ type: "join", name: clean, role });
-      } else {
-        forceReconnect();
-      }
+      send({ type: "join", name: clean, role });
     },
-    [send, socket, code, playerId, forceReconnect, seatContested],
+    [send, code, playerId, seatContested],
   );
 
   /** Lobby rename — keep membership + home prefill in sync with the server. */

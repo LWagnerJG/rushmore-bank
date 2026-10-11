@@ -138,6 +138,11 @@ function migrateState(raw: RoomState): RoomState {
     diceIdlePauseRemainingMs:
       (raw as RoomState & { diceIdlePauseRemainingMs?: number | null })
         .diceIdlePauseRemainingMs ?? null,
+    stateVersion:
+      typeof (raw as RoomState & { stateVersion?: number }).stateVersion ===
+      "number"
+        ? (raw as RoomState).stateVersion
+        : 0,
     // Migrate legacy party prompt kinds / stale spicy|niche vibes
     partyPrompt: migratePartyPrompt(raw.partyPrompt),
     settings: {
@@ -570,6 +575,8 @@ export class QuarryServer extends Server<Env> {
   }
 
   broadcastState() {
+    this.state.stateVersion = (this.state.stateVersion ?? 0) + 1;
+    const seq = this.state.stateVersion;
     // Project shared fields once; overlay recipient-private fields per conn.
     const shared = projectPublicStateShared(this.state, {
       gracePlayerIds: this.gracePlayerIds(),
@@ -590,8 +597,23 @@ export class QuarryServer extends Server<Env> {
         type: "state",
         state,
         youId: conn.id,
+        seq,
       });
     }
+  }
+
+  /** Sender-only snapshot — does not bump the room sequence. */
+  sendSnapshot(
+    conn: Connection,
+    kind: "state" | "joined" = "state",
+  ) {
+    const seq = this.state.stateVersion ?? 0;
+    const state = this.publicStateFor(conn.id);
+    if (kind === "joined") {
+      this.send(conn, { type: "joined", youId: conn.id, state, seq });
+      return;
+    }
+    this.send(conn, { type: "state", youId: conn.id, state, seq });
   }
 
   ensureHost() {
@@ -918,11 +940,7 @@ export class QuarryServer extends Server<Env> {
       this.ensureHost();
       void this.persist().then(() => this.broadcastState());
     } else {
-      this.send(conn, {
-        type: "state",
-        state: this.publicStateFor(conn.id),
-        youId: conn.id,
-      });
+      this.sendSnapshot(conn);
     }
   }
 
@@ -1037,17 +1055,27 @@ export class QuarryServer extends Server<Env> {
     try {
       // Host heartbeat only touches in-memory last-seen — skip persist +
       // N-way broadcast that was waking every phone every ~8s.
+      if (msg.type === "ping") {
+        this.send(sender, {
+          type: "pong",
+          t: msg.t,
+          serverT: Date.now(),
+        });
+        const p = this.state.players.find((x) => x.id === sender.id);
+        if (p?.isHost) this.state.hostLastSeenAt = Date.now();
+        return;
+      }
+      if (msg.type === "resync") {
+        this.sendSnapshot(sender);
+        return;
+      }
       if (msg.type === "host_heartbeat") {
         await this.handle(msg, sender.id, sender);
         return;
       }
       if (this.seenAction(msg.actionId)) {
         // Echo current state to the sender only (dedupe), not the whole room.
-        this.send(sender, {
-          type: "state",
-          state: this.publicStateFor(sender.id),
-          youId: sender.id,
-        });
+        this.sendSnapshot(sender);
         return;
       }
       await this.handle(msg, sender.id, sender);
@@ -1084,13 +1112,10 @@ export class QuarryServer extends Server<Env> {
     switch (msg.type) {
       case "join":
         this.handleJoin(id, msg.name, msg.role ?? "player");
-        if (sender) {
-          this.send(sender, {
-            type: "joined",
-            youId: id,
-            state: this.publicStateFor(id),
-          });
-        }
+        if (sender) this.sendSnapshot(sender, "joined");
+        return;
+      case "ping":
+      case "resync":
         return;
       case "rename":
         this.handleRename(id, msg.name);
