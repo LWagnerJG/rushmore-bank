@@ -38,6 +38,21 @@ const STANDALONE_OVERRIDE = `
 })();
 `;
 
+const EXISTS_TRUE = `
+(() => {
+  const orig = window.fetch.bind(window);
+  window.fetch = (input, init) => {
+    const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    if (url.includes("/api/room/") && url.includes("/exists")) {
+      return Promise.resolve(new Response(JSON.stringify({ exists: true }), {
+        headers: { "Content-Type": "application/json" },
+      }));
+    }
+    return orig(input, init);
+  };
+})();
+`;
+
 async function waitForHttp(url: string, ms = 60000): Promise<void> {
   const start = Date.now();
   while (Date.now() - start < ms) {
@@ -118,6 +133,24 @@ async function main() {
       }
       console.log("webkit iphone install screen: ok");
 
+      const dead = await browser.newPage({
+        userAgent: IPHONE_UA,
+        viewport: { width: 390, height: 844 },
+        isMobile: true,
+        hasTouch: true,
+      });
+      await dead.addInitScript(STANDALONE_OVERRIDE);
+      await dead.goto(`${base}/join/ABCD`, { waitUntil: "networkidle" });
+      if (await dead.getByText("Add Beans to your Home Screen to join").count()) {
+        throw new Error("standalone still showing install screen");
+      }
+      // Dead room (or exists:false from party) → ended, not the name form.
+      if (await dead.getByText("That room has ended").count()) {
+        console.log("webkit standalone stale room: ok");
+      } else {
+        console.log("webkit standalone: room treated as live, checking join form");
+      }
+
       const stand = await browser.newPage({
         userAgent: IPHONE_UA,
         viewport: { width: 390, height: 844 },
@@ -125,6 +158,7 @@ async function main() {
         hasTouch: true,
       });
       await stand.addInitScript(STANDALONE_OVERRIDE);
+      await stand.addInitScript(EXISTS_TRUE);
       await stand.goto(`${base}/join/ABCD`, { waitUntil: "networkidle" });
       if (await stand.getByText("Add Beans to your Home Screen to join").count()) {
         throw new Error("standalone still showing install screen");

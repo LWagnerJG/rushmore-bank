@@ -6142,10 +6142,11 @@ html.settings-sheet-open body {
   color: var(--text);
 }
 .install-join-headline {
-  max-width: 18rem;
+  max-width: 22rem;
   margin-left: auto;
   margin-right: auto;
   color: var(--text);
+  text-wrap: balance;
 }
 .install-join-steps {
   list-style: none;
