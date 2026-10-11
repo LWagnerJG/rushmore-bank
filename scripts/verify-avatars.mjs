@@ -17,11 +17,14 @@ function isContent(r, g, b, a) {
   return r + g + b > 30;
 }
 
+/** Deep-coral kidney only (#E76F4E) — exclude gold/amber accessories. */
 function isBeanBody(r, g, b, a) {
   if (a < 40) return false;
-  if (r < 145 || g < 55 || g > 175 || b > 130) return false;
-  if (r <= g + 15) return false;
-  if (r <= b + 25) return false;
+  if (r < 180 || r > 250) return false;
+  if (g < 70 || g > 160) return false;
+  if (b < 40 || b > 120) return false;
+  if (r <= g + 30) return false;
+  if (g <= b) return false;
   return true;
 }
 
@@ -121,6 +124,7 @@ async function measure(file) {
   const foreignOk = foreign <= Math.max(6, opaque * 0.003) && islands <= 2;
 
   const bodyH = bMaxy - bMiny + 1;
+  const bodyW = bMaxx - bMinx + 1;
   const bodyCx = (bMinx + bMaxx) / 2;
   const baseline = bMaxy;
 
@@ -128,12 +132,14 @@ async function measure(file) {
     file,
     ok: true,
     bodyH,
+    bodyW,
     bodyCx,
     baseline,
     foreign,
     islands,
     foreignOk,
     canvas: w,
+    buf: fs.readFileSync(path.join(DIR, file)),
   };
 }
 
@@ -151,27 +157,39 @@ async function main() {
     process.exit(1);
   }
 
-  const hs = good.map((r) => r.bodyH);
+  // Uniqueness — a missing accessory used to collapse 5 tiles to one plain bean.
+  const seen = new Map();
+  for (const r of good) {
+    const key = r.buf.toString("binary");
+    if (seen.has(key)) {
+      console.error(`FAIL ${r.file} byte-identical to ${seen.get(key)}`);
+      process.exit(1);
+    }
+    seen.set(key, r.file);
+  }
+
+  const ws = good.map((r) => r.bodyW);
   const cxs = good.map((r) => r.bodyCx);
   const bases = good.map((r) => r.baseline);
   const median = (arr) => {
     const s = [...arr].sort((a, b) => a - b);
     return s[(s.length / 2) | 0];
   };
-  const medH = median(hs);
+  const medW = median(ws);
   const medCx = median(cxs);
   const medBase = median(bases);
 
+  // Hats cover the crown, so visible coral HEIGHT shrinks — that is expected.
+  // Lock what the eye uses for "same size": body WIDTH, center-x, baseline.
   let failed = false;
   for (const r of good) {
-    const hErr = Math.abs(r.bodyH - medH) / medH;
+    const wErr = Math.abs(r.bodyW - medW) / medW;
     const cxErr = Math.abs(r.bodyCx - medCx);
     const baseErr = Math.abs(r.baseline - medBase);
-    const sizeOk = hErr <= TOL;
-    // center / baseline: ±3% of canvas or ±3px
+    const sizeOk = wErr <= TOL;
     const alignTol = Math.max(3, r.canvas * TOL);
     const alignOk = cxErr <= alignTol && baseErr <= alignTol;
-    const line = `${r.file}: bodyH=${r.bodyH} (Δ${(hErr * 100).toFixed(1)}%) cx=${r.bodyCx.toFixed(1)} base=${r.baseline} foreign=${r.foreign} islands=${r.islands}`;
+    const line = `${r.file}: bodyW=${r.bodyW} (Δ${(wErr * 100).toFixed(1)}%) bodyH=${r.bodyH} cx=${r.bodyCx.toFixed(1)} base=${r.baseline} foreign=${r.foreign} islands=${r.islands}`;
     if (!sizeOk || !alignOk || !r.foreignOk) {
       console.error("FAIL", line, {
         sizeOk,
@@ -185,7 +203,7 @@ async function main() {
   }
 
   console.log(
-    `\nmedian bodyH=${medH} cx=${medCx.toFixed(1)} baseline=${medBase} (±${(TOL * 100).toFixed(0)}% / align±${Math.max(3, good[0].canvas * TOL).toFixed(1)}px)`,
+    `\nmedian bodyW=${medW} cx=${medCx.toFixed(1)} baseline=${medBase} (±${(TOL * 100).toFixed(0)}% / align±${Math.max(3, good[0].canvas * TOL).toFixed(1)}px)`,
   );
   if (failed) process.exit(1);
   console.log("ALL CHECKS PASSED");

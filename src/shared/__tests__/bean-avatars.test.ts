@@ -24,7 +24,7 @@ describe("bean avatars", () => {
     expect(normalizeAvatarId("top-hat")).toBe("top-hat");
     expect(BEAN_AVATAR_IDS).toContain(normalizeAvatarId("nope", "seed-x"));
     expect(beanAvatarSrc("star")).toMatch(/^\/avatars\/star\.webp\?v=\d+$/);
-    expect(beanAvatarSrc("star")).toMatch(/\?v=5\b/);
+    expect(beanAvatarSrc("star")).toMatch(/\?v=6\b/);
   });
 
   it("ships WebP files for every id", () => {

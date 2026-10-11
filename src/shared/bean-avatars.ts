@@ -52,7 +52,7 @@ export const BEAN_AVATAR_LABELS: Record<BeanAvatarId, string> = {
 };
 
 /** Cache-bust when art is re-cropped / re-exported. */
-const AVATAR_ASSET_VER = "5";
+const AVATAR_ASSET_VER = "6";
 
 /** Public path for a bean avatar WebP. */
 export function beanAvatarSrc(id: BeanAvatarId): string {
