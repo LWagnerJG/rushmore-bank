@@ -167,15 +167,18 @@ describe("settings: spacing instead of hard dividers", () => {
   it("covers the full viewport including safe-area with the sheet backdrop", () => {
     const backdrop = rulesFor(css, ".settings-sheet-backdrop").join("\n");
     expect(backdrop).toMatch(/position:\s*fixed/);
-    expect(backdrop).toMatch(/inset:\s*0/);
     expect(backdrop).toMatch(/bottom:\s*-120px/);
     expect(backdrop).toMatch(/100lvh|100dvh/);
     expect(backdrop).toMatch(/safe-area-inset-bottom/);
     expect(backdrop).toMatch(/overflow:\s*visible/);
     expect(backdrop).not.toMatch(/overflow:\s*hidden/);
+    // Solid dim — translucent let cream show through on iOS
+    expect(backdrop).toMatch(/background:\s*#2a4a40/);
+    expect(backdrop).not.toMatch(/rgba\(\s*35,\s*72,\s*62/);
     expect(settingsSrc).toMatch(/createPortal/);
     expect(settingsSrc).toMatch(/settings-sheet-open/);
     expect(css).toMatch(/html\.settings-sheet-open/);
+    expect(css).toMatch(/margin-bottom:\s*120px/);
   });
 });
 
