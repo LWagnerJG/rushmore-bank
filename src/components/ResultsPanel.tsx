@@ -6,6 +6,7 @@ import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
 import { RULES } from "@/shared/rules";
 import { ResultsRevealList } from "@/components/ResultsRevealList";
 import { hasRevealCompleted, resultsRevealKey } from "@/lib/results-reveal";
+import { shareGameEndCard } from "@/lib/share-end-card";
 
 export function ResultsPanel({
   state,
@@ -51,9 +52,33 @@ export function ResultsPanel({
   const [revealDone, setRevealDone] = useState(() =>
     hasRevealCompleted(revealKey),
   );
+  const [sharing, setSharing] = useState(false);
+  const [shareNote, setShareNote] = useState<string | null>(null);
+
   useEffect(() => {
     setRevealDone(hasRevealCompleted(revealKey));
   }, [revealKey]);
+
+  async function onShare() {
+    if (sharing) return;
+    setSharing(true);
+    setShareNote(null);
+    try {
+      const result = await shareGameEndCard({
+        ranked,
+        roundRecaps: state.roundRecaps ?? [],
+        createdAt: state.createdAt,
+        currencyName: RULES.currencyName,
+        tagline: RULES.tagline,
+      });
+      if (result === "downloaded") setShareNote("Saved image");
+      else if (result === "failed") setShareNote("Couldn’t share");
+    } catch {
+      setShareNote("Couldn’t share");
+    } finally {
+      setSharing(false);
+    }
+  }
 
   return (
     <div className="stack endgame-panel">
@@ -150,20 +175,35 @@ export function ResultsPanel({
             >
               {state.rematchReadyCast}/{state.rematchReadyNeeded} ready
             </p>
-            <button
-              type="button"
-              className={`btn-primary endgame-rematch-btn w-full${state.myRematchReady ? " btn-done" : ""}`}
-              disabled={state.myRematchReady}
-              onClick={() => send({ type: "play_again" })}
-            >
-              {state.myRematchReady ? (
-                <>
-                  Ready<span aria-hidden="true"> ✓</span>
-                </>
-              ) : (
-                "Rematch"
-              )}
-            </button>
+            <div className="endgame-cta-row">
+              <button
+                type="button"
+                className={`btn-primary endgame-rematch-btn flex-1${state.myRematchReady ? " btn-done" : ""}`}
+                disabled={state.myRematchReady}
+                onClick={() => send({ type: "play_again" })}
+              >
+                {state.myRematchReady ? (
+                  <>
+                    Ready<span aria-hidden="true"> ✓</span>
+                  </>
+                ) : (
+                  "Rematch"
+                )}
+              </button>
+              <button
+                type="button"
+                className="endgame-share-btn"
+                disabled={sharing}
+                onClick={() => void onShare()}
+              >
+                {sharing ? "…" : "Share"}
+              </button>
+            </div>
+            {shareNote ? (
+              <p className="endgame-share-note type-meta text-center" aria-live="polite">
+                {shareNote}
+              </p>
+            ) : null}
           </div>
           <Link
             href="/"
@@ -175,9 +215,19 @@ export function ResultsPanel({
       )}
 
       {revealDone && final && you.role !== "player" && (
-        <Link href="/" className="endgame-home type-meta text-center">
-          Home
-        </Link>
+        <div className="stack-sm">
+          <button
+            type="button"
+            className="endgame-share-btn endgame-share-btn-solo"
+            disabled={sharing}
+            onClick={() => void onShare()}
+          >
+            {sharing ? "…" : "Share"}
+          </button>
+          <Link href="/" className="endgame-home type-meta text-center">
+            Home
+          </Link>
+        </div>
       )}
     </div>
   );
