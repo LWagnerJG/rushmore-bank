@@ -151,6 +151,18 @@ describe("replaceDieFacePips — replace never append", () => {
 });
 
 describe("tray paint: scramble → settle → rollId change → reconnect", () => {
+  it("tumbling with no scramble yet still paints legal faces (never blank)", () => {
+    const phase = resolveDicePresentPhase(tumbling("roll-blank"));
+    const tray = resolveTrayPaint(phase, null);
+    assertLegalTrayPaint(tray);
+    expect(tray.paintD1).not.toBeNull();
+    expect(tray.paintD2).not.toBeNull();
+    expect(tray.pipCount1).toBeGreaterThanOrEqual(1);
+    expect(tray.pipCount2).toBeGreaterThanOrEqual(1);
+    expect(tray.total).toBeNull();
+    expect(tray.scrambling).toBe(true);
+  });
+
   it("scramble ticks never paint illegal pip counts", () => {
     const phase = resolveDicePresentPhase(tumbling("roll-a"));
     expect(phase.kind).toBe("tumbling");

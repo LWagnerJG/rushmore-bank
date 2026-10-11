@@ -85,6 +85,11 @@ function PipDie({
           );
         })}
       </svg>
+      {paint.face != null ? (
+        <span className="bean-pip-die-num" data-die-number={paint.face}>
+          {paint.face}
+        </span>
+      ) : null}
     </div>
   );
 }
@@ -270,6 +275,11 @@ export function DiceScene({
             settlePunch={false}
           />
         </div>
+        {revealed && total != null ? (
+          <span className="bean-dice-sum" data-dice-sum={total} aria-hidden="true">
+            {total}
+          </span>
+        ) : null}
         {canRoll && firstRollHint && (
           <span className="bean-dice-hint bean-dice-hint-first" aria-hidden="true">
             TAP

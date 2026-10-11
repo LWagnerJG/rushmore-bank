@@ -135,8 +135,11 @@ export function resolveTrayPaint(
   }
 
   if (phase.kind === "tumbling") {
-    const d1 = normalizeDieFace(scramble?.d1);
-    const d2 = normalizeDieFace(scramble?.d2);
+    // Never paint a blank die mid-tumble (first React frame used to be
+    // scramble=null → 0 pips, which looked like "no numbers" to watchers).
+    const fallback = scramblePaintPair(phase.seed, 1);
+    const d1 = normalizeDieFace(scramble?.d1) ?? fallback.d1;
+    const d2 = normalizeDieFace(scramble?.d2) ?? fallback.d2;
     return {
       rollId: phase.rollId,
       authD1: null,

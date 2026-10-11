@@ -1,0 +1,84 @@
+name: Playtest robustness (WebKit)
+
+# Multi-client WebKit: host stickiness across setOffline, dice face
+# numbers for watcher + roller, resync after background/foreground.
+
+on:
+  pull_request:
+    paths:
+      - "src/**"
+      - "party/**"
+      - "scripts/verify-playtest-robustness.ts"
+      - "scripts/smoke-lib.ts"
+      - "next.config.ts"
+      - "wrangler.jsonc"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/playtest-robustness.yml"
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "party/**"
+      - "scripts/verify-playtest-robustness.ts"
+      - "scripts/smoke-lib.ts"
+      - "next.config.ts"
+      - "wrangler.jsonc"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/playtest-robustness.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  webkit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_PUBLIC_PARTYKIT_HOST: 127.0.0.1:8787
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install Playwright WebKit
+        run: npx playwright install --with-deps webkit
+      - name: Start local PartyServer
+        run: npx wrangler dev --ip 127.0.0.1 --port 8787 > "$RUNNER_TEMP/wrangler.log" 2>&1 &
+      - name: Build app against the local PartyServer
+        run: npx next build
+      - name: Start app
+        run: npx next start -H 127.0.0.1 -p 3100 > "$RUNNER_TEMP/next.log" 2>&1 &
+      - name: Wait for both servers
+        run: |
+          for i in $(seq 1 90); do
+            if curl -sf http://127.0.0.1:3100/api/version >/dev/null && \
+               (exec 3<>/dev/tcp/127.0.0.1/8787) 2>/dev/null; then
+              echo "servers up"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "servers failed to start"
+          tail -n 100 "$RUNNER_TEMP/wrangler.log" "$RUNNER_TEMP/next.log"
+          exit 1
+      - name: Playtest robustness (WebKit)
+        env:
+          BASE_URL: http://127.0.0.1:3100
+          PARTY_HOST: 127.0.0.1:8787
+          OUT_DIR: ${{ runner.temp }}/playtest
+        run: npm run test:playtest
+      - name: Upload report and screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playtest-robustness
+          path: ${{ runner.temp }}/playtest
+          if-no-files-found: ignore
+      - name: Server logs
+        if: failure()
+        run: tail -n 200 "$RUNNER_TEMP/wrangler.log" "$RUNNER_TEMP/next.log" || true
