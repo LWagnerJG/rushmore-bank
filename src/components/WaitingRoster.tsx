@@ -2,14 +2,8 @@
 
 import type { Player, PublicRoomState } from "@/shared/types";
 import { FitName } from "@/components/FitName";
+import { profileInitials } from "@/lib/profile-initials";
 import { nameWithYouSuffix } from "@/shared/you-label";
-
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase();
-  return `${parts[0]![0] ?? ""}${parts[1]![0] ?? ""}`.toUpperCase();
-}
 
 /**
  * Waiting UI: avatars + count. Done = green tint + check; waiting = neutral.
@@ -76,7 +70,7 @@ export function WaitingRoster({
                   {locked ? (
                     <span className="waiting-roster-check">✓</span>
                   ) : (
-                    initials(p.name)
+                    profileInitials(p.name)
                   )}
                 </span>
                 <FitName

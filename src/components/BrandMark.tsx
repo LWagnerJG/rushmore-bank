@@ -45,7 +45,7 @@ export function BrandMark({
         }
         tabIndex={onLogoTap ? 0 : -1}
         aria-hidden={!onLogoTap}
-        aria-label={onLogoTap ? "Settings" : undefined}
+        aria-label={onLogoTap ? "Beans logo" : undefined}
         onClick={onLogoTap}
       >
         <svg

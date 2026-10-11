@@ -12,6 +12,8 @@ import { AddToHomeScreen } from "@/components/AddToHomeScreen";
 import { BrandMark } from "@/components/BrandMark";
 import { DiagPanel } from "@/components/DiagPanel";
 import { MotionSettle } from "@/components/MotionSettle";
+import { ProfileButton } from "@/components/ProfileButton";
+import { SettingsSheet } from "@/components/SettingsSheet";
 import { normalizeRoomCode, randomRoomCode } from "@/shared/types";
 import { RULES } from "@/shared/rules";
 import { ADMIN_UNLOCK_KEY } from "@/lib/admin-session";
@@ -83,6 +85,7 @@ export default function HomePage() {
   const diagFromUrl = useDiagFromUrl();
   const [diagClosed, setDiagClosed] = useState(false);
   const showDiag = diagFromUrl && !diagClosed;
+  const [profileOpen, setProfileOpen] = useState(false);
 
   // Prefill last nickname on mount so returning players skip the name step.
   useEffect(() => {
@@ -207,9 +210,19 @@ export default function HomePage() {
           motionClass="animate-rise"
           className="home-stack flex min-h-0 flex-1 flex-col gap-6"
         >
-          <header className="space-y-2 text-center">
-            <div className="flex justify-center">
-              <BrandMark large onLogoTap={onLogoTap} />
+          <header className="home-header space-y-2 text-center">
+            <div className="home-header-row">
+              <span className="home-header-spacer" aria-hidden="true" />
+              <div className="flex justify-center">
+                <BrandMark large onLogoTap={onLogoTap} />
+              </div>
+              <div className="home-header-end">
+                <ProfileButton
+                  name={displayName || name || "Player"}
+                  open={profileOpen}
+                  onClick={() => setProfileOpen(true)}
+                />
+              </div>
             </div>
             <p className="type-body text-[var(--text)]">
               {RULES.tagline}
@@ -338,6 +351,11 @@ export default function HomePage() {
 
       {/* Outside MotionSettle so fixed/absolute children aren’t transform-clipped */}
       <AddToHomeScreen />
+      <SettingsSheet
+        open={profileOpen}
+        onClose={() => setProfileOpen(false)}
+        nickname={displayName || name || "Player"}
+      />
       {showDiag && <DiagPanel onClose={() => setDiagClosed(true)} />}
     </main>
   );

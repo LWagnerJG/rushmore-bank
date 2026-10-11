@@ -8,6 +8,7 @@ import type { Phase } from "@/shared/types";
 import { RULES } from "@/shared/rules";
 import { BrandMark } from "@/components/BrandMark";
 import { SettingsSheet } from "@/components/SettingsSheet";
+import { ProfileButton } from "@/components/ProfileButton";
 import { DiagPanel } from "@/components/DiagPanel";
 import { RoomNotice } from "@/components/RoomNotice";
 import { ErrorToast } from "@/components/ErrorToast";
@@ -139,6 +140,7 @@ export function RoomClient({
   const logoTapRef = useRef(0);
   const logoTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Quiet brand tap: 5× opens diag. Profile (top-right) owns Settings.
   function handleLogoTap() {
     logoTapRef.current += 1;
     if (logoTapTimerRef.current) clearTimeout(logoTapTimerRef.current);
@@ -150,8 +152,10 @@ export function RoomClient({
     logoTapTimerRef.current = setTimeout(() => {
       logoTapRef.current = 0;
     }, 1500);
-    setSettingsOpen(true);
   }
+
+  const profileName =
+    you?.name?.trim() || name.trim() || defaultName.trim() || "Player";
 
   useEffect(() => {
     return () => {
@@ -367,9 +371,12 @@ export function RoomClient({
                 </div>
               ) : partyOn ? (
                 <span className="room-chrome-pill">Party</span>
-              ) : (
-                <span className="room-chrome-end-spacer" aria-hidden="true" />
-              )}
+              ) : null}
+              <ProfileButton
+                name={profileName}
+                open={settingsOpen}
+                onClick={() => setSettingsOpen(true)}
+              />
             </div>
           </div>
           {drafting && state?.selectedTopic ? (
@@ -453,6 +460,7 @@ export function RoomClient({
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
         roomCode={code}
+        nickname={profileName}
         isHost={you?.isHost ?? false}
         partyOn={partyOn}
         hostAiJudge={you?.isHost ? state?.hostAiJudge : undefined}
