@@ -751,6 +751,13 @@ async function roomLinkScenario(browser: Browser, p: Profile, dir: string) {
     await host.connect();
     await host.join();
     await page.goto(`${BASE}/room/${code}`);
+    // Mobile Safari now shows the install-first screen on a room link.
+    // The escape hatch is the path that still reaches the nickname field.
+    const continueInBrowser = page.getByRole("button", {
+      name: "Continue in browser",
+    });
+    await continueInBrowser.waitFor({ state: "visible", timeout: 8000 });
+    await continueInBrowser.click();
     const closed = await openField(page, ROOM_NAME, dir, "room-name", null);
     const typed = await typeWhileTracing(page, ROOM_NAME, TYPED);
     const end = await sample(page, ROOM_NAME);

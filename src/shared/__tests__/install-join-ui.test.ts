@@ -56,5 +56,10 @@ describe("install-first join UI", () => {
     expect(entry).toMatch(/presetName/);
     expect(entry).toMatch(/recordContinueInBrowser/);
     expect(entry).toMatch(/\/api\/metrics\/install-continue/);
+    const keyboard = readFileSync(
+      resolve(__dirname, "../../../scripts/verify-ios-keyboard.ts"),
+      "utf8",
+    );
+    expect(keyboard).toMatch(/Continue in browser/);
   });
 });
