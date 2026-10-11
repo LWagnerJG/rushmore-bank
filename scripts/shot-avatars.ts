@@ -18,7 +18,7 @@ async function main() {
   await page.addInitScript(() => {
     localStorage.setItem("quarry:name", "Luke");
     localStorage.setItem("quarry:client-id", "demo-avatar");
-    localStorage.setItem("quarry:avatar-id", "pirate");
+    localStorage.setItem("quarry:avatar-id", "aviator");
     localStorage.setItem(
       "quarry:profile-stats:demo-avatar",
       JSON.stringify({

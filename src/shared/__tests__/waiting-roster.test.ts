@@ -110,22 +110,19 @@ describe("waiting roster", () => {
     expect(css).not.toMatch(/\.waiting-roster-standings\s*\{/);
   });
 
-  it("uses uniform small avatars: green done + check, neutral waiting", () => {
+  it("uses name marks (check/dot) — no bean avatars in the waiting roster", () => {
     expect(waiting).toMatch(/waiting-roster-check/);
-    const avatar =
-      css.match(/\.waiting-roster-avatar\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
-    expect(avatar).toMatch(/2\.25rem/);
-    const doneAvatar =
+    expect(waiting).toMatch(/waiting-roster-dot/);
+    expect(waiting).not.toMatch(/BeanAvatar/);
+    const mark =
+      css.match(/\.waiting-roster-mark\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
+    expect(mark).toMatch(/1\.35rem/);
+    const doneMark =
       css.match(
-        /\.waiting-roster-person-done \.waiting-roster-avatar\s*\{[\s\S]*?\n\}/,
+        /\.waiting-roster-person-done \.waiting-roster-mark\s*\{[\s\S]*?\n\}/,
       )?.[0] ?? "";
-    expect(doneAvatar).toMatch(/mint|--mint/);
-    // No pink/coral waiting circle
-    const waitAvatar =
-      css.match(
-        /\.waiting-roster-person-wait \.waiting-roster-avatar\s*\{[\s\S]*?\n\}/,
-      )?.[0] ?? "";
-    expect(waitAvatar).not.toMatch(/coral|--coral/);
+    expect(doneMark).toMatch(/mint|--mint/);
+    expect(css).not.toMatch(/\.waiting-roster-avatar\s*\{/);
   });
 });
 

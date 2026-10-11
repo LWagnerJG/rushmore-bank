@@ -1232,8 +1232,39 @@ html.party-on .brand-shimmer {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-1);
-  text-align: center;
+  gap: 0.45rem;
+  text-align: left;
+}
+
+.home-playing-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2.75rem;
+  height: 2.75rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.home-playing-avatar:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--mint) 70%, #23483e);
+  outline-offset: 2px;
+}
+
+.home-playing-label {
+  margin: 0;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.home-playing-as-prefix {
+  font-weight: 600;
 }
 
 .home-edit-name {
@@ -3685,7 +3716,7 @@ html.party-on .player-row {
   text-overflow: ellipsis;
 }
 
-.waiting-roster-avatars {
+.waiting-roster-list {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -3703,30 +3734,32 @@ html.party-on .player-row {
   max-width: 3.6rem;
 }
 
-.waiting-roster-avatar {
+.waiting-roster-mark {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 1.35rem;
+  height: 1.35rem;
   border-radius: 999px;
-  /* Neutral waiting — same size/shape for everyone */
   background: color-mix(in srgb, var(--mint) 28%, #fff);
   color: var(--text);
-  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
-  font-size: 0.7rem;
-  font-weight: 800;
-  line-height: 1;
 }
 
-.waiting-roster-person-done .waiting-roster-avatar {
+.waiting-roster-person-done .waiting-roster-mark {
   background: color-mix(in srgb, var(--mint) 72%, var(--text));
   color: #fff;
 }
 
+.waiting-roster-dot {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--muted) 70%, transparent);
+}
+
 .waiting-roster-check {
-  font-size: 0.95rem;
+  font-size: 0.8rem;
   font-weight: 800;
   line-height: 1;
 }
@@ -4974,16 +5007,35 @@ html.settings-sheet-open body::before {
   outline: 2px solid color-mix(in srgb, var(--mint) 70%, #23483e);
   outline-offset: 2px;
 }
+.bean-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cream, #f5f0e7) 88%, #fff);
+  overflow: hidden;
+  line-height: 0;
+}
+.bean-avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
 .avatar-picker-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.45rem;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.4rem;
 }
 .avatar-picker-cell {
   display: grid;
   place-items: center;
   min-height: var(--tap-min);
-  padding: 0.35rem;
+  padding: 0.3rem;
   border: none;
   border-radius: 0.85rem;
   background: color-mix(in srgb, var(--mint) 18%, #fff);
@@ -4992,21 +5044,6 @@ html.settings-sheet-open body::before {
 .avatar-picker-cell-on {
   background: color-mix(in srgb, var(--mint) 55%, #fff);
   box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--mint) 80%, #23483e);
-}
-.lobby-roster-avatar {
-  display: inline-flex;
-  flex-shrink: 0;
-  margin-right: 0.35rem;
-}
-.player-chip-avatar {
-  display: inline-flex;
-  flex-shrink: 0;
-  margin-right: 0.2rem;
-}
-.results-reveal-avatar {
-  display: inline-flex;
-  flex-shrink: 0;
-  margin-right: 0.35rem;
 }
 .profile-sheet-name {
   margin: 0;

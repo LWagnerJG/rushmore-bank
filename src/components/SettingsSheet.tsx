@@ -49,6 +49,8 @@ export function SettingsSheet({
   drafting = false,
   pickPaused = false,
   nickname,
+  /** When opening, jump to this panel (e.g. home avatar tap → picker). */
+  initialPanel = "main",
 }: {
   open: boolean;
   onClose: () => void;
@@ -66,6 +68,7 @@ export function SettingsSheet({
   pickPaused?: boolean;
   /** Display name for the profile header (falls back to stored nickname). */
   nickname?: string;
+  initialPanel?: SheetPanel;
 }) {
   const [soundOn, setSoundOn] = useState(() =>
     typeof window !== "undefined" ? isSoundEnabled() : false,
@@ -76,7 +79,7 @@ export function SettingsSheet({
   const [displayName, setDisplayName] = useState("");
   const [panel, setPanel] = useState<SheetPanel>("main");
   const [avatarId, setAvatarId] = useState<BeanAvatarId>(() =>
-    typeof window !== "undefined" ? loadAvatarId() : "classic",
+    typeof window !== "undefined" ? loadAvatarId() : "aviator",
   );
 
   const [mounted, setMounted] = useState(false);
@@ -90,8 +93,9 @@ export function SettingsSheet({
       setPanel("main");
       return;
     }
+    setPanel(initialPanel);
     return subscribeSoundEnabled(setSoundOn);
-  }, [open]);
+  }, [open, initialPanel]);
 
   useEffect(() => {
     if (!open) return;
@@ -436,7 +440,7 @@ export function SettingsSheet({
               </button>
             </div>
             <p className="type-meta text-[var(--muted)]">
-              Pick a bean — others see it in the lobby.
+              Pick a bean for your profile.
             </p>
             <div className="avatar-picker-grid" role="listbox" aria-label="Bean avatars">
               {BEAN_AVATAR_IDS.map((id) => {

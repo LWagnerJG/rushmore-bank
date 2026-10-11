@@ -5,7 +5,6 @@ import type { Player, PublicRoomState } from "@/shared/types";
 import { currentUpPlayerId } from "@/shared/engine/up-seat";
 import { draftBoardSeats } from "@/shared/engine/snake";
 import { FitName } from "@/components/FitName";
-import { BeanAvatar } from "@/components/BeanAvatar";
 import { railChipTip, railYouLabel } from "@/shared/you-label";
 
 /** You first, then beans descending (seat as stable tiebreak). */
@@ -221,9 +220,6 @@ function PlayerChip({
     >
       <div className="player-chip-name">
         <span className="player-chip-name-inner">
-          <span className="player-chip-avatar" aria-hidden="true">
-            <BeanAvatar id={player.avatarId} seed={player.id} size={18} />
-          </span>
           {up ? (
             <span className="player-chip-up-dot" aria-hidden="true">
               ●

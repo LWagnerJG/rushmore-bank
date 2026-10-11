@@ -2,11 +2,10 @@
 
 import type { Player, PublicRoomState } from "@/shared/types";
 import { FitName } from "@/components/FitName";
-import { BeanAvatar } from "@/components/BeanAvatar";
 import { nameWithYouSuffix } from "@/shared/you-label";
 
 /**
- * Waiting UI: avatars + count. Done = green tint + check; waiting = neutral.
+ * Waiting UI: names + count. Done = green tint + check; waiting = neutral.
  * Leaderboard lives on PlayerRail — never listed here.
  * `compact` keeps only the one-line status + count (bottom action docks).
  */
@@ -51,7 +50,7 @@ export function WaitingRoster({
       </div>
 
       {compact ? null : (
-        <ul className="waiting-roster-avatars" aria-label="Players">
+        <ul className="waiting-roster-list" aria-label="Players">
           {seated.map((p) => {
             const locked = done.has(p.id);
             const name = p.id === youId ? nameWithYouSuffix(p.name) : p.name;
@@ -66,11 +65,11 @@ export function WaitingRoster({
                 ].join(" ")}
                 title={name}
               >
-                <span className="waiting-roster-avatar" aria-hidden="true">
+                <span className="waiting-roster-mark" aria-hidden="true">
                   {locked ? (
                     <span className="waiting-roster-check">✓</span>
                   ) : (
-                    <BeanAvatar id={p.avatarId} seed={p.id} size={28} />
+                    <span className="waiting-roster-dot" />
                   )}
                 </span>
                 <FitName
