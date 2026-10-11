@@ -20,7 +20,7 @@
     "health:party": "tsx scripts/server-health.ts",
     "dev:next": "next dev --turbopack",
     "dev:party": "wrangler dev",
-    "deploy:party": "wrangler deploy",
+    "deploy:party": "wrangler deploy --config wrangler.jsonc",
     "build:web": "opennextjs-cloudflare build --config wrangler.web.jsonc",
     "preview:web": "opennextjs-cloudflare build --config wrangler.web.jsonc && opennextjs-cloudflare preview --config wrangler.web.jsonc",
     "deploy:web": "opennextjs-cloudflare build --config wrangler.web.jsonc && opennextjs-cloudflare deploy --config wrangler.web.jsonc -- --keep-vars",

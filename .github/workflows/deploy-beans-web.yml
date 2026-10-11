@@ -39,7 +39,23 @@ jobs:
           fi
 
           echo "Building OpenNext worker (commit ${NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA:0:8})…"
-          npx opennextjs-cloudflare build --config wrangler.web.jsonc
+          # Turbopack next/font/google does not retry gstatic fetches — intermittent
+          # Module not found in CI. Retry a few times with a clean .next.
+          ok=0
+          for attempt in 1 2 3; do
+            echo "OpenNext build attempt ${attempt}…"
+            rm -rf .next .open-next
+            if npx opennextjs-cloudflare build --config wrangler.web.jsonc; then
+              ok=1
+              break
+            fi
+            echo "OpenNext build attempt ${attempt} failed."
+            sleep 8
+          done
+          if [ "$ok" != "1" ]; then
+            echo "OpenNext build failed after 3 attempts."
+            exit 1
+          fi
 
           # Deploy first so the Worker exists, then sync secrets onto it.
           npx opennextjs-cloudflare deploy --config wrangler.web.jsonc -- --keep-vars
