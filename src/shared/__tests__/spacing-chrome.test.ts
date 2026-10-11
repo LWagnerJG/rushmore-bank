@@ -36,10 +36,12 @@ describe("spacing scale + page tokens", () => {
   it("panels and settings use card-pad", () => {
     const panel = css.match(/\.panel\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
     expect(panel).toMatch(/padding:\s*var\(--card-pad\)/);
-    // Bottom sheet: safe-area padding on the sheet; body scrolls inside
+    // Bottom sheet: safe-area only (no extra cream dead band); body scrolls
     const sheet = css.match(/\.settings-sheet\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
-    expect(sheet).toMatch(/padding-bottom:\s*calc\(\s*16px/);
-    expect(sheet).toMatch(/safe-area-inset-bottom/);
+    expect(sheet).toMatch(
+      /padding-bottom:\s*env\(\s*safe-area-inset-bottom/,
+    );
+    expect(sheet).not.toMatch(/padding-bottom:\s*calc\(\s*16px/);
     expect(css).toMatch(/\.settings-sheet-body\s*\{/);
   });
 });

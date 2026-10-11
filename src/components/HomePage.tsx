@@ -471,7 +471,8 @@ export function HomePage({ createIntent = false }: { createIntent?: boolean }) {
                 <BeanAvatar
                   id={avatarId}
                   seed={displayName || "bean"}
-                  size={32}
+                  size={40}
+                  priority
                 />
               </button>
               <p className="type-meta text-[var(--muted)] home-playing-label">

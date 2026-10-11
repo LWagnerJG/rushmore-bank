@@ -445,14 +445,16 @@ function SettingsSheetImpl({
 
           {panel === "avatar" ? (
             <>
-              <div className="profile-sheet-top">
+              <div className="profile-sheet-nav">
                 <button
                   type="button"
-                  className="settings-panel-back"
+                  className="settings-panel-back-icon"
+                  aria-label="Back"
                   onClick={() => setPanel("main")}
                 >
-                  ‹ Avatar
+                  <span aria-hidden="true">‹</span>
                 </button>
+                <h2 className="settings-panel-title">Avatar</h2>
                 <button
                   type="button"
                   className="settings-sheet-close"
@@ -462,9 +464,6 @@ function SettingsSheetImpl({
                   <span aria-hidden="true">×</span>
                 </button>
               </div>
-              <p className="type-meta text-[var(--muted)] profile-avatar-hint">
-                Pick a bean for your profile.
-              </p>
               <div
                 className="avatar-picker-grid"
                 role="listbox"
@@ -487,7 +486,11 @@ function SettingsSheetImpl({
                         setPanel("main");
                       }}
                     >
-                      <BeanAvatar id={id} size={40} />
+                      <BeanAvatar
+                        id={id}
+                        size={72}
+                        className="avatar-picker-bean"
+                      />
                     </button>
                   );
                 })}

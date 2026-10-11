@@ -23,7 +23,7 @@ describe("bean avatars", () => {
     expect(avatarIdFromSeed("device-a")).toBe(avatarIdFromSeed("device-a"));
     expect(normalizeAvatarId("top-hat")).toBe("top-hat");
     expect(BEAN_AVATAR_IDS).toContain(normalizeAvatarId("nope", "seed-x"));
-    expect(beanAvatarSrc("star")).toBe("/avatars/star.webp");
+    expect(beanAvatarSrc("star")).toMatch(/^\/avatars\/star\.webp\?v=\d+$/);
   });
 
   it("ships WebP files for every id", () => {
@@ -35,6 +35,7 @@ describe("bean avatars", () => {
 
   it("shows WebP beans on home, profile, lobby; not rail/standings", () => {
     const sheet = read("components/SettingsSheet.tsx");
+    const css = read("app/globals.css");
     const profileBtn = read("components/ProfileButton.tsx");
     const home = read("components/HomePage.tsx");
     const lobby = read("components/LobbyPanel.tsx");
@@ -45,6 +46,10 @@ describe("bean avatars", () => {
     expect(sheet).toMatch(/avatar-picker-grid/);
     expect(sheet).toMatch(/set_avatar/);
     expect(sheet).toMatch(/initialPanel/);
+    expect(sheet).toMatch(/profile-sheet-nav/);
+    expect(sheet).not.toMatch(/Pick a bean for your profile/);
+    expect(css).toMatch(/grid-template-columns:\s*repeat\(4,/);
+    expect(css).toMatch(/box-shadow:\s*inset 0 0 0 2\.5px var\(--coral\)/);
     expect(profileBtn).toMatch(/BeanAvatar/);
     expect(home).toMatch(/home-playing-avatar/);
     expect(home).toMatch(/BeanAvatar/);

@@ -51,9 +51,12 @@ export const BEAN_AVATAR_LABELS: Record<BeanAvatarId, string> = {
   fishbowl: "Fishbowl",
 };
 
+/** Cache-bust when art is re-cropped / re-exported. */
+const AVATAR_ASSET_VER = "4";
+
 /** Public path for a bean avatar WebP. */
 export function beanAvatarSrc(id: BeanAvatarId): string {
-  return `/avatars/${id}.webp`;
+  return `/avatars/${id}.webp?v=${AVATAR_ASSET_VER}`;
 }
 
 export function isBeanAvatarId(id: string | null | undefined): id is BeanAvatarId {

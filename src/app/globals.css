@@ -4973,7 +4973,8 @@ html.settings-sheet-open body {
   display: flex;
   flex-direction: column;
   gap: 0;
-  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  /* Safe-area only — no extra cream dead band under the sheet content. */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   animation: profile-sheet-in 220ms ease-out both;
   will-change: transform;
 }
@@ -4981,7 +4982,7 @@ html.settings-sheet-open body {
   display: flex;
   justify-content: center;
   flex-shrink: 0;
-  padding: 0.55rem 0 0.2rem;
+  padding: 0.45rem 0 0.1rem;
 }
 .settings-sheet-grabber-pill {
   width: 2.25rem;
@@ -4996,17 +4997,21 @@ html.settings-sheet-open body {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  padding: 0.35rem 1.15rem 0.85rem;
+  padding: 0.2rem 1.15rem 0.35rem;
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
+  gap: 0.65rem;
+}
+.settings-sheet-body:has(.avatar-picker-grid) {
+  gap: 0.45rem;
+  padding-bottom: 0.2rem;
 }
 .settings-sheet-close {
   display: inline-grid;
   place-items: center;
   width: 2.25rem;
   height: 2.25rem;
-  margin: -0.2rem -0.35rem 0 0;
+  margin: 0;
   border: 0;
   border-radius: 999px;
   background: color-mix(in srgb, var(--mint) 22%, #fff);
@@ -5015,6 +5020,7 @@ html.settings-sheet-open body {
   font-weight: 500;
   line-height: 1;
   cursor: pointer;
+  flex-shrink: 0;
 }
 .settings-sheet-close:active {
   opacity: 0.75;
@@ -5040,6 +5046,42 @@ html.settings-sheet-open body {
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-3);
+}
+/* Avatar panel: back · title · close on one baseline */
+.profile-sheet-nav {
+  display: grid;
+  grid-template-columns: 2.25rem 1fr 2.25rem;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2.25rem;
+}
+.settings-panel-back-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font-size: 1.55rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+.settings-panel-back-icon:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--mint) 70%, #23483e);
+  outline-offset: 2px;
+}
+.settings-panel-title {
+  margin: 0;
+  text-align: center;
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--text);
 }
 .profile-sheet-header {
   display: flex;
@@ -5096,6 +5138,12 @@ html.settings-sheet-open body {
 }
 .profile-avatar-hint {
   margin: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--muted);
+  opacity: 0.65;
+  text-align: center;
 }
 .bean-avatar {
   display: inline-flex;
@@ -5118,22 +5166,42 @@ html.settings-sheet-open body {
 }
 .avatar-picker-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 0.4rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.55rem;
+  width: 100%;
+  padding: 0;
+  margin: 0;
 }
 .avatar-picker-cell {
   display: grid;
   place-items: center;
-  min-height: var(--tap-min);
-  padding: 0.3rem;
+  aspect-ratio: 1;
+  min-height: 0;
+  padding: 0;
   border: none;
-  border-radius: 0.85rem;
-  background: color-mix(in srgb, var(--mint) 18%, #fff);
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--cream, #f5f0e7) 70%, #fff);
+  box-shadow: none;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.avatar-picker-cell:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--coral) 70%, #23483e);
+  outline-offset: 2px;
 }
 .avatar-picker-cell-on {
-  background: color-mix(in srgb, var(--mint) 55%, #fff);
-  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--mint) 80%, #23483e);
+  background: color-mix(in srgb, var(--cream, #f5f0e7) 70%, #fff);
+  /* Single coral ring — no second border / fill change */
+  box-shadow: inset 0 0 0 2.5px var(--coral);
+}
+/* Art canvas already pads ~10%; fill nearly the whole soft tile (~80% visual). */
+.avatar-picker-cell .bean-avatar,
+.avatar-picker-bean {
+  width: 96% !important;
+  height: 96% !important;
+  background: transparent;
+  border-radius: 0;
+  overflow: visible;
 }
 .profile-sheet-name {
   margin: 0;
