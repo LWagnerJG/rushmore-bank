@@ -1627,19 +1627,22 @@ html.party-on .brand-shimmer {
 
 .lobby-roster .player-row {
   justify-content: flex-start;
+  align-items: center;
   min-height: var(--tap-min);
   padding: 0.4rem 0.75rem;
-  gap: 0.5rem;
+  gap: 0.55rem;
 }
 
 .lobby-roster-avatar {
   display: inline-flex;
   flex-shrink: 0;
+  margin-inline-end: 0;
 }
 
 .lobby-roster-name {
   display: inline-flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 0.35rem;
   min-width: 0;
   text-align: left;
@@ -1650,10 +1653,14 @@ html.party-on .brand-shimmer {
 }
 
 .lobby-roster .lobby-rename-btn {
-  flex: 0 1 auto;
+  flex: 1 1 auto;
   justify-content: flex-start;
+  align-items: center;
   margin: 0;
   padding: 0.2rem 0.2rem 0.2rem 0;
+  min-width: 0;
+  width: auto;
+  text-align: left;
 }
 
 .lobby-roster .player-row-you {
@@ -4918,27 +4925,37 @@ html.settings-sheet-open body {
   overscroll-behavior: none;
 }
 .settings-sheet-backdrop {
+  /* Flex box stays viewport-sized so align-items:flex-end pins the sheet
+     to the real screen bottom — NOT to a bleed that extends past it. */
   position: fixed;
   inset: 0;
-  top: -80px;
-  right: 0;
-  bottom: -120px;
-  left: 0;
   width: 100%;
-  height: calc(100lvh + 200px + env(safe-area-inset-bottom, 0px));
-  height: calc(100dvh + 200px + env(safe-area-inset-bottom, 0px));
+  height: 100%;
+  height: 100dvh;
+  height: 100lvh;
   z-index: 60;
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  /* Uniform soft scrim — entire viewport including status bar + home indicator */
-  background: rgba(20, 30, 25, 0.4);
+  background: transparent;
   padding: 0;
   box-sizing: border-box;
   overflow: hidden;
 }
 .settings-sheet-backdrop::before {
-  content: none;
+  /* Uniform soft scrim covering the ENTIRE viewport + rubber-band bleed */
+  content: "";
+  position: absolute;
+  top: -80px;
+  right: 0;
+  bottom: calc(-120px - env(safe-area-inset-bottom, 0px));
+  left: 0;
+  width: 100%;
+  height: calc(100lvh + 200px + env(safe-area-inset-bottom, 0px));
+  height: calc(100dvh + 200px + env(safe-area-inset-bottom, 0px));
+  background: rgba(20, 30, 25, 0.4);
+  pointer-events: none;
+  z-index: 0;
 }
 .settings-sheet {
   position: relative;

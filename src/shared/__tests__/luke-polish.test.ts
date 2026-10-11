@@ -167,9 +167,14 @@ describe("settings: spacing instead of hard dividers", () => {
   it("is a true bottom sheet with soft full-bleed scrim", () => {
     const backdrop = rulesFor(css, ".settings-sheet-backdrop").join("\n");
     expect(backdrop).toMatch(/position:\s*fixed/);
-    expect(backdrop).toMatch(/bottom:\s*-120px/);
+    expect(backdrop).toMatch(/align-items:\s*flex-end/);
+    // Viewport-sized flex box (not bottom:-120) so the sheet isn't clipped
+    expect(backdrop).not.toMatch(/bottom:\s*-120px/);
     expect(backdrop).toMatch(/100lvh|100dvh/);
-    expect(backdrop).toMatch(/rgba\(\s*20,\s*30,\s*25/);
+    const scrim = rulesFor(css, ".settings-sheet-backdrop::before").join("\n");
+    expect(scrim).toMatch(/bottom:\s*calc\(\s*-120px/);
+    expect(scrim).toMatch(/rgba\(\s*20,\s*30,\s*25/);
+    expect(scrim).toMatch(/100lvh|100dvh/);
     expect(settingsSrc).toMatch(/createPortal/);
     expect(settingsSrc).toMatch(/settings-sheet-open/);
     expect(settingsSrc).toMatch(/settings-sheet-grabber/);
