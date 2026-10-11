@@ -191,11 +191,18 @@ async function main() {
     });
     console.log("geo", vp.label, JSON.stringify(geo));
 
-    await page.keyboard.press("Escape").catch(() => undefined);
-    await page.locator(".settings-sheet-close").click().catch(async () => {
-      await page.locator(".settings-sheet-backdrop").click({ position: { x: 10, y: 10 } });
-    });
-    await page.waitForTimeout(250);
+    const closeBtn = page.locator(".settings-sheet-close");
+    if (await closeBtn.isVisible().catch(() => false)) {
+      await closeBtn.click();
+    } else if (
+      await page.locator(".settings-sheet-backdrop").isVisible().catch(() => false)
+    ) {
+      await page.locator(".settings-sheet-backdrop").click({ position: { x: 20, y: 20 } });
+    }
+    await page
+      .waitForSelector(".settings-sheet-backdrop", { state: "detached", timeout: 5000 })
+      .catch(() => undefined);
+    await page.waitForTimeout(200);
 
     // —— Lobby sheet + roster ——
     await page.getByRole("button", { name: /Create game/i }).click();
