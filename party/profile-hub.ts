@@ -15,8 +15,10 @@ import {
 
 const STATS_PREFIX = "stats:";
 const NICK_PREFIX = "nick:";
+const DEVICE_INDEX_KEY = "index:devices";
 const SIGHTING_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_SIGHTINGS_PER_NICK = 8;
+const MAX_DEVICE_INDEX = 500;
 
 function corsHeaders(): HeadersInit {
   return {
@@ -95,6 +97,7 @@ export class ProfileHub {
       updatedAt: new Date().toISOString(),
     };
     await this.ctx.storage.put(this.statsKey(deviceId), next);
+    await this.rememberDevice(deviceId);
     if (next.nickname) {
       await this.touchSighting({
         deviceId,
@@ -104,6 +107,14 @@ export class ProfileHub {
       });
     }
     return next;
+  }
+
+  private async rememberDevice(deviceId: string) {
+    const prev =
+      (await this.ctx.storage.get<string[]>(DEVICE_INDEX_KEY)) ?? [];
+    if (prev.includes(deviceId)) return;
+    const next = [deviceId, ...prev].slice(0, MAX_DEVICE_INDEX);
+    await this.ctx.storage.put(DEVICE_INDEX_KEY, next);
   }
 
   private async touchSighting(input: {
@@ -275,10 +286,10 @@ export class ProfileHub {
   }
 
   private async adminSummary(): Promise<Response> {
-    const keys = await this.ctx.storage.list<StoredProfileStats>({
-      prefix: STATS_PREFIX,
-      limit: 200,
-    });
+    // Avoid storage.list() — not present on the typed DurableObjectStorage in
+    // this repo's workers-types. Track device ids explicitly instead.
+    const deviceIds =
+      (await this.ctx.storage.get<string[]>(DEVICE_INDEX_KEY)) ?? [];
     const profiles: Array<{
       deviceId: string;
       nickname?: string;
@@ -287,10 +298,11 @@ export class ProfileHub {
       bestScore: number;
       updatedAt?: string;
     }> = [];
-    for (const [key, stats] of keys) {
+    for (const deviceId of deviceIds.slice(0, 200)) {
+      const stats = await this.readStats(deviceId);
       if (stats.gamesPlayed <= 0) continue;
       profiles.push({
-        deviceId: key.slice(STATS_PREFIX.length),
+        deviceId,
         nickname: stats.nickname,
         wins: stats.wins,
         gamesPlayed: stats.gamesPlayed,
