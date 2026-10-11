@@ -76,11 +76,14 @@ describe("draft declutter (Luke iPhone DRAFT pass)", () => {
     const panel = rule(".draft-panel");
     expect(panel).toMatch(/min-height:\s*100%/);
     expect(panel).toMatch(/flex:\s*1 1 auto/);
-    const board = rule(".draft-board");
-    expect(board).toMatch(/flex:\s*1 1 auto/);
+    const boardRule = rule(".draft-board");
+    expect(boardRule).toMatch(/flex:\s*1 1 auto/);
     const table = rule(".draft-board-table");
-    expect(table).toMatch(/margin-inline:\s*calc\(\s*-1 \* var\(--space-2\)\s*\)/);
     expect(table).toMatch(/width:\s*calc\(\s*100% \+ 2 \* var\(--space-2\)\s*\)/);
+    expect(table).toMatch(/margin-inline:\s*calc\(\s*-1 \* var\(--space-2\)\s*\)/);
+    expect(table).toMatch(/border-spacing:\s*var\(--space-2\)\s+var\(--space-2\)/);
+    // Inline width must match CSS so React style doesn't pin the table to 100%
+    expect(board).toMatch(/calc\(100% \+ 2 \* var\(--space-2\)\)/);
     const th = rule(".draft-board-table thead th");
     expect(th).toMatch(/background:\s*transparent/);
     const you = rule(".draft-board-table thead th.is-you");

@@ -132,7 +132,11 @@ export function DraftBoard({
           className={`draft-board-table draft-board-density-${density}`}
           style={
             density === "fit"
-              ? { width: "100%", minWidth: 0 }
+              ? {
+                  // Match CSS gutter cancel so inline width doesn't pin to 100%
+                  width: "calc(100% + 2 * var(--space-2))",
+                  minWidth: 0,
+                }
               : { minWidth: Math.max(260, seats.length * colW) }
           }
         >

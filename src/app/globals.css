@@ -4607,7 +4607,11 @@ html.party-on .draft-pick-submit {
 }
 
 .draft-board-table {
-  /* Outer cell edges cancel the spacing so gutters match --page-pad-x */
+  /*
+   * Grow past the scrollport by one border-spacing on each side, then pull
+   * back with negative margin so outer cell edges share --page-pad-x with
+   * the composer. Inline width on .draft-board-density-fit must match.
+   */
   width: calc(100% + 2 * var(--space-2));
   margin-inline: calc(-1 * var(--space-2));
   table-layout: fixed;
