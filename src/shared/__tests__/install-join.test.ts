@@ -8,6 +8,7 @@ import {
   inviteUrl,
   isCreateIntentConsumed,
   markCreateIntentConsumed,
+  missingRoomAction,
   rememberContinuedCreateInBrowser,
   roomFromSearch,
   isInstallJoinConsumed,
@@ -151,6 +152,26 @@ describe("continue-in-browser counter + consumed flag", () => {
     expect(isCreateIntentConsumed(local)).toBe(false);
     markCreateIntentConsumed(local);
     expect(isCreateIntentConsumed(local)).toBe(true);
+  });
+});
+
+describe("missing-room gate", () => {
+  it("lets a named create/join enter even when exists is false", () => {
+    expect(
+      missingRoomAction({ namedEntry: true, consumed: false }),
+    ).toBe("enter");
+    expect(
+      missingRoomAction({ namedEntry: true, consumed: true }),
+    ).toBe("enter");
+  });
+
+  it("shows ended for a nameless stale install, then home once consumed", () => {
+    expect(
+      missingRoomAction({ namedEntry: false, consumed: false }),
+    ).toBe("ended");
+    expect(
+      missingRoomAction({ namedEntry: false, consumed: true }),
+    ).toBe("home");
   });
 });
 

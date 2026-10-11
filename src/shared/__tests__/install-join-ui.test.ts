@@ -60,6 +60,9 @@ describe("install-first join UI", () => {
     expect(home).toMatch(/window\.location\.replace\(`\/join\/\$\{room\}`\)/);
     expect(entry).toMatch(/recallRoomSession/);
     expect(entry).toMatch(/presetName/);
+    expect(entry).toMatch(/namedEntry/);
+    expect(entry).toMatch(/missingRoomAction/);
+    expect(home).toMatch(/clearRoomSession\(room\)/);
     expect(entry).toMatch(/recordContinueInBrowser/);
     expect(entry).toMatch(/\/api\/metrics\/install-continue/);
     const keyboard = readFileSync(

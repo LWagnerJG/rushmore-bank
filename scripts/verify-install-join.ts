@@ -38,6 +38,44 @@ const STANDALONE_OVERRIDE = `
 })();
 `;
 
+const EXISTS_FALSE = `
+(() => {
+  const orig = window.fetch.bind(window);
+  window.fetch = (input, init) => {
+    const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    if (url.includes("/api/room/") && url.includes("/exists")) {
+      return Promise.resolve(new Response(JSON.stringify({ exists: false }), {
+        headers: { "Content-Type": "application/json" },
+      }));
+    }
+    return orig(input, init);
+  };
+})();
+`;
+
+const STALE_ENDED_STORAGE = `
+(() => {
+  try {
+    localStorage.setItem("quarry:name", "Luke");
+    sessionStorage.setItem("quarry:name:session", "Luke");
+    localStorage.setItem("beans:install-create-consumed", "1");
+    localStorage.setItem(
+      "beans:install-join-consumed",
+      JSON.stringify({ ABCD: Date.now() }),
+    );
+    const stale = JSON.stringify({
+      code: "ABCD",
+      name: "Luke",
+      playerId: "p-stale",
+      role: "player",
+      at: Date.now(),
+    });
+    localStorage.setItem("quarry:room-session:ABCD", stale);
+    sessionStorage.setItem("quarry:room-session:ABCD", stale);
+  } catch {}
+})();
+`;
+
 const EXISTS_TRUE = `
 (() => {
   const orig = window.fetch.bind(window);
@@ -246,6 +284,27 @@ async function main() {
         throw new Error("standalone create missing home create/name");
       }
       console.log("webkit standalone create: ok");
+
+      // P0: leftover ended-room storage + exists:false (fresh unused code)
+      // must still reach the new room, not "That room has ended".
+      const staleCreate = await browser.newPage({
+        userAgent: IPHONE_UA,
+        viewport: { width: 390, height: 844 },
+        isMobile: true,
+        hasTouch: true,
+      });
+      await staleCreate.addInitScript(STANDALONE_OVERRIDE);
+      await staleCreate.addInitScript(EXISTS_FALSE);
+      await staleCreate.addInitScript(STALE_ENDED_STORAGE);
+      await staleCreate.goto(`${base}/`, { waitUntil: "networkidle" });
+      await (await reachCreateButton(staleCreate)).click();
+      await staleCreate.waitForURL(/\/room\/[A-Z0-9]{4}/, { timeout: 8000 });
+      if (await staleCreate.getByText("That room has ended").count()) {
+        throw new Error("standalone create showed ended screen for a new room");
+      }
+      const joining = staleCreate.getByText(/Joining as Luke|Room [A-Z0-9]{4}|Pick a name to join/);
+      await joining.first().waitFor({ state: "visible", timeout: 8000 });
+      console.log("webkit standalone create with leftover ended state: ok");
     });
 
     await withBrowser("chromium", async (browser) => {

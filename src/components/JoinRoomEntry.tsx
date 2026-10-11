@@ -16,6 +16,7 @@ import {
   hasContinuedInBrowser,
   isInstallJoinConsumed,
   markInstallJoinConsumed,
+  missingRoomAction,
   recordContinueInBrowser,
   rememberContinuedInBrowser,
 } from "@/shared/install-join";
@@ -41,25 +42,35 @@ export function JoinRoomEntry({
   const surface = hydrated ? detectJoinSurfaceFromWindow() : null;
   const continued =
     continueBrowser || (hydrated && hasContinuedInBrowser(code));
+  const namedEntry = Boolean(presetName.trim());
 
   useEffect(() => {
-    // Only the installed app checks existence — a fresh QR in Safari must
-    // not see "That room has ended" while the host is still connecting.
+    // Only the installed app checks nameless install start_urls.
+    // Host Create lands on /room/CODE?name= — exists is false until connect.
     if (!hydrated || code.length !== 4 || !isInstalledDisplay()) return;
+    if (namedEntry) return;
     let cancelled = false;
     void (async () => {
       const exists = await fetchRoomExists(code);
       if (cancelled) return;
-      if (exists === false && isInstallJoinConsumed(code)) {
+      const action = missingRoomAction({
+        namedEntry: false,
+        consumed: isInstallJoinConsumed(code),
+      });
+      if (exists !== false) {
+        setRoomExists(true);
+        return;
+      }
+      if (action === "home") {
         router.replace("/");
         return;
       }
-      setRoomExists(exists);
+      setRoomExists(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, [code, hydrated, router]);
+  }, [code, hydrated, namedEntry, router]);
 
   const onHome = useCallback(() => {
     markInstallJoinConsumed(code);
@@ -84,7 +95,7 @@ export function JoinRoomEntry({
     return <RoomEndedScreen code={code} onHome={onHome} />;
   }
 
-  if (roomExists === false) {
+  if (roomExists === false && !namedEntry) {
     return <RoomEndedScreen code={code} onHome={onHome} />;
   }
 
