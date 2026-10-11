@@ -211,7 +211,9 @@ describe("ballot privacy projection", () => {
     expect(publicStateLeaksBallots(forSpectator)).toBe(false);
     expect(forP1.myHumanVote).toBe("p2");
     expect(forP1.humanVotesCast).toBe(2);
-    expect(forP1.topicVoteCounts.t1).toBe(2);
+    // Topic tallies only ship during TOPIC_SELECTION (payload slim).
+    expect(forP1.topicVoteCounts).toEqual({});
+    expect(forP1.topicOptions).toEqual([]);
     expect(forSpectator.myHumanVote).toBeNull();
     expect(JSON.stringify(forP1)).not.toContain("secret-job");
     expect(JSON.stringify(forP1)).not.toMatch(/"topicVotes"/);

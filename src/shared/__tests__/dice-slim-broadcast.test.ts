@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { emptyRoomState } from "../types";
-import { projectPublicState } from "../engine/public-state";
+import {
+  phaseOmitsDraftJudgePayload,
+  projectPublicState,
+} from "../engine/public-state";
 import { mergePublicState } from "../engine/merge-public-state";
 
 function baseRoom() {
@@ -77,7 +80,17 @@ function baseRoom() {
   return state;
 }
 
-describe("dice slim broadcast", () => {
+describe("phase slim broadcast", () => {
+  it("marks wager/dice/results as draft-judge omit phases", () => {
+    expect(phaseOmitsDraftJudgePayload("DICE")).toBe(true);
+    expect(phaseOmitsDraftJudgePayload("WAGER_SELECTION")).toBe(true);
+    expect(phaseOmitsDraftJudgePayload("ROUND_RESULTS")).toBe(true);
+    expect(phaseOmitsDraftJudgePayload("GAME_RESULTS")).toBe(true);
+    expect(phaseOmitsDraftJudgePayload("VOTING_AND_JUDGING")).toBe(false);
+    expect(phaseOmitsDraftJudgePayload("SCORE_REVEAL")).toBe(false);
+    expect(phaseOmitsDraftJudgePayload("DRAFT")).toBe(false);
+  });
+
   it("omits heavy draft/judge fields while phase is DICE", () => {
     const state = baseRoom();
     state.phase = "DICE";
@@ -87,45 +100,79 @@ describe("dice slim broadcast", () => {
     expect(pub.scores).toEqual([]);
     expect(pub.rushmoreWhy).toEqual({});
     expect(pub.takenNormalized).toEqual([]);
-    // Dice fields still present.
     expect(pub.diceSubphase).toBe("READY");
     expect(pub.pots.a).toBe(10);
     expect(pub.wagers.a).toBe(10);
     expect(pub.players).toHaveLength(2);
   });
 
-  it("keeps full picks outside DICE", () => {
-    const state = baseRoom();
-    state.phase = "WAGER_SELECTION";
-    const pub = projectPublicState(state, "a");
-    expect(pub.picks).toHaveLength(2);
-    expect(pub.topicOptions).toHaveLength(2);
-    expect(pub.rushmoreWhy.a).toBe("A classic.");
+  it("omits heavy fields during WAGER and RESULTS", () => {
+    for (const phase of [
+      "WAGER_SELECTION",
+      "ROUND_RESULTS",
+      "GAME_RESULTS",
+    ] as const) {
+      const state = baseRoom();
+      state.phase = phase;
+      const pub = projectPublicState(state, "a");
+      expect(pub.picks).toEqual([]);
+      expect(pub.topicOptions).toEqual([]);
+      expect(pub.scores).toEqual([]);
+      expect(pub.rushmoreWhy).toEqual({});
+    }
   });
 
-  it("client merge restores omitted fields across dice ticks", () => {
+  it("keeps picks during vote/score but drops topic cards", () => {
     const state = baseRoom();
-    state.phase = "WAGER_SELECTION";
+    state.phase = "VOTING_AND_JUDGING";
+    state.scoresLocked = false;
+    const pub = projectPublicState(state, "a");
+    expect(pub.picks).toHaveLength(2);
+    expect(pub.topicOptions).toEqual([]);
+    expect(pub.topicVoteCounts).toEqual({});
+  });
+
+  it("keeps topic options only during TOPIC_SELECTION", () => {
+    const state = baseRoom();
+    state.phase = "TOPIC_SELECTION";
+    const pub = projectPublicState(state, "a");
+    expect(pub.topicOptions).toHaveLength(2);
+  });
+
+  it("client merge restores omitted fields across slim-phase ticks", () => {
+    const state = baseRoom();
+    state.phase = "SCORE_REVEAL";
     const rich = projectPublicState(state, "a");
+    expect(rich.picks).toHaveLength(2);
+    expect(rich.scores).toHaveLength(1);
+
+    state.phase = "WAGER_SELECTION";
+    const slimWager = projectPublicState(state, "a");
+    expect(slimWager.picks).toEqual([]);
+    const afterWager = mergePublicState(rich, slimWager);
+    expect(afterWager.picks).toHaveLength(2);
+    expect(afterWager.scores).toHaveLength(1);
+    expect(afterWager.rushmoreWhy.a).toBe("A classic.");
+
     state.phase = "DICE";
-    const slim = projectPublicState(state, "a");
-    expect(slim.picks).toEqual([]);
-    const merged = mergePublicState(rich, slim);
+    const slimDice = projectPublicState(state, "a");
+    const merged = mergePublicState(afterWager, slimDice);
     expect(merged.picks).toHaveLength(2);
-    expect(merged.rushmoreWhy.a).toBe("A classic.");
-    expect(merged.topicOptions).toHaveLength(2);
+    expect(merged.scores).toHaveLength(1);
     expect(merged.diceSubphase).toBe("READY");
-    // Slim dice tick omits the heavy arrays that dominate WS bytes.
-    const fatDice = {
-      ...slim,
+
+    const fatWager = {
+      ...slimWager,
       picks: rich.picks,
-      topicOptions: rich.topicOptions,
       scores: rich.scores,
       rushmoreWhy: rich.rushmoreWhy,
       takenNormalized: rich.takenNormalized,
     };
-    expect(JSON.stringify(slim).length).toBeLessThan(
-      JSON.stringify(fatDice).length,
+    expect(JSON.stringify(slimWager).length).toBeLessThan(
+      JSON.stringify(fatWager).length,
+    );
+    expect(JSON.stringify(slimDice).length).toBeLessThan(
+      JSON.stringify(fatWager).length,
     );
   });
 });
