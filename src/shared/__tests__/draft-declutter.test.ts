@@ -72,16 +72,24 @@ describe("draft declutter (Luke iPhone DRAFT pass)", () => {
     expect(scroll).not.toMatch(/0 8px 22px/);
   });
 
-  it("fills leftover height and aligns gutters with the composer", () => {
+  it("keeps compact rows and aligns gutters — board does not stretch", () => {
     const panel = rule(".draft-panel");
-    expect(panel).toMatch(/min-height:\s*100%/);
-    expect(panel).toMatch(/flex:\s*1 1 auto/);
+    expect(panel).toMatch(/flex:\s*0 0 auto/);
+    expect(panel).not.toMatch(/min-height:\s*100%/);
     const boardRule = rule(".draft-board");
-    expect(boardRule).toMatch(/flex:\s*1 1 auto/);
+    expect(boardRule).toMatch(/flex:\s*0 0 auto/);
+    const fitTd = rule(".draft-board-density-fit td,\n.draft-board-density-cozy td");
+    // Compact ~44–48px tiles
+    expect(css).toMatch(
+      /\.draft-board-density-fit td,\s*\n\.draft-board-density-cozy td\s*\{[\s\S]*?height:\s*2\.85rem/,
+    );
+    expect(css).not.toMatch(
+      /\.draft-board-scroll-fit \.draft-board-density-fit tbody tr\s*\{[\s\S]*?height:\s*25%/,
+    );
+    void fitTd;
     const table = rule(".draft-board-table");
     expect(table).toMatch(/width:\s*calc\(\s*100% \+ 2 \* var\(--space-2\)\s*\)/);
     expect(table).toMatch(/margin-inline:\s*calc\(\s*-1 \* var\(--space-2\)\s*\)/);
-    expect(table).toMatch(/border-spacing:\s*var\(--space-2\)\s+var\(--space-2\)/);
     // Inline width must match CSS so React style doesn't pin the table to 100%
     expect(board).toMatch(/calc\(100% \+ 2 \* var\(--space-2\)\)/);
     const th = rule(".draft-board-table thead th");
@@ -102,14 +110,16 @@ describe("draft declutter (Luke iPhone DRAFT pass)", () => {
     expect(row).toMatch(/min-height:\s*var\(--tap-min\)/);
   });
 
-  it("keeps composer→board at one 12px gap when your-turn status is quiet", () => {
+  it("keeps an airy composer→board gap when your-turn status is quiet", () => {
     const panel = rule(".draft-panel");
-    expect(panel).toMatch(/gap:\s*var\(--space-3\)/);
+    expect(panel).toMatch(/gap:\s*var\(--space-5\)/);
     // Quiet your-turn omits the status node (no reserved blank line)
     expect(draft).toMatch(/turnLine \? \(/);
     expect(draft).toMatch(/: null/);
     expect(css).not.toMatch(/draft-turn-line-quiet/);
     const turn = rule(".draft-turn-line");
     expect(turn).not.toMatch(/min-height:/);
+    // Draft chrome breathes under the topic hero
+    expect(room).toMatch(/drafting \? "pb-\[var\(--space-4\)\]"/);
   });
 });

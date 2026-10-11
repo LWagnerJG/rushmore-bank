@@ -230,10 +230,26 @@ async function main() {
         );
       }
       check(
-        typeof closed.cellH === "number" && closed.cellH >= 44,
-        `${p.name} taller cells`,
+        typeof closed.cellH === "number" &&
+          closed.cellH >= 40 &&
+          closed.cellH <= 52,
+        `${p.name} compact cells (~44–48px)`,
         `cellH=${closed.cellH}`,
       );
+      if (closed.composer && closed.topic && closed.board) {
+        const topicToComposer = closed.composer.top - closed.topic.bottom;
+        const composerToBoard = closed.board.top - closed.composer.bottom;
+        check(
+          topicToComposer >= 12,
+          `${p.name} airy topic→composer`,
+          `${topicToComposer}px`,
+        );
+        check(
+          composerToBoard >= 20,
+          `${p.name} airy composer→board`,
+          `${composerToBoard}px`,
+        );
+      }
       check(
         typeof closed.liveText === "string" && /^Pick \d$/.test(closed.liveText),
         `${p.name} Pick N placeholder`,
@@ -302,8 +318,8 @@ async function main() {
       const m = await metrics(page);
       await shot(page, `${TAG}_draft_seats${sc.seats}_${p.name}.png`);
       check(
-        typeof m.cellH === "number" && m.cellH >= 36,
-        `seats=${sc.seats} cell height`,
+        typeof m.cellH === "number" && m.cellH >= 36 && m.cellH <= 56,
+        `seats=${sc.seats} compact cell height`,
         `cellH=${m.cellH}`,
       );
       const mCells = m as typeof m & {

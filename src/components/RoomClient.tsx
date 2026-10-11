@@ -369,7 +369,14 @@ export function RoomClient({
         }
       >
         <div className="room-chrome-safe" aria-hidden="true" />
-        <div className="room-chrome-body px-[var(--page-pad-x)] pb-[var(--space-1)] pt-0">
+        <div
+          className={
+            // Draft: more air under the topic so the board sits lower (not
+            // stretched). Other phases keep the tight chrome pad.
+            "room-chrome-body px-[var(--page-pad-x)] pt-0 " +
+            (drafting ? "pb-[var(--space-4)]" : "pb-[var(--space-1)]")
+          }
+        >
           {/*
             Stable chrome row: brand (quiet) + end slot always same height so
             timer appear/disappear never shifts the topic hero below.
