@@ -2,7 +2,7 @@
 
 import type { Player, PublicRoomState } from "@/shared/types";
 import { FitName } from "@/components/FitName";
-import { profileInitials } from "@/lib/profile-initials";
+import { BeanAvatar } from "@/components/BeanAvatar";
 import { nameWithYouSuffix } from "@/shared/you-label";
 
 /**
@@ -70,7 +70,7 @@ export function WaitingRoster({
                   {locked ? (
                     <span className="waiting-roster-check">✓</span>
                   ) : (
-                    profileInitials(p.name)
+                    <BeanAvatar id={p.avatarId} seed={p.id} size={28} />
                   )}
                 </span>
                 <FitName

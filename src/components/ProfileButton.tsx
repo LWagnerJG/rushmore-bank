@@ -1,6 +1,7 @@
 "use client";
 
-import { profileInitials } from "@/lib/profile-initials";
+import { BeanAvatar } from "@/components/BeanAvatar";
+import { loadAvatarId } from "@/lib/avatar-prefs";
 
 /**
  * Quiet top-right profile / settings trigger.
@@ -10,12 +11,14 @@ export function ProfileButton({
   name,
   onClick,
   open = false,
+  avatarId,
 }: {
   name: string;
   onClick: () => void;
   open?: boolean;
+  avatarId?: string | null;
 }) {
-  const initials = profileInitials(name || "?");
+  const id = avatarId ?? loadAvatarId();
   return (
     <button
       type="button"
@@ -26,7 +29,7 @@ export function ProfileButton({
       onClick={onClick}
     >
       <span className="profile-btn-mark" aria-hidden="true">
-        {initials}
+        <BeanAvatar id={id} seed={name || "bean"} size={28} />
       </span>
     </button>
   );

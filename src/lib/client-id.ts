@@ -18,7 +18,9 @@ function newClientId(): string {
 
 function readCookie(name: string): string | null {
   if (typeof document === "undefined") return null;
-  const parts = document.cookie.split("; ");
+  const raw = typeof document.cookie === "string" ? document.cookie : "";
+  if (!raw) return null;
+  const parts = raw.split("; ");
   for (const part of parts) {
     const eq = part.indexOf("=");
     if (eq === -1) continue;

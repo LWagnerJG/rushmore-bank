@@ -14,6 +14,7 @@ import {
 } from "@/lib/results-reveal";
 import { feedback } from "@/lib/feedback";
 import { nameWithYouSuffix } from "@/shared/you-label";
+import { BeanAvatar } from "@/components/BeanAvatar";
 
 type Row = {
   id: string;
@@ -267,6 +268,13 @@ export function ResultsRevealList({
               <span className="endgame-winner-sweep" aria-hidden="true" />
             ) : null}
             <span className="results-reveal-rank tabular-nums">{row.rank}</span>
+            <span className="results-reveal-avatar" aria-hidden="true">
+              <BeanAvatar
+                id={ranked.find((p) => p.id === row.id)?.avatarId}
+                seed={row.id}
+                size={26}
+              />
+            </span>
             <span className="results-reveal-name">
               {row.isYou ? nameWithYouSuffix(row.name) : row.name}
             </span>

@@ -386,6 +386,7 @@ export function RoomClient({
               ) : null}
               <ProfileButton
                 name={profileName}
+                avatarId={you?.avatarId}
                 open={settingsOpen}
                 onClick={() => setSettingsOpen(true)}
               />
