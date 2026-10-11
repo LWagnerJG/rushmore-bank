@@ -41,8 +41,9 @@ describe("iOS chrome + keyboard CSS contracts", () => {
 
   it("extends cream safe-top band with a plain eased gradient fade", () => {
     expect(css).toMatch(/--safe-top-cream:\s*#f7f3eb/i);
-    expect(css).toMatch(/--safe-top-solid-extra:\s*1[2-6]px/);
-    expect(css).toMatch(/--safe-top-fade:\s*(2[4-9]|3[0-2])px/);
+    // Tight clearance: safe-area + ~12px (not a giant cream dead band)
+    expect(css).toMatch(/--safe-top-solid-extra:\s*[4-8]px/);
+    expect(css).toMatch(/--safe-top-fade:\s*(8|10|12)px/);
     expect(css).toMatch(
       /\.room-chrome-safe,\s*\n?\s*\.app-safe-top|\.room-chrome-safe,\s*\.app-safe-top/,
     );
@@ -147,8 +148,8 @@ describe("iOS chrome + keyboard CSS contracts", () => {
 });
 
 describe("iPhone viewport fixtures (safe-area top)", () => {
-  const SOLID_EXTRA = 12;
-  const FADE = 24;
+  const SOLID_EXTRA = 4;
+  const FADE = 8;
   const phones = [
     { name: "desktop (no inset)", w: 1280, h: 800, safeTop: 0 },
     { name: "iPhone 14/15", w: 390, h: 844, safeTop: 47 },
@@ -164,10 +165,13 @@ describe("iPhone viewport fixtures (safe-area top)", () => {
       expect(bandH).toBe(phone.safeTop + SOLID_EXTRA + FADE);
       expect(solidEnd).toBeGreaterThanOrEqual(phone.safeTop);
       expect(contentTop).toBeGreaterThan(solidEnd);
-      expect(FADE).toBeGreaterThanOrEqual(24);
-      expect(FADE).toBeLessThanOrEqual(32);
-      expect(SOLID_EXTRA).toBeGreaterThanOrEqual(12);
-      expect(SOLID_EXTRA).toBeLessThanOrEqual(16);
+      // Beyond safe-area: ~8–12px total (solid + fade)
+      expect(SOLID_EXTRA + FADE).toBeGreaterThanOrEqual(8);
+      expect(SOLID_EXTRA + FADE).toBeLessThanOrEqual(16);
+      expect(FADE).toBeGreaterThanOrEqual(8);
+      expect(FADE).toBeLessThanOrEqual(12);
+      expect(SOLID_EXTRA).toBeGreaterThanOrEqual(4);
+      expect(SOLID_EXTRA).toBeLessThanOrEqual(8);
       // Shell height stays the layout height (keyboard must not shrink it)
       const shellH = phone.h;
       const keyboardH = 336;

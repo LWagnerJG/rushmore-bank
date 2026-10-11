@@ -213,20 +213,20 @@ export default function HomePage() {
   return (
     <main className="app-shell app-shell-lock mx-auto flex max-w-md flex-col pt-0">
       <div className="app-safe-top" aria-hidden="true" />
-      <div className="app-shell-scroll flex min-h-0 flex-1 flex-col px-4 pb-[max(1.25rem,env(safe-area-inset-bottom),2.1rem)] pt-4">
+      <div className="app-shell-scroll flex min-h-0 flex-1 flex-col px-[var(--page-pad-x)] pb-[max(1.25rem,env(safe-area-inset-bottom),2.1rem)] pt-[var(--space-2)]">
         {/*
           Top-anchored (not centered): every field lands in the upper half,
           above where the iOS keyboard opens, so WebKit never pans the page.
         */}
         <MotionSettle
           motionClass="animate-rise"
-          className="home-stack flex min-h-0 flex-1 flex-col gap-6"
+          className="home-stack flex min-h-0 flex-1 flex-col gap-[var(--space-5)]"
         >
-          <header className="home-header space-y-2 text-center">
+          <header className="home-header space-y-[var(--space-2)] text-center">
             <div className="home-header-row">
               <span className="home-header-spacer" aria-hidden="true" />
               <div className="flex justify-center">
-                <BrandMark large onLogoTap={onLogoTap} />
+                <BrandMark onLogoTap={onLogoTap} />
               </div>
               <div className="home-header-end">
                 <ProfileButton
@@ -245,7 +245,7 @@ export default function HomePage() {
 
         {!canPlay ? (
           <section className="home-card home-card-step stack-sm">
-            {/* BrandMark large above is the sole display hero on Home */}
+            {/* Shared BrandMark above; name step is body-scale, not a second display hero */}
             <h1 className="type-body text-center font-[family-name:var(--font-display)] font-extrabold tracking-tight">
               What’s your name?
             </h1>

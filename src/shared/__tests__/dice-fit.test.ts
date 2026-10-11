@@ -49,8 +49,8 @@ describe("dice screen fits a 375×667 phone", () => {
     const [, floor, ceiling] = /^clamp\( ?(\d+)px, .*, (\d+)px ?\)$/.exec(tray) ?? [];
     expect(Number(floor)).toBeGreaterThanOrEqual(180);
     expect(Number(ceiling)).toBe(260);
-    // Non-tray budget covers ticker + pinned roller + stage chrome/Bank
-    expect(tray).toMatch(/468px/);
+    // Non-tray budget covers taller ticker + pinned roller + stage chrome/Bank
+    expect(tray).toMatch(/476px/);
   });
 
   it("keeps one tray height on every beat, so arming your turn never moves Bank", () => {
@@ -81,9 +81,13 @@ describe("dice screen fits a 375×667 phone", () => {
   });
 
   it("gives the closed party slot no layout gap", () => {
-    const gap = px(decl(layout, "gap"));
-    expect(px(decl(rule(".dice-party-slot"), "margin-top"))).toBe(-gap);
-    expect(px(decl(rule(".dice-party-slot-inner > *"), "margin-top"))).toBe(gap);
+    expect(decl(layout, "gap")).toBe("var(--space-2)");
+    expect(decl(rule(".dice-party-slot"), "margin-top")).toBe(
+      "calc(-1 * var(--space-2))",
+    );
+    expect(decl(rule(".dice-party-slot-inner > *"), "margin-top")).toBe(
+      "var(--space-2)",
+    );
   });
 
   it("holds the stage header's height when a bust swaps in the smaller spectator title", () => {

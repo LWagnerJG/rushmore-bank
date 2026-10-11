@@ -63,12 +63,12 @@ export function PlayerRail({
   // Pending +earned only while still pending on the bank. After wager lock,
   // stones already include earned (bankedAfter / dice), so never show +N again
   // — that was the ROUND_RESULTS rail vs list mismatch (e.g. 50 vs 48).
-  const showEarned =
-    state.phase === "SCORE_REVEAL" || state.phase === "WAGER_SELECTION";
-  const showPotSplit =
-    state.phase === "WAGER_SELECTION" || state.phase === "DICE";
-  /** During wager the card owns "AT RISK" — rail chips stay number-only. */
-  const quietPotSplit = state.phase === "WAGER_SELECTION";
+  // +N under the total only on score reveal. Wager folds earned into one total.
+  const showEarned = state.phase === "SCORE_REVEAL";
+  // Dice owns Safe/Risking split with labels. Wager card owns AT RISK —
+  // rail shows one clear total so coral tiles stay readable.
+  const showPotSplit = state.phase === "DICE";
+  const wagerTotals = state.phase === "WAGER_SELECTION";
   const count = players.length;
   const fit = count > 0 && count <= 5;
   const few = count > 0 && count <= 3;
@@ -138,9 +138,13 @@ export function PlayerRail({
                   : undefined
               }
               showPotSplit={showPotSplit}
-              quietPotSplit={quietPotSplit}
               pot={pot}
               safe={safe}
+              totalBeans={
+                wagerTotals
+                  ? safe + pot + (state.earnedThisRound[p.id] ?? 0)
+                  : p.stones
+              }
               wagering={showPotSplit && (inDice || pot > 0)}
             />
           );
@@ -159,9 +163,9 @@ function PlayerChip({
   compact,
   chipRef,
   showPotSplit,
-  quietPotSplit,
   pot,
   safe,
+  totalBeans,
   wagering,
 }: {
   player: Player;
@@ -172,31 +176,31 @@ function PlayerChip({
   compact?: boolean;
   chipRef?: RefObject<HTMLDivElement | null>;
   showPotSplit?: boolean;
-  /** Hide SAFE/RISKING labels — tiny muted nums only (wager phase). */
-  quietPotSplit?: boolean;
   pot: number;
   safe: number;
+  /** Single clear total when not showing Safe/Risking split. */
+  totalBeans: number;
   wagering?: boolean;
 }) {
   const label = you ? railYouLabel() : player.name;
   const tip = railChipTip(player.name, { you, up });
   const [land, setLand] = useState(false);
-  const prevStones = useRef(player.stones);
+  const prevTotal = useRef(totalBeans);
   const prevEarned = useRef(earned);
 
   useEffect(() => {
-    const stonesChanged = prevStones.current !== player.stones;
+    const totalChanged = prevTotal.current !== totalBeans;
     const earnedLanded =
       earned != null &&
       earned > 0 &&
       prevEarned.current !== earned;
-    prevStones.current = player.stones;
+    prevTotal.current = totalBeans;
     prevEarned.current = earned;
-    if (!stonesChanged && !earnedLanded) return;
+    if (!totalChanged && !earnedLanded) return;
     setLand(true);
     const t = window.setTimeout(() => setLand(false), 340);
     return () => window.clearTimeout(t);
-  }, [player.stones, earned]);
+  }, [totalBeans, earned]);
 
   return (
     <div
@@ -215,32 +219,27 @@ function PlayerChip({
       title={tip}
     >
       <div className="player-chip-name">
-        {(up || (player.isHost && !up)) && (
-          <span className="player-chip-name-leading" aria-hidden="true">
-            {up && (
-              <span className="player-chip-up-dot">
-                ●
-              </span>
-            )}
-            {player.isHost && !up && <span title="Host">★</span>}
-          </span>
-        )}
-        <FitName className="player-chip-name-text" text={label} title={tip} />
+        <span className="player-chip-name-inner">
+          {up ? (
+            <span className="player-chip-up-dot" aria-hidden="true">
+              ●
+            </span>
+          ) : null}
+          {player.isHost && !up ? (
+            <span className="player-chip-host-star" title="Host" aria-hidden="true">
+              ★
+            </span>
+          ) : null}
+          <FitName className="player-chip-name-text" text={label} title={tip} />
+        </span>
       </div>
       {showPotSplit ? (
         <div
-          className={[
-            "player-chip-split",
-            quietPotSplit ? "player-chip-split-quiet" : "",
-          ]
-            .filter(Boolean)
-            .join(" ")}
+          className="player-chip-split"
           aria-label={`${safe} safe, ${pot} risking`}
         >
           <span className="player-chip-safe tabular-nums" title="Safe">
-            {quietPotSplit ? null : (
-              <span className="player-chip-split-label">Safe</span>
-            )}
+            <span className="player-chip-split-label">Safe</span>
             <span className="player-chip-split-num">{safe}</span>
           </span>
           <span
@@ -249,15 +248,13 @@ function PlayerChip({
             }`}
             title="Risking"
           >
-            {quietPotSplit ? null : (
-              <span className="player-chip-split-label">Risking</span>
-            )}
+            <span className="player-chip-split-label">Risking</span>
             <span className="player-chip-split-num">{pot}</span>
           </span>
         </div>
       ) : (
         <div className={`player-chip-score${land ? " score-land" : ""}`}>
-          <span className="player-chip-stones tabular-nums">{player.stones}</span>
+          <span className="player-chip-stones tabular-nums">{totalBeans}</span>
           {showEarned ? (
             earned != null && earned > 0 ? (
               <span

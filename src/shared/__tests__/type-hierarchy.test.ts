@@ -48,17 +48,19 @@ describe("type hierarchy — one hero per screen", () => {
     expect(css).toMatch(/--text-display:\s*clamp\(/);
   });
 
-  it("makes in-room brand quiet chrome (not a headline)", () => {
+  it("shares one brand size token on every screen (quiet chrome color in-room)", () => {
     expect(brand).toMatch(/chrome/);
     expect(brand).toMatch(/brand-mark-chrome-word/);
-    expect(css).toMatch(/\.brand-mark-chrome-word\s*\{/);
+    expect(css).toMatch(/--brand-icon-size:\s*30px/);
+    expect(css).toMatch(/--brand-word-size:\s*1\.25rem/);
+    expect(css).toMatch(/\.brand-mark-icon\s*\{/);
     const word =
       css.match(/\.brand-mark-chrome-word\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
-    expect(word).toMatch(/font-size:\s*0\.9375rem|15px|16px/);
-    expect(word).toMatch(/font-weight:\s*600/);
     expect(word).toMatch(/color:\s*var\(--muted\)/);
     expect(room).toMatch(/BrandMark[^>]*chrome/);
-    expect(home).toMatch(/BrandMark\s+large/);
+    // Home uses the shared mark (no oversized large variant)
+    expect(home).toMatch(/<BrandMark\b/);
+    expect(home).not.toMatch(/BrandMark\s+large/);
   });
 
   it("makes draft topic the display hero and timer a secondary pill", () => {
@@ -90,8 +92,8 @@ describe("type hierarchy — one hero per screen", () => {
     expect(dice).toMatch(/dice-up-title/);
   });
 
-  it("home keeps large brand as the only display-scale hero", () => {
-    expect(home).toMatch(/BrandMark\s+large/);
+  it("home keeps brand + body-scale name step (no second display hero)", () => {
+    expect(home).toMatch(/<BrandMark\b/);
     expect(home).not.toMatch(/<h1 className="type-display"/);
     expect(home).toMatch(/What’s your name\?/);
   });
