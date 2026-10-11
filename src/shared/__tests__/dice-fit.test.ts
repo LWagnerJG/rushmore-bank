@@ -49,6 +49,8 @@ describe("dice screen fits a 375×667 phone", () => {
     const [, floor, ceiling] = /^clamp\( ?(\d+)px, .*, (\d+)px ?\)$/.exec(tray) ?? [];
     expect(Number(floor)).toBeGreaterThanOrEqual(180);
     expect(Number(ceiling)).toBe(260);
+    // Non-tray budget covers ticker + pinned roller + stage chrome/Bank
+    expect(tray).toMatch(/468px/);
   });
 
   it("keeps one tray height on every beat, so arming your turn never moves Bank", () => {

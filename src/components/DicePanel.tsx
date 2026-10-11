@@ -11,10 +11,9 @@ import {
   type DiceReadoutRoll,
 } from "@/shared/engine/dice-present";
 import { feedback } from "@/lib/feedback";
-import { centerInTrack } from "@/lib/scroll-track";
 import { cueYourTurn } from "@/lib/your-turn";
 import { RULES } from "@/shared/rules";
-import { youInlineSuffix } from "@/shared/you-label";
+import { railYouLabel } from "@/shared/you-label";
 
 type SeatKind = "up" | "next" | "in" | "banked" | "busted";
 
@@ -81,86 +80,138 @@ function seatKind(
   return "in";
 }
 
-const BADGE: Record<SeatKind, string> = {
-  up: "Up",
-  next: "Next",
-  in: "In",
-  banked: "Banked",
-  busted: "Bust",
-};
-
 type SeatInfo = {
   pid: string;
   name: string;
   kind: SeatKind;
   pot: number;
   safe: number;
+  total: number;
   you: boolean;
 };
 
-/**
- * Compact phone turn strip — seat order left→right.
- * Single score surface during BANK (chrome beans are hidden).
- */
-function TurnStrip({ seats }: { seats: SeatInfo[] }) {
-  const upRef = useRef<HTMLLIElement | null>(null);
-  const upId = seats.find((s) => s.kind === "up")?.pid ?? "";
+function seatLabel(seat: Pick<SeatInfo, "name" | "you">): string {
+  return seat.you ? railYouLabel() : seat.name;
+}
 
-  useEffect(() => {
-    const chip = upRef.current;
-    const track = chip?.parentElement;
-    if (chip && track) centerInTrack(chip, track);
-  }, [upId]);
+/**
+ * Slow seamless score ticker — translateX only, duplicated set, edge fade.
+ * Pauses while touched; reduced-motion shows a static wrapped list.
+ */
+function ScoreTicker({
+  seats,
+  reducedMotion,
+}: {
+  seats: SeatInfo[];
+  reducedMotion: boolean;
+}) {
+  const [paused, setPaused] = useState(false);
+  const durationSec = Math.max(22, seats.length * 7);
+
+  const items = seats.map((seat) => (
+    <li
+      key={seat.pid}
+      className={[
+        "dice-ticker-item",
+        `dice-ticker-item-${seat.kind}`,
+        seat.you ? "dice-ticker-item-you" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
+      <span className="dice-ticker-name">{seatLabel(seat)}</span>
+      <span className="dice-ticker-beans tabular-nums">{seat.total}</span>
+    </li>
+  ));
 
   return (
-    <ol className="dice-turn-strip" aria-label="Turn order">
-      {seats.map((seat) => (
-        <li
-          key={seat.pid}
-          ref={seat.kind === "up" ? upRef : undefined}
-          className={[
-            "dice-turn-chip",
-            `dice-turn-chip-${seat.kind}`,
-            seat.you ? "dice-turn-chip-you" : "",
-          ]
-            .filter(Boolean)
-            .join(" ")}
-        >
-          <span className="dice-turn-chip-name" title={seat.name}>
-            {seat.name}
-            {seat.you ? youInlineSuffix(seat.name) : ""}
-          </span>
-          <span className="dice-turn-chip-meta">
-            <span className="dice-turn-chip-badge">{BADGE[seat.kind]}</span>
-            <span
-              className="dice-turn-chip-split tabular-nums"
-              aria-label={
-                seat.kind === "banked" || seat.kind === "busted" || seat.pot === 0
-                  ? `${seat.safe} safe`
-                  : `${seat.pot} in pot`
-              }
-            >
-              {/* Single figure — ownership labels live once under the tray */}
-              <span
-                className={
-                  seat.kind === "banked" || seat.kind === "busted" || seat.pot === 0
-                    ? "dice-turn-chip-safe"
-                    : "dice-turn-chip-pot"
-                }
+    <div
+      className={[
+        "dice-ticker",
+        reducedMotion ? "dice-ticker-static" : "",
+        paused ? "dice-ticker-paused" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      aria-label="Player scores"
+      onPointerDown={() => setPaused(true)}
+      onPointerUp={() => setPaused(false)}
+      onPointerCancel={() => setPaused(false)}
+      onPointerLeave={() => setPaused(false)}
+    >
+      <div
+        className="dice-ticker-track"
+        style={
+          reducedMotion
+            ? undefined
+            : { animationDuration: `${durationSec}s` }
+        }
+      >
+        <ul className="dice-ticker-set">{items}</ul>
+        {!reducedMotion ? (
+          <ul className="dice-ticker-set" aria-hidden="true">
+            {seats.map((seat) => (
+              <li
+                key={`dup-${seat.pid}`}
+                className={[
+                  "dice-ticker-item",
+                  `dice-ticker-item-${seat.kind}`,
+                  seat.you ? "dice-ticker-item-you" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
               >
-                <span className="dice-turn-chip-num">
-                  {seat.kind === "banked" ||
-                  seat.kind === "busted" ||
-                  seat.pot === 0
-                    ? seat.safe
-                    : seat.pot}
+                <span className="dice-ticker-name">{seatLabel(seat)}</span>
+                <span className="dice-ticker-beans tabular-nums">
+                  {seat.total}
                 </span>
-              </span>
-            </span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+/** Pinned current roller — name, total, live pot. Coral, calm, always visible. */
+function PinnedRoller({
+  seat,
+}: {
+  seat: SeatInfo | null;
+}) {
+  if (!seat) return null;
+  const label = seatLabel(seat);
+
+  return (
+    <div
+      className={[
+        "dice-pinned-roller",
+        seat.you ? "dice-pinned-roller-you" : "",
+        seat.kind === "busted" ? "dice-pinned-roller-busted" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      aria-live="polite"
+      aria-label={`${label}, ${seat.total} beans, ${seat.pot} at risk`}
+    >
+      <div className="dice-pinned-roller-who">
+        <p className="dice-pinned-roller-kicker">Now rolling</p>
+        <p className="dice-pinned-roller-name">{label}</p>
+      </div>
+      <div className="dice-pinned-roller-scores">
+        <p className="dice-pinned-roller-total">
+          <BeanGlyph size={16} />
+          <span className="tabular-nums">{seat.total}</span>
+        </p>
+        <p className="dice-pinned-roller-pot">
+          <span className="dice-pinned-roller-pot-label">At risk</span>
+          <span className="dice-pinned-roller-pot-value tabular-nums">
+            {seat.pot}
           </span>
-        </li>
-      ))}
-    </ol>
+        </p>
+      </div>
+    </div>
   );
 }
 
@@ -181,10 +232,9 @@ export function DicePanel({
   const pot = state.pots[youId] ?? 0;
   const active = state.diceActiveIds.includes(youId);
   const yourBeans = seatBeanTotal(youId, state, you.stones);
-  const rollerBeans =
-    roller && !myTurn
-      ? seatBeanTotal(roller.id, state, roller.stones)
-      : null;
+  // Under-tray Your beans only when watching — pinned card owns the roller
+  // (and your totals) on your turn, so no number shows twice.
+  const showYourBeansUnder = you.role === "player" && !myTurn;
   const rolling = state.diceSubphase === "COMMITTED";
   const settling = state.diceSubphase === "SETTLED";
   const [busy, setBusy] = useState(false);
@@ -299,17 +349,21 @@ export function DicePanel({
     const inRound = state.diceActiveIds.includes(pid);
     const bust = state.bustedPlayerIdsThisRound.includes(pid);
     const kind = seatKind(pid, rollerId, nextId, inRound, bust);
+    const safe = inRound
+      ? (state.protectedStones[pid] ?? player?.stones ?? 0)
+      : (player?.stones ?? 0);
+    const seatPot = state.pots[pid] ?? 0;
     return {
       pid,
       name: player?.name ?? "Player",
       kind,
-      pot: state.pots[pid] ?? 0,
-      safe: inRound
-        ? (state.protectedStones[pid] ?? player?.stones ?? 0)
-        : (player?.stones ?? 0),
+      pot: seatPot,
+      safe,
+      total: seatBeanTotal(pid, state, player?.stones ?? 0),
       you: pid === youId,
     };
   });
+  const rollerSeat = seats.find((s) => s.pid === rollerId) ?? null;
 
   function act(message: ClientMessage) {
     if (busy) return;
@@ -371,12 +425,13 @@ export function DicePanel({
     <div
       className={`dice-layout ${heroReveal && settling ? "dice-hero-mode" : ""} ${bustMoment ? "dice-bust-flash" : ""} ${!active && you.role === "player" ? "dice-spectator" : ""}`}
     >
-      {/* Zone 1 — turn strip = single score surface (chrome beans hidden) */}
+      {/* Zone 1 — score ticker + pinned roller (replaces swipe strip) */}
       <section
         className={`dice-zone dice-zone-strip ${drama ? "dice-table-dim" : ""}`}
-        aria-label="Turn order"
+        aria-label="Scores"
       >
-        <TurnStrip seats={seats} />
+        <ScoreTicker seats={seats} reducedMotion={reducedMotion} />
+        <PinnedRoller seat={rollerSeat} />
       </section>
 
       {/* Zone 2 — one soft cream panel: role + timer + dice + result + Bank */}
@@ -450,40 +505,25 @@ export function DicePanel({
           </div>
 
           {you.role === "player" ? (
-            <div className="dice-stage-actions" aria-label="Your beans and Bank">
+            <div className="dice-stage-actions" aria-label="Bank">
               {/*
-                One ownership row under the tray: Your beans is always the
-                viewer's total. When someone else is up, their total sits on
-                the right — same height as the old Pot/Safe pair, no second hero.
+                Your beans under the tray only while watching — on your turn
+                the pinned roller card already shows You + total + at risk.
               */}
-              <div className="dice-beans-row">
-                <div
-                  className="dice-your-beans"
-                  aria-label={`Your beans ${yourBeans}`}
-                >
-                  <p className="dice-your-beans-label">Your beans</p>
-                  <p className="dice-your-beans-value">
-                    <BeanGlyph size={18} />
-                    <span className="tabular-nums">{yourBeans}</span>
-                  </p>
-                </div>
-                {!myTurn && roller && rollerBeans != null ? (
+              {showYourBeansUnder ? (
+                <div className="dice-beans-row">
                   <div
-                    className="dice-roller-beans"
-                    aria-label={`${roller.name}'s beans ${rollerBeans}`}
+                    className="dice-your-beans"
+                    aria-label={`Your beans ${yourBeans}`}
                   >
-                    <p className="dice-roller-beans-label">
-                      <span className="dice-roller-beans-name" title={roller.name}>
-                        {roller.name}
-                      </span>
-                      {"'s beans"}
-                    </p>
-                    <p className="dice-roller-beans-value tabular-nums">
-                      {rollerBeans}
+                    <p className="dice-your-beans-label">Your beans</p>
+                    <p className="dice-your-beans-value">
+                      <BeanGlyph size={18} />
+                      <span className="tabular-nums">{yourBeans}</span>
                     </p>
                   </div>
-                ) : null}
-              </div>
+                </div>
+              ) : null}
 
               <div className="dice-cta-slot">
                 {myTurn && active ? (

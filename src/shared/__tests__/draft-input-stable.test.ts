@@ -51,7 +51,8 @@ describe("draft pick keyboard contracts", () => {
       expect(src).not.toMatch(/\.focus\(/);
     }
     expect(rail).toMatch(/track\.scrollTo\(\{\s*left:\s*0/);
-    expect(dice).toMatch(/centerInTrack/);
+    // Dice scores use a CSS translateX ticker — no scrollIntoView / centerInTrack
+    expect(dice).not.toMatch(/centerInTrack/);
   });
 
   it("keeps --app-h frozen through the keyboard session", () => {
