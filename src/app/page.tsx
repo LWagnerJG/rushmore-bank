@@ -226,7 +226,7 @@ export default function HomePage() {
             <div className="home-header-row">
               <span className="home-header-spacer" aria-hidden="true" />
               <div className="flex justify-center">
-                <BrandMark onLogoTap={onLogoTap} />
+                <BrandMark hero onLogoTap={onLogoTap} />
               </div>
               <div className="home-header-end">
                 <ProfileButton

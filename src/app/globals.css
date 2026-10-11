@@ -496,7 +496,7 @@ html.party-on body::before {
   text-overflow: ellipsis;
 }
 
-/* Shared brand mark — one icon + word size on every screen */
+/* Shared brand mark — compact in-room; hero on home */
 .brand-mark {
   min-height: var(--tap-min);
 }
@@ -512,13 +512,72 @@ html.party-on body::before {
   line-height: 1.15;
   letter-spacing: -0.02em;
 }
-/* Quiet in-room wordmark color only — size matches home */
+/* Quiet in-room wordmark color only — size matches compact mark */
 .brand-mark-chrome {
   min-height: var(--tap-min);
 }
 .brand-mark-chrome-word {
   font-weight: 700;
   color: var(--muted);
+}
+/* Home hero brand moment */
+.brand-mark-hero {
+  min-height: 0;
+}
+.brand-mark-hero-icon {
+  width: 88px;
+  height: 88px;
+}
+.brand-mark-hero-word {
+  font-size: clamp(2.15rem, 9vw, 2.75rem);
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--text);
+}
+.brand-mark-hero-shine {
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+  border-radius: 28%;
+  isolation: isolate;
+  -webkit-tap-highlight-color: transparent;
+}
+.brand-mark-hero-shine::after {
+  content: "";
+  position: absolute;
+  inset: -10%;
+  background: linear-gradient(
+    115deg,
+    transparent 0%,
+    transparent 42%,
+    rgba(255, 248, 236, 0.7) 50%,
+    transparent 58%,
+    transparent 100%
+  );
+  transform: translate3d(-140%, 0, 0) skewX(-14deg);
+  animation: brand-glisten 5s ease-in-out infinite;
+  will-change: transform;
+  mix-blend-mode: soft-light;
+  pointer-events: none;
+}
+@keyframes brand-glisten {
+  0%,
+  72% {
+    transform: translate3d(-140%, 0, 0) skewX(-14deg);
+  }
+  88%,
+  100% {
+    transform: translate3d(140%, 0, 0) skewX(-14deg);
+  }
+}
+html.brand-shimmer-paused .brand-mark-hero-shine::after {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .brand-mark-hero-shine::after {
+    animation: none !important;
+    opacity: 0;
+  }
 }
 
 /* The one in-game clock (Draft, Vote, Wager, Dice) — coral when urgent, color only */

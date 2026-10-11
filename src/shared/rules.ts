@@ -7,7 +7,7 @@
 export const RULES = {
   /** Display */
   displayName: "Beans",
-  tagline: "Draft four. Bank beans.",
+  tagline: "Your Mount Rushmore of anything.",
   currencyName: "beans",
   /**
    * Canonical production host (Vercel project `beans-game`).
