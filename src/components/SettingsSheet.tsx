@@ -76,7 +76,7 @@ export function SettingsSheet({
   const [displayName, setDisplayName] = useState("");
   const [panel, setPanel] = useState<SheetPanel>("main");
   const [avatarId, setAvatarId] = useState<BeanAvatarId>(() =>
-    typeof window !== "undefined" ? loadAvatarId() : "classic",
+    typeof window !== "undefined" ? loadAvatarId() : "aviator",
   );
 
   const [mounted, setMounted] = useState(false);
@@ -436,7 +436,7 @@ export function SettingsSheet({
               </button>
             </div>
             <p className="type-meta text-[var(--muted)]">
-              Pick a bean — others see it in the lobby.
+              Pick a bean for your profile.
             </p>
             <div className="avatar-picker-grid" role="listbox" aria-label="Bean avatars">
               {BEAN_AVATAR_IDS.map((id) => {

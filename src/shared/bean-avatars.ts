@@ -1,55 +1,60 @@
 /**
- * Funny themed bean avatars — lightweight inline SVG ids + palette.
- * Deterministic default from device id; players can override.
+ * Themed bean avatars — WebP sprites in public/avatars/.
+ * Deterministic default from device id; players can override in the profile sheet.
  */
 
 export const BEAN_AVATAR_IDS = [
-  "classic",
-  "shades",
-  "chef",
-  "astro",
-  "cowboy",
-  "ghost",
-  "pirate",
-  "nerd",
-  "crown",
-  "flower",
-  "mustache",
-  "scarf",
-  "devil",
-  "angel",
-  "sleepy",
-  "spicy",
-  "sport",
-  "wizard",
-  "robot",
-  "bee",
+  "aviator",
+  "grill",
+  "headphones",
+  "beanie",
+  "star",
+  "cyber-visor",
+  "bow",
+  "tiara",
+  "perm",
+  "boa",
+  "unicorn",
+  "spa",
+  "viking",
+  "cone",
+  "top-hat",
+  "tinfoil",
+  "cake",
+  "mullet",
+  "clown",
+  "fishbowl",
 ] as const;
 
 export type BeanAvatarId = (typeof BEAN_AVATAR_IDS)[number];
 
 export const BEAN_AVATAR_LABELS: Record<BeanAvatarId, string> = {
-  classic: "Classic bean",
-  shades: "Cool shades",
-  chef: "Chef bean",
-  astro: "Astronaut",
-  cowboy: "Cowboy",
-  ghost: "Ghost bean",
-  pirate: "Pirate",
-  nerd: "Nerd bean",
-  crown: "Royal bean",
-  flower: "Flower power",
-  mustache: "Mustache",
-  scarf: "Winter scarf",
-  devil: "Little devil",
-  angel: "Angel bean",
-  sleepy: "Sleepy",
-  spicy: "Spicy",
-  sport: "Sporty",
-  wizard: "Wizard",
-  robot: "Robot bean",
-  bee: "Bee bean",
+  aviator: "Aviator",
+  grill: "Grill",
+  headphones: "Headphones",
+  beanie: "Beanie",
+  star: "Star",
+  "cyber-visor": "Cyber visor",
+  bow: "Bow",
+  tiara: "Tiara",
+  perm: "Perm",
+  boa: "Boa",
+  unicorn: "Unicorn",
+  spa: "Spa",
+  viking: "Viking",
+  cone: "Traffic cone",
+  "top-hat": "Top hat",
+  tinfoil: "Tinfoil hat",
+  cake: "Cake",
+  mullet: "Mullet",
+  clown: "Clown",
+  fishbowl: "Fishbowl",
 };
+
+/** Public path for a bean avatar WebP. */
+export function beanAvatarSrc(id: BeanAvatarId): string {
+  return `/avatars/${id}.webp`;
+}
 
 export function isBeanAvatarId(id: string | null | undefined): id is BeanAvatarId {
   return !!id && (BEAN_AVATAR_IDS as readonly string[]).includes(id);
