@@ -263,8 +263,6 @@ function hashStr(s: string): number {
 const DISCONNECT_GRACE_MS = HOST_DISCONNECT_GRACE_MS;
 /** In-memory host failover poll while the DO is warm (alarm slot is shared with phase clocks). */
 const HOST_CHECK_INTERVAL_MS = 5_000;
-/** Wipe abandoned rooms (0 sockets, no grace) so codes can be reused. */
-const ROOM_ABANDON_MS = 15 * 60 * 1000;
 
 export type Env = {
   Main: DurableObjectNamespace<QuarryServer>;
@@ -412,9 +410,14 @@ export class QuarryServer extends Server<Env> {
     this.leaveTimers.set(playerId, timer);
   }
 
-  async wipeAbandonedRoom() {
-    if ([...this.getConnections()].length > 0) return;
-    if (this.roomAppearsActive()) return;
+  /**
+   * Reset an /exists:false room to an empty lobby.
+   * Create reuses codes when exists is false; keeping mid-game zombie state
+   * (bots + disconnected seats) would let a "new" room open into DRAFT.
+   * Returns true when state was wiped.
+   */
+  recycleInactiveRoom(): boolean {
+    if (this.roomAppearsActive()) return false;
     const code = this.state.code;
     this.state = emptyRoomState(code);
     this.clearAllBotTimers();
@@ -424,7 +427,13 @@ export class QuarryServer extends Server<Env> {
       clearTimeout(this.abandonTimer);
       this.abandonTimer = null;
     }
-    await this.clearAlarm();
+    void this.clearAlarm();
+    return true;
+  }
+
+  async wipeAbandonedRoom() {
+    if ([...this.getConnections()].length > 0) return;
+    if (!this.recycleInactiveRoom()) return;
     await this.persist();
   }
 
@@ -438,17 +447,9 @@ export class QuarryServer extends Server<Env> {
       return;
     }
     if (this.roomAppearsActive()) return;
-    if (this.emptySince == null) this.emptySince = Date.now();
-    const due = this.emptySince + ROOM_ABANDON_MS - Date.now();
-    if (due <= 0) {
-      await this.wipeAbandonedRoom();
-      return;
-    }
-    if (this.abandonTimer) return;
-    this.abandonTimer = setTimeout(() => {
-      this.abandonTimer = null;
-      void this.wipeAbandonedRoom();
-    }, due);
+    // Wipe as soon as /exists would report false — do not leave a 15-minute
+    // zombie mid-game that Create can claim under the same code.
+    await this.wipeAbandonedRoom();
   }
 
   async persist() {
@@ -937,13 +938,20 @@ export class QuarryServer extends Server<Env> {
 
   async onConnect(conn: Connection) {
     const playerId = conn.id;
-    this.clearLeaveTimer(playerId);
     this.emptySince = null;
     if (this.abandonTimer) {
       clearTimeout(this.abandonTimer);
       this.abandonTimer = null;
     }
     this.startHostCheckLoop();
+    // After disconnect grace, /exists is false. Do not revive disconnected
+    // seats (or bot-only tables) under a code Create already treats as free.
+    if (!this.roomAppearsActive()) {
+      this.recycleInactiveRoom();
+      void this.persist().then(() => this.sendSnapshot(conn));
+      return;
+    }
+    this.clearLeaveTimer(playerId);
     const existing = this.state.players.find((p) => p.id === playerId);
     if (existing) {
       existing.connected = true;
@@ -1302,6 +1310,12 @@ export class QuarryServer extends Server<Env> {
     role: "player" | "spectator",
     avatarId?: string,
   ) {
+    // Belt-and-suspenders with onConnect: a join into an /exists:false room
+    // must start a fresh lobby (Create reuses these codes).
+    if (this.recycleInactiveRoom()) {
+      void this.persist();
+    }
+
     const clean = this.cleanNickname(name);
     if (!clean) throw new Error("Enter a nickname");
     const avatar = normalizeAvatarId(avatarId, id);

@@ -2,6 +2,8 @@
  * Regression tests for bug-hunt P0/P1 server lifecycle fixes.
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import type { Connection } from "partyserver";
 import { afterEach, beforeEach, describe, it, vi } from "vitest";
 import { createTestServer } from "../../../test/party-server-harness";
@@ -105,11 +107,11 @@ describe("server lifecycle fixes", () => {
     );
   });
 
-  it("name reclaim requires a unique orphan", () => {
+  it("name reclaim requires a unique orphan while the room is still active", () => {
     const { server } = createTestServer("NM1");
     server.state.rosterLocked = true;
     server.state.phase = "DRAFT";
-    server.state.seatOrder = ["p1", "p2"];
+    server.state.seatOrder = ["p1", "p2", "p3"];
     server.state.players = [
       {
         id: "p1",
@@ -131,7 +133,19 @@ describe("server lifecycle fixes", () => {
         stones: 10,
         joinedAt: START,
       },
+      {
+        id: "p3",
+        name: "Pat",
+        seat: 2,
+        connected: true,
+        isHost: false,
+        role: "player",
+        stones: 20,
+        joinedAt: START,
+      },
     ];
+    // A live seat keeps the room active, so ambiguous reclaim still applies.
+    assert.equal(server.roomAppearsActive(), true);
     assert.throws(
       () => server.handleJoin("new-device", "Luke", "player"),
       /ambiguous/i,
@@ -216,6 +230,58 @@ describe("server lifecycle fixes", () => {
     await Promise.resolve();
     await Promise.resolve();
     assert.equal(server.roomAppearsActive(), false);
+    // Immediate wipe — no 15-minute zombie mid-game under a free code.
+    assert.equal(server.state.phase, "LOBBY");
+    assert.equal(server.state.players.length, 0);
+    assert.equal(server.state.rosterLocked, false);
+  });
+
+  it("Create/join into an inactive mid-game room recycles to a fresh lobby", async () => {
+    const { server } = lobbyThree();
+    server.state.phase = "DRAFT";
+    server.state.rosterLocked = true;
+    server.state.seatOrder = ["A", "B", "bot-1"];
+    server.state.players = [
+      {
+        id: "A",
+        name: "A",
+        seat: 0,
+        connected: false,
+        isHost: true,
+        role: "player",
+        stones: 20,
+        joinedAt: START,
+      },
+      {
+        id: "B",
+        name: "B",
+        seat: 1,
+        connected: false,
+        isHost: false,
+        role: "player",
+        stones: 20,
+        joinedAt: START,
+      },
+      {
+        id: "bot-1",
+        name: "Bot Ava",
+        seat: 2,
+        connected: true,
+        isHost: false,
+        role: "player",
+        stones: 20,
+        joinedAt: START,
+      },
+    ];
+    assert.equal(server.roomAppearsActive(), false);
+    server.handleJoin("fresh", "Nova", "player");
+    assert.equal(server.state.phase, "LOBBY");
+    assert.equal(server.state.rosterLocked, false);
+    assert.deepEqual(
+      server.state.players.map((p) => p.id),
+      ["fresh"],
+    );
+    assert.equal(server.state.players[0]?.isHost, true);
   });
 
   it("public humanVotesNeeded includes grace seats", () => {
@@ -226,5 +292,15 @@ describe("server lifecycle fixes", () => {
       gracePlayerIds: server.gracePlayerIds(),
     });
     assert.equal(pub.humanVotesNeeded, 3);
+  });
+
+  it("live lifecycle verify waits out the full disconnect grace", () => {
+    const src = readFileSync(
+      join(__dirname, "../../../scripts/verify-lifecycle-fixes.ts"),
+      "utf8",
+    );
+    assert.match(src, /HOST_DISCONNECT_GRACE_MS/);
+    assert.match(src, /ZOMBIE_WAIT_MS\s*=\s*HOST_DISCONNECT_GRACE_MS\s*\+\s*5_000/);
+    assert.doesNotMatch(src, /await sleep\(10000\)/);
   });
 });
