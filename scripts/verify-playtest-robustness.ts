@@ -54,27 +54,41 @@ async function throttleSlow3G(ctx: BrowserContext) {
   });
 }
 
+/**
+ * String evaluate — tsx/esbuild keepNames injects `__name` around arrow
+ * functions, which WebKit page.evaluate then throws (CI playtest fail).
+ */
+async function ev(page: Page, expr: string) {
+  return page.evaluate(expr);
+}
+
 async function foreground(page: Page) {
-  await page.evaluate(() => {
-    Object.defineProperty(document, "visibilityState", {
-      configurable: true,
-      get: () => "visible",
-    });
-    document.dispatchEvent(new Event("visibilitychange"));
-    window.dispatchEvent(new Event("focus"));
-    window.dispatchEvent(new Event("pageshow"));
-  });
+  await ev(
+    page,
+    `(() => {
+      Object.defineProperty(document, "visibilityState", {
+        configurable: true,
+        get: function () { return "visible"; },
+      });
+      document.dispatchEvent(new Event("visibilitychange"));
+      window.dispatchEvent(new Event("focus"));
+      window.dispatchEvent(new Event("pageshow"));
+    })()`,
+  );
 }
 
 async function background(page: Page) {
-  await page.evaluate(() => {
-    Object.defineProperty(document, "visibilityState", {
-      configurable: true,
-      get: () => "hidden",
-    });
-    document.dispatchEvent(new Event("visibilitychange"));
-    window.dispatchEvent(new Event("blur"));
-  });
+  await ev(
+    page,
+    `(() => {
+      Object.defineProperty(document, "visibilityState", {
+        configurable: true,
+        get: function () { return "hidden"; },
+      });
+      document.dispatchEvent(new Event("visibilitychange"));
+      window.dispatchEvent(new Event("blur"));
+    })()`,
+  );
 }
 
 async function assertDiceNumbers(page: Page, d1: number, d2: number) {
@@ -83,9 +97,12 @@ async function assertDiceNumbers(page: Page, d1: number, d2: number) {
   await expectVisibleNumber(page, `[data-die-number="${d1}"]`);
   await expectVisibleNumber(page, `[data-die-number="${d2}"]`);
   await expectVisibleNumber(page, `[data-dice-sum="${d1 + d2}"]`);
-  const opacity = await page.locator(".bean-pip-die-num").first().evaluate((el) => {
-    return Number(getComputedStyle(el).opacity);
-  });
+  const opacity = Number(
+    await page
+      .locator(".bean-pip-die-num")
+      .first()
+      .evaluate("el => Number(getComputedStyle(el).opacity)"),
+  );
   if (opacity < 0.99) {
     throw new Error(`die numeral opacity ${opacity} (must stay 1)`);
   }
