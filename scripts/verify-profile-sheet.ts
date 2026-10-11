@@ -52,6 +52,8 @@ async function openProfile(page: Page) {
   await page.waitForSelector('[role="dialog"][aria-label="Profile"]', {
     timeout: 8000,
   });
+  // Sheet enter uses opacity/transform — wait for paint before screenshots.
+  await page.waitForTimeout(350);
 }
 
 async function readWins(page: Page): Promise<number> {
