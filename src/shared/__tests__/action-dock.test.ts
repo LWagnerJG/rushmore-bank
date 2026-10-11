@@ -277,9 +277,7 @@ describe("docks can travel the whole screen", () => {
   });
 
   it("the phase body fills the scrollport so short screens dock at the bottom", () => {
-    expect(room).toMatch(
-      /connected \? "room-phase-fill" : "room-phase-fill reconnect-dimmed"/,
-    );
+    expect(room).toMatch(/className="room-phase-fill"/);
     const fill = rulesFor(css, ".room-phase-fill").join("\n");
     expect(fill).toMatch(/display:\s*flex/);
     expect(fill).toMatch(/flex-direction:\s*column/);
