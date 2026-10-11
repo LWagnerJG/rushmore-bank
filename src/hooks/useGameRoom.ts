@@ -21,6 +21,7 @@ import {
   wasRemovedFromRoom,
 } from "@/lib/party";
 import { getStableClientId } from "@/lib/client-id";
+import { loadAvatarId } from "@/lib/avatar-prefs";
 import {
   gameResultId,
   isGameWinner,
@@ -246,6 +247,7 @@ export function useGameRoom(
             type: "join",
             name: resume.name,
             role: resume.role,
+            avatarId: loadAvatarId(),
             actionId: newActionId(),
           } satisfies ClientMessage),
         );
@@ -511,7 +513,12 @@ export function useGameRoom(
         playerId,
         at: Date.now(),
       });
-      send({ type: "join", name: clean, role });
+      send({
+        type: "join",
+        name: clean,
+        role,
+        avatarId: loadAvatarId(),
+      });
     },
     [send, code, playerId, seatContested],
   );

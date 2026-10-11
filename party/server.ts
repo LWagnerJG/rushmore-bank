@@ -18,6 +18,7 @@ import {
   type ServerMessage,
   type TopicOption,
 } from "../src/shared/types";
+import { normalizeAvatarId } from "../src/shared/bean-avatars";
 import {
   RULES,
   canHostSetTopicRounds,
@@ -1111,7 +1112,7 @@ export class QuarryServer extends Server<Env> {
 
     switch (msg.type) {
       case "join":
-        this.handleJoin(id, msg.name, msg.role ?? "player");
+        this.handleJoin(id, msg.name, msg.role ?? "player", msg.avatarId);
         if (sender) this.sendSnapshot(sender, "joined");
         return;
       case "ping":
@@ -1119,6 +1120,9 @@ export class QuarryServer extends Server<Env> {
         return;
       case "rename":
         this.handleRename(id, msg.name);
+        return;
+      case "set_avatar":
+        this.handleSetAvatar(id, msg.avatarId);
         return;
       case "host_heartbeat": {
         const p = this.state.players.find((x) => x.id === id);
@@ -1255,9 +1259,24 @@ export class QuarryServer extends Server<Env> {
     bump(this.state);
   }
 
-  handleJoin(id: string, name: string, role: "player" | "spectator") {
+  handleSetAvatar(id: string, avatarId: string) {
+    const me = this.state.players.find((p) => p.id === id);
+    if (!me) throw new Error("Join first");
+    const next = normalizeAvatarId(avatarId, id);
+    if (me.avatarId === next) return;
+    me.avatarId = next;
+    bump(this.state);
+  }
+
+  handleJoin(
+    id: string,
+    name: string,
+    role: "player" | "spectator",
+    avatarId?: string,
+  ) {
     const clean = this.cleanNickname(name);
     if (!clean) throw new Error("Enter a nickname");
+    const avatar = normalizeAvatarId(avatarId, id);
 
     this.clearLeaveTimer(id);
     const existing = this.state.players.find((p) => p.id === id);
@@ -1272,6 +1291,7 @@ export class QuarryServer extends Server<Env> {
       }
       existing.name = clean;
       existing.connected = true;
+      existing.avatarId = avatar;
       this.ensureHost();
       return;
     }
@@ -1327,6 +1347,7 @@ export class QuarryServer extends Server<Env> {
       role,
       seat: null,
       joinedAt: Date.now(),
+      avatarId: avatar,
     };
     this.state.players.push(player);
     if (isFirst) this.state.hostLastSeenAt = Date.now();
@@ -2901,6 +2922,7 @@ export class QuarryServer extends Server<Env> {
         role: "player",
         seat: null,
         joinedAt: Date.now(),
+        avatarId: normalizeAvatarId(undefined, id),
       });
       if (this.state.rosterLocked) {
         // Mid-game debug inject: append a new seat; never clone an existing seat.

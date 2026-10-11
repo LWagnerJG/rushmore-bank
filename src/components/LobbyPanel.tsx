@@ -7,6 +7,7 @@ import { RULES } from "@/shared/rules";
 import { shareInvite } from "@/lib/share-invite";
 import { HostAiPreGameStatus } from "@/components/HostAiPreGameStatus";
 import { StatsMergePrompt } from "@/components/StatsMergePrompt";
+import { BeanAvatar } from "@/components/BeanAvatar";
 import { nameWithYouSuffix } from "@/shared/you-label";
 import { getStableClientId } from "@/lib/client-id";
 import {
@@ -240,6 +241,9 @@ export function LobbyPanel({
                 .filter(Boolean)
                 .join(" ")}
             >
+              <span className="lobby-roster-avatar" aria-hidden="true">
+                <BeanAvatar id={p.avatarId} seed={p.id} size={28} />
+              </span>
               {p.id === you.id ? (
                 <LobbyOwnName
                   name={p.name}

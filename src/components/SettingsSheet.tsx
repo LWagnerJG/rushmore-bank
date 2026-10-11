@@ -11,7 +11,7 @@ import type { ClientMessage, HostAiJudgeHealth, Phase } from "@/shared/types";
 import { RULES } from "@/shared/rules";
 import { HostAiJudgeCue } from "./HostAiJudgeCue";
 import { AdminTools, isAdminUnlocked } from "./AdminPanel";
-import { profileInitials } from "@/lib/profile-initials";
+import { BeanAvatar } from "./BeanAvatar";
 import {
   emptyProfileStats,
   loadProfileStats,
@@ -21,9 +21,15 @@ import {
   type ProfileStats,
 } from "@/lib/profile-stats";
 import { resolveStableClientId } from "@/lib/client-id";
+import { loadAvatarId, saveAvatarId } from "@/lib/avatar-prefs";
 import { recallDisplayName } from "@/lib/party";
+import {
+  BEAN_AVATAR_IDS,
+  BEAN_AVATAR_LABELS,
+  type BeanAvatarId,
+} from "@/shared/bean-avatars";
 
-type SheetPanel = "main" | "host" | "admin";
+type SheetPanel = "main" | "host" | "admin" | "avatar";
 
 export function SettingsSheet({
   open,
@@ -66,6 +72,9 @@ export function SettingsSheet({
   const [stats, setStats] = useState<ProfileStats>(emptyProfileStats);
   const [displayName, setDisplayName] = useState("");
   const [panel, setPanel] = useState<SheetPanel>("main");
+  const [avatarId, setAvatarId] = useState<BeanAvatarId>(() =>
+    typeof window !== "undefined" ? loadAvatarId() : "classic",
+  );
 
   useEffect(() => {
     if (!open) {
@@ -90,6 +99,7 @@ export function SettingsSheet({
     if (!open) return;
     const name = nickname?.trim() || recallDisplayName().trim() || "Player";
     setDisplayName(name);
+    setAvatarId(loadAvatarId());
     setStats(loadProfileStats());
     const unsub = subscribeProfileStats(setStats);
     void (async () => {
@@ -151,13 +161,19 @@ export function SettingsSheet({
           <>
             <div className="profile-sheet-top">
               <div className="profile-sheet-header">
-                <span className="profile-sheet-avatar" aria-hidden="true">
-                  {profileInitials(displayName)}
-                </span>
+                <button
+                  type="button"
+                  className="profile-sheet-avatar-btn"
+                  aria-label="Change avatar"
+                  onClick={() => setPanel("avatar")}
+                >
+                  <BeanAvatar id={avatarId} seed={displayName} size={44} />
+                </button>
                 <div className="profile-sheet-identity min-w-0">
                   <p className="profile-sheet-name font-[family-name:var(--font-display)]">
                     {displayName}
                   </p>
+                  <p className="type-meta text-[var(--muted)]">Tap bean to change</p>
                 </div>
               </div>
               <button
@@ -368,6 +384,53 @@ export function SettingsSheet({
               playerCount={playerCount}
               botCountInRoom={botCountInRoom}
             />
+          </>
+        ) : null}
+
+        {panel === "avatar" ? (
+          <>
+            <div className="profile-sheet-top">
+              <button
+                type="button"
+                className="settings-panel-back"
+                onClick={() => setPanel("main")}
+              >
+                ‹ Avatar
+              </button>
+              <button
+                type="button"
+                className="text-sm font-bold text-[var(--muted)]"
+                onClick={onClose}
+              >
+                Close
+              </button>
+            </div>
+            <p className="type-meta text-[var(--muted)]">
+              Pick a bean — others see it in the lobby.
+            </p>
+            <div className="avatar-picker-grid" role="listbox" aria-label="Bean avatars">
+              {BEAN_AVATAR_IDS.map((id) => {
+                const selected = id === avatarId;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    role="option"
+                    aria-selected={selected}
+                    className={`avatar-picker-cell ${selected ? "avatar-picker-cell-on" : ""}`}
+                    title={BEAN_AVATAR_LABELS[id]}
+                    onClick={() => {
+                      setAvatarId(id);
+                      saveAvatarId(id);
+                      send?.({ type: "set_avatar", avatarId: id });
+                      setPanel("main");
+                    }}
+                  >
+                    <BeanAvatar id={id} size={40} />
+                  </button>
+                );
+              })}
+            </div>
           </>
         ) : null}
       </div>

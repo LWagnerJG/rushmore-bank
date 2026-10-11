@@ -70,6 +70,8 @@ export interface Player {
   seat: number | null;
   /** Guest token hash confirmation — id itself is the secure token */
   joinedAt: number;
+  /** Themed bean avatar id (see bean-avatars). */
+  avatarId?: string;
 }
 
 export interface TopicOption {
@@ -380,9 +382,17 @@ export interface PublicRoomState {
 }
 
 export type ClientMessage =
-  | { type: "join"; name: string; role?: PlayerRole; actionId?: string }
+  | {
+      type: "join";
+      name: string;
+      role?: PlayerRole;
+      avatarId?: string;
+      actionId?: string;
+    }
   /** Lobby-only: change your display name (same id / seat / host status). */
   | { type: "rename"; name: string; actionId?: string }
+  /** Set your bean avatar (synced to other players). */
+  | { type: "set_avatar"; avatarId: string; actionId?: string }
   | { type: "update_settings"; settings: Partial<HostSettings>; actionId?: string }
   /** Host-only: set total topic rounds (3–6) on the first topic screen. */
   | { type: "set_topic_rounds"; rounds: number; actionId?: string }
