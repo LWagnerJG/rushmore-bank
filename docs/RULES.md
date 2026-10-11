@@ -1,7 +1,7 @@
 # Beans — confirmed rules
 
 Display name: **Beans**. Tagline: *Your Mount Rushmore of anything.* Currency: **beans** (internal field names remain `stones`).  
-Production: https://beans-game.vercel.app (`https://roundacats.vercel.app` remains a working alias)
+Production: https://beans-web.beans-lwagner.workers.dev (`https://beans-game.vercel.app` / `https://roundacats.vercel.app` 308 here)
 
 Tunable defaults live in `src/shared/rules.ts` (`RULES`). Do not quietly change confirmed behavior.
 

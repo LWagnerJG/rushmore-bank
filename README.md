@@ -2,7 +2,7 @@
 
 **Draft four. Bank beans.** — mobile-first party game. Currency: **beans** (protocol fields still named `stones`).
 
-Production: [https://beans-game.vercel.app](https://beans-game.vercel.app) (PWA name **Beans**). Old host [https://roundacats.vercel.app](https://roundacats.vercel.app) remains a working alias.
+Production: [https://beans-web.beans-lwagner.workers.dev](https://beans-web.beans-lwagner.workers.dev) (PWA name **Beans**). Former hosts [https://beans-game.vercel.app](https://beans-game.vercel.app) and [https://roundacats.vercel.app](https://roundacats.vercel.app) permanently redirect (308) here, except `/api/version` which still answers on Vercel for health checks.
 
 ## Stack
 
@@ -51,7 +51,7 @@ The same Next app also deploys as Cloudflare worker **`beans-web`** via OpenNext
 - Local: `npm run build:web` / `npm run deploy:web`
 - Secrets (GitHub Actions → `wrangler secret put`): `GEMINI_API_KEY` (or `GOOGLE_GENERATIVE_AI_API_KEY`), optional `GROQ_API_KEY`, `JUDGE_SECRET`
 
-Vercel stays connected; do not remove it. PartyServer `JUDGE_URL` still points at Vercel by default.
+Vercel stays connected as a 308 forwarder (`vercel.json`); do not remove it. `/api/version` remains live on Vercel so health checks can compare platforms. PartyServer `JUDGE_URL` still points at Vercel by default (that path 308s to beans-web).
 
 ## Deploy PartyServer
 
