@@ -121,6 +121,17 @@ export function gestureKeyFor(
       return `submit_wager:${rev}:${msg.amount}`;
     case "party_resolve":
       return `party_resolve:${rev}:${msg.choice}`;
+    case "set_topic_rounds":
+      // Distinct round chips must not share one actionId — the server
+      // dedupes processed ids, and rounds do not bump phaseRevision.
+      return `set_topic_rounds:${rev}:${msg.rounds}`;
+    case "update_settings": {
+      const s = msg.settings;
+      const vibe = s.topicVibe ?? "";
+      const party =
+        s.partyMode === undefined ? "" : s.partyMode ? "1" : "0";
+      return `update_settings:${rev}:${vibe}:${party}`;
+    }
     case "join":
       return `join:${msg.name}:${msg.role ?? "player"}`;
     case "admin_spawn_bots":

@@ -21,10 +21,30 @@ export function TopicPanel({
   const [scope, setScope] = useState<TopicScope>("everyday");
   const [customOpen, setCustomOpen] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
+  /** Instant chip paint — ignore a stale server echo while a tap is in flight. */
+  const [pendingRounds, setPendingRounds] = useState<number | null>(null);
+  const [pendingVibe, setPendingVibe] = useState<string | null>(null);
   const myVote = state.myTopicVote;
   const seenKey = useRef<string | null>(null);
   const firstTopicScreen = state.topicRound === 0;
   const canPickRounds = you.isHost && firstTopicScreen;
+  const shownRounds = pendingRounds ?? state.configuredTopicRounds;
+  const shownVibe = pendingVibe ?? (state.settings.topicVibe ?? "all");
+
+  useEffect(() => {
+    if (pendingRounds != null && state.configuredTopicRounds === pendingRounds) {
+      setPendingRounds(null);
+    }
+  }, [state.configuredTopicRounds, pendingRounds]);
+
+  useEffect(() => {
+    if (
+      pendingVibe != null &&
+      (state.settings.topicVibe ?? "all") === pendingVibe
+    ) {
+      setPendingVibe(null);
+    }
+  }, [state.settings.topicVibe, pendingVibe]);
 
   // Animate only on reroll (options change after first paint) — never on land.
   useEffect(() => {
@@ -112,9 +132,9 @@ export function TopicPanel({
       <header className="topic-head">
         <div className="topic-head-row">
           <h2 className="topic-title">
-            {state.topicRound === state.configuredTopicRounds - 1
-              ? `Final round · ${state.topicRound + 1}/${state.configuredTopicRounds}`
-              : `Topic · ${state.topicRound + 1}/${state.configuredTopicRounds}`}
+            {state.topicRound === shownRounds - 1
+              ? `Final round · ${state.topicRound + 1}/${shownRounds}`
+              : `Topic · ${state.topicRound + 1}/${shownRounds}`}
           </h2>
           {you.isHost ? (
             <button
@@ -155,7 +175,7 @@ export function TopicPanel({
                   <span className="topic-rounds-label">Rounds</span>
                   <div className="topic-rounds-chips">
                     {RULES.topicRoundsHostOptions.map((n) => {
-                      const on = state.configuredTopicRounds === n;
+                      const on = shownRounds === n;
                       return (
                         <button
                           key={n}
@@ -165,9 +185,11 @@ export function TopicPanel({
                             (on ? " topic-rounds-chip-on" : "")
                           }
                           aria-pressed={on}
-                          onClick={() =>
-                            send({ type: "set_topic_rounds", rounds: n })
-                          }
+                          data-rounds={n}
+                          onClick={() => {
+                            setPendingRounds(n);
+                            send({ type: "set_topic_rounds", rounds: n });
+                          }}
                         >
                           {n}
                         </button>
@@ -191,7 +213,7 @@ export function TopicPanel({
                     ["geography", "Geography"],
                   ] as const
                 ).map(([value, label]) => {
-                  const on = (state.settings.topicVibe ?? "all") === value;
+                  const on = shownVibe === value;
                   return (
                     <button
                       key={value}
@@ -199,12 +221,15 @@ export function TopicPanel({
                       className={
                         "topic-vibe-chip" + (on ? " topic-vibe-chip-on" : "")
                       }
-                      onClick={() =>
+                      aria-pressed={on}
+                      data-vibe={value}
+                      onClick={() => {
+                        setPendingVibe(value);
                         send({
                           type: "update_settings",
                           settings: { topicVibe: value },
-                        })
-                      }
+                        });
+                      }}
                     >
                       {label}
                     </button>
