@@ -27,12 +27,16 @@ describe("fast reconnect + interaction block", () => {
     );
   });
 
-  it("blocks phase UI while disconnected without blur", () => {
+  it("blocks phase UI only after a brief flap, without dimming or blur", () => {
     expect(room).toMatch(/reconnect-blocker/);
-    expect(room).toMatch(/inert=\{!connected \? true : undefined\}/);
+    expect(room).toMatch(/showReconnectVeil/);
+    expect(room).toMatch(/setTimeout\(\(\) => setShowReconnectVeil\(true\), 450\)/);
+    expect(room).toMatch(/inert=\{showReconnectVeil \? true : undefined\}/);
     expect(room).toMatch(/error === "Reconnecting…" \? null : error/);
+    expect(room).not.toMatch(/reconnect-dimmed/);
     const block = css.match(/\.reconnect-blocker\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
     expect(block).toMatch(/position:\s*absolute/);
     expect(block).not.toMatch(/blur\s*\(|backdrop-filter/);
+    expect(block).toMatch(/pointer-events:\s*none/);
   });
 });

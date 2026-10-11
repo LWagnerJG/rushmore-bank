@@ -88,7 +88,13 @@ export const RULES = {
   judgeTimeoutMs: 20000,
 
   /** Host / lobby */
-  hostFailoverSeconds: 20,
+  /**
+   * Soft-disconnect grace before a seat is treated as left / host may move.
+   * Brief iPhone app-switch drops must stay under this window.
+   */
+  disconnectGraceMs: 45_000,
+  /** Host transfer floor — never faster than disconnectGraceMs. */
+  hostFailoverSeconds: 45,
   partyModeDefault: false,
   roomCodeLength: 4,
 

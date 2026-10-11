@@ -46,6 +46,9 @@ import {
   projectPublicState,
   projectPublicStateShared,
   hostAiJudgeHealth,
+  HOST_DISCONNECT_GRACE_MS,
+  disconnectGraceMs,
+  nextHostId,
   roll2d6,
   rosterFull,
   remapDraftAfterSeatGrowth,
@@ -249,9 +252,9 @@ function hashStr(s: string): number {
   return h >>> 0;
 }
 
-/** Brief app-switch / reconnect grace before mid-game leave advances turns.
- * Client forces a snappy reconnect on visibility/online; matching id cancels this timer in onConnect. */
-const DISCONNECT_GRACE_MS = 8_000;
+/** Brief app-switch / reconnect grace before leave advances turns or host moves.
+ * Matching id cancels this timer in onConnect. Host stays host for the full window. */
+const DISCONNECT_GRACE_MS = HOST_DISCONNECT_GRACE_MS;
 /** In-memory host failover poll while the DO is warm (alarm slot is shared with phase clocks). */
 const HOST_CHECK_INTERVAL_MS = 5_000;
 /** Wipe abandoned rooms (0 sockets, no grace) so codes can be reused. */
@@ -592,39 +595,26 @@ export class QuarryServer extends Server<Env> {
   }
 
   ensureHost() {
-    const humans = this.state.players.filter(
-      (p) => p.role === "player" && p.connected && !isBotId(p.id),
+    const current = this.state.players.find((p) => p.isHost);
+    const nextId = nextHostId(
+      this.state.players,
+      {
+        hostInGrace: !!(current && this.leaveTimers.has(current.id)),
+        hostLastSeenAt: this.state.hostLastSeenAt,
+        now: Date.now(),
+      },
+      isBotId,
     );
-    const anyConnected = this.state.players.filter(
-      (p) => p.role === "player" && p.connected,
-    );
-    const pool = humans.length > 0 ? humans : anyConnected;
-    if (pool.length === 0) return;
-    if (
-      !this.state.players.some(
-        (p) => p.isHost && p.connected && p.role === "player",
-      )
-    ) {
-      const next = pool[0]!;
-      this.state.players = this.state.players.map((p) => ({
-        ...p,
-        isHost: p.id === next.id,
-      }));
-      this.state.hostLastSeenAt = Date.now();
-      this.state.notice = `${next.name} is now host`;
-    } else if (humans.length > 0) {
-      // Prefer a human host over a bot when both are connected.
-      const host = this.state.players.find((p) => p.isHost);
-      if (host && isBotId(host.id)) {
-        const next = humans[0]!;
-        this.state.players = this.state.players.map((p) => ({
-          ...p,
-          isHost: p.id === next.id,
-        }));
-        this.state.hostLastSeenAt = Date.now();
-        this.state.notice = `${next.name} is now host`;
-      }
-    }
+    if (!nextId) return;
+    if (current?.id === nextId) return;
+    const next = this.state.players.find((p) => p.id === nextId);
+    if (!next) return;
+    this.state.players = this.state.players.map((p) => ({
+      ...p,
+      isHost: p.id === nextId,
+    }));
+    this.state.hostLastSeenAt = Date.now();
+    this.state.notice = `${next.name} is now host`;
   }
 
   requireHost(playerId: string): boolean {
@@ -682,10 +672,11 @@ export class QuarryServer extends Server<Env> {
     }
     // Mid-game: keep seat + maps so the same id (or name reclaim) can rejoin.
 
+    const prevHostId = this.state.players.find((x) => x.isHost)?.id ?? null;
     this.ensureHost();
-    if (wasHost) {
-      const host = this.state.players.find((x) => x.isHost);
-      if (host) this.state.notice = `${host.name} is now host`;
+    const host = this.state.players.find((x) => x.isHost);
+    if (wasHost && host && host.id !== prevHostId) {
+      this.state.notice = `${host.name} is now host`;
     } else if (!this.state.rosterLocked) {
       this.state.notice = `${p.name} left`;
     } else {
@@ -945,17 +936,17 @@ export class QuarryServer extends Server<Env> {
       return;
     }
     p.connected = false;
-    // Lobby: reassign host immediately. Mid-game: keep the host through
-    // disconnect grace so an app-switch doesn't steal pause/extend/correct.
-    // handlePlayerLeave (after grace) / checkHostFailover promote if needed.
-    if (!this.state.rosterLocked) {
-      this.ensureHost();
-    }
-    bump(this.state);
+    // Presence-only: do not bump phaseRevision (that remounted host UI) and
+    // do not call ensureHost — a host in grace must stay host. Transfer waits
+    // for handlePlayerLeave / checkHostFailover after the grace window.
     void this.persist().then(() => this.broadcastState());
 
-    // Lobby: leave immediately so headcount shrinks. Mid-game: grace for app switch.
-    const delay = this.state.rosterLocked ? DISCONNECT_GRACE_MS : 0;
+    // Host always gets the full grace (lobby + mid-game). Other lobby seats
+    // still leave immediately so the headcount shrinks.
+    const delay = disconnectGraceMs({
+      rosterLocked: this.state.rosterLocked,
+      isHost: p.isHost,
+    });
     this.armLeaveTimer(conn.id, delay);
     void this.maybeScheduleAbandon();
   }
@@ -3589,11 +3580,21 @@ export class QuarryServer extends Server<Env> {
   }
 
   async checkHostFailover() {
+    const host = this.state.players.find((p) => p.isHost);
+    if (
+      host &&
+      (host.connected ||
+        this.leaveTimers.has(host.id) ||
+        Date.now() - this.state.hostLastSeenAt < DISCONNECT_GRACE_MS)
+    ) {
+      return;
+    }
     const elapsed = Date.now() - this.state.hostLastSeenAt;
     if (elapsed > RULES.hostFailoverSeconds * 1000) {
-      const host = this.state.players.find((p) => p.isHost);
-      if (host && !host.connected && !this.leaveTimers.has(host.id)) {
-        this.ensureHost();
+      const before = host?.id ?? null;
+      this.ensureHost();
+      const after = this.state.players.find((p) => p.isHost)?.id ?? null;
+      if (after && after !== before) {
         bump(this.state);
         await this.persist();
         this.broadcastState();

@@ -211,9 +211,10 @@ html.party-on body::before {
   inset: 0;
   z-index: 30;
   display: grid;
-  place-items: center;
-  pointer-events: auto;
-  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  place-items: end center;
+  pointer-events: none;
+  background: none;
+  padding-bottom: 1.25rem;
 }
 
 .reconnect-blocker-copy {

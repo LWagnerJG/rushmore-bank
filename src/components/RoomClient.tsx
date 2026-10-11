@@ -123,6 +123,18 @@ export function RoomClient({
     sessionResume?.role,
   ]);
 
+  // Brief socket flaps (iOS app-switch / PartySocket retry) must not flash
+  // the reconnect veil or dim the phase — that was the host UI "jump".
+  const [showReconnectVeil, setShowReconnectVeil] = useState(false);
+  useEffect(() => {
+    if (connected) {
+      setShowReconnectVeil(false);
+      return;
+    }
+    const t = window.setTimeout(() => setShowReconnectVeil(true), 450);
+    return () => window.clearTimeout(t);
+  }, [connected]);
+
   const phase: Phase | null = state?.phase ?? null;
   const partyOn = state?.settings.partyMode === true;
   // If Sound was left on, arm the next tap to unlock AudioContext (iOS).
@@ -420,7 +432,7 @@ export function RoomClient({
         ref={phaseScrollRef}
         className="room-phase-scroll relative min-h-0 flex-1"
       >
-        {!connected ? (
+        {showReconnectVeil ? (
           <div
             className="reconnect-blocker"
             role="status"
@@ -431,11 +443,9 @@ export function RoomClient({
           </div>
         ) : null}
         <div
-          className={
-            connected ? "room-phase-fill" : "room-phase-fill reconnect-dimmed"
-          }
-          inert={!connected ? true : undefined}
-          aria-hidden={!connected || undefined}
+          className="room-phase-fill"
+          inert={showReconnectVeil ? true : undefined}
+          aria-hidden={showReconnectVeil || undefined}
         >
           {phase === "SCORE_REVEAL" ? (
             <div className="phase-panel flex min-h-full flex-col pb-[var(--phase-pad-b)]">
