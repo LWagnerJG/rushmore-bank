@@ -164,6 +164,8 @@ describe("settings: spacing instead of hard dividers", () => {
     const backdrop = rulesFor(css, ".settings-sheet-backdrop").join("\n");
     expect(backdrop).toMatch(/inset:\s*0/);
     expect(backdrop).toMatch(/100lvh|100dvh/);
+    expect(backdrop).toMatch(/overflow:\s*visible/);
+    expect(backdrop).not.toMatch(/overflow:\s*hidden/);
     expect(css).toMatch(/\.settings-sheet-backdrop::before/);
     const paint = rulesFor(css, ".settings-sheet-backdrop::before").join("\n");
     expect(paint).toMatch(/safe-area-inset-bottom/);
