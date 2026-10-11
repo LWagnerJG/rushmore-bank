@@ -10,6 +10,7 @@ import {
   resolveDiceReadout,
   type DiceReadoutRoll,
 } from "@/shared/engine/dice-present";
+import { BeanBusterStamp } from "@/components/BeanBusterStamp";
 import { feedback } from "@/lib/feedback";
 import { cueYourTurn } from "@/lib/your-turn";
 import { RULES } from "@/shared/rules";
@@ -405,6 +406,13 @@ export function DicePanel({
   const bustMoment = readout.showBust;
   const showBust = readout.showBust;
   const showTotal = readout.showTotal;
+  const bustRollerId = readout.rollerId ?? liveRoll?.rollerId ?? null;
+  const bustRoller =
+    bustRollerId != null
+      ? state.players.find((p) => p.id === bustRollerId)
+      : null;
+  const bustRollerName = bustRoller?.name ?? roller?.name ?? "Player";
+  const bustIsYou = bustRollerId === youId;
   // One status signal merged with tray: title = role; status = Rolling/Settling
   // or Tap (after first). Bust uses the result banner only — no spectator line.
   const statusLine = bustMoment
@@ -641,6 +649,14 @@ export function DicePanel({
           </div>
         </div>
       ) : null}
+
+      <BeanBusterStamp
+        active={showBust}
+        rollId={showBust ? readout.rollId : null}
+        rollerName={bustRollerName}
+        isYou={bustIsYou}
+        reducedMotion={reducedMotion}
+      />
     </div>
   );
 }

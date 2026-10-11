@@ -16,12 +16,13 @@ export type HapticKind =
   /** @deprecated use dice_settle */
   | "settle";
 
-const PATTERNS: Record<HapticKind, number> = {
+const PATTERNS: Record<HapticKind, number | number[]> = {
   your_turn: 18,
   dice_tick: 10,
   dice_settle: 16,
   beans_land: 14,
-  bust: 20,
+  // Double-hit stamp pulse (Android; iOS ignores vibrate).
+  bust: [18, 40, 22],
   bank: 16,
   winner: 20,
   tap_roll: 10,
@@ -39,6 +40,8 @@ export function haptic(kind: HapticKind): void {
   }
 }
 
+/** First pulse duration (ms) — used by tests that assert 10–20ms cues. */
 export function hapticPattern(kind: HapticKind): number {
-  return PATTERNS[kind];
+  const p = PATTERNS[kind];
+  return Array.isArray(p) ? p[0]! : p;
 }
