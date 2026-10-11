@@ -130,14 +130,16 @@ describe("profile chrome wiring", () => {
     const brand = read("components/BrandMark.tsx");
     const hook = read("hooks/useGameRoom.ts");
 
-    expect(home).toMatch(/ProfileButton/);
+    expect(home).toMatch(/home-playing-avatar|SettingsSheet/);
     expect(home).toMatch(/SettingsSheet/);
+    expect(home).not.toMatch(/ProfileButton/);
     expect(room).toMatch(/ProfileButton/);
     expect(room).toMatch(/nickname=\{profileName\}/);
     expect(sheet).toMatch(/aria-label="Profile"/);
     expect(sheet).toMatch(/profile-stats/);
     expect(sheet).toMatch(/No games yet/);
-    expect(sheet).toMatch(/>Sound</);
+    expect(sheet).toMatch(/Sound/);
+    expect(sheet).not.toMatch(/Room code/);
     expect(sheet).toMatch(/Host options/);
     expect(sheet).toMatch(/Party Mode/);
     expect(sheet).not.toMatch(/Off by default/);
@@ -154,7 +156,10 @@ describe("profile chrome wiring", () => {
     expect(css).toMatch(/\.profile-stats\s*\{/);
     expect(css).toMatch(/\.settings-sheet-backdrop::before/);
     expect(css).toMatch(/100lvh/);
-    const btnBlock = css.slice(css.indexOf(".profile-btn {"), css.indexOf(".home-header-row"));
+    const btnBlock = css.slice(
+      css.indexOf(".profile-btn {"),
+      css.indexOf(".room-chrome-phase"),
+    );
     expect(btnBlock).not.toMatch(/backdrop-filter|filter:\s*blur/);
     const statsBlock = css.slice(
       css.indexOf(".profile-stats {"),

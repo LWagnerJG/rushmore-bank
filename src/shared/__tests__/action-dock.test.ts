@@ -257,8 +257,9 @@ describe("results docks", () => {
 describe("docks can travel the whole screen", () => {
   it("lobby Start is a direct, last child of the full-height lobby layout", () => {
     const tree = render(LobbyPanel, viewOf(roomAt("LOBBY"), "a"));
-    const layout = tree.children[0]!;
-    expect(layout.cls).toContain("lobby-layout");
+    // React may hoist <link rel="preload"> ahead of the panel root when
+    // BeanAvatar preloads WebP art — find the layout, don't assume index 0.
+    const layout = only(tree, "lobby-layout");
     const dock = layout.children.at(-1)!;
     expect(dock.cls).toEqual(["lobby-start-slot", "phase-sticky-cta"]);
     expect(findAll(tree, has("phase-sticky-cta"))).toEqual([dock]);

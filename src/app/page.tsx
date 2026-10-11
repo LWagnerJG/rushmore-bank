@@ -12,13 +12,14 @@ import { AddToHomeScreen } from "@/components/AddToHomeScreen";
 import { BrandMark } from "@/components/BrandMark";
 import { DiagPanel } from "@/components/DiagPanel";
 import { MotionSettle } from "@/components/MotionSettle";
-import { ProfileButton } from "@/components/ProfileButton";
+import { BeanAvatar } from "@/components/BeanAvatar";
 import { SettingsSheet } from "@/components/SettingsSheet";
 import { normalizeRoomCode, randomRoomCode } from "@/shared/types";
 import { RULES } from "@/shared/rules";
 import { ADMIN_UNLOCK_KEY } from "@/lib/admin-session";
 import { recallDisplayName, rememberDisplayName } from "@/lib/party";
 import { hydrateStableClientId } from "@/lib/client-id";
+import { loadAvatarId } from "@/lib/avatar-prefs";
 import { pullProfileStatsFromServer } from "@/lib/profile-stats";
 import { StatsMergePrompt } from "@/components/StatsMergePrompt";
 
@@ -89,6 +90,10 @@ export default function HomePage() {
   const [diagClosed, setDiagClosed] = useState(false);
   const showDiag = diagFromUrl && !diagClosed;
   const [profileOpen, setProfileOpen] = useState(false);
+  const [profilePanel, setProfilePanel] = useState<"main" | "avatar">("main");
+  const [avatarId, setAvatarId] = useState(() =>
+    typeof window !== "undefined" ? loadAvatarId() : "aviator",
+  );
 
   // Prefill last nickname on mount so returning players skip the name step.
   useEffect(() => {
@@ -97,7 +102,12 @@ export default function HomePage() {
       setName(saved);
       setNameReady(true);
     }
+    setAvatarId(loadAvatarId());
   }, []);
+
+  useEffect(() => {
+    if (!profileOpen) setAvatarId(loadAvatarId());
+  }, [profileOpen]);
 
   // Durable device id + pull cloud stats (no login).
   useEffect(() => {
@@ -223,18 +233,8 @@ export default function HomePage() {
           className="home-stack flex min-h-0 flex-1 flex-col gap-[var(--space-5)]"
         >
           <header className="home-header space-y-[var(--space-2)] text-center">
-            <div className="home-header-row">
-              <span className="home-header-spacer" aria-hidden="true" />
-              <div className="flex justify-center">
-                <BrandMark hero onLogoTap={onLogoTap} />
-              </div>
-              <div className="home-header-end">
-                <ProfileButton
-                  name={displayName || name || "Player"}
-                  open={profileOpen}
-                  onClick={() => setProfileOpen(true)}
-                />
-              </div>
+            <div className="flex justify-center">
+              <BrandMark hero onLogoTap={onLogoTap} />
             </div>
             <p className="type-body text-[var(--text)]">
               {RULES.tagline}
@@ -338,8 +338,23 @@ export default function HomePage() {
             )}
 
             <div className="home-playing-as">
-              <p className="type-meta text-[var(--muted)]">
-                Playing as{" "}
+              <button
+                type="button"
+                className="home-playing-avatar"
+                aria-label="Change avatar"
+                onClick={() => {
+                  setProfilePanel("avatar");
+                  setProfileOpen(true);
+                }}
+              >
+                <BeanAvatar
+                  id={avatarId}
+                  seed={displayName || "bean"}
+                  size={32}
+                />
+              </button>
+              <p className="type-meta text-[var(--muted)] home-playing-label">
+                <span className="home-playing-as-prefix">Playing as </span>
                 <span className="font-[family-name:var(--font-display)] font-extrabold text-[var(--text)]">
                   {displayName}
                 </span>
@@ -367,8 +382,12 @@ export default function HomePage() {
       <AddToHomeScreen />
       <SettingsSheet
         open={profileOpen}
-        onClose={() => setProfileOpen(false)}
+        onClose={() => {
+          setProfileOpen(false);
+          setProfilePanel("main");
+        }}
         nickname={displayName || name || "Player"}
+        initialPanel={profilePanel}
       />
       {showDiag && <DiagPanel onClose={() => setDiagClosed(true)} />}
     </main>

@@ -251,8 +251,10 @@ export function LobbyPanel({
                   onRename={rename}
                 />
               ) : (
-                <span className="type-body font-extrabold">
-                  {p.isHost ? "★ " : ""}
+                <span className="lobby-roster-name type-body font-extrabold">
+                  {p.isHost ? (
+                    <span className="lobby-rename-host">★</span>
+                  ) : null}
                   {p.name}
                   {!p.connected && (
                     <span className="ml-[var(--space-1)] type-meta text-[var(--muted)]">
