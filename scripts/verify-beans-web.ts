@@ -111,7 +111,7 @@ async function checkJudge(): Promise<void> {
 
 async function checkHomeCreateBots(page: Page): Promise<string> {
   await page.goto(WEB_URL, { waitUntil: "domcontentloaded", timeout: 60_000 });
-  await page.getByText(/Draft four/i).first().waitFor({ state: "visible", timeout: 30_000 });
+  await page.getByText(/Mount Rushmore of anything/i).first().waitFor({ state: "visible", timeout: 30_000 });
   await page.getByLabel("Beans").first().waitFor({ state: "visible", timeout: 15_000 });
 
   // Unlock admin on home (5 taps on bean logo) so Profile sheet shows AdminTools.

@@ -58,9 +58,9 @@ describe("type hierarchy — one hero per screen", () => {
       css.match(/\.brand-mark-chrome-word\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
     expect(word).toMatch(/color:\s*var\(--muted\)/);
     expect(room).toMatch(/BrandMark[^>]*chrome/);
-    // Home uses the shared mark (no oversized large variant)
-    expect(home).toMatch(/<BrandMark\b/);
-    expect(home).not.toMatch(/BrandMark\s+large/);
+    // Home uses the hero mark; room stays compact chrome
+    expect(home).toMatch(/<BrandMark\s+hero\b/);
+    expect(room).not.toMatch(/<BrandMark[^>]*\bhero\b/);
   });
 
   it("makes draft topic the display hero and timer a secondary pill", () => {

@@ -22,7 +22,7 @@ const sora = Sora({
 const siteUrl = "https://beans-game.vercel.app";
 const title = "Beans";
 const description =
-  "Draft four. Bank beans. — Party game with snake draft and synchronized dice.";
+  "Your Mount Rushmore of anything. — Party game with snake draft and synchronized dice.";
 
 /** Cream/ivory — must match `--bg` / status-bar theme so iOS clock area isn’t white. */
 const CREAM = "#F5F0E7";

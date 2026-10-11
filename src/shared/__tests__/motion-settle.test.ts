@@ -88,8 +88,10 @@ describe("MotionSettle wiring", () => {
   it("room chrome BrandMark keeps shimmer off and solid wordmark path", () => {
     expect(roomSrc).toMatch(/BrandMark[^>]*shimmer=\{false\}/);
     expect(roomSrc).toMatch(/BrandMark[^>]*chrome/);
+    expect(roomSrc).not.toMatch(/<BrandMark[^>]*\bhero\b/);
     expect(brandSrc).toMatch(/brand-mark-chrome-word|text-\[var\(--text\)\]/);
     expect(brandSrc).toMatch(/shapeRendering="auto"/);
+    expect(brandSrc).toMatch(/brand-mark-hero-shine/);
   });
 
   it("keeps AI judge out of header chrome; host pre-game line is discreet", () => {
