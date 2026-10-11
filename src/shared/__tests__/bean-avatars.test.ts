@@ -33,7 +33,7 @@ describe("bean avatars", () => {
     }
   });
 
-  it("keeps avatars only on profile surfaces (home name row, room btn, picker)", () => {
+  it("shows WebP beans on home, profile, lobby; not rail/standings", () => {
     const sheet = read("components/SettingsSheet.tsx");
     const profileBtn = read("components/ProfileButton.tsx");
     const home = read("app/page.tsx");
@@ -49,7 +49,8 @@ describe("bean avatars", () => {
     expect(home).toMatch(/home-playing-avatar/);
     expect(home).toMatch(/BeanAvatar/);
     expect(home).not.toMatch(/ProfileButton/);
-    expect(lobby).not.toMatch(/BeanAvatar/);
+    expect(lobby).toMatch(/BeanAvatar/);
+    expect(lobby).toMatch(/lobby-roster-avatar/);
     expect(rail).not.toMatch(/BeanAvatar/);
     expect(waiting).not.toMatch(/BeanAvatar/);
     expect(results).not.toMatch(/BeanAvatar/);

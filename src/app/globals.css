@@ -1629,17 +1629,31 @@ html.party-on .brand-shimmer {
   justify-content: flex-start;
   min-height: var(--tap-min);
   padding: 0.4rem 0.75rem;
-  gap: 0.55rem;
+  gap: 0.5rem;
+}
+
+.lobby-roster-avatar {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.lobby-roster-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  text-align: left;
 }
 
 .lobby-roster .player-row > .stack-row {
   margin-left: auto;
 }
 
-.lobby-roster .lobby-rename-btn,
-.lobby-roster .player-row > .type-body {
+.lobby-roster .lobby-rename-btn {
   flex: 0 1 auto;
   justify-content: flex-start;
+  margin: 0;
+  padding: 0.2rem 0.2rem 0.2rem 0;
 }
 
 .lobby-roster .player-row-you {
@@ -4897,88 +4911,102 @@ html.party-on .draft-board-cell-mine {
 }
 
 
-/* —— Polish ship: settings / spectator / faint TAP —— */
-/*
- * Full-viewport dim (ported to document.body from SettingsSheet).
- * Real iOS leaves a cream band under the home indicator when the sheet is
- * nested under transformed ancestors — portal + html/body dim + bottom bleed.
- */
+/* —— Profile bottom sheet (ported to document.body) —— */
 html.settings-sheet-open,
 html.settings-sheet-open body {
-  /* Solid dim — must match backdrop so iOS home-indicator never shows cream */
-  background-color: #2a4a40 !important;
-  background-image: none !important;
-}
-html.settings-sheet-open body::before {
-  display: none !important;
+  /* Keep page paint; scrim covers the viewport (incl. status + home bar) */
+  overscroll-behavior: none;
 }
 .settings-sheet-backdrop {
   position: fixed;
-  top: 0;
+  inset: 0;
+  top: -80px;
   right: 0;
-  left: 0;
-  /* Bleed past the home-indicator / safe-area so cream never peeks */
   bottom: -120px;
+  left: 0;
   width: 100%;
-  height: calc(100lvh + env(safe-area-inset-bottom, 0px) + 120px);
-  height: calc(100dvh + env(safe-area-inset-bottom, 0px) + 120px);
-  min-height: calc(100lvh + env(safe-area-inset-bottom, 0px) + 120px);
+  height: calc(100lvh + 200px + env(safe-area-inset-bottom, 0px));
+  height: calc(100dvh + 200px + env(safe-area-inset-bottom, 0px));
   z-index: 60;
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  /* Solid (not translucent) — translucent let cream layers show through */
-  background: #2a4a40;
-  padding: 1rem;
-  padding-top: max(1rem, env(safe-area-inset-top, 0px));
-  padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+  /* Uniform soft scrim — entire viewport including status bar + home indicator */
+  background: rgba(20, 30, 25, 0.4);
+  padding: 0;
   box-sizing: border-box;
-  overflow: visible;
+  overflow: hidden;
 }
 .settings-sheet-backdrop::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  background: #2a4a40;
-  pointer-events: none;
-  z-index: 0;
-}
-@media (min-width: 640px) {
-  .settings-sheet-backdrop {
-    align-items: center;
-  }
-  .settings-sheet {
-    margin-bottom: 0;
-  }
+  content: none;
 }
 .settings-sheet {
   position: relative;
   z-index: 1;
-  /* Sit above the 120px bleed; bleed zone is solid dim only */
-  margin-bottom: 120px;
   width: 100%;
-  max-width: 24rem;
-  border-radius: 1.25rem;
-  background: rgba(255, 252, 245, 0.98);
-  /* Soft edge — no hard divider lines inside the sheet */
-  box-shadow: 0 18px 40px rgba(35, 72, 62, 0.18);
-  padding: var(--card-pad);
+  max-width: 28rem;
+  max-height: 85vh;
+  max-height: 85dvh;
+  margin: 0;
+  border-radius: 1.35rem 1.35rem 0 0;
+  background: #fffcf5;
+  box-shadow: 0 -8px 32px rgba(20, 30, 25, 0.18);
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--section-gap);
-  animation: profile-sheet-in var(--motion-fast) ease both;
+  gap: 0;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  animation: profile-sheet-in 220ms ease-out both;
+  will-change: transform;
+}
+.settings-sheet-grabber {
+  display: flex;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0.55rem 0 0.2rem;
+}
+.settings-sheet-grabber-pill {
+  width: 2.25rem;
+  height: 0.28rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--muted) 45%, transparent);
+}
+.settings-sheet-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 0.35rem 1.15rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+.settings-sheet-close {
+  display: inline-grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  margin: -0.2rem -0.35rem 0 0;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--mint) 22%, #fff);
+  color: var(--muted);
+  font-size: 1.45rem;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+}
+.settings-sheet-close:active {
+  opacity: 0.75;
 }
 @keyframes profile-sheet-in {
   from {
-    opacity: 0;
-    transform: translateY(10px);
+    transform: translate3d(0, 100%, 0);
   }
   to {
-    opacity: 1;
-    transform: translateY(0);
+    transform: translate3d(0, 0, 0);
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -5020,18 +5048,36 @@ html.settings-sheet-open body::before {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.75rem;
-  height: 2.75rem;
+  width: 3.5rem;
+  height: 3.5rem;
   flex-shrink: 0;
   padding: 0;
   border: none;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--mint) 48%, #fff);
+  background: color-mix(in srgb, var(--cream, #f5f0e7) 90%, #fff);
   cursor: pointer;
 }
 .profile-sheet-avatar-btn:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--mint) 70%, #23483e);
   outline-offset: 2px;
+}
+.profile-sheet-change {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--coral-ink);
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: left;
+  cursor: pointer;
+}
+.profile-sheet-change:active {
+  opacity: 0.75;
+}
+.profile-avatar-hint {
+  margin: 0;
 }
 .bean-avatar {
   display: inline-flex;
@@ -5126,18 +5172,29 @@ html.settings-sheet-open body::before {
 }
 .profile-stats-empty {
   margin: 0;
-  padding: 0.2rem 0.15rem 0.05rem;
-  font-size: 0.92rem;
+  padding: 0.15rem 0.1rem;
+  font-size: 0.9rem;
   font-weight: 600;
   line-height: 1.3;
   color: var(--muted);
+  text-align: center;
+}
+.settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin: 0.1rem 0 0.25rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--cream, #f5f0e7) 70%, #fff);
 }
 .settings-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  padding: 0.35rem 0.15rem;
+  min-height: 52px;
+  padding: 0 0.25rem;
   /* Spacing only — no hard divider lines between rows */
 }
 .settings-row-label {
@@ -5145,6 +5202,11 @@ html.settings-sheet-open body::before {
   flex-direction: column;
   gap: 0.15rem;
   min-width: 0;
+  text-align: left;
+}
+.settings-row-title {
+  font-weight: 700;
+  color: var(--text);
 }
 .settings-nav-row {
   display: flex;
@@ -5152,9 +5214,9 @@ html.settings-sheet-open body::before {
   justify-content: space-between;
   gap: 0.75rem;
   width: 100%;
-  min-height: var(--tap-min);
+  min-height: 52px;
   margin: 0;
-  padding: 0.35rem 0.15rem;
+  padding: 0 0.25rem;
   border: none;
   background: transparent;
   color: var(--text);
@@ -5169,10 +5231,14 @@ html.settings-sheet-open body::before {
 }
 .settings-nav-chevron {
   flex-shrink: 0;
-  font-size: 1.25rem;
-  font-weight: 800;
+  font-size: 1.2rem;
+  font-weight: 600;
   line-height: 1;
   color: var(--muted);
+  opacity: 0.75;
+}
+.settings-host-ai {
+  padding: 0.35rem 0.25rem;
 }
 .settings-panel-back {
   margin: 0;

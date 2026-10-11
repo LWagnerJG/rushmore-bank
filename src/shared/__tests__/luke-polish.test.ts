@@ -164,21 +164,23 @@ describe("settings: spacing instead of hard dividers", () => {
     expect(settingsSrc).toMatch(/setPanel\("admin"\)|setPanel\('admin'\)/);
   });
 
-  it("covers the full viewport including safe-area with the sheet backdrop", () => {
+  it("is a true bottom sheet with soft full-bleed scrim", () => {
     const backdrop = rulesFor(css, ".settings-sheet-backdrop").join("\n");
     expect(backdrop).toMatch(/position:\s*fixed/);
     expect(backdrop).toMatch(/bottom:\s*-120px/);
     expect(backdrop).toMatch(/100lvh|100dvh/);
-    expect(backdrop).toMatch(/safe-area-inset-bottom/);
-    expect(backdrop).toMatch(/overflow:\s*visible/);
-    expect(backdrop).not.toMatch(/overflow:\s*hidden/);
-    // Solid dim — translucent let cream show through on iOS
-    expect(backdrop).toMatch(/background:\s*#2a4a40/);
-    expect(backdrop).not.toMatch(/rgba\(\s*35,\s*72,\s*62/);
+    expect(backdrop).toMatch(/rgba\(\s*20,\s*30,\s*25/);
     expect(settingsSrc).toMatch(/createPortal/);
     expect(settingsSrc).toMatch(/settings-sheet-open/);
-    expect(css).toMatch(/html\.settings-sheet-open/);
-    expect(css).toMatch(/margin-bottom:\s*120px/);
+    expect(settingsSrc).toMatch(/settings-sheet-grabber/);
+    expect(settingsSrc).not.toMatch(/>Close</);
+    expect(settingsSrc).not.toMatch(/Room code/);
+    const sheet = rulesFor(css, ".settings-sheet").join("\n");
+    expect(sheet).toMatch(/border-radius:\s*1\.35rem\s+1\.35rem\s+0\s+0/);
+    expect(sheet).toMatch(/85vh|85dvh/);
+    expect(sheet).toMatch(/safe-area-inset-bottom/);
+    expect(sheet).toMatch(/220ms/);
+    expect(css).toMatch(/settings-sheet-grabber/);
   });
 });
 

@@ -36,9 +36,11 @@ describe("spacing scale + page tokens", () => {
   it("panels and settings use card-pad", () => {
     const panel = css.match(/\.panel\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
     expect(panel).toMatch(/padding:\s*var\(--card-pad\)/);
+    // Bottom sheet: safe-area padding on the sheet; body scrolls inside
     const sheet = css.match(/\.settings-sheet\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
-    expect(sheet).toMatch(/padding:\s*var\(--card-pad\)/);
-    expect(sheet).toMatch(/gap:\s*var\(--section-gap\)/);
+    expect(sheet).toMatch(/padding-bottom:\s*calc\(\s*16px/);
+    expect(sheet).toMatch(/safe-area-inset-bottom/);
+    expect(css).toMatch(/\.settings-sheet-body\s*\{/);
   });
 });
 

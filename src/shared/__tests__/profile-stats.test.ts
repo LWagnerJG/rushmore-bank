@@ -138,7 +138,8 @@ describe("profile chrome wiring", () => {
     expect(sheet).toMatch(/aria-label="Profile"/);
     expect(sheet).toMatch(/profile-stats/);
     expect(sheet).toMatch(/No games yet/);
-    expect(sheet).toMatch(/>Sound</);
+    expect(sheet).toMatch(/Sound/);
+    expect(sheet).not.toMatch(/Room code/);
     expect(sheet).toMatch(/Host options/);
     expect(sheet).toMatch(/Party Mode/);
     expect(sheet).not.toMatch(/Off by default/);
