@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { memo, useEffect, useRef, useState, type RefObject } from "react";
 import type { Player, PublicRoomState } from "@/shared/types";
 import { currentUpPlayerId } from "@/shared/engine/up-seat";
 import { draftBoardSeats } from "@/shared/engine/snake";
 import { FitName } from "@/components/FitName";
 import { railChipTip, railYouLabel } from "@/shared/you-label";
+import { playerRailPropsAreEqual } from "@/lib/room-render-guards";
 
 /** You first, then beans descending (seat as stable tiebreak). */
 export function sortLeaderboard(
@@ -43,7 +44,7 @@ export function sortDraftBoardPlayers(
     .map(({ player }) => player);
 }
 
-export function PlayerRail({
+export const PlayerRail = memo(function PlayerRail({
   state,
   youId,
 }: {
@@ -152,7 +153,7 @@ export function PlayerRail({
       </div>
     </div>
   );
-}
+}, playerRailPropsAreEqual);
 
 function PlayerChip({
   player,

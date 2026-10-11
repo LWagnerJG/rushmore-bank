@@ -1,11 +1,17 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import Link from "next/link";
 import { useGameRoom } from "@/hooks/useGameRoom";
 import { useHydrated } from "@/hooks/useHydrated";
 import type { Phase } from "@/shared/types";
-import { RULES } from "@/shared/rules";
 import { BrandMark } from "@/components/BrandMark";
 import { SettingsSheet } from "@/components/SettingsSheet";
 import { ProfileButton } from "@/components/ProfileButton";
@@ -34,6 +40,7 @@ import { TimerPill } from "@/components/TimerPill";
 import { shouldFireFinalRoundCue } from "@/shared/final-round-cue";
 import { isSoundEnabled } from "@/lib/sound-prefs";
 import { armGestureUnlock } from "@/lib/sfx";
+import { RoomActionsProvider } from "@/lib/room-actions";
 
 /** Long topics step down a size so the hero stays about two lines tall. */
 function topicHeroClass(text: string): string {
@@ -153,7 +160,7 @@ export function RoomClient({
   const logoTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Quiet brand tap: 5× opens diag. Profile (top-right) owns Settings.
-  function handleLogoTap() {
+  const handleLogoTap = useCallback(() => {
     logoTapRef.current += 1;
     if (logoTapTimerRef.current) clearTimeout(logoTapTimerRef.current);
     if (logoTapRef.current >= 5) {
@@ -164,7 +171,21 @@ export function RoomClient({
     logoTapTimerRef.current = setTimeout(() => {
       logoTapRef.current = 0;
     }, 1500);
-  }
+  }, []);
+
+  const openSettings = useCallback(() => setSettingsOpen(true), []);
+  const closeSettings = useCallback(() => setSettingsOpen(false), []);
+  const onPartyChange = useCallback(
+    (next: boolean) => {
+      send({ type: "update_settings", settings: { partyMode: next } });
+    },
+    [send],
+  );
+
+  const roomActions = useMemo(
+    () => ({ send, rename }),
+    [send, rename],
+  );
 
   const profileName =
     you?.name?.trim() || name.trim() || defaultName.trim() || "Player";
@@ -331,6 +352,7 @@ export function RoomClient({
   }
 
   return (
+    <RoomActionsProvider value={roomActions}>
     <main
       className={
         // Lock the shell; scroll lives in .room-phase-scroll below the chrome.
@@ -388,7 +410,7 @@ export function RoomClient({
                 name={profileName}
                 avatarId={you?.avatarId}
                 open={settingsOpen}
-                onClick={() => setSettingsOpen(true)}
+                onClick={openSettings}
               />
             </div>
           </div>
@@ -468,18 +490,13 @@ export function RoomClient({
       </div>
       <SettingsSheet
         open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
+        onClose={closeSettings}
         roomCode={code}
         nickname={profileName}
         isHost={you?.isHost ?? false}
         partyOn={partyOn}
         hostAiJudge={you?.isHost ? state?.hostAiJudge : undefined}
-        onPartyChange={
-          you?.isHost
-            ? (next) =>
-                send({ type: "update_settings", settings: { partyMode: next } })
-            : undefined
-        }
+        onPartyChange={you?.isHost ? onPartyChange : undefined}
         send={send}
         currentPhase={phase}
         playerCount={
@@ -501,5 +518,6 @@ export function RoomClient({
         onDone={() => setFinalCueActive(false)}
       />
     </main>
+    </RoomActionsProvider>
   );
 }

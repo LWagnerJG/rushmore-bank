@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { BeanAvatar } from "@/components/BeanAvatar";
 import { loadAvatarId } from "@/lib/avatar-prefs";
 
@@ -7,7 +8,7 @@ import { loadAvatarId } from "@/lib/avatar-prefs";
  * Quiet top-right profile / settings trigger.
  * 44px tap target; visual mark stays small.
  */
-export function ProfileButton({
+export const ProfileButton = memo(function ProfileButton({
   name,
   onClick,
   open = false,
@@ -33,4 +34,4 @@ export function ProfileButton({
       </span>
     </button>
   );
-}
+});

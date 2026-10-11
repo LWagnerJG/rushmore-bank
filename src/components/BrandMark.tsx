@@ -1,9 +1,11 @@
+import { memo } from "react";
+
 /**
  * Shared Beans logo.
  * - Default / chrome: compact 30px mark (lobby + in-game)
  * - hero: large home brand moment with a slow diagonal glisten
  */
-export function BrandMark({
+export const BrandMark = memo(function BrandMark({
   /**
    * @deprecated Prefer `hero` for the home mark. Kept for call-site compat.
    */
@@ -102,4 +104,4 @@ export function BrandMark({
       <span className={wordClass}>Beans</span>
     </div>
   );
-}
+});
