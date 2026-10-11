@@ -73,24 +73,42 @@ async function assertBackdropFullBleed(page: Page, label: string) {
       ".settings-sheet-backdrop",
     ) as HTMLElement | null;
     if (!backdrop) return { ok: false, reason: "missing backdrop" };
+    const onBody = backdrop.parentElement === document.body;
+    const rootOpen = document.documentElement.classList.contains(
+      "settings-sheet-open",
+    );
+    const bodyOpen = document.body.classList.contains("settings-sheet-open");
     const rect = backdrop.getBoundingClientRect();
     const style = getComputedStyle(backdrop);
-    const before = getComputedStyle(backdrop, "::before");
     const vh = window.innerHeight;
+    // Bleed past the layout viewport (home indicator / safe-area)
     const covers =
       rect.top <= 1 &&
       rect.left <= 1 &&
-      rect.bottom >= vh - 1 &&
+      rect.bottom >= vh + 40 &&
       rect.right >= window.innerWidth - 1;
+    const bg = style.backgroundColor;
+    const dimmed =
+      bg.includes("35, 72, 62") || bg.includes("42, 74, 64") || bg !== "rgba(0, 0, 0, 0)";
     return {
-      ok: covers && before.content !== "none" && before.backgroundColor !== "rgba(0, 0, 0, 0)",
-      reason: covers ? "ok" : "short",
+      ok: onBody && rootOpen && bodyOpen && covers && dimmed,
+      reason: !onBody
+        ? "not-ported"
+        : !rootOpen || !bodyOpen
+          ? "missing-open-class"
+          : !covers
+            ? "short"
+            : dimmed
+              ? "ok"
+              : "no-dim",
       top: rect.top,
       bottom: rect.bottom,
       vh,
       heightCss: style.height,
-      beforeBg: before.backgroundColor,
-      beforeContent: before.content,
+      bg,
+      onBody,
+      rootOpen,
+      bodyOpen,
     };
   });
   if (!metrics.ok) {
