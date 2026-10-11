@@ -7,10 +7,12 @@ import type { BeforeInstallPromptEvent } from "@/shared/pwa-display";
 
 export function InstallJoinScreen({
   code,
+  intent = "join",
   variant,
   onContinueInBrowser,
 }: {
-  code: string;
+  code?: string;
+  intent?: "join" | "host";
   variant: "install-ios" | "install-android";
   onContinueInBrowser: () => void;
 }) {
@@ -52,11 +54,15 @@ export function InstallJoinScreen({
       >
         <header className="install-join-hero flex flex-col items-center text-center">
           <BrandMark hero />
-          <p className="install-join-code type-display mt-5 tracking-[0.28em]">
-            {code}
-          </p>
+          {code ? (
+            <p className="install-join-code type-display mt-5 tracking-[0.28em]">
+              {code}
+            </p>
+          ) : null}
           <h1 className="install-join-headline type-body mt-4 font-[family-name:var(--font-display)] font-extrabold tracking-tight">
-            Add Beans to your Home Screen to join
+            {intent === "host"
+              ? "Add Beans to your Home Screen to host"
+              : "Add Beans to your Home Screen to join"}
           </h1>
         </header>
 
@@ -112,15 +118,17 @@ export function InstallJoinScreen({
   );
 }
 
-export function JoinSplash({ code }: { code: string }) {
+export function JoinSplash({ code }: { code?: string }) {
   return (
     <main className="app-shell app-shell-lock install-join mx-auto flex max-w-md flex-col pt-0">
       <div className="app-safe-top" aria-hidden="true" />
       <div className="install-join-inner flex min-h-0 flex-1 flex-col items-center px-4 pt-6">
         <BrandMark hero />
-        <p className="install-join-code type-display mt-5 tracking-[0.28em]">
-          {code}
-        </p>
+        {code ? (
+          <p className="install-join-code type-display mt-5 tracking-[0.28em]">
+            {code}
+          </p>
+        ) : null}
       </div>
     </main>
   );

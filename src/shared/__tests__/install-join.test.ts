@@ -3,8 +3,12 @@ import {
   CONTINUE_IN_BROWSER_COUNT_KEY,
   fetchRoomExists,
   hasContinuedInBrowser,
+  hasContinuedCreateInBrowser,
   invitePath,
   inviteUrl,
+  isCreateIntentConsumed,
+  markCreateIntentConsumed,
+  rememberContinuedCreateInBrowser,
   roomFromSearch,
   isInstallJoinConsumed,
   markInstallJoinConsumed,
@@ -136,6 +140,17 @@ describe("continue-in-browser counter + consumed flag", () => {
     expect(isInstallJoinConsumed("ABCD", local)).toBe(false);
     markInstallJoinConsumed("ABCD", local);
     expect(isInstallJoinConsumed("abcd", local)).toBe(true);
+  });
+
+  it("remembers create-install escape + consumed so later launches stay home", () => {
+    const local = memoryStorage();
+    const session = memoryStorage();
+    expect(hasContinuedCreateInBrowser(session)).toBe(false);
+    rememberContinuedCreateInBrowser(session);
+    expect(hasContinuedCreateInBrowser(session)).toBe(true);
+    expect(isCreateIntentConsumed(local)).toBe(false);
+    markCreateIntentConsumed(local);
+    expect(isCreateIntentConsumed(local)).toBe(true);
   });
 });
 

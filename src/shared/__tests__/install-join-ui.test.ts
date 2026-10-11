@@ -9,7 +9,8 @@ const screen = read("components/InstallJoinScreen.tsx");
 const entry = read("components/JoinRoomEntry.tsx");
 const joinPage = read("app/join/[code]/page.tsx");
 const roomPage = read("app/room/[code]/page.tsx");
-const home = read("app/page.tsx");
+const home = read("components/HomePage.tsx");
+const homePage = read("app/page.tsx");
 const lobby = read("components/LobbyPanel.tsx");
 const css = read("app/globals.css");
 const layout = read("app/layout.tsx");
@@ -18,6 +19,7 @@ describe("install-first join UI", () => {
   it("uses the shared glistening hero logo and discreet copy", () => {
     expect(screen).toMatch(/<BrandMark hero/);
     expect(screen).toMatch(/Add Beans to your Home Screen to join/);
+    expect(screen).toMatch(/Add Beans to your Home Screen to host/);
     expect(screen).toMatch(/Continue in browser/);
     expect(screen).toMatch(/ShareGlyph|Share/);
     expect(screen).toMatch(/Add to Home Screen/);
@@ -47,6 +49,10 @@ describe("install-first join UI", () => {
     expect(roomPage).toMatch(/roomManifestHref/);
     expect(roomPage).toMatch(/JoinRoomEntry/);
     expect(layout).toMatch(/manifest:\s*"\/manifest.webmanifest"/);
+    expect(homePage).toMatch(/createManifestHref/);
+    expect(homePage).toMatch(/createIntent/);
+    expect(home).toMatch(/intent="host"/);
+    expect(home).toMatch(/window\.location\.assign\("\/\?create=1"\)/);
   });
 
   it("preserves QR / invite / reconnect escapes", () => {

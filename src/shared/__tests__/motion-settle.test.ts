@@ -11,7 +11,7 @@ const roomSrc = readFileSync(
   "utf8",
 );
 const homeSrc = readFileSync(
-  resolve(__dirname, "../../app/page.tsx"),
+  resolve(__dirname, "../../components/HomePage.tsx"),
   "utf8",
 );
 

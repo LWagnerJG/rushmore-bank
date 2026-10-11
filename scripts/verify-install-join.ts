@@ -6,7 +6,7 @@
  *   BASE_URL=http://127.0.0.1:3456 npm run verify:install
  */
 import { spawn, type ChildProcess } from "node:child_process";
-import { chromium, webkit, type Browser } from "playwright";
+import { chromium, webkit, type Browser, type Page } from "playwright";
 
 const BASE = (process.env.BASE_URL || "").replace(/\/$/, "");
 const PORT = Number(process.env.INSTALL_JOIN_PORT || 3456);
@@ -93,7 +93,27 @@ async function checkManifest(base: string): Promise<void> {
     throw new Error(`room start_url ${body.start_url}`);
   }
   if (body.id !== "/?icon=v3") throw new Error(`manifest id ${body.id}`);
+  const create = await fetch(`${base}/manifest.webmanifest?create=1`);
+  const createBody = (await create.json()) as { start_url?: string; id?: string };
+  if (createBody.start_url !== "/?create=1") {
+    throw new Error(`create start_url ${createBody.start_url}`);
+  }
+  if (createBody.id !== "/?icon=v3") throw new Error(`create manifest id ${createBody.id}`);
   console.log("manifest route: ok");
+}
+
+async function reachCreateButton(page: Page) {
+  const create = page.getByRole("button", { name: "Create game" });
+  if ((await create.count()) > 0) {
+    await create.waitFor({ state: "visible" });
+    return create;
+  }
+  const nick = page.locator("#home-name");
+  await nick.waitFor({ state: "visible", timeout: 8000 });
+  await nick.fill("Luke");
+  await page.getByRole("button", { name: "Continue" }).click();
+  await create.waitFor({ state: "visible", timeout: 8000 });
+  return create;
 }
 
 async function withBrowser(
@@ -188,6 +208,44 @@ async function main() {
       }
       await inApp.locator('input[aria-label="Nickname"]').waitFor({ state: "visible" });
       console.log("webkit in-app join: ok");
+
+      const host = await browser.newPage({
+        userAgent: IPHONE_UA,
+        viewport: { width: 390, height: 844 },
+        isMobile: true,
+        hasTouch: true,
+      });
+      await host.goto(`${base}/`, { waitUntil: "networkidle" });
+      await (await reachCreateButton(host)).click();
+      await host.waitForURL(/create=1/, { timeout: 8000 });
+      await host.getByText("Add Beans to your Home Screen to host").waitFor();
+      if (!(await host.getByText("Continue in browser").count())) {
+        throw new Error("WebKit create: missing escape hatch");
+      }
+      if (await host.getByText("Add Beans to your Home Screen to join").count()) {
+        throw new Error("WebKit create showed join copy");
+      }
+      console.log("webkit iphone create install: ok");
+
+      const standCreate = await browser.newPage({
+        userAgent: IPHONE_UA,
+        viewport: { width: 390, height: 844 },
+        isMobile: true,
+        hasTouch: true,
+      });
+      await standCreate.addInitScript(STANDALONE_OVERRIDE);
+      await standCreate.goto(`${base}/?create=1`, { waitUntil: "networkidle" });
+      if (await standCreate.getByText("Add Beans to your Home Screen to host").count()) {
+        throw new Error("standalone create still showing install screen");
+      }
+      const homeName = standCreate.locator("#home-name");
+      const createBtn = standCreate.getByRole("button", { name: "Create game" });
+      const sawHome =
+        (await homeName.count()) > 0 || (await createBtn.count()) > 0;
+      if (!sawHome) {
+        throw new Error("standalone create missing home create/name");
+      }
+      console.log("webkit standalone create: ok");
     });
 
     await withBrowser("chromium", async (browser) => {
@@ -226,6 +284,39 @@ async function main() {
         throw new Error("Android missing install headline");
       }
       console.log("chromium android install screen: ok");
+
+      const host = await browser.newPage({
+        userAgent: ANDROID_UA,
+        viewport: { width: 390, height: 844 },
+        isMobile: true,
+        hasTouch: true,
+      });
+      await host.addInitScript(() => {
+        const fire = () => {
+          const ev = new Event("beforeinstallprompt");
+          Object.assign(ev, {
+            preventDefault: () => undefined,
+            prompt: async () => undefined,
+            userChoice: Promise.resolve({ outcome: "accepted" }),
+          });
+          window.dispatchEvent(ev);
+        };
+        window.addEventListener("load", () => {
+          fire();
+          setTimeout(fire, 200);
+          setTimeout(fire, 800);
+        });
+      });
+      await host.goto(`${base}/?create=1`, { waitUntil: "networkidle" });
+      await host.getByText("Add Beans to your Home Screen to host").waitFor();
+      await host.waitForTimeout(400);
+      if (
+        (await host.getByRole("button", { name: "Install" }).count()) === 0 &&
+        (await host.getByText("Browser menu → Install app").count()) === 0
+      ) {
+        throw new Error("Android create missing install CTA");
+      }
+      console.log("chromium android create install: ok");
     });
 
     console.log("verify-install-join: ok");

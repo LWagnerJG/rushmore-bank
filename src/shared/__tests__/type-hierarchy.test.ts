@@ -11,7 +11,7 @@ const brand = readFileSync(
   resolve(__dirname, "../../components/BrandMark.tsx"),
   "utf8",
 );
-const home = readFileSync(resolve(__dirname, "../../app/page.tsx"), "utf8");
+const home = readFileSync(resolve(__dirname, "../../components/HomePage.tsx"), "utf8");
 const topic = readFileSync(
   resolve(__dirname, "../../components/TopicPanel.tsx"),
   "utf8",

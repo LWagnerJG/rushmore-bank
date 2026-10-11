@@ -19,7 +19,7 @@ const screens = [
 ].map((name) => {
   const path =
     name === "page.tsx"
-      ? resolve(__dirname, "../../app/page.tsx")
+      ? resolve(__dirname, "../../components/HomePage.tsx")
       : resolve(__dirname, `../../components/${name}`);
   return { name, src: readFileSync(path, "utf8") };
 });
