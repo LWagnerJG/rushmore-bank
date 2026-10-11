@@ -1,7 +1,7 @@
 name: Deploy Beans Web (Cloudflare)
 
-# Redundant Next.js frontend on Cloudflare Workers (OpenNext).
-# Vercel remains the primary host; this worker is beans-web.*.workers.dev.
+# Next.js frontend on Cloudflare Workers (OpenNext).
+# This worker is the canonical host; Vercel 308s here (except /api/version).
 on:
   push:
     branches: [main]

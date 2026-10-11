@@ -10,11 +10,12 @@ export const RULES = {
   tagline: "Your Mount Rushmore of anything.",
   currencyName: "beans",
   /**
-   * Canonical production host (Vercel project `beans-game`).
-   * `https://roundacats.vercel.app` remains a working alias.
+   * Canonical production host (Cloudflare worker `beans-web`).
+   * `https://beans-game.vercel.app` and `https://roundacats.vercel.app`
+   * 308 to this origin (except `/api/version` on Vercel).
    * Share invites prefer `window.location.origin` when in-browser.
    */
-  productionUrl: "https://beans-game.vercel.app",
+  productionUrl: "https://beans-web.beans-lwagner.workers.dev",
 
   /** Players */
   minPlayers: 2,

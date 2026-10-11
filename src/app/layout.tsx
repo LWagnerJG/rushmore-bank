@@ -18,8 +18,8 @@ const sora = Sora({
   weight: ["600", "700", "800"],
 });
 
-/** Canonical production host (`roundacats.vercel.app` still aliases). */
-const siteUrl = "https://beans-game.vercel.app";
+/** Canonical production host (Vercel aliases 308 here). */
+const siteUrl = "https://beans-web.beans-lwagner.workers.dev";
 const title = "Beans";
 const description =
   "Your Mount Rushmore of anything. — Party game with snake draft and synchronized dice.";

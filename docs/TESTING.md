@@ -94,7 +94,7 @@ BASE_URL=http://127.0.0.1:3100 PARTY_HOST=127.0.0.1:8787 npm run test:ios-keyboa
 
 | Check | Result |
 |---|---|
-| https://beans-game.vercel.app loads (roundacats alias OK) | Pass |
+| https://beans-web.beans-lwagner.workers.dev loads (Vercel hosts 308 here) | Pass |
 | PartyServer worker matches this branch | After `wrangler deploy` + `NEXT_PUBLIC_PARTYKIT_HOST` on Vercel |
 | 2 sessions join one room | Pass |
 | Beans PWA name + dog/sunglasses icons / OG | Branding assets in `public/` + manifest |
