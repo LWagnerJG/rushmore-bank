@@ -220,8 +220,10 @@ function PlayerChip({
       title={tip}
     >
       <div className="player-chip-name">
-<<<<<<< HEAD
         <span className="player-chip-name-inner">
+          <span className="player-chip-avatar" aria-hidden="true">
+            <BeanAvatar id={player.avatarId} seed={player.id} size={18} />
+          </span>
           {up ? (
             <span className="player-chip-up-dot" aria-hidden="true">
               ●
@@ -234,22 +236,6 @@ function PlayerChip({
           ) : null}
           <FitName className="player-chip-name-text" text={label} title={tip} />
         </span>
-=======
-        <span className="player-chip-avatar" aria-hidden="true">
-          <BeanAvatar id={player.avatarId} seed={player.id} size={18} />
-        </span>
-        {(up || (player.isHost && !up)) && (
-          <span className="player-chip-name-leading" aria-hidden="true">
-            {up && (
-              <span className="player-chip-up-dot">
-                ●
-              </span>
-            )}
-            {player.isHost && !up && <span title="Host">★</span>}
-          </span>
-        )}
-        <FitName className="player-chip-name-text" text={label} title={tip} />
->>>>>>> 49694d8 (feat(ui): themed bean avatars synced across lobby and rail)
       </div>
       {showPotSplit ? (
         <div
