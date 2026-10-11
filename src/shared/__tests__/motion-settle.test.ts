@@ -32,6 +32,11 @@ const lobbySrc = readFileSync(
   "utf8",
 );
 
+const css = readFileSync(
+  resolve(__dirname, "../../app/globals.css"),
+  "utf8",
+);
+
 describe("MotionSettle wiring", () => {
   it("swaps to motion-settled after animationend", () => {
     expect(settleSrc).toMatch(/motion-settled/);
@@ -39,14 +44,45 @@ describe("MotionSettle wiring", () => {
     expect(settleSrc).toMatch(/setSettled\(true\)/);
   });
 
-  it("room phase body uses MotionSettle + phase-enter (not bare forwards class)", () => {
+  it("room phase body uses MotionSettle + phase-enter for every phase", () => {
     expect(roomSrc).toMatch(/MotionSettle/);
     expect(roomSrc).toMatch(/motionClass="phase-enter"/);
+    expect(roomSrc).toMatch(/key=\{phase \?\? "none"\}/);
+    // No SCORE_REVEAL carve-out — every phase shares the enter
+    expect(roomSrc).not.toMatch(/phase === "SCORE_REVEAL"\s*\?/);
   });
 
   it("home shell uses MotionSettle for animate-rise", () => {
     expect(homeSrc).toMatch(/MotionSettle/);
     expect(homeSrc).toMatch(/motionClass="animate-rise"/);
+  });
+
+  it("unifies home + phase enter at 200ms / 8–12px translateY", () => {
+    expect(css).toMatch(/--motion-enter:\s*200ms/);
+    expect(css).toMatch(/--motion-enter-y:\s*1[0-2]px/);
+    expect(css).toMatch(
+      /\.animate-rise,\s*\n?\s*\.phase-enter\s*\{[\s\S]*?screen-enter/,
+    );
+    const enter =
+      css.match(
+        /\.animate-rise,\s*\n?\s*\.phase-enter\s*\{[\s\S]*?\n\}/,
+      )?.[0] ?? "";
+    const enterDecls = enter.replace(/\/\*[\s\S]*?\*\//g, "");
+    expect(enterDecls).toMatch(/animation-fill-mode:\s*none/);
+    expect(enterDecls).toMatch(/pointer-events:\s*auto/);
+    expect(enterDecls).not.toMatch(/forwards|\bboth\b/);
+    // Transform + opacity only in keyframes (no width/height/margin)
+    const kf =
+      css.match(/@keyframes\s+screen-enter\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
+    expect(kf).toMatch(/opacity:\s*0/);
+    expect(kf).toMatch(/translateY\(var\(--motion-enter-y\)\)/);
+    expect(kf).not.toMatch(/width:|height:|margin:|padding:|top:|left:/);
+  });
+
+  it("honors prefers-reduced-motion (no enter motion)", () => {
+    expect(css).toMatch(
+      /prefers-reduced-motion:\s*reduce[\s\S]*?\.animate-rise[\s\S]*?\.phase-enter[\s\S]*?animation:\s*none/,
+    );
   });
 
   it("room chrome BrandMark keeps shimmer off and solid wordmark path", () => {

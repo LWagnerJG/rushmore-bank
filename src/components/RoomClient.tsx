@@ -447,23 +447,22 @@ export function RoomClient({
           inert={showReconnectVeil ? true : undefined}
           aria-hidden={showReconnectVeil || undefined}
         >
-          {phase === "SCORE_REVEAL" ? (
-            <div className="phase-panel flex min-h-full flex-col pb-[var(--phase-pad-b)]">
-              {body}
-            </div>
-          ) : (
-            // key=phase remounts MotionSettle so enter runs once, then
-            // .motion-settled strips transform/will-change (iOS soft-raster fix).
-            // .room-phase-fill grows the panel to the scrollport so the
-            // sticky primary CTAs rest at its bottom even on short content.
-            <MotionSettle
-              key={phase ?? "none"}
-              motionClass="phase-enter"
-              className="phase-panel flex min-h-full flex-col pb-[var(--phase-pad-b)]"
-            >
-              {body}
-            </MotionSettle>
-          )}
+          {/*
+            key=phase remounts MotionSettle so the incoming phase fades/slides
+            in once; the previous phase unmounts immediately (no crossfade /
+            layout fight). Header, timer, and PlayerRail stay outside.
+            .motion-settled strips transform/will-change after animationend
+            (iOS soft-raster fix). Draft composer focus does not remount this.
+            .room-phase-fill grows the panel so sticky primary CTAs rest at
+            the scrollport bottom even on short content.
+          */}
+          <MotionSettle
+            key={phase ?? "none"}
+            motionClass="phase-enter"
+            className="phase-panel flex min-h-full flex-col pb-[var(--phase-pad-b)]"
+          >
+            {body}
+          </MotionSettle>
         </div>
       </div>
       <SettingsSheet

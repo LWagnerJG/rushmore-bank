@@ -65,6 +65,9 @@
   --leading-display: 1.1;
   --tap-min: 44px;
   --motion-fast: 180ms;
+  /* Screen / phase enter — transform + opacity only (Luke-approved 200ms) */
+  --motion-enter: 200ms;
+  --motion-enter-y: 10px;
   /* Phase body bottom padding; a last-child sticky dock cancels it */
   --phase-pad-b: max(0.75rem, env(safe-area-inset-bottom, 0px));
 }
@@ -902,10 +905,16 @@ html.party-on .btn-primary[aria-disabled="true"] {
   }
 }
 
-@keyframes rise {
+/*
+ * Unified screen/phase enter (home + every room phase).
+ * Incoming: opacity 0 → 1, translateY(10px) → none, 200ms ease-out.
+ * Outgoing: unmount instantly (keyed MotionSettle) — no crossfade.
+ * Header / timer / rail stay outside the animated node.
+ */
+@keyframes screen-enter {
   from {
-    opacity: 0.01;
-    transform: translateY(10px);
+    opacity: 0;
+    transform: translateY(var(--motion-enter-y));
   }
   to {
     opacity: 1;
@@ -914,11 +923,12 @@ html.party-on .btn-primary[aria-disabled="true"] {
   }
 }
 
-.animate-rise {
+.animate-rise,
+.phase-enter {
   /*
    * Base opacity:1 so an interrupted/cancelled animation on iPad Safari
-   * never leaves the home/room shell stuck invisible. Keyframes still fade
-   * up while the animation runs.
+   * never leaves the shell stuck invisible. Keyframes still fade up while
+   * the animation runs.
    *
    * CRITICAL: animation-fill-mode must be `none` (not forwards/both).
    * A filled transform/opacity animation leaves a composited layer that iOS
@@ -927,27 +937,32 @@ html.party-on .btn-primary[aria-disabled="true"] {
    * .motion-settled after animationend to strip any leftover layer hints.
    */
   opacity: 1;
-  animation: rise 380ms ease-out;
+  animation: screen-enter var(--motion-enter) ease-out;
   animation-fill-mode: none;
+  /* Never block taps/CTAs while entering */
+  pointer-events: auto;
 }
 
-/* Phase body enter — short, once per phase change (keyed in RoomClient). */
-@keyframes phase-enter {
+/* Alias kept for older tests / comments — same keyframes as screen-enter */
+@keyframes rise {
   from {
-    opacity: 0.01;
-    transform: translateY(8px);
+    opacity: 0;
+    transform: translateY(var(--motion-enter-y));
   }
   to {
     opacity: 1;
     transform: none;
   }
 }
-
-.phase-enter {
-  /* Same base opacity:1 — never `forwards`/`both` (see .animate-rise). */
-  opacity: 1;
-  animation: phase-enter 280ms ease-out;
-  animation-fill-mode: none;
+@keyframes phase-enter {
+  from {
+    opacity: 0;
+    transform: translateY(var(--motion-enter-y));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 @keyframes score-land {

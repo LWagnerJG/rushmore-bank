@@ -8,8 +8,10 @@ import {
 } from "react";
 
 /**
- * Runs a one-shot enter motion, then strips animation/transform/will-change
- * so iOS WebKit does not keep a soft-rasterized composited layer.
+ * Runs a one-shot enter motion (200ms opacity + translateY), then strips
+ * animation/transform/will-change so iOS WebKit does not keep a soft-
+ * rasterized composited layer. Outgoing siblings unmount instantly — no
+ * crossfade. Does not delay pointer events.
  *
  * Pair with CSS: `.foo { animation: …; animation-fill-mode: none }` and
  * `.motion-settled { animation: none; transform: none; will-change: auto }`.
