@@ -397,6 +397,34 @@ export function useGameRoom(
     [send, socket, code, playerId, forceReconnect, seatContested],
   );
 
+  /** Lobby rename — keep membership + home prefill in sync with the server. */
+  const rename = useCallback(
+    (name: string) => {
+      const clean = name.trim();
+      if (!clean) {
+        setErrorRaw("Enter a nickname");
+        return;
+      }
+      if (seatContested) {
+        setErrorRaw("This seat is open in another tab — use that tab.");
+        return;
+      }
+      const role = membershipRef.current?.role ?? "player";
+      rememberDisplayName(clean);
+      pendingJoin.current = { name: clean, role };
+      membershipRef.current = { name: clean, role };
+      rememberRoomSession({
+        code,
+        name: clean,
+        role,
+        playerId,
+        at: Date.now(),
+      });
+      send({ type: "rename", name: clean });
+    },
+    [send, code, playerId, seatContested],
+  );
+
   // Host heartbeat for failover
   useEffect(() => {
     const you = state?.players.find((p) => p.id === youId);
@@ -420,6 +448,7 @@ export function useGameRoom(
     removed,
     seatContested,
     join,
+    rename,
     send,
     defaultName: recallDisplayName(),
     forceReconnect,

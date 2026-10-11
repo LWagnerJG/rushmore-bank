@@ -377,6 +377,8 @@ export interface PublicRoomState {
 
 export type ClientMessage =
   | { type: "join"; name: string; role?: PlayerRole; actionId?: string }
+  /** Lobby-only: change your display name (same id / seat / host status). */
+  | { type: "rename"; name: string; actionId?: string }
   | { type: "update_settings"; settings: Partial<HostSettings>; actionId?: string }
   /** Host-only: set total topic rounds (3–6) on the first topic screen. */
   | { type: "set_topic_rounds"; rounds: number; actionId?: string }

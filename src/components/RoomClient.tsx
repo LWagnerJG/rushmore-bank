@@ -72,6 +72,7 @@ export function RoomClient({
     removed,
     seatContested,
     join,
+    rename,
     send,
     defaultName,
   } = useGameRoom(code, {
@@ -197,7 +198,9 @@ export function RoomClient({
     if (!state || !you) return null;
     switch (state.phase) {
       case "LOBBY":
-        return <LobbyPanel state={state} you={you} send={send} />;
+        return (
+          <LobbyPanel state={state} you={you} send={send} rename={rename} />
+        );
       case "TOPIC_SELECTION":
         return <TopicPanel state={state} you={you} send={send} />;
       case "DRAFT":
