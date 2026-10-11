@@ -14,6 +14,7 @@ import { DiagPanel } from "@/components/DiagPanel";
 import { MotionSettle } from "@/components/MotionSettle";
 import { BeanAvatar } from "@/components/BeanAvatar";
 import { SettingsSheet } from "@/components/SettingsSheet";
+import { roomFromSearch } from "@/shared/install-join";
 import { normalizeRoomCode, randomRoomCode } from "@/shared/types";
 import { RULES } from "@/shared/rules";
 import { ADMIN_UNLOCK_KEY } from "@/lib/admin-session";
@@ -108,6 +109,18 @@ export default function HomePage() {
   useEffect(() => {
     if (!profileOpen) setAvatarId(loadAvatarId());
   }, [profileOpen]);
+
+  // Full navigation so iOS fetches the room-scoped manifest (not a client route).
+  useEffect(() => {
+    try {
+      const room = roomFromSearch(window.location.search);
+      if (room.length === 4) {
+        window.location.replace(`/join/${room}`);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   // Durable device id + pull cloud stats (no login).
   useEffect(() => {

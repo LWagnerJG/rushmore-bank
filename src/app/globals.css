@@ -6122,3 +6122,111 @@ html.settings-sheet-open body {
   font-size: 0.85rem;
   font-weight: 800;
 }
+
+/* Install-first join — branded gate before the room, not a nag wall */
+.install-join {
+  min-height: var(--app-h, 100dvh);
+  background: var(--bg);
+  color: var(--text);
+}
+.install-join-inner {
+  min-height: 0;
+}
+.install-join-hero {
+  padding-top: clamp(0.5rem, 6vh, 2.5rem);
+}
+.install-join-code {
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.28em;
+  color: var(--text);
+}
+.install-join-headline {
+  max-width: 22rem;
+  margin-left: auto;
+  margin-right: auto;
+  color: var(--text);
+  text-wrap: balance;
+}
+.install-join-steps {
+  list-style: none;
+  margin: 2rem auto 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  max-width: 16rem;
+}
+.install-join-steps li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: var(--tap-min);
+  font-size: var(--text-body);
+  font-weight: 700;
+  color: var(--text);
+}
+.install-step-glyph {
+  flex: 0 0 auto;
+  color: var(--coral-ink);
+}
+.install-join-android {
+  margin-top: 2rem;
+}
+.install-join-footer {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 2rem;
+  padding-bottom: 0.25rem;
+}
+.install-share-arrow {
+  color: var(--coral-ink);
+  opacity: 0.72;
+  animation: install-arrow-nudge 1.8s ease-in-out infinite;
+}
+.install-continue {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  text-decoration-color: rgba(76, 110, 100, 0.4);
+  padding: 0.55rem 0.7rem;
+  min-height: 2.5rem;
+  cursor: pointer;
+}
+.install-continue:active {
+  color: var(--text);
+}
+.install-inapp-hint {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin: 0;
+  padding: 0.45rem 1rem 0;
+  text-align: center;
+  color: var(--muted);
+}
+@keyframes install-arrow-nudge {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.45;
+  }
+  50% {
+    transform: translateY(7px);
+    opacity: 0.85;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .install-share-arrow {
+    animation: none;
+    opacity: 0.65;
+  }
+}
