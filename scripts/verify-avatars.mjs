@@ -1,8 +1,9 @@
 /**
  * Verify public/avatars/*.webp:
- * - bean-body height / center-x / baseline within ±3% (or ±2px) across the set
+ * - unique files (no collapsed plain-bean duplicates)
+ * - bean+accessory content fills ~85–90% of the canvas
+ * - even margins (nothing clipped at edges)
  * - every opaque pixel belongs to the single main connected component
- *   (no foreign islands)
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -10,22 +11,13 @@ import sharp from "sharp";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const DIR = path.join(ROOT, "public/avatars");
-const TOL = 0.03;
+const FILL_MIN = 0.84;
+const FILL_MAX = 0.92;
+const EDGE_MIN = 8;
 
 function isContent(r, g, b, a) {
   if (a < 10) return false;
   return r + g + b > 30;
-}
-
-/** Deep-coral kidney only (#E76F4E) — exclude gold/amber accessories. */
-function isBeanBody(r, g, b, a) {
-  if (a < 40) return false;
-  if (r < 180 || r > 250) return false;
-  if (g < 70 || g > 160) return false;
-  if (b < 40 || b > 120) return false;
-  if (r <= g + 30) return false;
-  if (g <= b) return false;
-  return true;
 }
 
 function largestCC(rgba, w, h) {
@@ -45,10 +37,8 @@ function largestCC(rgba, w, h) {
       const stack = [i];
       visited[i] = 1;
       let size = 0;
-      const cells = [];
       while (stack.length) {
         const cur = stack.pop();
-        cells.push(cur);
         size++;
         const cx = cur % w;
         const cy = (cur / w) | 0;
@@ -76,14 +66,15 @@ function largestCC(rgba, w, h) {
           stack.push(n);
         }
       }
-      if (!best || size > best.size) best = { size, cells };
+      if (!best || size > best.size) best = { size };
     }
   }
   return { best, islands };
 }
 
 async function measure(file) {
-  const { data, info } = await sharp(path.join(DIR, file))
+  const buf = fs.readFileSync(path.join(DIR, file));
+  const { data, info } = await sharp(buf)
     .ensureAlpha()
     .raw()
     .toBuffer({ resolveWithObject: true });
@@ -91,12 +82,11 @@ async function measure(file) {
   const h = info.height;
   const rgba = data;
 
-  let bMinx = w,
-    bMaxx = -1,
-    bMiny = h,
-    bMaxy = -1,
-    bodyN = 0;
-  let opaque = 0;
+  let minX = w,
+    minY = h,
+    maxX = 0,
+    maxY = 0,
+    opaque = 0;
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const i = y * w + x;
@@ -106,40 +96,37 @@ async function measure(file) {
       const b = rgba[i * 4 + 2];
       if (!isContent(r, g, b, a)) continue;
       opaque++;
-      if (!isBeanBody(r, g, b, a)) continue;
-      bodyN++;
-      if (x < bMinx) bMinx = x;
-      if (x > bMaxx) bMaxx = x;
-      if (y < bMiny) bMiny = y;
-      if (y > bMaxy) bMaxy = y;
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
     }
   }
-  if (bodyN < 40) {
-    return { file, ok: false, reason: `bean body pixels ${bodyN}` };
+  if (opaque < 40) {
+    return { file, ok: false, reason: `opaque pixels ${opaque}` };
   }
+
+  const tw = maxX - minX + 1;
+  const th = maxY - minY + 1;
+  const fill = Math.max(tw, th) / Math.max(w, h);
+  const edge = Math.min(minX, minY, w - 1 - maxX, h - 1 - maxY);
 
   const { best, islands } = largestCC(rgba, w, h);
   const foreign = opaque - (best?.size ?? 0);
-  // Allow tiny AA crumbs (<0.3% of opaque) but flag real islands.
   const foreignOk = foreign <= Math.max(6, opaque * 0.003) && islands <= 2;
-
-  const bodyH = bMaxy - bMiny + 1;
-  const bodyW = bMaxx - bMinx + 1;
-  const bodyCx = (bMinx + bMaxx) / 2;
-  const baseline = bMaxy;
 
   return {
     file,
     ok: true,
-    bodyH,
-    bodyW,
-    bodyCx,
-    baseline,
+    fill,
+    edge,
+    tw,
+    th,
     foreign,
     islands,
     foreignOk,
     canvas: w,
-    buf: fs.readFileSync(path.join(DIR, file)),
+    buf,
   };
 }
 
@@ -157,7 +144,6 @@ async function main() {
     process.exit(1);
   }
 
-  // Uniqueness — a missing accessory used to collapse 5 tiles to one plain bean.
   const seen = new Map();
   for (const r of good) {
     const key = r.buf.toString("binary");
@@ -168,34 +154,13 @@ async function main() {
     seen.set(key, r.file);
   }
 
-  const ws = good.map((r) => r.bodyW);
-  const cxs = good.map((r) => r.bodyCx);
-  const bases = good.map((r) => r.baseline);
-  const median = (arr) => {
-    const s = [...arr].sort((a, b) => a - b);
-    return s[(s.length / 2) | 0];
-  };
-  const medW = median(ws);
-  const medCx = median(cxs);
-  const medBase = median(bases);
-
-  // Hats cover the crown, so visible coral HEIGHT shrinks — that is expected.
-  // Lock what the eye uses for "same size": body WIDTH, center-x, baseline.
   let failed = false;
   for (const r of good) {
-    const wErr = Math.abs(r.bodyW - medW) / medW;
-    const cxErr = Math.abs(r.bodyCx - medCx);
-    const baseErr = Math.abs(r.baseline - medBase);
-    const sizeOk = wErr <= TOL;
-    const alignTol = Math.max(3, r.canvas * TOL);
-    const alignOk = cxErr <= alignTol && baseErr <= alignTol;
-    const line = `${r.file}: bodyW=${r.bodyW} (Δ${(wErr * 100).toFixed(1)}%) bodyH=${r.bodyH} cx=${r.bodyCx.toFixed(1)} base=${r.baseline} foreign=${r.foreign} islands=${r.islands}`;
-    if (!sizeOk || !alignOk || !r.foreignOk) {
-      console.error("FAIL", line, {
-        sizeOk,
-        alignOk,
-        foreignOk: r.foreignOk,
-      });
+    const fillOk = r.fill >= FILL_MIN && r.fill <= FILL_MAX;
+    const edgeOk = r.edge >= EDGE_MIN;
+    const line = `${r.file}: fill=${(r.fill * 100).toFixed(1)}% content=${r.tw}×${r.th} edge=${r.edge}px foreign=${r.foreign} islands=${r.islands}`;
+    if (!fillOk || !edgeOk || !r.foreignOk) {
+      console.error("FAIL", line, { fillOk, edgeOk, foreignOk: r.foreignOk });
       failed = true;
     } else {
       console.log("ok  ", line);
@@ -203,7 +168,7 @@ async function main() {
   }
 
   console.log(
-    `\nmedian bodyW=${medW} cx=${medCx.toFixed(1)} baseline=${medBase} (±${(TOL * 100).toFixed(0)}% / align±${Math.max(3, good[0].canvas * TOL).toFixed(1)}px)`,
+    `\nfill band ${(FILL_MIN * 100).toFixed(0)}–${(FILL_MAX * 100).toFixed(0)}%; edge ≥${EDGE_MIN}px`,
   );
   if (failed) process.exit(1);
   console.log("ALL CHECKS PASSED");

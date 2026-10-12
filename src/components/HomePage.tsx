@@ -471,7 +471,7 @@ export function HomePage({ createIntent = false }: { createIntent?: boolean }) {
                 <BeanAvatar
                   id={avatarId}
                   seed={displayName || "bean"}
-                  size={40}
+                  size={52}
                   priority
                 />
               </button>

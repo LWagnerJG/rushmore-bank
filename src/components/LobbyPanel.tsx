@@ -243,7 +243,7 @@ export function LobbyPanel({
                 .join(" ")}
             >
               <span className="lobby-roster-avatar" aria-hidden="true">
-                <BeanAvatar id={p.avatarId} seed={p.id} size={28} />
+                <BeanAvatar id={p.avatarId} seed={p.id} size={36} />
               </span>
               {p.id === you.id ? (
                 <LobbyOwnName

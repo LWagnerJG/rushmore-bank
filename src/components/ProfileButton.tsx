@@ -6,7 +6,7 @@ import { loadAvatarId } from "@/lib/avatar-prefs";
 
 /**
  * Quiet top-right profile / settings trigger.
- * 44px tap target; visual mark stays small.
+ * 44px tap target; mark sized to read next to the player rail.
  */
 export const ProfileButton = memo(function ProfileButton({
   name,
@@ -30,7 +30,7 @@ export const ProfileButton = memo(function ProfileButton({
       onClick={onClick}
     >
       <span className="profile-btn-mark" aria-hidden="true">
-        <BeanAvatar id={id} seed={name || "bean"} size={28} priority />
+        <BeanAvatar id={id} seed={name || "bean"} size={36} priority />
       </span>
     </button>
   );

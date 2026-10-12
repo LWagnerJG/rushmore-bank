@@ -428,8 +428,8 @@ html.party-on body::before {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.75rem;
-  height: 1.75rem;
+  width: 2.25rem;
+  height: 2.25rem;
   overflow: hidden;
   border-radius: 999px;
   background: color-mix(in srgb, var(--mint) 42%, #fff);
@@ -1242,8 +1242,8 @@ html.party-on .brand-shimmer {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: 2.75rem;
-  height: 2.75rem;
+  width: 3.25rem;
+  height: 3.25rem;
   margin: 0;
   padding: 0;
   border: 0;
@@ -5108,8 +5108,8 @@ html.settings-sheet-open body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 3.5rem;
-  height: 3.5rem;
+  width: 4.5rem;
+  height: 4.5rem;
   flex-shrink: 0;
   padding: 0;
   border: none;
@@ -5194,11 +5194,11 @@ html.settings-sheet-open body {
   /* Single coral ring — no second border / fill change */
   box-shadow: inset 0 0 0 2.5px var(--coral);
 }
-/* Shared canvas includes transparent margins; ~80% of tile = even pad. */
+/* Assets pack bean+accessory to ~88% of the WebP; fill the soft tile. */
 .avatar-picker-cell .bean-avatar,
 .avatar-picker-bean {
-  width: 80% !important;
-  height: 80% !important;
+  width: 100% !important;
+  height: 100% !important;
   background: transparent;
   border-radius: 0;
   overflow: visible;

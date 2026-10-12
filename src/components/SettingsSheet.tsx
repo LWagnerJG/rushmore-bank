@@ -236,7 +236,7 @@ function SettingsSheetImpl({
                     aria-label="Change avatar"
                     onClick={() => setPanel("avatar")}
                   >
-                    <BeanAvatar id={avatarId} seed={displayName} size={56} />
+                    <BeanAvatar id={avatarId} seed={displayName} size={72} />
                   </button>
                   <div className="profile-sheet-identity min-w-0">
                     <p className="profile-sheet-name font-[family-name:var(--font-display)]">

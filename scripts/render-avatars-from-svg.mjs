@@ -405,6 +405,81 @@ async function applyTransform(pngBuf, xf) {
 
   return sharp(composed)
     .extract({ left: pad, top: pad, width: OUT, height: OUT })
+    .png()
+    .toBuffer();
+}
+
+function contentBBox(data, w, h) {
+  let minX = w,
+    minY = h,
+    maxX = 0,
+    maxY = 0,
+    count = 0;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      if (data[i + 3] > 20) {
+        count++;
+        if (x < minX) minX = x;
+        if (y < minY) minY = y;
+        if (x > maxX) maxX = x;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+  if (!count) return null;
+  return {
+    minX,
+    minY,
+    maxX,
+    maxY,
+    tw: maxX - minX + 1,
+    th: maxY - minY + 1,
+    cx: (minX + maxX) / 2,
+    cy: (minY + maxY) / 2,
+  };
+}
+
+/** Target fill of bean+accessory inside the square canvas (even margins). */
+const CONTENT_FILL = 0.88;
+
+/**
+ * Per-avatar upscale so bean+accessory fills CONTENT_FILL of the tile,
+ * content-centered with even margins. Tall hats stay fully visible.
+ */
+async function packContent(pngBuf) {
+  const { data, info } = await sharp(pngBuf)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const box = contentBBox(data, info.width, info.height);
+  if (!box) throw new Error("empty content for pack");
+
+  const scale = (OUT * CONTENT_FILL) / Math.max(box.tw, box.th);
+  const scaledW = Math.max(1, Math.round(OUT * scale));
+  const scaledH = Math.max(1, Math.round(OUT * scale));
+  const pad = 160;
+  const scaled = await sharp(pngBuf)
+    .resize(scaledW, scaledH, { kernel: "lanczos3" })
+    .ensureAlpha()
+    .toBuffer();
+  const left = Math.round(OUT / 2 - box.cx * scale);
+  const top = Math.round(OUT / 2 - box.cy * scale);
+
+  const composed = await sharp({
+    create: {
+      width: OUT + pad * 2,
+      height: OUT + pad * 2,
+      channels: 4,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    },
+  })
+    .composite([{ input: scaled, left: left + pad, top: top + pad }])
+    .png()
+    .toBuffer();
+
+  return sharp(composed)
+    .extract({ left: pad, top: pad, width: OUT, height: OUT })
     .webp({ quality: 92, alphaQuality: 100, effort: 5 })
     .toBuffer();
 }
@@ -416,23 +491,43 @@ async function main() {
     `body-only coral ${xf.box.bw}×${xf.box.bh} → scale ${xf.s.toFixed(4)} place (${xf.left},${xf.top})`,
   );
 
-  const report = [];
+  // Pass 1: body-locked PNGs (identical kidney before fill-pack)
+  const locked = [];
   for (const id of IDS) {
     const svg = Buffer.from(svgFor(id));
     const png = await sharp(svg).png().toBuffer();
-    const webp = await applyTransform(png, xf);
+    const lockedPng = await applyTransform(png, xf);
+    locked.push({ id, png: lockedPng });
+  }
+
+  // Pass 2: per-avatar content pack → ~88% fill, even margins
+  const fills = [];
+  for (const { id, png } of locked) {
+    const webp = await packContent(png);
     await fs.promises.writeFile(path.join(OUT_DIR, `${id}.webp`), webp);
 
-    // Visible-coral metrics (accessories may cover; used for logging only).
-    // Body silhouette identity is guaranteed by shared BODY_T + shared xf.
     const { data, info } = await sharp(webp)
       .ensureAlpha()
       .raw()
       .toBuffer({ resolveWithObject: true });
-    const box = coralBBox(data, info.width, info.height);
-    report.push({ id, ...box });
+    const content = contentBBox(data, info.width, info.height);
+    const fill = Math.max(content.tw, content.th) / OUT;
+    fills.push(fill);
+    // edge clearance — nothing clipped
+    const edge = Math.min(
+      content.minX,
+      content.minY,
+      info.width - 1 - content.maxX,
+      info.height - 1 - content.maxY,
+    );
+    if (edge < 8) {
+      throw new Error(`${id} too close to edge (pad=${edge}px)`);
+    }
+    if (fill < 0.84 || fill > 0.92) {
+      throw new Error(`${id} fill ${(fill * 100).toFixed(1)}% outside 84–92%`);
+    }
     console.log(
-      `wrote ${id.padEnd(12)} visible-coral ${box.bw}×${box.bh} cx=${box.cx.toFixed(1)} base=${box.base}`,
+      `wrote ${id.padEnd(12)} content ${content.tw}×${content.th} fill=${(fill * 100).toFixed(0)}% edge=${edge}px`,
     );
   }
 
@@ -447,26 +542,11 @@ async function main() {
     hashes.set(key, id);
   }
 
-  // Body-only reference after same transform must hit targets
-  const bodySvg = Buffer.from(`<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="${OUT}" height="${OUT}" viewBox="0 0 ${OUT} ${OUT}">
-  ${beanBody()}
-</svg>`);
-  const bodyWebp = await applyTransform(await sharp(bodySvg).png().toBuffer(), xf);
-  const bodyRaw = await sharp(bodyWebp).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-  const ref = coralBBox(bodyRaw.data, bodyRaw.info.width, bodyRaw.info.height);
+  const minFill = Math.min(...fills);
+  const maxFill = Math.max(...fills);
   console.log(
-    `ref body after xf: ${ref.bw}×${ref.bh} cx=${ref.cx.toFixed(1)} base=${ref.base}`,
+    `rendered ${IDS.length} unique avatars; fill ${(minFill * 100).toFixed(0)}–${(maxFill * 100).toFixed(0)}%`,
   );
-  if (
-    Math.abs(ref.bw - BODY_W) > 2 ||
-    Math.abs(ref.bh - BODY_H) > 2 ||
-    Math.abs(ref.cx - BODY_CX) > 2 ||
-    Math.abs(ref.base - BODY_BASE) > 2
-  ) {
-    throw new Error("body-only transform missed target placement");
-  }
-  console.log(`rendered ${IDS.length} unique avatars; shared body locked`);
 }
 
 main().catch((e) => {
