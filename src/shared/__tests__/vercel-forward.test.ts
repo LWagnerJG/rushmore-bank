@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   BEANS_WEB_ORIGIN,
   beansWebLocation,
-  isVercelVersionPath,
+  isVercelKeptPath,
   shouldForwardVercelRequest,
   VERCEL_FORWARD_HOSTS,
 } from "../vercel-forward";
@@ -53,10 +53,12 @@ describe("vercel → beans-web forward helpers", () => {
     ).toBe(true);
   });
 
-  it("leaves /api/version on Vercel so health checks can compare", () => {
-    expect(isVercelVersionPath("/api/version")).toBe(true);
-    expect(isVercelVersionPath("/api/version/")).toBe(true);
-    expect(isVercelVersionPath("/api/judge")).toBe(false);
+  it("leaves /api/version and /api/judge on Vercel", () => {
+    expect(isVercelKeptPath("/api/version")).toBe(true);
+    expect(isVercelKeptPath("/api/version/")).toBe(true);
+    expect(isVercelKeptPath("/api/judge")).toBe(true);
+    expect(isVercelKeptPath("/api/judge/")).toBe(true);
+    expect(isVercelKeptPath("/api/draft-options")).toBe(false);
     expect(
       shouldForwardVercelRequest({
         vercel: "1",
@@ -70,7 +72,7 @@ describe("vercel → beans-web forward helpers", () => {
         host: "beans-game.vercel.app",
         pathname: "/api/judge",
       }),
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it("preserves path and query on the 308 location", () => {
@@ -85,7 +87,7 @@ describe("vercel → beans-web forward helpers", () => {
 });
 
 describe("vercel.json 308 contract", () => {
-  it("308s every path on the production Vercel hosts except /api/version", () => {
+  it("308s every path on the production Vercel hosts except /api/version and /api/judge", () => {
     expect(vercelJson.redirects).toHaveLength(VERCEL_FORWARD_HOSTS.length);
     for (const host of VERCEL_FORWARD_HOSTS) {
       const rule = vercelJson.redirects.find((r) =>
@@ -93,8 +95,7 @@ describe("vercel.json 308 contract", () => {
       );
       expect(rule, host).toBeTruthy();
       expect(rule!.statusCode).toBe(308);
-      expect(rule!.source).toContain("api/version");
-      expect(rule!.source).toMatch(/\(\?!api\/version/);
+      expect(rule!.source).toContain("api/(?:version|judge)");
       expect(rule!.destination).toBe(`${BEANS_WEB_ORIGIN}/$1`);
     }
   });

@@ -1,13 +1,13 @@
 {
   "redirects": [
     {
-      "source": "/((?!api/version/?$).*)",
+      "source": "/((?!api/(?:version|judge)/?$).*)",
       "has": [{ "type": "host", "value": "beans-game.vercel.app" }],
       "destination": "https://beans-web.beans-lwagner.workers.dev/$1",
       "statusCode": 308
     },
     {
-      "source": "/((?!api/version/?$).*)",
+      "source": "/((?!api/(?:version|judge)/?$).*)",
       "has": [{ "type": "host", "value": "roundacats.vercel.app" }],
       "destination": "https://beans-web.beans-lwagner.workers.dev/$1",
       "statusCode": 308
