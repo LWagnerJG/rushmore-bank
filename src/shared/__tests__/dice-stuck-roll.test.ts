@@ -284,4 +284,27 @@ describe("server deadline auto-resolves stuck COMMITTED rolls", () => {
     assert.equal(g.server.state.lastDice!.revealed, false);
     assert.equal(g.deadline(), settleAt);
   });
+
+  it("BEAN BUSTER settle-hold clears lastDice on next seat (UI goes idle, not stuck tumbling)", async () => {
+    const g = game();
+    await beginDice(g.server);
+    await g.server.handleRoll("A");
+    // Force a seven so afterDiceSettleHold advances via startDiceTurn.
+    g.server.state.lastDice = {
+      ...g.server.state.lastDice!,
+      d1: 3,
+      d2: 4,
+      busted: true,
+      potAfter: 0,
+      outcomeKind: "bust",
+    };
+    vi.setSystemTime(g.server.state.lastDice!.animSettleAt + 1);
+    await g.server.afterDiceAnim();
+    assert.equal(g.server.state.diceSubphase, "SETTLED");
+    assert.equal(g.server.state.lastDice!.revealed, true);
+    await g.server.afterDiceSettleHold();
+    // Next seat clears the prior roll — clients must treat idle as "landed", not flake.
+    assert.equal(g.server.state.lastDice, null);
+    assert.equal(g.server.state.diceSubphase, "READY");
+  });
 });

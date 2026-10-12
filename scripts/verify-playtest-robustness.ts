@@ -95,6 +95,7 @@ async function background(page: Page) {
 async function assertDiceLanded(page: Page, d1?: number, d2?: number) {
   const tray = page.locator(".bean-dice-tray");
   await tray.waitFor({ timeout: 15000 });
+  // Playwright: options are the 3rd arg — `{ timeout }` as 2nd is treated as `arg`.
   await page.waitForFunction(
     `(() => {
       const t = document.querySelector(".bean-dice-tray");
@@ -104,6 +105,7 @@ async function assertDiceLanded(page: Page, d1?: number, d2?: number) {
       const b = Number(t.getAttribute("data-dice-d2"));
       return phase === "settled" && a >= 1 && a <= 6 && b >= 1 && b <= 6;
     })()`,
+    undefined,
     { timeout: 15000 },
   );
   const d1Attr = Number(await tray.getAttribute("data-dice-d1"));
@@ -129,6 +131,39 @@ async function assertDiceLanded(page: Page, d1?: number, d2?: number) {
   await sum.waitFor({ state: "visible", timeout: 8000 });
   if ((await page.locator(".bean-dice-tray").getAttribute("data-dice-phase")) !== "settled") {
     throw new Error("tray left settled after land check");
+  }
+}
+
+/**
+ * After mid-roll reconnect: tray must not stay tumbling.
+ * `settled` = faces still showing; `idle` = server advanced after land
+ * (common on BEAN BUSTER — startDiceTurn clears lastDice).
+ */
+async function assertDiceNotStuckTumbling(page: Page) {
+  const tray = page.locator(".bean-dice-tray");
+  await tray.waitFor({ timeout: 15000 });
+  await page.waitForFunction(
+    `(() => {
+      const t = document.querySelector(".bean-dice-tray");
+      if (!t) return false;
+      const phase = t.getAttribute("data-dice-phase");
+      return phase === "settled" || phase === "idle";
+    })()`,
+    undefined,
+    { timeout: 30000 },
+  );
+  const phase = await tray.getAttribute("data-dice-phase");
+  if (phase === "tumbling") {
+    throw new Error("tray still tumbling after hard-land window");
+  }
+  if (phase === "settled") {
+    const d1Attr = Number(await tray.getAttribute("data-dice-d1"));
+    const d2Attr = Number(await tray.getAttribute("data-dice-d2"));
+    if (
+      !(d1Attr >= 1 && d1Attr <= 6 && d2Attr >= 1 && d2Attr <= 6)
+    ) {
+      throw new Error(`settled faces invalid: ${d1Attr}+${d2Attr}`);
+    }
   }
 }
 
@@ -218,14 +253,17 @@ async function diceStuckRoll(browser: Browser) {
     await rollerCtx.setOffline(false);
     await foreground(watch);
 
-    await assertDiceLanded(roller);
-    await assertDiceLanded(watch);
-    if (
-      (await roller.locator(".bean-dice-tray").getAttribute("data-dice-phase")) ===
-      "tumbling"
-    ) {
-      throw new Error("roller still tumbling after hard-land window");
-    }
+    // Server must leave COMMITTED (reveal, then settle-hold / next seat).
+    await ctrl.wait(
+      () =>
+        ctrl.state?.diceSubphase !== "COMMITTED" ||
+        ctrl.state?.lastDice?.revealed === true,
+      20000,
+      "dice revealed or advanced",
+    );
+
+    await assertDiceNotStuckTumbling(roller);
+    await assertDiceNotStuckTumbling(watch);
     await shot(roller, "dice-landed-after-reconnect.png");
     await shot(watch, "dice-landed-after-bg.png");
   } finally {
