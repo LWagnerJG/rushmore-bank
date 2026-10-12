@@ -26,6 +26,9 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # Same Bearer Vercel /api/judge expects — without it PartyServer gets 401
+          # and every round falls back to neutral AI awards.
+          JUDGE_SECRET: ${{ secrets.JUDGE_SECRET }}
         run: |
           if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
             echo "Skipping deploy: CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID secrets are not set."
@@ -33,3 +36,22 @@ jobs:
             exit 0
           fi
           npx wrangler deploy --config wrangler.jsonc
+
+          # Sync JUDGE_SECRET onto beans-party when present in GitHub secrets.
+          # Wrangler reads the value from stdin; empty/missing → skip (keep existing).
+          put_secret() {
+            local name="$1"
+            local value="${2:-}"
+            if [ -z "$value" ]; then
+              echo "Secret $name not in GitHub secrets — skipping wrangler secret put."
+              return 0
+            fi
+            printf '%s' "$value" | npx wrangler secret put "$name" --config wrangler.jsonc
+            echo "Set wrangler secret: $name"
+          }
+
+          put_secret JUDGE_SECRET "${JUDGE_SECRET:-}"
+
+          if [ -z "${JUDGE_SECRET:-}" ]; then
+            echo "::warning::JUDGE_SECRET missing from GitHub secrets. PartyServer → /api/judge will 401 and use neutral awards until it is set on beans-party."
+          fi
