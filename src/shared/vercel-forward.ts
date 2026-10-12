@@ -2,8 +2,10 @@
  * Vercel → beans-web permanent forward.
  *
  * Production Vercel hosts 308 every path (query preserved) to the Cloudflare
- * frontend, except GET /api/version which must keep answering on Vercel so
- * health checks can compare platforms.
+ * frontend, except a short allowlist that must keep answering on Vercel:
+ *   - GET /api/version — health checks compare platforms
+ *   - POST /api/judge — PartyServer's JUDGE_URL still points here; a cross-origin
+ *     308 strips Authorization, which would 401 every paid judge call
  *
  * Implemented as vercel.json redirects (CDN, Vercel-only). Do not put these
  * rules in next.config — OpenNext would bake them into beans-web and risk a
@@ -19,9 +21,9 @@ export const VERCEL_FORWARD_HOSTS = [
 ] as const;
 
 /** Paths that must keep answering on Vercel (no redirect). */
-export function isVercelVersionPath(pathname: string): boolean {
+export function isVercelKeptPath(pathname: string): boolean {
   const path = pathname.replace(/\/+$/, "") || "/";
-  return path === "/api/version";
+  return path === "/api/version" || path === "/api/judge";
 }
 
 export function shouldForwardVercelRequest(input: {
@@ -33,7 +35,7 @@ export function shouldForwardVercelRequest(input: {
   if (input.vercel !== "1") return false;
   const host = input.host.split(":")[0]?.toLowerCase() ?? "";
   if (!(VERCEL_FORWARD_HOSTS as readonly string[]).includes(host)) return false;
-  return !isVercelVersionPath(input.pathname);
+  return !isVercelKeptPath(input.pathname);
 }
 
 /** Location for a 308. Path and query are preserved; hash is never sent. */

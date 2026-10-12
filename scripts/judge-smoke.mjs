@@ -4,7 +4,9 @@
  * Fails on non-200, fallback:true, or latencyMs > 15s.
  *
  * Env:
- *   JUDGE_URL     — base app URL (default https://beans-game.vercel.app)
+ *   JUDGE_URL     — base app URL (default https://beans-game.vercel.app;
+ *                   that host must serve /api/judge without a cross-origin 308,
+ *                   or Authorization is stripped and the smoke gets 401)
  *   JUDGE_SECRET  — Bearer token (required)
  */
 const JUDGE_URL = (process.env.JUDGE_URL || "https://beans-game.vercel.app").replace(
