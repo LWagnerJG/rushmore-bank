@@ -27,7 +27,10 @@ import {
   isGameWinner,
   recordGameResult,
 } from "@/lib/profile-stats";
-import { mergePublicState } from "@/shared/engine/merge-public-state";
+import {
+  isRematchLobbyReset,
+  mergePublicState,
+} from "@/shared/engine/merge-public-state";
 import {
   classifyStateVersion,
   enqueueWhileConnecting,
@@ -176,6 +179,7 @@ export function useGameRoom(
   const phaseRevisionRef = useRef(0);
   const suppressRaceUntilRef = useRef(0);
   const stateVersionRef = useRef<number | null>(null);
+  const phaseRef = useRef<string | null>(null);
   const outgoingQueueRef = useRef<ClientMessage[]>([]);
   const lastPongAtRef = useRef<number | null>(null);
   const lastRttMsRef = useRef<number | null>(null);
@@ -312,8 +316,13 @@ export function useGameRoom(
         }
         if (msg.type === "state" || msg.type === "joined") {
           const incoming = versionFromMessage(msg);
+          const rematchReset = isRematchLobbyReset(
+            phaseRef.current,
+            msg.state.phase,
+          );
           const gap = classifyStateVersion(stateVersionRef.current, incoming, {
             allowEqual: Boolean(msg.resync),
+            allowRegression: rematchReset,
           });
           if (!shouldApplyState(gap)) return;
           if (shouldRequestResync(gap)) {
@@ -329,6 +338,7 @@ export function useGameRoom(
             }
           }
           if (incoming != null) stateVersionRef.current = incoming;
+          phaseRef.current = msg.state.phase;
           setState((prev) => mergePublicState(prev, msg.state));
           setYouId(msg.youId);
           if (msg.state.phaseRevision !== phaseRevisionRef.current) {

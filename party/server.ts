@@ -2949,6 +2949,9 @@ export class QuarryServer extends Server<Env> {
   async resetRoomForRematch() {
     const code = this.state.code;
     const settings = this.state.settings;
+    // Keep the WS sequence monotonic. emptyRoomState() zeros stateVersion;
+    // clients treat a lower seq as stale and would stay stuck on GAME_RESULTS.
+    const prevVersion = this.state.stateVersion ?? 0;
     // Keep connected humans + bots; drop disconnected ghosts and do not
     // auto-promote spectators into the next lobby.
     const names = this.state.players
@@ -2964,6 +2967,7 @@ export class QuarryServer extends Server<Env> {
         connected: p.connected,
       }));
     this.state = emptyRoomState(code);
+    this.state.stateVersion = prevVersion;
     this.state.settings = settings;
     this.state.players = names.map((n, i) => ({
       id: n.id,
