@@ -6,6 +6,14 @@ import { phaseOmitsDraftJudgePayload } from "./public-state";
  * Late-round phases omit heavy draft/judge fields (empty arrays / objects)
  * so WS payloads stay small — restore them from `prev`.
  */
+/** Rematch rebuilds the room as LOBBY; never treat that as a stale replay. */
+export function isRematchLobbyReset(
+  prevPhase: string | null | undefined,
+  nextPhase: string | null | undefined,
+): boolean {
+  return nextPhase === "LOBBY" && prevPhase === "GAME_RESULTS";
+}
+
 export function mergePublicState(
   prev: PublicRoomState | null,
   next: PublicRoomState,
@@ -13,7 +21,8 @@ export function mergePublicState(
   if (!prev) return next;
   const prevV = prev.stateVersion ?? 0;
   const nextV = next.stateVersion ?? 0;
-  if (nextV > 0 && prevV > 0 && nextV < prevV) return prev;
+  const rematchReset = isRematchLobbyReset(prev.phase, next.phase);
+  if (!rematchReset && nextV > 0 && prevV > 0 && nextV < prevV) return prev;
   if (!phaseOmitsDraftJudgePayload(next.phase)) return next;
   // Only merge when we already had a richer snapshot from this room.
   if (prev.code !== next.code) return next;

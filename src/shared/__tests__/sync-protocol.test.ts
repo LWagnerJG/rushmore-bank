@@ -79,6 +79,28 @@ describe("state version gaps", () => {
     expect(mergePublicState(newer, older).notice).toBe("new");
     expect(mergePublicState(older, newer).notice).toBe("new");
   });
+
+  it("merge accepts rematch LOBBY even when stateVersion regresses", () => {
+    const end = emptyRoomState("SYNC");
+    end.phase = "GAME_RESULTS";
+    end.gameOver = true;
+    end.stateVersion = 9;
+    const prev = projectPublicState(end, "x");
+    const lobby = emptyRoomState("SYNC");
+    lobby.stateVersion = 1;
+    const next = projectPublicState(lobby, "x");
+    const merged = mergePublicState(prev, next);
+    expect(merged.phase).toBe("LOBBY");
+    expect(merged.stateVersion).toBe(1);
+    expect(merged.gameOver).toBe(false);
+  });
+
+  it("classifyStateVersion allows rematch regression when opted in", () => {
+    expect(classifyStateVersion(9, 1)).toBe("stale");
+    expect(
+      classifyStateVersion(9, 1, { allowRegression: true }),
+    ).toBe("ok");
+  });
 });
 
 describe("PartyServer seq / ping / resync", () => {
@@ -227,6 +249,8 @@ describe("client hook wires gap resync, queue, and heartbeat", () => {
     expect(hook).toMatch(/addEventListener\("online"/);
     expect(hook).toMatch(/addEventListener\("focus"/);
     expect(hook).toMatch(/makePing/);
+    expect(hook).toMatch(/isRematchLobbyReset/);
+    expect(hook).toMatch(/allowRegression:\s*rematchReset/);
     expect(hook).toMatch(/SYNC_DEAD_SOCKET_MS/);
   });
 

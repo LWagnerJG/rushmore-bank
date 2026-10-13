@@ -95,6 +95,41 @@ describe("endgame winner + rematch", () => {
     expect(server.state.gameOver).toBe(false);
   });
 
+  it("keeps stateVersion monotonic across rematch so clients accept LOBBY", async () => {
+    const { server } = createTestServer("RMVV");
+    server.state.phase = "GAME_RESULTS";
+    server.state.gameOver = true;
+    server.state.stateVersion = 12;
+    server.state.code = "RMVV";
+    server.state.players = [
+      {
+        id: "A",
+        name: "Ada",
+        stones: 80,
+        connected: true,
+        isHost: true,
+        role: "player",
+        seat: 0,
+        joinedAt: 1,
+      },
+      {
+        id: "B",
+        name: "Bea",
+        stones: 50,
+        connected: true,
+        isHost: false,
+        role: "player",
+        seat: 1,
+        joinedAt: 1,
+      },
+    ];
+    await server.handlePlayAgain("A");
+    await server.handlePlayAgain("B");
+    expect(server.state.phase).toBe("LOBBY");
+    // emptyRoomState used to zero this; clients then dropped LOBBY as stale.
+    expect(server.state.stateVersion).toBe(12);
+  });
+
   it("shows winner sweep on reveal rows + big Rematch with X ready (no confetti)", () => {
     expect(list).toMatch(/endgame-winner-sweep/);
     expect(list).toMatch(/showWinnerSweep/);

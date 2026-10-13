@@ -17,11 +17,11 @@ export type SyncGapKind = "ok" | "first" | "stale" | "gap";
 export function classifyStateVersion(
   lastApplied: number | null,
   incoming: number | null | undefined,
-  opts?: { allowEqual?: boolean },
+  opts?: { allowEqual?: boolean; allowRegression?: boolean },
 ): SyncGapKind {
   if (incoming == null || !Number.isFinite(incoming)) return "ok";
   if (lastApplied == null) return "first";
-  if (incoming < lastApplied) return "stale";
+  if (incoming < lastApplied) return opts?.allowRegression ? "ok" : "stale";
   if (incoming === lastApplied) return opts?.allowEqual ? "ok" : "stale";
   if (incoming > lastApplied + 1) return "gap";
   return "ok";
