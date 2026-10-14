@@ -110,12 +110,12 @@ export class SmokeClient {
   }
 
   send(m: object) {
-    this.sock.send(
-      JSON.stringify({
-        ...m,
-        actionId: `a-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      }),
-    );
+    // Preserve caller actionId so double-tap / dedupe smokes can reuse one id.
+    const incoming = m as { actionId?: string };
+    const actionId =
+      incoming.actionId ??
+      `a-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    this.sock.send(JSON.stringify({ ...m, actionId }));
   }
 
   async connect(timeoutMs = 10000) {

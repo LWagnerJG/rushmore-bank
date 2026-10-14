@@ -11,7 +11,8 @@
  * Env:
  *   WEB_URL          — base URL (default https://beans-web.beans-lwagner.workers.dev)
  *   EXPECTED_SHA     — full or short commit sha to match /api/version
- *   JUDGE_SECRET     — Bearer for /api/judge (optional if party mark accepted)
+ *   JUDGE_SECRET     — Bearer for /api/judge (required in prod; party mark
+ *                      alone is denied when JUDGE_SECRET is set on the host)
  */
 import { chromium, webkit, type Browser, type Page } from "playwright";
 import { execSync } from "node:child_process";
@@ -67,13 +68,16 @@ async function checkVersion(): Promise<void> {
 }
 
 async function checkJudge(): Promise<void> {
+  if (!process.env.JUDGE_SECRET) {
+    throw new Error(
+      "JUDGE_SECRET is required — prod /api/judge returns 401 without Bearer",
+    );
+  }
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     "x-quarry-judge": "partyserver",
+    Authorization: `Bearer ${process.env.JUDGE_SECRET}`,
   };
-  if (process.env.JUDGE_SECRET) {
-    headers.Authorization = `Bearer ${process.env.JUDGE_SECRET}`;
-  }
   const res = await fetch(`${WEB_URL}/api/judge`, {
     method: "POST",
     headers,
