@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  isAlwaysQuietRaceError,
   isBenignRaceError,
   RACE_ERROR_SUPPRESS_MS,
 } from "@/hooks/useGameRoom";
@@ -54,6 +55,22 @@ describe("error toast overlay", () => {
     expect(RACE_ERROR_SUPPRESS_MS).toBeGreaterThanOrEqual(800);
     expect(hook).toMatch(/suppressRaceUntilRef/);
     expect(hook).toMatch(/isBenignRaceError/);
+  });
+
+  it("always quiets dice-table race rejects (no revision-bump window)", () => {
+    expect(isBenignRaceError("Not your roll")).toBe(true);
+    expect(isBenignRaceError("Not ready to roll")).toBe(true);
+    expect(isBenignRaceError("Roll already committed — wait for settle")).toBe(
+      true,
+    );
+    expect(isAlwaysQuietRaceError("Not your roll")).toBe(true);
+    expect(isAlwaysQuietRaceError("Not ready to roll")).toBe(true);
+    expect(
+      isAlwaysQuietRaceError("Roll already committed — wait for settle"),
+    ).toBe(true);
+    expect(isAlwaysQuietRaceError("Not your turn")).toBe(false);
+    expect(isAlwaysQuietRaceError("Wrong phase")).toBe(false);
+    expect(hook).toMatch(/isAlwaysQuietRaceError/);
   });
 });
 

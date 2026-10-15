@@ -71,17 +71,50 @@ function friendlyPlayerError(raw: string | null | undefined): string | null {
  * Errors that are usually leftover from a double-tap / turn race after the
  * room already advanced (server may still reject a second distinct actionId).
  * Suppress briefly after a phaseRevision bump so the toast stays quiet.
+ *
+ * Dice table rejects are quieter still: COMMITTED tumbles last longer than
+ * {@link RACE_ERROR_SUPPRESS_MS} and do not bump phaseRevision, so a laggy
+ * Bank/Roll tap would otherwise flash a toast mid-animation.
  */
 export function isBenignRaceError(message: string | null | undefined): boolean {
   if (!message) return false;
   switch (message.trim()) {
     case "Not your turn":
+    case "Not your roll":
     case "Wrong phase":
     case "Slot already filled":
     case "Not drafting":
     case "Already started":
     case "Game over — play again":
     case "Roster full":
+    case "Not ready to roll":
+    case "Not ready":
+    case "Not active":
+    case "Wait your turn":
+    case "Roll already committed — wait for settle":
+    case "Cannot bank now":
+      return true;
+    default:
+      return false;
+  }
+}
+
+/**
+ * Dice-table race rejects — always swallow (no revision-bump window).
+ * Roll commit does not bump phaseRevision; settle holds exceed 1s.
+ */
+export function isAlwaysQuietRaceError(
+  message: string | null | undefined,
+): boolean {
+  if (!message) return false;
+  switch (message.trim()) {
+    case "Not your roll":
+    case "Not ready to roll":
+    case "Not ready":
+    case "Not active":
+    case "Wait your turn":
+    case "Roll already committed — wait for settle":
+    case "Cannot bank now":
       return true;
     default:
       return false;
@@ -188,8 +221,9 @@ export function useGameRoom(
     const next = friendlyPlayerError(msg);
     if (
       next &&
-      isBenignRaceError(next) &&
-      Date.now() < suppressRaceUntilRef.current
+      (isAlwaysQuietRaceError(next) ||
+        (isBenignRaceError(next) &&
+          Date.now() < suppressRaceUntilRef.current))
     ) {
       return;
     }
