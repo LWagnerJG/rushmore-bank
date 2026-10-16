@@ -67,6 +67,11 @@ describe("topic reselect contracts", () => {
     expect(topic).not.toMatch(/topic-vibe-chip[\s\S]{0,400}disabled/);
   });
 
+  it("disables topic choices while optimistic vibe shortlist is pending", () => {
+    expect(topic).toMatch(/shortlistPending/);
+    expect(topic).toMatch(/shortlistPending \|\| refreshing/);
+  });
+
   it("server accepts every distinct round chip, rejects a reused actionId", async () => {
     const { server, conn } = topicRoom();
     assert.deepEqual(server.state.processedActionIds, []);
@@ -139,5 +144,57 @@ describe("topic reselect contracts", () => {
       "animals",
       "reused actionId must not flip vibe",
     );
+  });
+
+  it("gestureKeyFor + revision bump lets a prior vibe re-land", async () => {
+    const { server, conn } = topicRoom();
+    const ids = new Map<string, string>();
+    let rev = server.state.phaseRevision;
+    for (const vibe of ["sports", "basic", "all", "geography", "sports"] as const) {
+      const key = gestureKeyFor(
+        { type: "update_settings", settings: { topicVibe: vibe } },
+        rev,
+      );
+      const actionId = ids.get(key) ?? `gid-${key}`;
+      ids.set(key, actionId);
+      await server.onMessage(
+        conn,
+        JSON.stringify({
+          type: "update_settings",
+          settings: { topicVibe: vibe },
+          actionId,
+        }),
+      );
+      assert.equal(
+        server.state.settings.topicVibe,
+        vibe,
+        `vibe=${vibe} rev=${rev} key=${key}`,
+      );
+      // Client clears gesture map when phaseRevision bumps.
+      if (server.state.phaseRevision !== rev) {
+        rev = server.state.phaseRevision;
+        ids.clear();
+      }
+    }
+  });
+
+  it("gestureKeyFor + revision bump lets a prior rounds chip re-land", async () => {
+    const { server, conn } = topicRoom();
+    const ids = new Map<string, string>();
+    let rev = server.state.phaseRevision;
+    for (const n of [4, 5, 6, 3, 4]) {
+      const key = gestureKeyFor({ type: "set_topic_rounds", rounds: n }, rev);
+      const actionId = ids.get(key) ?? `gid-${key}`;
+      ids.set(key, actionId);
+      await server.onMessage(
+        conn,
+        JSON.stringify({ type: "set_topic_rounds", rounds: n, actionId }),
+      );
+      assert.equal(server.state.configuredTopicRounds, n, `rounds=${n}`);
+      if (server.state.phaseRevision !== rev) {
+        rev = server.state.phaseRevision;
+        ids.clear();
+      }
+    }
   });
 });

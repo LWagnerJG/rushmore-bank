@@ -387,6 +387,7 @@ async function topicReselect(browser: Browser) {
       await host.locator(`.topic-rounds-chip[data-rounds="${n}"]`).click();
       await host.waitForFunction(
         `document.querySelector('.topic-rounds-chip[data-rounds="${n}"]')?.getAttribute('aria-pressed') === 'true'`,
+        undefined,
         { timeout: 8000 },
       );
       await assertChipOn(
@@ -400,6 +401,7 @@ async function topicReselect(browser: Browser) {
       await host.locator(`.topic-vibe-chip[data-vibe="${vibe}"]`).click();
       await host.waitForFunction(
         `document.querySelector('.topic-vibe-chip[data-vibe="${vibe}"]')?.getAttribute('aria-pressed') === 'true'`,
+        undefined,
         { timeout: 8000 },
       );
       await assertChipOn(
@@ -410,7 +412,23 @@ async function topicReselect(browser: Browser) {
     }
 
     // Pick a topic, then change rounds again — must still land.
-    const choice = host.locator(".topic-choice").first();
+    // Wait until the shortlist finished spinning (buttons enabled) — the vibe
+    // chip is optimistic and can show pressed before new options arrive.
+    // Use button.topic-choice — the custom row is a div.topic-choice.
+    // Playwright: options are the 3rd arg — `{ timeout }` as 2nd is treated as `arg`.
+    await host.waitForFunction(
+      `(() => {
+        const btns = [...document.querySelectorAll("button.topic-choice")];
+        return (
+          btns.length >= 1 &&
+          btns.every((b) => !(b).disabled) &&
+          !document.querySelector(".topic-choices.topic-refresh")
+        );
+      })()`,
+      undefined,
+      { timeout: 12000 },
+    );
+    const choice = host.locator("button.topic-choice:not([disabled])").first();
     await choice.click();
     await host.locator(".topic-choice-selected").waitFor({ timeout: 8000 });
     await host.locator('.topic-rounds-chip[data-rounds="6"]').click();

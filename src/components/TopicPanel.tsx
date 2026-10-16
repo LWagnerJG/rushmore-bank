@@ -34,6 +34,11 @@ export function TopicPanel({
   const canPickRounds = you.isHost && firstTopicScreen;
   const shownRounds = pendingRounds ?? state.configuredTopicRounds;
   const shownVibe = pendingVibe ?? (state.settings.topicVibe ?? "all");
+  // Optimistic vibe chip can paint before the server shortlist lands — voting
+  // against the stale list throws Invalid topic and never shows selected.
+  const shortlistPending =
+    pendingVibe != null &&
+    pendingVibe !== (state.settings.topicVibe ?? "all");
 
   // Animate only on reroll (options change after first paint) — never on land.
   useEffect(() => {
@@ -243,7 +248,9 @@ export function TopicPanel({
               type="button"
               className={`topic-choice ${selected ? "topic-choice-selected" : ""}`}
               onClick={() => send({ type: "vote_topic", topicId: t.id })}
-              disabled={you.role !== "player"}
+              disabled={
+                you.role !== "player" || shortlistPending || refreshing
+              }
             >
               <span className="topic-choice-text">{t.text}</span>
               <span className="topic-choice-votes tabular-nums">{votes}</span>

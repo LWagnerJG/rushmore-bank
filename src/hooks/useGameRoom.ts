@@ -175,6 +175,19 @@ export function gestureKeyFor(
       return `admin_spawn_bots:${rev}:${msg.count}`;
     case "admin_jump_phase":
       return `admin_jump_phase:${rev}:${msg.phase}`;
+    // Discriminating fields required: these actions do not always bump
+    // phaseRevision (no-ops / multi-target taps), so a bare `${type}:${rev}`
+    // key would reuse one actionId and get eaten by server seenAction.
+    case "set_avatar":
+      return `set_avatar:${rev}:${msg.avatarId}`;
+    case "remove_player":
+      return `remove_player:${rev}:${msg.playerId}`;
+    case "host_correct":
+      return `host_correct:${rev}:${msg.turnIndex}:${msg.reason}`;
+    case "custom_topic":
+      return `custom_topic:${rev}:${msg.text}:${msg.scope}:${msg.scopeBoundary}`;
+    case "rename":
+      return `rename:${rev}:${msg.name}`;
     default:
       return `${msg.type}:${rev}`;
   }
