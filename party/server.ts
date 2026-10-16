@@ -1439,6 +1439,9 @@ export class QuarryServer extends Server<Env> {
           this.state.topicVotes = {};
           this.spinShortlist();
           this.state.phaseDeadlineAt = null;
+          // Bump so clients clear gestureIds — re-selecting a prior vibe
+          // (sports→…→sports) must not reuse a burned actionId.
+          bump(this.state);
         }
         return;
       }
@@ -1475,7 +1478,10 @@ export class QuarryServer extends Server<Env> {
     ) {
       throw new Error("Rounds locked");
     }
+    if (this.state.configuredTopicRounds === n) return;
     this.state.configuredTopicRounds = n;
+    // Bump so re-tapping a prior round chip after another gets a fresh actionId.
+    bump(this.state);
   }
 
   async handleStart(id: string) {
