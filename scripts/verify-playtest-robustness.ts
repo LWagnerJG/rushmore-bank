@@ -410,7 +410,10 @@ async function topicReselect(browser: Browser) {
     }
 
     // Pick a topic, then change rounds again — must still land.
-    const choice = host.locator(".topic-choice").first();
+    // Use button.topic-choice — the custom row is a div.topic-choice and can
+    // be first() while vibe shortlist is still refreshing (empty options).
+    const choice = host.locator("button.topic-choice").first();
+    await choice.waitFor({ state: "visible", timeout: 10000 });
     await choice.click();
     await host.locator(".topic-choice-selected").waitFor({ timeout: 8000 });
     await host.locator('.topic-rounds-chip[data-rounds="6"]').click();
