@@ -1882,6 +1882,10 @@ export class QuarryServer extends Server<Env> {
         this.state.pickDeadlineAt - Date.now(),
       );
     }
+    // Bump so a later Resume/Pause/Extend tap gets a fresh actionId.
+    // These handlers do not otherwise advance phaseRevision, so a bare
+    // `host_pause:${rev}` key would burn and eat the next host clock tap.
+    bump(this.state);
     void this.clearAlarm();
   }
 
@@ -1892,6 +1896,7 @@ export class QuarryServer extends Server<Env> {
     const rem = this.state.pickPauseRemainingMs ?? RULES.pickClockSeconds * 1000;
     this.state.pickDeadlineAt = Date.now() + rem;
     this.state.pickPauseRemainingMs = null;
+    bump(this.state);
     await this.setAlarmAt(this.state.pickDeadlineAt, {
       kind: "pick",
       revision: this.state.phaseRevision,
@@ -1902,6 +1907,7 @@ export class QuarryServer extends Server<Env> {
     if (!this.requireHost(id)) throw new Error("Host only");
     if (!this.state.pickDeadlineAt) return;
     this.state.pickDeadlineAt += RULES.hostExtendSeconds * 1000;
+    bump(this.state);
     if (!this.state.pickPaused) {
       await this.setAlarmAt(this.state.pickDeadlineAt, {
         kind: "pick",
