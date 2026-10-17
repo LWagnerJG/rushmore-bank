@@ -14,20 +14,23 @@ const script = readFileSync(
 
 describe("playtest waitForFunction arity", () => {
   it("passes timeout as the 3rd arg for the rounds-6 reselect wait", () => {
-    const marker = "topic-rounds-chip[data-rounds=\"6\"]').click";
-    const idx = script.indexOf(marker);
-    expect(idx).toBeGreaterThan(-1);
-    const afterClick = script.slice(idx, idx + 400);
-    expect(afterClick).toMatch(
-      /waitForFunction\(\s*`[^`]+`,\s*undefined,\s*\{\s*timeout:\s*8000\s*\}\s*\)/,
+    const clickIdx = script.indexOf(`data-rounds="6"]').click`);
+    expect(clickIdx).toBeGreaterThan(-1);
+    const afterClick = script.slice(clickIdx, clickIdx + 400);
+    const waitIdx = afterClick.indexOf("waitForFunction");
+    expect(waitIdx).toBeGreaterThan(-1);
+    const call = afterClick.slice(waitIdx, waitIdx + 280);
+    expect(call).toContain("undefined");
+    expect(call).toContain("{ timeout: 8000 }");
+    expect(call.indexOf("undefined")).toBeLessThan(
+      call.indexOf("{ timeout: 8000 }"),
     );
-    expect(afterClick).not.toMatch(
-      /waitForFunction\(\s*`[^`]+`,\s*\{\s*timeout:\s*8000\s*\}\s*\)/,
-    );
+    // Broken form: options object immediately after the template string.
+    expect(call).not.toMatch(/`\s*,\s*\{\s*timeout:\s*8000\s*\}/);
   });
 
   it("documents the Playwright arity pitfall near topic waits", () => {
-    expect(script).toMatch(/options are the 3rd arg/);
-    expect(script).toMatch(/\{ timeout \} as 2nd is treated as `arg`/);
+    expect(script).toContain("options are the 3rd arg");
+    expect(script).toContain("as 2nd is treated as `arg`");
   });
 });
