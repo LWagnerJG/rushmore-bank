@@ -434,6 +434,7 @@ async function topicReselect(browser: Browser) {
     await host.locator('.topic-rounds-chip[data-rounds="6"]').click();
     await host.waitForFunction(
       `document.querySelector('.topic-rounds-chip[data-rounds="6"]')?.getAttribute('aria-pressed') === 'true'`,
+      undefined,
       { timeout: 8000 },
     );
 
