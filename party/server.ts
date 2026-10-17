@@ -2950,8 +2950,13 @@ export class QuarryServer extends Server<Env> {
 
   async maybeRematchFromReady() {
     if (this.state.phase !== "GAME_RESULTS") return;
+    // Soft-disconnect grace seats still count — same as vote/wager quorum.
+    // Otherwise a brief app-switch drops someone from "needed" and rematch
+    // can fire with only the remaining seat, kicking the grace player.
     const needed = this.state.players.filter(
-      (p) => p.role === "player" && p.connected,
+      (p) =>
+        p.role === "player" &&
+        (p.connected || this.leaveTimers.has(p.id)),
     );
     if (needed.length === 0) return;
     if (!needed.every((p) => this.state.rematchReady?.[p.id])) return;
@@ -2964,12 +2969,13 @@ export class QuarryServer extends Server<Env> {
     // Keep the WS sequence monotonic. emptyRoomState() zeros stateVersion;
     // clients treat a lower seq as stale and would stay stuck on GAME_RESULTS.
     const prevVersion = this.state.stateVersion ?? 0;
-    // Keep connected humans + bots; drop disconnected ghosts and do not
-    // auto-promote spectators into the next lobby.
+    // Keep connected humans, bots, and soft-disconnect grace seats; drop
+    // true ghosts (grace expired) and do not auto-promote spectators.
     const names = this.state.players
       .filter(
         (p) =>
-          (p.role === "player" && (p.connected || isBotId(p.id))) ||
+          (p.role === "player" &&
+            (p.connected || isBotId(p.id) || this.leaveTimers.has(p.id))) ||
           p.role === "spectator",
       )
       .map((p) => ({

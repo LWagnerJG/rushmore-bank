@@ -147,9 +147,10 @@ export function projectPublicStateShared(
   const humanVotedIds = Object.keys(state.humanVotes).filter((pid) =>
     inQuorum(pid),
   );
-  // Rematch: all connected players (lobby may have no seatOrder yet after prior games).
+  // Rematch: connected players + soft-disconnect grace (same as vote/wager).
+  // Do not require seatOrder — GAME_RESULTS / post-reset lobbies still count.
   const rematchPool = state.players.filter(
-    (p) => p.role === "player" && p.connected,
+    (p) => p.role === "player" && (p.connected || grace.has(p.id)),
   );
   const rematchReadyIds = rematchPool
     .filter((p) => !!state.rematchReady?.[p.id])
