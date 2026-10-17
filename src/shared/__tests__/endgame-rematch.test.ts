@@ -161,4 +161,113 @@ describe("endgame winner + rematch", () => {
     expect(gateIdx).toBeGreaterThan(-1);
     expect(rematchBtn).toBeGreaterThan(gateIdx);
   });
+
+  it("counts soft-disconnect grace seats in rematch needed", () => {
+    const state = emptyRoomState("GRCE");
+    state.phase = "GAME_RESULTS";
+    state.gameOver = true;
+    state.players = [
+      {
+        id: "a",
+        name: "Ada",
+        stones: 90,
+        connected: true,
+        isHost: true,
+        role: "player",
+        seat: 0,
+        joinedAt: 1,
+      },
+      {
+        id: "b",
+        name: "Bea",
+        stones: 40,
+        connected: false,
+        isHost: false,
+        role: "player",
+        seat: 1,
+        joinedAt: 1,
+      },
+    ];
+    state.rematchReady = { a: true };
+    const withoutGrace = projectPublicState(state, "a");
+    expect(withoutGrace.rematchReadyNeeded).toBe(1);
+    const withGrace = projectPublicState(state, "a", {
+      gracePlayerIds: ["b"],
+    });
+    expect(withGrace.rematchReadyNeeded).toBe(2);
+    expect(withGrace.rematchReadyCast).toBe(1);
+  });
+
+  it("does not rematch while a grace seat is still needed", async () => {
+    const { server } = createTestServer("GRMT");
+    server.state.phase = "GAME_RESULTS";
+    server.state.gameOver = true;
+    server.state.code = "GRMT";
+    server.state.players = [
+      {
+        id: "A",
+        name: "Ada",
+        stones: 80,
+        connected: true,
+        isHost: true,
+        role: "player",
+        seat: 0,
+        joinedAt: 1,
+      },
+      {
+        id: "B",
+        name: "Bea",
+        stones: 50,
+        connected: false,
+        isHost: false,
+        role: "player",
+        seat: 1,
+        joinedAt: 1,
+      },
+    ];
+    // Soft-disconnect grace: B still counts for rematch quorum.
+    server.armLeaveTimer("B", 45_000);
+    await server.handlePlayAgain("A");
+    expect(server.state.phase).toBe("GAME_RESULTS");
+    expect(server.state.rematchReady.A).toBe(true);
+    // B taps while still in grace (reconnect race) — rematch should fire.
+    await server.handlePlayAgain("B");
+    expect(server.state.phase).toBe("LOBBY");
+    expect(server.state.players.map((p) => p.id).sort()).toEqual(["A", "B"]);
+  });
+
+  it("keeps a grace seat through rematch reset until they reconnect or leave", async () => {
+    const { server } = createTestServer("GRKP");
+    server.state.phase = "GAME_RESULTS";
+    server.state.gameOver = true;
+    server.state.code = "GRKP";
+    server.state.players = [
+      {
+        id: "A",
+        name: "Ada",
+        stones: 80,
+        connected: true,
+        isHost: true,
+        role: "player",
+        seat: 0,
+        joinedAt: 1,
+      },
+      {
+        id: "B",
+        name: "Bea",
+        stones: 50,
+        connected: false,
+        isHost: false,
+        role: "player",
+        seat: 1,
+        joinedAt: 1,
+      },
+    ];
+    server.armLeaveTimer("B", 45_000);
+    server.state.rematchReady = { A: true, B: true };
+    await server.maybeRematchFromReady();
+    expect(server.state.phase).toBe("LOBBY");
+    expect(server.state.players.map((p) => p.id).sort()).toEqual(["A", "B"]);
+    expect(server.state.players.find((p) => p.id === "B")?.connected).toBe(false);
+  });
 });
