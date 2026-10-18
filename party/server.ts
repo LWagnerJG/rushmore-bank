@@ -889,6 +889,11 @@ export class QuarryServer extends Server<Env> {
     remapKey(this.state.personalRollCounts as Record<string, unknown>);
     remapKey(this.state.topicVotes as Record<string, unknown>);
     remapKey(this.state.humanVotes as Record<string, unknown>);
+    // humanVotes values are target player ids — remap those too, or a
+    // ballot for the reclaimed seat evaporates from applyVoteCounts.
+    for (const [voter, target] of Object.entries(this.state.humanVotes)) {
+      if (target === oldId) this.state.humanVotes[voter] = newId;
+    }
     if (this.state.checkpoint?.stones) {
       remapKey(this.state.checkpoint.stones as Record<string, unknown>);
     }

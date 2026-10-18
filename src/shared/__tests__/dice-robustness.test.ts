@@ -116,6 +116,17 @@ describe("dice table robustness", () => {
     assert.ok(!g.server.state.seatOrder.includes("A"));
   });
 
+  it("reclaimSeatId remaps humanVotes target values to the new seat id", () => {
+    const g = game();
+    g.server.state.humanVotes = { B: "A", C: "B" };
+    g.server.state.players.find((p) => p.id === "A")!.connected = false;
+    assert.equal(g.server.reclaimSeatId("A", "A-new", "A"), true);
+    assert.equal(g.server.state.humanVotes.B, "A-new");
+    assert.equal(g.server.state.humanVotes.C, "B");
+    assert.equal(g.server.state.humanVotes.A, undefined);
+    assert.equal(g.server.state.humanVotes["A-new"], undefined);
+  });
+
   it("leaving during bust-redo clears the prompt and banks the leaver", async () => {
     const g = game();
     await beginDice(g.server);
