@@ -82,6 +82,7 @@ export function isBenignRaceError(message: string | null | undefined): boolean {
     case "Not your turn":
     case "Not your roll":
     case "Wrong phase":
+    case "Invalid topic":
     case "Slot already filled":
     case "Not drafting":
     case "Already started":

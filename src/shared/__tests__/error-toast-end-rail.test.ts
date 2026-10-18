@@ -50,11 +50,16 @@ describe("error toast overlay", () => {
 
   it("suppresses benign race leftovers after a revision bump", () => {
     expect(isBenignRaceError("Not your turn")).toBe(true);
+    expect(isBenignRaceError("Invalid topic")).toBe(true);
     expect(isBenignRaceError("Rounds locked")).toBe(false);
     expect(isBenignRaceError("Game over — play again")).toBe(true);
     expect(RACE_ERROR_SUPPRESS_MS).toBeGreaterThanOrEqual(800);
     expect(hook).toMatch(/suppressRaceUntilRef/);
     expect(hook).toMatch(/isBenignRaceError/);
+  });
+
+  it("does not always-quiet Invalid topic (only revision-window)", () => {
+    expect(isAlwaysQuietRaceError("Invalid topic")).toBe(false);
   });
 
   it("always quiets dice-table race rejects (no revision-bump window)", () => {
