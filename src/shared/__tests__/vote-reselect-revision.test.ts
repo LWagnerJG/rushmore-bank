@@ -39,9 +39,9 @@ function topicRoom() {
   server.state.phase = "TOPIC_SELECTION";
   server.state.topicRound = 0;
   server.state.topicOptions = [
-    { id: "t1", text: "One", scope: "personal", scopeBoundary: "" },
-    { id: "t2", text: "Two", scope: "personal", scopeBoundary: "" },
-    { id: "t3", text: "Three", scope: "personal", scopeBoundary: "" },
+    { id: "t1", text: "One", scope: "everyday", scopeBoundary: "" },
+    { id: "t2", text: "Two", scope: "everyday", scopeBoundary: "" },
+    { id: "t3", text: "Three", scope: "everyday", scopeBoundary: "" },
   ];
   return { server, conn, sent };
 }
@@ -63,38 +63,17 @@ function voteRoom() {
   server.state.seatOrder = ["A", "B", "C"];
   server.state.rosterLocked = true;
   server.state.phase = "VOTING_AND_JUDGING";
-  server.state.scores = [
-    {
-      playerId: "A",
-      votes: 0,
-      aiAward: 0,
-      topicFit: 0,
-      pickStrength: 0,
-      rosterQuality: 0,
-      explanation: "",
-      earned: 0,
-    },
-    {
-      playerId: "B",
-      votes: 0,
-      aiAward: 0,
-      topicFit: 0,
-      pickStrength: 0,
-      rosterQuality: 0,
-      explanation: "",
-      earned: 0,
-    },
-    {
-      playerId: "C",
-      votes: 0,
-      aiAward: 0,
-      topicFit: 0,
-      pickStrength: 0,
-      rosterQuality: 0,
-      explanation: "",
-      earned: 0,
-    },
-  ];
+  server.state.scores = ["A", "B", "C"].map((id) => ({
+    playerId: id,
+    votes: 0,
+    aiAward: 0,
+    topicFit: 0,
+    pickStrength: 0,
+    rosterQuality: 0,
+    explanation: "",
+    earned: 0,
+    aiFallback: false,
+  }));
   return { server, conn, sent };
 }
 
