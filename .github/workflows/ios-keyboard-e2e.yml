@@ -57,7 +57,23 @@ jobs:
       - name: Start local PartyServer
         run: npx wrangler dev --ip 127.0.0.1 --port 8787 > "$RUNNER_TEMP/wrangler.log" 2>&1 &
       - name: Build app against the local PartyServer
-        run: npx next build
+        run: |
+          # Turbopack next/font/google does not retry gstatic fetches.
+          ok=0
+          for attempt in 1 2 3; do
+            echo "next build attempt ${attempt}…"
+            rm -rf .next
+            if npx next build; then
+              ok=1
+              break
+            fi
+            echo "next build attempt ${attempt} failed."
+            sleep 8
+          done
+          if [ "$ok" != "1" ]; then
+            echo "next build failed after 3 attempts."
+            exit 1
+          fi
       - name: Start app
         run: npx next start -H 127.0.0.1 -p 3100 > "$RUNNER_TEMP/next.log" 2>&1 &
       - name: Wait for both servers
