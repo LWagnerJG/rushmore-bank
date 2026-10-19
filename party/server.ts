@@ -1636,7 +1636,11 @@ export class QuarryServer extends Server<Env> {
     if (!this.state.topicOptions.some((t) => t.id === topicId)) {
       throw new Error("Invalid topic");
     }
+    if (this.state.topicVotes[id] === topicId) return;
     this.state.topicVotes[id] = topicId;
+    // Bump so clients clear gestureIds — re-selecting a prior topic
+    // (A→B→A) must not reuse a burned vote_topic:${rev}:${id} actionId.
+    bump(this.state);
     const needed = quorumPlayers(this.state, this.leaveTimers).length;
     const quorumIds = new Set(
       quorumPlayers(this.state, this.leaveTimers).map((p) => p.id),
@@ -2195,7 +2199,11 @@ export class QuarryServer extends Server<Env> {
       throw new Error("Invalid target");
     }
     // One effective ballot per eligible player (overwrite allowed = last write wins)
+    if (this.state.humanVotes[id] === targetPlayerId) return;
     this.state.humanVotes[id] = targetPlayerId;
+    // Bump so clients clear gestureIds — re-selecting a prior target
+    // (B→C→B) must not reuse a burned submit_vote:${rev}:${target} actionId.
+    bump(this.state);
     const needed = this.humanVoteNeededCount();
     if (
       this.humanVoteCastCount() >= needed &&
