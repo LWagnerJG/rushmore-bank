@@ -90,8 +90,13 @@ export const RULES = {
   diceSettleHoldMs: 1100,
   /** Extra linger after BEAN BUSTER before next seat (intentional beat + fade) */
   diceBustHoldMs: 2000,
-  /** AI judging HTTP timeout */
-  judgeTimeoutMs: 20000,
+  /**
+   * Total wall-clock budget for PartyServer → /api/judge (attempt + one retry).
+   * Kept bounded so a hung provider never stalls the vote phase indefinitely.
+   */
+  judgeTimeoutMs: 25_000,
+  /** Max fetch attempts within judgeTimeoutMs (1 = no retry). */
+  judgeMaxAttempts: 2,
 
   /** Host / lobby */
   /**

@@ -145,6 +145,7 @@ describe("/api/judge free-tier flash-lite chain", () => {
     expect(data.fallbackReason).toBeUndefined();
     expect(data.judgments[0].topicFit).toBe(8);
     expect(data.model).toBe("gemini-3.5-flash-lite");
+    expect(data.provider).toBe("gemini");
     expect(typeof data.latencyMs).toBe("number");
 
     const generateUrls = fetchMock.mock.calls
@@ -348,10 +349,96 @@ describe("/api/judge free-tier flash-lite chain", () => {
     const res = await POST(partyRequest());
     const data = await res.json();
     expect(data.fallback).toBe(false);
-    expect(data.model).toBe("llama-3.1-8b-instant");
+    expect(data.model).toBe("openai/gpt-oss-20b");
+    expect(data.provider).toBe("groq");
     expect(
       fetchMock.mock.calls.some((c) => String(c[0]).includes("api.groq.com")),
     ).toBe(true);
+  });
+
+  it("falls through to Groq after Gemini per-provider timeout", async () => {
+    process.env.GEMINI_API_KEY = "test-gemini";
+    process.env.GROQ_API_KEY = "test-groq";
+    vi.useFakeTimers();
+
+    let geminiGenerates = 0;
+    fetchMock.mockImplementation(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (isModelsList(url)) {
+          return modelsListResponse(["gemini-3.5-flash-lite"]);
+        }
+        if (isGenerate(url)) {
+          geminiGenerates += 1;
+          // First model exceeds per-provider abort; later candidates fail fast
+          // so Groq still has budget (chain appends preferred aliases).
+          if (geminiGenerates === 1) {
+            return new Promise((_resolve, reject) => {
+              const signal = init?.signal;
+              if (!signal) return;
+              signal.addEventListener("abort", () => {
+                const err = new Error("Aborted");
+                err.name = "AbortError";
+                reject(err);
+              });
+            });
+          }
+          return new Response("rate", { status: 429 });
+        }
+        if (url.includes("api.groq.com")) {
+          return new Response(
+            JSON.stringify({
+              choices: [{ message: { content: judgmentsJson() } }],
+            }),
+            { status: 200, headers: { "content-type": "application/json" } },
+          );
+        }
+        return new Response("nope", { status: 500 });
+      },
+    );
+
+    const { POST } = await import("./route");
+    const pending = POST(partyRequest());
+    // Advance past Gemini per-provider abort (~8s) but stay inside the
+    // request budget so Groq still has room to answer.
+    for (let i = 0; i < 20; i++) {
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(500);
+    }
+    const res = await pending;
+    const data = await res.json();
+    expect(data.fallback).toBe(false);
+    expect(data.provider).toBe("groq");
+    expect(data.model).toBe("openai/gpt-oss-20b");
+    expect(
+      fetchMock.mock.calls.some((c) => String(c[0]).includes("api.groq.com")),
+    ).toBe(true);
+  });
+
+  it("skips Groq gracefully when GROQ_API_KEY is unset", async () => {
+    process.env.GEMINI_API_KEY = "test-gemini";
+    delete process.env.GROQ_API_KEY;
+
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (isModelsList(url)) {
+        return modelsListResponse(["gemini-3.5-flash-lite"]);
+      }
+      if (url.includes("generativelanguage.googleapis.com")) {
+        return new Response("rate", { status: 429 });
+      }
+      return new Response("nope", { status: 500 });
+    });
+
+    const { POST } = await import("./route");
+    const res = await POST(partyRequest());
+    const data = await res.json();
+    expect(data.fallback).toBe(true);
+    expect(data.fallbackReason).toBe("rate_limited");
+    expect(data.provider).toBeNull();
+    expect(
+      fetchMock.mock.calls.some((c) => String(c[0]).includes("api.groq.com")),
+    ).toBe(false);
   });
 
   it("does not call OpenAI even if OPENAI_API_KEY is present", async () => {
@@ -536,9 +623,21 @@ describe("GET /api/judge health probe", () => {
     const data = await res.json();
     expect(data.available).toBe(true);
     expect(data.model).toBe("gemini-3.5-flash-lite");
+    expect(data.provider).toBe("gemini");
     expect(fetchMock.mock.calls.every((c) => isModelsList(String(c[0])))).toBe(
       true,
     );
+  });
+
+  it("reports groq provider/model when only GROQ_API_KEY is set", async () => {
+    process.env.GROQ_API_KEY = "test-groq";
+    const { GET } = await import("./route");
+    const res = await GET();
+    const data = await res.json();
+    expect(data.available).toBe(true);
+    expect(data.model).toBe("openai/gpt-oss-20b");
+    expect(data.provider).toBe("groq");
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("reports unavailable when the models list fails and no groq key", async () => {

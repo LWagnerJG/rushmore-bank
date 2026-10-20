@@ -51,10 +51,14 @@ export type JudgeFallbackReason =
  * Server `lastJudgeOutcome` may still be null until the first completed job.
  * fallbackReason / model / latencyMs are host-debug only.
  */
+/** AI judge backend — host/logging only (never player-facing). */
+export type JudgeProvider = "gemini" | "groq";
+
 export type HostAiJudgeHealth = {
   status: LastJudgeOutcome | "pending" | "ready";
   fallbackReason?: JudgeFallbackReason | null;
   model?: string | null;
+  provider?: JudgeProvider | null;
   latencyMs?: number | null;
 };
 
@@ -247,6 +251,7 @@ export interface RoomState {
   /** Host-only meta from last judge response (never player-facing). */
   lastJudgeFallbackReason: JudgeFallbackReason | null;
   lastJudgeModel: string | null;
+  lastJudgeProvider: JudgeProvider | null;
   lastJudgeLatencyMs: number | null;
   /** Players who tapped “Ready to wager” on SCORE_REVEAL */
   bankBeansReady: Record<string, true>;
@@ -567,6 +572,7 @@ export function emptyRoomState(code: string): RoomState {
     lastJudgeOutcome: null,
     lastJudgeFallbackReason: null,
     lastJudgeModel: null,
+    lastJudgeProvider: null,
     lastJudgeLatencyMs: null,
     bankBeansReady: {},
     rematchReady: {},

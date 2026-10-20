@@ -74,6 +74,7 @@ export function hostAiJudgeHealth(state: RoomState): HostAiJudgeHealth {
       status,
       fallbackReason: state.lastJudgeFallbackReason ?? null,
       model: state.lastJudgeModel ?? null,
+      provider: state.lastJudgeProvider ?? null,
       latencyMs: state.lastJudgeLatencyMs ?? null,
     };
   }
@@ -81,6 +82,7 @@ export function hostAiJudgeHealth(state: RoomState): HostAiJudgeHealth {
     return {
       status,
       model: state.lastJudgeModel ?? null,
+      provider: state.lastJudgeProvider ?? null,
       latencyMs: state.lastJudgeLatencyMs ?? null,
     };
   }
@@ -290,6 +292,7 @@ export function publicStateLeaksBallots(
     Object.prototype.hasOwnProperty.call(pub, "lastJudgeOutcome") ||
     Object.prototype.hasOwnProperty.call(pub, "lastJudgeFallbackReason") ||
     Object.prototype.hasOwnProperty.call(pub, "lastJudgeModel") ||
+    Object.prototype.hasOwnProperty.call(pub, "lastJudgeProvider") ||
     Object.prototype.hasOwnProperty.call(pub, "lastJudgeLatencyMs") ||
     Object.prototype.hasOwnProperty.call(pub, "ledger") ||
     Object.prototype.hasOwnProperty.call(pub, "usedTopicIds")

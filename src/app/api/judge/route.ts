@@ -8,9 +8,13 @@ export const runtime = "nodejs";
 export const maxDuration = 30;
 
 /** Per-provider fetch AbortSignal timeout. */
-const PROVIDER_TIMEOUT_MS = 6_000;
-/** Wall-clock budget for the whole judge request (all models). */
-const REQUEST_BUDGET_MS = 14_000;
+const PROVIDER_TIMEOUT_MS = 8_000;
+/**
+ * Wall-clock budget for the whole judge request (Gemini chain + optional Groq).
+ * PartyServer allows ~25s total with one retry; each attempt should finish
+ * (or fall back) inside this window so the client is not left hanging.
+ */
+const REQUEST_BUDGET_MS = 20_000;
 
 /**
  * Preferred Gemini chain — free-tier speed first.
@@ -27,8 +31,16 @@ const GEMINI_FLASH_BACKUP_CANDIDATES = [
   "gemini-3.6-flash",
 ] as const;
 
-/** Optional free-tier Groq fallback (only when GROQ_API_KEY is set). */
-const GROQ_MODEL = "llama-3.1-8b-instant";
+/**
+ * Optional Groq fallback (only when GROQ_API_KEY is set).
+ * `llama-3.1-8b-instant` shut down 2026-08-16 for free/dev tiers —
+ * replacement per https://console.groq.com/docs/deprecations
+ */
+const GROQ_MODEL = "openai/gpt-oss-20b";
+const GROQ_PROVIDER = "groq" as const;
+const GEMINI_PROVIDER = "gemini" as const;
+
+export type JudgeApiProvider = typeof GEMINI_PROVIDER | typeof GROQ_PROVIDER;
 
 /** Tight JSON output — typical 2–4 roster reply should finish in ~2–4s. */
 const MAX_OUTPUT_TOKENS = 320;
@@ -74,7 +86,12 @@ type ModelResult =
   | { ok: false; kind: ProviderFailKind };
 
 type ResolvedJudgments =
-  | { ok: true; judgments: Judgment[]; model: string }
+  | {
+      ok: true;
+      judgments: Judgment[];
+      model: string;
+      provider: JudgeApiProvider;
+    }
   | { ok: false; reason: JudgeFallbackReason };
 
 let geminiModelCache: { at: number; models: string[] } | null = null;
@@ -191,7 +208,11 @@ export function normalizeJudgments(
 function fallbackResponse(
   cleanRosters: CleanRoster[],
   reason: JudgeFallbackReason,
-  meta: { model?: string | null; latencyMs: number },
+  meta: {
+    model?: string | null;
+    provider?: JudgeApiProvider | null;
+    latencyMs: number;
+  },
 ) {
   return NextResponse.json({
     judgments: heuristicJudgeUniform(cleanRosters).map((j) => ({
@@ -201,6 +222,7 @@ function fallbackResponse(
     fallback: true,
     fallbackReason: reason,
     model: meta.model ?? null,
+    provider: meta.provider ?? null,
     latencyMs: meta.latencyMs,
     promptVersion: RULES.aiPromptVersion,
     limitation: FRIENDLY_LIMITATION,
@@ -580,11 +602,11 @@ async function judgeWithProviders(
           lastFail = "invalid_output";
           continue;
         }
-        return { ok: true, judgments, model };
+        return { ok: true, judgments, model, provider: GEMINI_PROVIDER };
       }
     }
 
-    // Optional free Groq — only when GROQ_API_KEY is set (no paid providers).
+    // Optional Groq — only when GROQ_API_KEY is set (skip gracefully otherwise).
     if (qKey && remainingBudget(startedAt) >= 200) {
       let result = await callGroqOnce(
         qKey,
@@ -619,7 +641,12 @@ async function judgeWithProviders(
           sawInvalid = true;
           lastFail = "invalid_output";
         } else {
-          return { ok: true, judgments, model: GROQ_MODEL };
+          return {
+            ok: true,
+            judgments,
+            model: GROQ_MODEL,
+            provider: GROQ_PROVIDER,
+          };
         }
       }
     }
@@ -679,22 +706,30 @@ async function probeUpstreamJudge(
       return NextResponse.json({
         available: false,
         model: null,
+        provider: null,
         latencyMs: Date.now() - startedAt,
       });
     }
     const data = (await res.json()) as {
       available?: boolean;
       model?: string | null;
+      provider?: string | null;
     };
+    const provider =
+      data.provider === "gemini" || data.provider === "groq"
+        ? data.provider
+        : null;
     return NextResponse.json({
       available: !!data.available,
       model: typeof data.model === "string" ? data.model : null,
+      provider,
       latencyMs: Date.now() - startedAt,
     });
   } catch {
     return NextResponse.json({
       available: false,
       model: null,
+      provider: null,
       latencyMs: Date.now() - startedAt,
     });
   } finally {
@@ -726,6 +761,7 @@ export async function GET(req?: NextRequest) {
     return NextResponse.json({
       available: false,
       model: null,
+      provider: null,
       latencyMs: Date.now() - startedAt,
     });
   }
@@ -739,6 +775,7 @@ export async function GET(req?: NextRequest) {
         return NextResponse.json({
           available: true,
           model,
+          provider: GEMINI_PROVIDER,
           latencyMs: Date.now() - startedAt,
         });
       }
@@ -747,12 +784,14 @@ export async function GET(req?: NextRequest) {
       return NextResponse.json({
         available: true,
         model: GROQ_MODEL,
+        provider: GROQ_PROVIDER,
         latencyMs: Date.now() - startedAt,
       });
     }
     return NextResponse.json({
       available: false,
       model: null,
+      provider: null,
       latencyMs: Date.now() - startedAt,
     });
   }
@@ -760,6 +799,7 @@ export async function GET(req?: NextRequest) {
   return NextResponse.json({
     available: true,
     model: GROQ_MODEL,
+    provider: GROQ_PROVIDER,
     latencyMs: Date.now() - startedAt,
   });
 }
@@ -816,6 +856,7 @@ export async function POST(req: NextRequest) {
       judgments: result.judgments,
       fallback: false,
       model: result.model,
+      provider: result.provider,
       latencyMs,
       promptVersion: RULES.aiPromptVersion,
     });
