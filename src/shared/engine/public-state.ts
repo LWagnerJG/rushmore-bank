@@ -74,6 +74,7 @@ export function hostAiJudgeHealth(state: RoomState): HostAiJudgeHealth {
       status,
       fallbackReason: state.lastJudgeFallbackReason ?? null,
       model: state.lastJudgeModel ?? null,
+      provider: state.lastJudgeProvider ?? null,
       latencyMs: state.lastJudgeLatencyMs ?? null,
     };
   }
@@ -81,6 +82,7 @@ export function hostAiJudgeHealth(state: RoomState): HostAiJudgeHealth {
     return {
       status,
       model: state.lastJudgeModel ?? null,
+      provider: state.lastJudgeProvider ?? null,
       latencyMs: state.lastJudgeLatencyMs ?? null,
     };
   }

@@ -105,6 +105,10 @@ function migrateState(raw: RoomState): RoomState {
     lastJudgeModel:
       (raw as RoomState & { lastJudgeModel?: RoomState["lastJudgeModel"] })
         .lastJudgeModel ?? null,
+    lastJudgeProvider:
+      (raw as RoomState & {
+        lastJudgeProvider?: RoomState["lastJudgeProvider"];
+      }).lastJudgeProvider ?? null,
     lastJudgeLatencyMs:
       (raw as RoomState & {
         lastJudgeLatencyMs?: RoomState["lastJudgeLatencyMs"];
@@ -2048,93 +2052,143 @@ export class QuarryServer extends Server<Env> {
       env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
       "https://beans-game.vercel.app";
 
-    try {
-      const controller = new AbortController();
-      const timer = setTimeout(
-        () => controller.abort(),
-        RULES.judgeTimeoutMs,
-      );
-      const res = await fetch(`${judgeBase}/api/judge`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(env.JUDGE_SECRET
-            ? { Authorization: `Bearer ${env.JUDGE_SECRET}` }
-            : {}),
-          "X-Quarry-Judge": "partyserver",
-        },
-        body: JSON.stringify(payload),
-        signal: controller.signal,
-      });
-      clearTimeout(timer);
+    const startedAt = Date.now();
+    const totalBudgetMs = RULES.judgeTimeoutMs;
+    const maxAttempts = Math.max(1, RULES.judgeMaxAttempts);
+    type JudgeMeta = {
+      fallbackReason?: RoomState["lastJudgeFallbackReason"];
+      model?: string | null;
+      provider?: RoomState["lastJudgeProvider"];
+      latencyMs?: number | null;
+    };
+    let lastMeta: JudgeMeta = { fallbackReason: "timeout" };
 
-      // Stale job guard
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
       if (this.state.judgeJobId !== jobId || this.state.scoresLocked) return;
       if (this.state.phase !== "VOTING_AND_JUDGING") return;
 
-      if (!res.ok) {
-        this.applyJudgeFallback(jobId, RULES.aiFallbackLabel, {
-          fallbackReason: "provider_error",
-        });
+      const remaining = totalBudgetMs - (Date.now() - startedAt);
+      if (remaining < 400) break;
+
+      // First attempt leaves headroom for one retry; last attempt uses the rest.
+      const attemptMs =
+        attempt < maxAttempts - 1
+          ? Math.min(remaining, Math.ceil(totalBudgetMs * 0.55))
+          : remaining;
+
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), attemptMs);
+        let res: Response;
+        try {
+          res = await fetch(`${judgeBase}/api/judge`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(env.JUDGE_SECRET
+                ? { Authorization: `Bearer ${env.JUDGE_SECRET}` }
+                : {}),
+              "X-Quarry-Judge": "partyserver",
+            },
+            body: JSON.stringify(payload),
+            signal: controller.signal,
+          });
+        } finally {
+          clearTimeout(timer);
+        }
+
+        // Stale job guard — never award after a later fallback/finalize.
+        if (this.state.judgeJobId !== jobId || this.state.scoresLocked) return;
+        if (this.state.phase !== "VOTING_AND_JUDGING") return;
+
+        if (!res.ok) {
+          lastMeta = { fallbackReason: "provider_error" };
+          if (attempt < maxAttempts - 1) continue;
+          this.applyJudgeFallback(jobId, RULES.aiFallbackLabel, lastMeta);
+          return;
+        }
+
+        const data = (await res.json()) as {
+          judgments?: Array<{
+            anonId?: string;
+            playerId?: string;
+            topicFit: number;
+            pickStrength: number;
+            rosterQuality: number;
+            explanation: string;
+          }>;
+          fallback?: boolean;
+          fallbackReason?: RoomState["lastJudgeFallbackReason"];
+          limitation?: string;
+          model?: string | null;
+          provider?: RoomState["lastJudgeProvider"];
+          latencyMs?: number | null;
+        };
+
+        if (this.state.judgeJobId !== jobId || this.state.scoresLocked) return;
+
+        if (data.fallback || !data.judgments) {
+          lastMeta = {
+            fallbackReason: data.fallbackReason ?? "provider_error",
+            model: data.model ?? null,
+            provider: data.provider ?? null,
+            latencyMs: data.latencyMs ?? null,
+          };
+          const reason = lastMeta.fallbackReason;
+          const retryable =
+            reason === "timeout" ||
+            reason === "provider_error" ||
+            reason === "rate_limited";
+          if (retryable && attempt < maxAttempts - 1) continue;
+          this.applyJudgeFallback(jobId, RULES.aiFallbackLabel, lastMeta);
+          return;
+        }
+
+        const mapped = validateAndMapJudgments(rosters, data.judgments);
+        if (!mapped) {
+          lastMeta = {
+            fallbackReason: "invalid_output",
+            model: data.model ?? null,
+            provider: data.provider ?? null,
+            latencyMs: data.latencyMs ?? null,
+          };
+          if (attempt < maxAttempts - 1) continue;
+          this.applyJudgeFallback(jobId, RULES.aiFallbackLabel, lastMeta);
+          return;
+        }
+
+        // Success — apply once (idempotent via jobId + scoresLocked guards).
+        this.state.scores = mapped;
+        this.state.judgeStatus = "ready";
+        this.state.judgeNotice = null;
+        this.state.lastJudgeOutcome = "ok";
+        this.state.lastJudgeFallbackReason = null;
+        this.state.lastJudgeModel = data.model ?? null;
+        this.state.lastJudgeProvider = data.provider ?? null;
+        this.state.lastJudgeLatencyMs =
+          typeof data.latencyMs === "number"
+            ? data.latencyMs
+            : Date.now() - startedAt;
+        await this.persist();
+        this.broadcastState();
+        await this.maybeFinalizeAfterJudge();
+        return;
+      } catch (err) {
+        if (this.state.judgeJobId !== jobId || this.state.scoresLocked) return;
+        const timedOut =
+          err instanceof Error &&
+          (err.name === "AbortError" || /aborted/i.test(err.message));
+        lastMeta = {
+          fallbackReason: timedOut ? "timeout" : "provider_error",
+        };
+        if (attempt < maxAttempts - 1) continue;
+        this.applyJudgeFallback(jobId, RULES.aiFallbackLabel, lastMeta);
         return;
       }
-      const data = (await res.json()) as {
-        judgments?: Array<{
-          anonId?: string;
-          playerId?: string;
-          topicFit: number;
-          pickStrength: number;
-          rosterQuality: number;
-          explanation: string;
-        }>;
-        fallback?: boolean;
-        fallbackReason?: RoomState["lastJudgeFallbackReason"];
-        limitation?: string;
-        model?: string | null;
-        latencyMs?: number | null;
-      };
-
-      if (this.state.judgeJobId !== jobId || this.state.scoresLocked) return;
-
-      if (data.fallback || !data.judgments) {
-        this.applyJudgeFallback(jobId, RULES.aiFallbackLabel, {
-          fallbackReason: data.fallbackReason ?? "provider_error",
-          model: data.model ?? null,
-          latencyMs: data.latencyMs ?? null,
-        });
-        return;
-      }
-
-      const mapped = validateAndMapJudgments(rosters, data.judgments);
-      if (!mapped) {
-        this.applyJudgeFallback(jobId, RULES.aiFallbackLabel, {
-          fallbackReason: "invalid_output",
-          model: data.model ?? null,
-          latencyMs: data.latencyMs ?? null,
-        });
-        return;
-      }
-
-      this.state.scores = mapped;
-      this.state.judgeStatus = "ready";
-      this.state.judgeNotice = null;
-      this.state.lastJudgeOutcome = "ok";
-      this.state.lastJudgeFallbackReason = null;
-      this.state.lastJudgeModel = data.model ?? null;
-      this.state.lastJudgeLatencyMs =
-        typeof data.latencyMs === "number" ? data.latencyMs : null;
-      await this.persist();
-      this.broadcastState();
-      await this.maybeFinalizeAfterJudge();
-    } catch (err) {
-      if (this.state.judgeJobId !== jobId || this.state.scoresLocked) return;
-      const timedOut =
-        err instanceof Error &&
-        (err.name === "AbortError" || /aborted/i.test(err.message));
-      this.applyJudgeFallback(jobId, RULES.aiFallbackLabel, {
-        fallbackReason: timedOut ? "timeout" : "provider_error",
-      });
     }
+
+    if (this.state.judgeJobId !== jobId || this.state.scoresLocked) return;
+    this.applyJudgeFallback(jobId, RULES.aiFallbackLabel, lastMeta);
   }
 
   applyJudgeFallback(
@@ -2143,6 +2197,7 @@ export class QuarryServer extends Server<Env> {
     meta?: {
       fallbackReason?: RoomState["lastJudgeFallbackReason"];
       model?: string | null;
+      provider?: RoomState["lastJudgeProvider"];
       latencyMs?: number | null;
     },
   ) {
@@ -2160,6 +2215,7 @@ export class QuarryServer extends Server<Env> {
     this.state.lastJudgeOutcome = "fallback";
     this.state.lastJudgeFallbackReason = meta?.fallbackReason ?? "provider_error";
     this.state.lastJudgeModel = meta?.model ?? null;
+    this.state.lastJudgeProvider = meta?.provider ?? null;
     this.state.lastJudgeLatencyMs =
       typeof meta?.latencyMs === "number" ? meta.latencyMs : null;
     // Never show raw HTTP / model errors to players.
@@ -3669,6 +3725,7 @@ export class QuarryServer extends Server<Env> {
     this.state.lastJudgeOutcome = "ok";
     this.state.lastJudgeFallbackReason = null;
     this.state.lastJudgeModel = "admin";
+    this.state.lastJudgeProvider = null;
     this.state.lastJudgeLatencyMs = null;
   }
   adminSeedVoteWhys() {
