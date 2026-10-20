@@ -438,6 +438,22 @@ describe("/api/judge free-tier flash-lite chain", () => {
   });
 });
 
+describe("resolveJudgeUpstreamBase", () => {
+  it("returns origin and refuses self-host loops", async () => {
+    const { resolveJudgeUpstreamBase } = await import("./route");
+    expect(resolveJudgeUpstreamBase(undefined)).toBeNull();
+    expect(
+      resolveJudgeUpstreamBase("https://beans-game.vercel.app/"),
+    ).toBe("https://beans-game.vercel.app");
+    expect(
+      resolveJudgeUpstreamBase(
+        "https://beans-web.example",
+        "https://beans-web.example",
+      ),
+    ).toBeNull();
+  });
+});
+
 describe("GET /api/judge health probe", () => {
   const originalEnv = { ...process.env };
   const fetchMock = vi.fn();
@@ -451,6 +467,7 @@ describe("GET /api/judge health probe", () => {
     delete process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     delete process.env.GROQ_API_KEY;
     delete process.env.JUDGE_SECRET;
+    delete process.env.JUDGE_URL;
     const mod = await import("./route");
     mod.__resetGeminiModelCacheForTests();
   });
@@ -461,12 +478,48 @@ describe("GET /api/judge health probe", () => {
   });
 
   it("reports unavailable with no keys and never calls providers", async () => {
+    delete process.env.JUDGE_URL;
     const { GET } = await import("./route");
     const res = await GET();
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.available).toBe(false);
     expect(data.model).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("proxies pre-game health to JUDGE_URL when this host has no keys", async () => {
+    process.env.JUDGE_URL = "https://beans-game.vercel.app";
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          available: true,
+          model: "gemini-3.5-flash-lite",
+          latencyMs: 40,
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    const { GET } = await import("./route");
+    const req = new NextRequest("https://beans-web.example/api/judge");
+    const res = await GET(req);
+    const data = await res.json();
+    expect(data.available).toBe(true);
+    expect(data.model).toBe("gemini-3.5-flash-lite");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(String(fetchMock.mock.calls[0]![0])).toBe(
+      "https://beans-game.vercel.app/api/judge",
+    );
+  });
+
+  it("does not proxy to itself when JUDGE_URL matches this host", async () => {
+    process.env.JUDGE_URL = "https://beans-web.example";
+    const { GET } = await import("./route");
+    const req = new NextRequest("https://beans-web.example/api/judge");
+    const res = await GET(req);
+    const data = await res.json();
+    expect(data.available).toBe(false);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 

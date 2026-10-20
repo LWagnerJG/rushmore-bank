@@ -640,15 +640,89 @@ async function judgeWithProviders(
 }
 
 /**
+ * When this host has no provider keys (beans-web Cloudflare), GET /api/judge
+ * can proxy the pre-game health probe to JUDGE_URL (Vercel), where keys live.
+ * Returns null when unset or when upstream would be this same host (no loops).
+ */
+export function resolveJudgeUpstreamBase(
+  judgeUrl: string | undefined,
+  selfOrigin?: string | null,
+): string | null {
+  const raw = (judgeUrl ?? "").trim().replace(/\/$/, "");
+  if (!raw) return null;
+  try {
+    const up = new URL(raw.includes("://") ? raw : `https://${raw}`);
+    if (selfOrigin) {
+      const self = new URL(selfOrigin);
+      if (up.host.toLowerCase() === self.host.toLowerCase()) return null;
+    }
+    return up.origin;
+  } catch {
+    return null;
+  }
+}
+
+async function probeUpstreamJudge(
+  upstreamOrigin: string,
+  startedAt: number,
+): Promise<NextResponse> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 5_000);
+  try {
+    const res = await fetch(`${upstreamOrigin}/api/judge`, {
+      method: "GET",
+      cache: "no-store",
+      signal: controller.signal,
+      headers: { Accept: "application/json" },
+    });
+    if (!res.ok) {
+      return NextResponse.json({
+        available: false,
+        model: null,
+        latencyMs: Date.now() - startedAt,
+      });
+    }
+    const data = (await res.json()) as {
+      available?: boolean;
+      model?: string | null;
+    };
+    return NextResponse.json({
+      available: !!data.available,
+      model: typeof data.model === "string" ? data.model : null,
+      latencyMs: Date.now() - startedAt,
+    });
+  } catch {
+    return NextResponse.json({
+      available: false,
+      model: null,
+      latencyMs: Date.now() - startedAt,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
  * Lightweight host pre-game probe — no scoring, no JUDGE_SECRET.
  * Confirms a configured provider and returns the preferred live model id.
+ *
+ * On hosts without keys (beans-web), proxies to JUDGE_URL when set so the
+ * host lobby line matches the PartyServer → Vercel judge path.
  */
-export async function GET() {
+export async function GET(req?: NextRequest) {
   const startedAt = Date.now();
   const gKey = geminiKey();
   const qKey = groqKey();
 
   if (!gKey && !qKey) {
+    const selfOrigin =
+      req?.nextUrl?.origin ||
+      (req ? new URL(req.url).origin : null);
+    const upstream = resolveJudgeUpstreamBase(
+      process.env.JUDGE_URL,
+      selfOrigin,
+    );
+    if (upstream) return probeUpstreamJudge(upstream, startedAt);
     return NextResponse.json({
       available: false,
       model: null,
