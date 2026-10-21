@@ -36,8 +36,9 @@
   "vars": {
     "NEXT_PUBLIC_PARTYKIT_HOST": "beans-party.beans-lwagner.workers.dev",
     "BEANS_PLATFORM": "Cloudflare",
-    // Pre-game GET /api/judge proxies here when this Worker has no Gemini/Groq
-    // keys (scoring still runs PartyServer → Vercel). Same default as beans-party.
+    // Pre-game GET + authorized POST /api/judge proxy here when this Worker
+    // has no Gemini/Groq keys. PartyServer posts to beans-web; beans-web
+    // forwards to Vercel where the keys live.
     "JUDGE_URL": "https://beans-game.vercel.app"
   },
   "observability": {

@@ -24,6 +24,8 @@
     { "tag": "v2", "new_sqlite_classes": ["ProfileHub"] }
   ],
   "vars": {
-    "JUDGE_URL": "https://beans-game.vercel.app"
+    // Score via beans-web POST proxy → Vercel (keys live on Vercel). Direct
+    // Worker → Vercel POST hangs past the 25s budget in production.
+    "JUDGE_URL": "https://beans-web.beans-lwagner.workers.dev"
   }
 }

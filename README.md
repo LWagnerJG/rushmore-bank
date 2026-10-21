@@ -51,7 +51,7 @@ The same Next app also deploys as Cloudflare worker **`beans-web`** via OpenNext
 - Local: `npm run build:web` / `npm run deploy:web`
 - Secrets (GitHub Actions → `wrangler secret put`): `GEMINI_API_KEY` (or `GOOGLE_GENERATIVE_AI_API_KEY`), optional `GROQ_API_KEY`, `JUDGE_SECRET`
 
-Vercel stays connected as a 308 forwarder (`vercel.json`); do not remove it. `/api/version` remains live on Vercel so health checks can compare platforms. PartyServer `JUDGE_URL` still points at Vercel by default (that path 308s to beans-web).
+Vercel stays connected as a 308 forwarder (`vercel.json`); do not remove it. `/api/version` and `/api/judge` remain live on Vercel (judge keys live there). PartyServer `JUDGE_URL` points at beans-web, which proxies authorized judge POSTs upstream.
 
 ## Deploy PartyServer
 
@@ -66,7 +66,7 @@ Realtime rooms live in `party/server.ts` and deploy as Cloudflare worker **`bean
    - Or rely on `DEFAULT_PARTYKIT_HOST` in `src/lib/party.ts` (currently `beans-party.beans-lwagner.workers.dev`)
 6. **CI**: GitHub Actions workflow `Deploy PartyServer` uses `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID`. If those secrets are missing, the job **skips** (exit 0) instead of failing.
 
-`JUDGE_URL` is a wrangler `vars` entry (`https://beans-game.vercel.app`). Room storage is short-lived.
+`JUDGE_URL` on beans-party is `https://beans-web.beans-lwagner.workers.dev`; beans-web’s `JUDGE_URL` is the Vercel judge host. Room storage is short-lived.
 
 Requires **Node 22** (see `.nvmrc` / `engines`). Env name `NEXT_PUBLIC_PARTYKIT_HOST` is historical — it points at PartyServer, not hosted PartyKit.
 
