@@ -113,8 +113,8 @@ describe("judge timeout → retry → fallback → neutral", () => {
 
     vi.useFakeTimers();
     const pending = server.runJudgingJob("judge-1-1");
-    // Drain microtasks + advance past first-attempt abort (~55% of 25s).
-    for (let i = 0; i < 80; i++) {
+    // First attempt now gets ~21s (25s − 4s retry reserve), not ~55%/13.75s.
+    for (let i = 0; i < 50; i++) {
       await Promise.resolve();
       await vi.advanceTimersByTimeAsync(500);
     }
@@ -127,6 +127,61 @@ describe("judge timeout → retry → fallback → neutral", () => {
     expect(server.state.scores.every((s) => !s.aiFallback)).toBe(true);
     expect(server.state.lastJudgeProvider).toBe("gemini");
     // Job id not rotated on success — proves we did not apply fallback first.
+    expect(server.state.judgeJobId).toBe("judge-1-1");
+  });
+
+  it("lets a slow first-attempt success finish inside the 25s budget (no early abort)", async () => {
+    const { server } = createTestServer("JR1b");
+    seedVotingRoom(server);
+
+    let calls = 0;
+    let firstAttemptMs: number | null = null;
+    fetchMock.mockImplementation(
+      async (_input: RequestInfo | URL, init?: RequestInit) => {
+        calls += 1;
+        const signal = init?.signal;
+        // Resolve at 16s — would have been aborted by the old 55% (~13.75s) cap.
+        return new Promise((resolve, reject) => {
+          const timer = setTimeout(() => {
+            resolve(
+              new Response(JSON.stringify(okJudgmentsBody("gemini")), {
+                status: 200,
+                headers: { "content-type": "application/json" },
+              }),
+            );
+          }, 16_000);
+          if (!signal) return;
+          if (signal.aborted) {
+            clearTimeout(timer);
+            const err = new Error("Aborted");
+            err.name = "AbortError";
+            reject(err);
+            return;
+          }
+          signal.addEventListener("abort", () => {
+            clearTimeout(timer);
+            firstAttemptMs = 16_000; // mark that we got aborted mid-flight
+            const err = new Error("Aborted");
+            err.name = "AbortError";
+            reject(err);
+          });
+        });
+      },
+    );
+
+    vi.useFakeTimers();
+    const pending = server.runJudgingJob("judge-1-1");
+    for (let i = 0; i < 40; i++) {
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(500);
+    }
+    await pending;
+
+    expect(calls).toBe(1);
+    expect(firstAttemptMs).toBeNull();
+    expect(server.state.judgeStatus).toBe("ready");
+    expect(server.state.lastJudgeOutcome).toBe("ok");
+    expect(server.state.scores.every((s) => !s.aiFallback)).toBe(true);
     expect(server.state.judgeJobId).toBe("judge-1-1");
   });
 

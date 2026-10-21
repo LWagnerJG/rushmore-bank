@@ -2070,10 +2070,17 @@ export class QuarryServer extends Server<Env> {
       const remaining = totalBudgetMs - (Date.now() - startedAt);
       if (remaining < 400) break;
 
-      // First attempt leaves headroom for one retry; last attempt uses the rest.
+      // Give the first attempt nearly the full budget. Worker → Vercel → Gemini
+      // often needs 15–20s; the old 55% split (~13.75s) aborted those mid-flight
+      // and left a shorter retry that also timed out. Reserve a small slice so a
+      // *fast* failure (401/5xx/quick network) can still retry once.
+      const retryReserveMs = 4_000;
       const attemptMs =
         attempt < maxAttempts - 1
-          ? Math.min(remaining, Math.ceil(totalBudgetMs * 0.55))
+          ? Math.min(
+              remaining,
+              Math.max(400, totalBudgetMs - retryReserveMs),
+            )
           : remaining;
 
       try {
