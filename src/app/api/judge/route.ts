@@ -750,8 +750,9 @@ async function proxyUpstreamJudgePost(
   cleanRosters: CleanRoster[],
   startedAt: number,
 ): Promise<NextResponse> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 22_000);
+  // Promise.race timeout (no AbortSignal) — same workerd hang avoidance as
+  // PartyServer's judge fetch.
+  let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
@@ -762,12 +763,20 @@ async function proxyUpstreamJudgePost(
     const judgeMark = req.headers.get("x-quarry-judge");
     if (judgeMark) headers["X-Quarry-Judge"] = judgeMark;
 
-    const res = await fetch(`${upstreamOrigin}/api/judge`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(body),
-      signal: controller.signal,
-    });
+    const res = await Promise.race([
+      fetch(`${upstreamOrigin}/api/judge`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(body),
+      }),
+      new Promise<Response>((_resolve, reject) => {
+        timer = setTimeout(() => {
+          const err = new Error("Upstream judge fetch timed out");
+          err.name = "AbortError";
+          reject(err);
+        }, 22_000);
+      }),
+    ]);
     const text = await res.text();
     return new NextResponse(text, {
       status: res.status,
@@ -779,12 +788,12 @@ async function proxyUpstreamJudgePost(
   } catch (err) {
     const timedOut =
       err instanceof Error &&
-      (err.name === "AbortError" || /aborted/i.test(err.message));
+      (err.name === "AbortError" || /aborted|timed out/i.test(err.message));
     return fallbackResponse(cleanRosters, timedOut ? "timeout" : "provider_error", {
       latencyMs: Date.now() - startedAt,
     });
   } finally {
-    clearTimeout(timer);
+    if (timer !== undefined) clearTimeout(timer);
   }
 }
 
