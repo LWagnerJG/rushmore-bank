@@ -2084,24 +2084,34 @@ export class QuarryServer extends Server<Env> {
           : remaining;
 
       try {
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), attemptMs);
+        // Promise.race timeout — do not pass AbortSignal to fetch. On workerd
+        // Durable Objects, signal-based abort has been observed to leave the
+        // outbound POST hung until the abort fires (never completing early).
+        let timer: ReturnType<typeof setTimeout> | undefined;
         let res: Response;
         try {
-          res = await fetch(`${judgeBase}/api/judge`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              ...(env.JUDGE_SECRET
-                ? { Authorization: `Bearer ${env.JUDGE_SECRET}` }
-                : {}),
-              "X-Quarry-Judge": "partyserver",
-            },
-            body: JSON.stringify(payload),
-            signal: controller.signal,
-          });
+          res = await Promise.race([
+            fetch(`${judgeBase}/api/judge`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                ...(env.JUDGE_SECRET
+                  ? { Authorization: `Bearer ${env.JUDGE_SECRET}` }
+                  : {}),
+                "X-Quarry-Judge": "partyserver",
+              },
+              body: JSON.stringify(payload),
+            }),
+            new Promise<Response>((_resolve, reject) => {
+              timer = setTimeout(() => {
+                const err = new Error("Judge fetch timed out");
+                err.name = "AbortError";
+                reject(err);
+              }, attemptMs);
+            }),
+          ]);
         } finally {
-          clearTimeout(timer);
+          if (timer !== undefined) clearTimeout(timer);
         }
 
         // Stale job guard — never award after a later fallback/finalize.

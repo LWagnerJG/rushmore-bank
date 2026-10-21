@@ -85,35 +85,26 @@ describe("judge timeout → retry → fallback → neutral", () => {
     expect(RULES.judgeMaxAttempts).toBe(2);
   });
 
-  it("retries once after a client-side abort, then succeeds (no double award)", async () => {
+  it("retries once after a Promise.race timeout, then succeeds (no double award)", async () => {
     const { server } = createTestServer("JR1");
     seedVotingRoom(server);
 
     let calls = 0;
-    fetchMock.mockImplementation(
-      async (_input: RequestInfo | URL, init?: RequestInit) => {
-        calls += 1;
-        if (calls === 1) {
-          return new Promise((_resolve, reject) => {
-            const signal = init?.signal;
-            if (!signal) return;
-            signal.addEventListener("abort", () => {
-              const err = new Error("Aborted");
-              err.name = "AbortError";
-              reject(err);
-            });
-          });
-        }
-        return new Response(JSON.stringify(okJudgmentsBody("gemini")), {
-          status: 200,
-          headers: { "content-type": "application/json" },
-        });
-      },
-    );
+    fetchMock.mockImplementation(async () => {
+      calls += 1;
+      if (calls === 1) {
+        // Hang until the race timer rejects — no AbortSignal on fetch.
+        return new Promise(() => {});
+      }
+      return new Response(JSON.stringify(okJudgmentsBody("gemini")), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    });
 
     vi.useFakeTimers();
     const pending = server.runJudgingJob("judge-1-1");
-    // First attempt now gets ~21s (25s − 4s retry reserve), not ~55%/13.75s.
+    // First attempt ~21s (25s − 4s retry reserve).
     for (let i = 0; i < 50; i++) {
       await Promise.resolve();
       await vi.advanceTimersByTimeAsync(500);
@@ -135,39 +126,20 @@ describe("judge timeout → retry → fallback → neutral", () => {
     seedVotingRoom(server);
 
     let calls = 0;
-    let firstAttemptMs: number | null = null;
-    fetchMock.mockImplementation(
-      async (_input: RequestInfo | URL, init?: RequestInit) => {
-        calls += 1;
-        const signal = init?.signal;
-        // Resolve at 16s — would have been aborted by the old 55% (~13.75s) cap.
-        return new Promise((resolve, reject) => {
-          const timer = setTimeout(() => {
-            resolve(
-              new Response(JSON.stringify(okJudgmentsBody("gemini")), {
-                status: 200,
-                headers: { "content-type": "application/json" },
-              }),
-            );
-          }, 16_000);
-          if (!signal) return;
-          if (signal.aborted) {
-            clearTimeout(timer);
-            const err = new Error("Aborted");
-            err.name = "AbortError";
-            reject(err);
-            return;
-          }
-          signal.addEventListener("abort", () => {
-            clearTimeout(timer);
-            firstAttemptMs = 16_000; // mark that we got aborted mid-flight
-            const err = new Error("Aborted");
-            err.name = "AbortError";
-            reject(err);
-          });
-        });
-      },
-    );
+    fetchMock.mockImplementation(async () => {
+      calls += 1;
+      // Resolve at 16s — would have been aborted by the old 55% (~13.75s) cap.
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve(
+            new Response(JSON.stringify(okJudgmentsBody("gemini")), {
+              status: 200,
+              headers: { "content-type": "application/json" },
+            }),
+          );
+        }, 16_000);
+      });
+    });
 
     vi.useFakeTimers();
     const pending = server.runJudgingJob("judge-1-1");
@@ -178,11 +150,25 @@ describe("judge timeout → retry → fallback → neutral", () => {
     await pending;
 
     expect(calls).toBe(1);
-    expect(firstAttemptMs).toBeNull();
     expect(server.state.judgeStatus).toBe("ready");
     expect(server.state.lastJudgeOutcome).toBe("ok");
     expect(server.state.scores.every((s) => !s.aiFallback)).toBe(true);
     expect(server.state.judgeJobId).toBe("judge-1-1");
+  });
+
+  it("does not pass AbortSignal to the judge fetch (workerd hang workaround)", async () => {
+    const { server } = createTestServer("JR1c");
+    seedVotingRoom(server);
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify(okJudgmentsBody("gemini")), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    await server.runJudgingJob("judge-1-1");
+    expect(fetchMock).toHaveBeenCalled();
+    const init = fetchMock.mock.calls[0]![1] as RequestInit | undefined;
+    expect(init?.signal).toBeUndefined();
   });
 
   it("retries a timeout fallback from /api/judge, then applies neutral once", async () => {
