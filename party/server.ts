@@ -2050,7 +2050,7 @@ export class QuarryServer extends Server<Env> {
     const judgeBase =
       env.JUDGE_URL?.replace(/\/$/, "") ||
       env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
-      "https://beans-game.vercel.app";
+      "https://beans-web.beans-lwagner.workers.dev";
 
     const startedAt = Date.now();
     const totalBudgetMs = RULES.judgeTimeoutMs;

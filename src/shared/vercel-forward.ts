@@ -4,8 +4,8 @@
  * Production Vercel hosts 308 every path (query preserved) to the Cloudflare
  * frontend, except a short allowlist that must keep answering on Vercel:
  *   - GET /api/version — health checks compare platforms
- *   - POST /api/judge — PartyServer's JUDGE_URL still points here; a cross-origin
- *     308 strips Authorization, which would 401 every paid judge call
+ *   - POST /api/judge — keys live here; beans-web may proxy authorized POSTs
+ *     upstream. A cross-origin 308 would strip Authorization and 401 every call.
  *
  * Implemented as vercel.json redirects (CDN, Vercel-only). Do not put these
  * rules in next.config — OpenNext would bake them into beans-web and risk a

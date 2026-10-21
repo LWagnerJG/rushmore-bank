@@ -667,8 +667,8 @@ async function judgeWithProviders(
 }
 
 /**
- * When this host has no provider keys (beans-web Cloudflare), GET /api/judge
- * can proxy the pre-game health probe to JUDGE_URL (Vercel), where keys live.
+ * When this host has no provider keys (beans-web Cloudflare), /api/judge can
+ * proxy to JUDGE_URL (Vercel), where keys live.
  * Returns null when unset or when upstream would be this same host (no loops).
  */
 export function resolveJudgeUpstreamBase(
@@ -730,6 +730,57 @@ async function probeUpstreamJudge(
       available: false,
       model: null,
       provider: null,
+      latencyMs: Date.now() - startedAt,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * Forward an authorized POST score request to JUDGE_URL when this host has no
+ * provider keys. PartyServer → beans-web → Vercel avoids a hanging
+ * Worker→Vercel fetch observed in production while keeping keys on Vercel.
+ * Budget leaves headroom under PartyServer's 25s total.
+ */
+async function proxyUpstreamJudgePost(
+  upstreamOrigin: string,
+  req: NextRequest,
+  body: JudgeBody,
+  cleanRosters: CleanRoster[],
+  startedAt: number,
+): Promise<NextResponse> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 22_000);
+  try {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    };
+    const authHeader = req.headers.get("authorization");
+    if (authHeader) headers.Authorization = authHeader;
+    const judgeMark = req.headers.get("x-quarry-judge");
+    if (judgeMark) headers["X-Quarry-Judge"] = judgeMark;
+
+    const res = await fetch(`${upstreamOrigin}/api/judge`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    const text = await res.text();
+    return new NextResponse(text, {
+      status: res.status,
+      headers: {
+        "Content-Type":
+          res.headers.get("Content-Type") || "application/json",
+      },
+    });
+  } catch (err) {
+    const timedOut =
+      err instanceof Error &&
+      (err.name === "AbortError" || /aborted/i.test(err.message));
+    return fallbackResponse(cleanRosters, timedOut ? "timeout" : "provider_error", {
       latencyMs: Date.now() - startedAt,
     });
   } finally {
@@ -829,6 +880,23 @@ export async function POST(req: NextRequest) {
   const qKey = groqKey();
 
   if ((!gKey && !qKey) || auth === "fallback_only") {
+    // Authorized PartyServer → beans-web (no local keys): proxy to Vercel.
+    if (auth === "ok" && !gKey && !qKey) {
+      const selfOrigin = req.nextUrl?.origin || new URL(req.url).origin;
+      const upstream = resolveJudgeUpstreamBase(
+        process.env.JUDGE_URL,
+        selfOrigin,
+      );
+      if (upstream) {
+        return proxyUpstreamJudgePost(
+          upstream,
+          req,
+          body,
+          cleanRosters,
+          startedAt,
+        );
+      }
+    }
     return fallbackResponse(cleanRosters, "no_key", {
       latencyMs: Date.now() - startedAt,
     });

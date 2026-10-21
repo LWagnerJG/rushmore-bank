@@ -651,3 +651,106 @@ describe("GET /api/judge health probe", () => {
     expect(data.model).toBeNull();
   });
 });
+
+describe("POST /api/judge upstream proxy (no local keys)", () => {
+  const originalEnv = { ...process.env };
+  const fetchMock = vi.fn();
+
+  beforeEach(async () => {
+    vi.useRealTimers();
+    vi.resetModules();
+    fetchMock.mockReset();
+    vi.stubGlobal("fetch", fetchMock);
+    delete process.env.GEMINI_API_KEY;
+    delete process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+    delete process.env.GROQ_API_KEY;
+    delete process.env.JUDGE_URL;
+    process.env.JUDGE_SECRET = "test-secret";
+    const mod = await import("./route");
+    mod.__resetGeminiModelCacheForTests();
+  });
+
+  afterEach(() => {
+    process.env = { ...originalEnv };
+    vi.unstubAllGlobals();
+  });
+
+  function authorizedPost(url = "https://beans-web.example/api/judge") {
+    return new NextRequest(url, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: "Bearer test-secret",
+        "x-quarry-judge": "partyserver",
+      },
+      body: JSON.stringify(sampleBody),
+    });
+  }
+
+  it("proxies authorized POST to JUDGE_URL when this host has no keys", async () => {
+    process.env.JUDGE_URL = "https://beans-game.vercel.app";
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          fallback: false,
+          model: "gemini-3.5-flash-lite",
+          provider: "gemini",
+          latencyMs: 900,
+          judgments: [
+            {
+              anonId: "R1",
+              topicFit: 8,
+              pickStrength: 16,
+              rosterQuality: 7,
+              explanation: "Solid.",
+            },
+            {
+              anonId: "R2",
+              topicFit: 7,
+              pickStrength: 14,
+              rosterQuality: 6,
+              explanation: "Good.",
+            },
+          ],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    const { POST } = await import("./route");
+    const res = await POST(authorizedPost());
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.fallback).toBe(false);
+    expect(data.model).toBe("gemini-3.5-flash-lite");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(String(url)).toBe("https://beans-game.vercel.app/api/judge");
+    expect((init as RequestInit).method).toBe("POST");
+    const headers = (init as RequestInit).headers as Record<string, string>;
+    expect(headers.Authorization).toBe("Bearer test-secret");
+    expect(headers["X-Quarry-Judge"]).toBe("partyserver");
+  });
+
+  it("does not proxy POST to itself when JUDGE_URL matches this host", async () => {
+    process.env.JUDGE_URL = "https://beans-web.example";
+    const { POST } = await import("./route");
+    const res = await POST(authorizedPost());
+    const data = await res.json();
+    expect(data.fallback).toBe(true);
+    expect(data.fallbackReason).toBe("no_key");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("returns no_key without proxy when unauthorized path is fallback_only", async () => {
+    delete process.env.JUDGE_SECRET;
+    process.env.JUDGE_URL = "https://beans-game.vercel.app";
+    const { POST } = await import("./route");
+    // No secret + no keys + party mark → fallback_only (never burns upstream).
+    const res = await POST(partyRequest());
+    const data = await res.json();
+    expect(data.fallback).toBe(true);
+    expect(data.fallbackReason).toBe("no_key");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
