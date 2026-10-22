@@ -181,6 +181,8 @@ describe("judge timeout → retry → fallback → neutral", () => {
           JSON.stringify({
             fallback: true,
             fallbackReason: "timeout",
+            // Fast timeout (e.g. proxy race) — leave room for a real retry.
+            latencyMs: 400,
             model: null,
             provider: null,
             judgments: [
@@ -208,6 +210,7 @@ describe("judge timeout → retry → fallback → neutral", () => {
           JSON.stringify({
             fallback: true,
             fallbackReason: "timeout",
+            latencyMs: 350,
             model: null,
             provider: null,
             judgments: [
@@ -240,6 +243,52 @@ describe("judge timeout → retry → fallback → neutral", () => {
     expect(server.state.scores).toHaveLength(2);
     expect(server.state.scores.every((s) => s.aiFallback)).toBe(true);
     // Rotated once — late success cannot double-award.
+    expect(server.state.judgeJobId).toBe("judge-1-1:fallback");
+  });
+
+  it("skips retry when timeout fallback already burned the attempt budget", async () => {
+    const { server } = createTestServer("JR2b");
+    seedVotingRoom(server);
+
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          fallback: true,
+          fallbackReason: "timeout",
+          // /api/judge REQUEST_BUDGET_MS is 20s; first attempt is ~21s.
+          latencyMs: 20_001,
+          model: null,
+          provider: null,
+          judgments: [
+            {
+              anonId: "R1",
+              topicFit: 5,
+              pickStrength: 10,
+              rosterQuality: 5,
+              explanation: RULES.aiFallbackLabel,
+            },
+            {
+              anonId: "R2",
+              topicFit: 5,
+              pickStrength: 10,
+              rosterQuality: 5,
+              explanation: RULES.aiFallbackLabel,
+            },
+          ],
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+
+    await server.runJudgingJob("judge-1-1");
+
+    // No second fetch into the ~4s reserve — apply neutral immediately.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(server.state.judgeStatus).toBe("failed");
+    expect(server.state.lastJudgeOutcome).toBe("fallback");
+    expect(server.state.lastJudgeFallbackReason).toBe("timeout");
+    expect(server.state.lastJudgeLatencyMs).toBe(20_001);
+    expect(server.state.scores.every((s) => s.aiFallback)).toBe(true);
     expect(server.state.judgeJobId).toBe("judge-1-1:fallback");
   });
 
