@@ -2156,7 +2156,20 @@ export class QuarryServer extends Server<Env> {
             reason === "timeout" ||
             reason === "provider_error" ||
             reason === "rate_limited";
-          if (retryable && attempt < maxAttempts - 1) continue;
+          // A timeout fallback that already burned nearly this attempt's
+          // budget leaves only the ~4s retry reserve — too short for another
+          // /api/judge round-trip. Skip straight to neutral.
+          const attemptBudgetExhausted =
+            reason === "timeout" &&
+            typeof data.latencyMs === "number" &&
+            data.latencyMs >= Math.max(0, attemptMs - 1_500);
+          if (
+            retryable &&
+            !attemptBudgetExhausted &&
+            attempt < maxAttempts - 1
+          ) {
+            continue;
+          }
           this.applyJudgeFallback(jobId, RULES.aiFallbackLabel, lastMeta);
           return;
         }
