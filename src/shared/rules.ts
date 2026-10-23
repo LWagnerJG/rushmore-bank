@@ -156,3 +156,25 @@ export function canHostSetTopicRounds(input: {
     isHostSelectableTopicRounds(input.rounds)
   );
 }
+
+/**
+ * Host may toggle Party Mode in any phase. Changing it only affects future
+ * drink prompts (bust redo / lowest beans) — it must not interrupt the
+ * current phase timers, votes, or dice flow.
+ */
+export function canHostUpdatePartyMode(_phase: string): boolean {
+  return true;
+}
+
+/**
+ * Topic vibe may change in lobby, while picking a topic (re-spins shortlist),
+ * or between topics. Locked during draft/dice/play.
+ */
+export function canHostUpdateTopicVibe(phase: string): boolean {
+  return (
+    phase === "LOBBY" ||
+    phase === "TOPIC_SELECTION" ||
+    phase === "ROUND_RESULTS" ||
+    phase === "SCORE_REVEAL"
+  );
+}

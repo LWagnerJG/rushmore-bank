@@ -22,6 +22,8 @@ import { normalizeAvatarId } from "../src/shared/bean-avatars";
 import {
   RULES,
   canHostSetTopicRounds,
+  canHostUpdatePartyMode,
+  canHostUpdateTopicVibe,
   topicRoundsForPlayerCount,
   topicShortlistCount,
 } from "../src/shared/rules";
@@ -1432,65 +1434,66 @@ export class QuarryServer extends Server<Env> {
 
   handleSettings(id: string, partial: Partial<HostSettings>) {
     if (!this.requireHost(id)) throw new Error("Host only");
-    if (this.state.phase !== "LOBBY") {
-      const vibeOk =
-        partial.topicVibe === "all" ||
-        partial.topicVibe === "basic" ||
-        partial.topicVibe === "sports" ||
-        partial.topicVibe === "animals" ||
-        partial.topicVibe === "geography";
+    if (this.state.phase === "LOBBY") {
+      const prevParty = this.state.settings.partyMode;
+      const prevVibe = this.state.settings.topicVibe;
+      this.state.settings = { ...this.state.settings, ...partial };
+      this.state.settings.topicVibe = migrateTopicVibe(
+        this.state.settings.topicVibe,
+      );
+      // Same gesture-key trap as in-play path — bump when discriminating
+      // fields change so a later reselect of a prior value is not eaten.
+      if (
+        prevParty !== this.state.settings.partyMode ||
+        prevVibe !== this.state.settings.topicVibe
+      ) {
+        bump(this.state);
+      }
+      return;
+    }
 
-      // Vibes stay switchable while picking a topic (re-spins shortlist).
-      if (this.state.phase === "TOPIC_SELECTION" && vibeOk) {
-        const prev = this.state.settings.topicVibe ?? "all";
+    const vibeOk =
+      partial.topicVibe === "all" ||
+      partial.topicVibe === "basic" ||
+      partial.topicVibe === "sports" ||
+      partial.topicVibe === "animals" ||
+      partial.topicVibe === "geography";
+    const partyTouch =
+      typeof partial.partyMode === "boolean" &&
+      canHostUpdatePartyMode(this.state.phase);
+    const vibeTouch = vibeOk && canHostUpdateTopicVibe(this.state.phase);
+
+    // Party Mode is writable in every phase; vibes only in pick/between-topic.
+    // Anything else mid-play stays locked (e.g. scopeMix).
+    if (!partyTouch && !vibeTouch) {
+      throw new Error("Settings locked during play");
+    }
+
+    let changed = false;
+
+    if (partyTouch && this.state.settings.partyMode !== partial.partyMode) {
+      this.state.settings.partyMode = partial.partyMode!;
+      changed = true;
+    }
+
+    if (vibeTouch) {
+      const prev = this.state.settings.topicVibe ?? "all";
+      if (prev !== partial.topicVibe) {
         this.state.settings.topicVibe = partial.topicVibe!;
-        if (prev !== this.state.settings.topicVibe) {
+        changed = true;
+        // Vibes while picking a topic re-spin the shortlist.
+        if (this.state.phase === "TOPIC_SELECTION") {
           this.state.topicVotes = {};
           this.spinShortlist();
           this.state.phaseDeadlineAt = null;
-          // Bump so clients clear gestureIds — re-selecting a prior vibe
-          // (sports→…→sports) must not reuse a burned actionId.
-          bump(this.state);
         }
-        return;
       }
+    }
 
-      // Party mode / vibes may change between topics
-      if (
-        this.state.phase === "ROUND_RESULTS" ||
-        this.state.phase === "SCORE_REVEAL"
-      ) {
-        let changed = false;
-        if (
-          typeof partial.partyMode === "boolean" &&
-          this.state.settings.partyMode !== partial.partyMode
-        ) {
-          this.state.settings.partyMode = partial.partyMode;
-          changed = true;
-        }
-        if (vibeOk && this.state.settings.topicVibe !== partial.topicVibe) {
-          this.state.settings.topicVibe = partial.topicVibe!;
-          changed = true;
-        }
-        // Bump so Off→On→Off→On (or vibe A→B→A) clears burned actionIds.
-        // Client keys are update_settings:${rev}:${vibe}:${party}.
-        if (changed) bump(this.state);
-        return;
-      }
-      throw new Error("Settings locked during play");
-    }
-    const prevParty = this.state.settings.partyMode;
-    const prevVibe = this.state.settings.topicVibe;
-    this.state.settings = { ...this.state.settings, ...partial };
-    this.state.settings.topicVibe = migrateTopicVibe(this.state.settings.topicVibe);
-    // Same gesture-key trap as between-topic path — bump when discriminating
-    // fields change so a later reselect of a prior value is not eaten.
-    if (
-      prevParty !== this.state.settings.partyMode ||
-      prevVibe !== this.state.settings.topicVibe
-    ) {
-      bump(this.state);
-    }
+    // Bump so Off→On→Off→On (or vibe A→B→A) clears burned actionIds.
+    // Client keys are update_settings:${rev}:${vibe}:${party}.
+    // Does not change phase / timers / dice — only phaseRevision.
+    if (changed) bump(this.state);
   }
 
   /** Host sets 3–6 rounds on the first topic screen only. */
