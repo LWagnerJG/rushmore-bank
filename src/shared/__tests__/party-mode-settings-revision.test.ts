@@ -1,9 +1,12 @@
 /**
  * Party Mode (and between-topic vibe) toggles discriminate actionIds by
- * `update_settings:${rev}:${vibe}:${party}`, but the server used to skip
- * phaseRevision bumps on those settings writes. Off→On→Off→On reused the
- * burned `…::1` id and seenAction no-op'd — UI stuck Off. Same class as
- * vote/topic reselect (#208) and host clock (#205).
+ * `update_settings:${rev}:${vibe}:${party}`, so the server bumps
+ * phaseRevision when those settings actually change. Off→On→Off→On without
+ * a bump reused the burned `…::1` id and seenAction no-op'd — UI stuck Off.
+ *
+ * Party Mode is also host-writable in every phase (topic pick, draft, dice,
+ * final results, …). Toggling must land + bump revision without changing
+ * the current phase.
  */
 import assert from "node:assert/strict";
 import type { Connection } from "partyserver";
@@ -43,7 +46,15 @@ function lobbyRoom() {
   return { server, conn, sent };
 }
 
-function betweenTopicRoom(phase: "ROUND_RESULTS" | "SCORE_REVEAL") {
+function phaseRoom(
+  phase:
+    | "TOPIC_SELECTION"
+    | "DRAFT"
+    | "DICE"
+    | "ROUND_RESULTS"
+    | "SCORE_REVEAL"
+    | "GAME_RESULTS",
+) {
   const { server, conn, sent } = lobbyRoom();
   server.state.phase = phase;
   server.state.rosterLocked = true;
@@ -157,15 +168,69 @@ describe("party mode / vibe settings revision bump", () => {
   });
 
   it("ROUND_RESULTS: partyMode reselect lands", async () => {
-    const { server, conn } = betweenTopicRoom("ROUND_RESULTS");
+    const { server, conn } = phaseRoom("ROUND_RESULTS");
     await toggleParty(server, conn, [true, false, true]);
     assert.equal(server.state.settings.partyMode, true);
   });
 
   it("SCORE_REVEAL: partyMode reselect lands", async () => {
-    const { server, conn } = betweenTopicRoom("SCORE_REVEAL");
+    const { server, conn } = phaseRoom("SCORE_REVEAL");
     await toggleParty(server, conn, [true, false, true]);
     assert.equal(server.state.settings.partyMode, true);
+  });
+
+  it("TOPIC_SELECTION: partyMode reselect lands without leaving phase", async () => {
+    const { server, conn } = phaseRoom("TOPIC_SELECTION");
+    const rev0 = server.state.phaseRevision;
+    await toggleParty(server, conn, [true, false, true]);
+    assert.equal(server.state.settings.partyMode, true);
+    assert.equal(server.state.phase, "TOPIC_SELECTION");
+    assert.ok(server.state.phaseRevision > rev0);
+  });
+
+  it("GAME_RESULTS: partyMode reselect lands without leaving phase", async () => {
+    const { server, conn } = phaseRoom("GAME_RESULTS");
+    const rev0 = server.state.phaseRevision;
+    await toggleParty(server, conn, [true, false, true]);
+    assert.equal(server.state.settings.partyMode, true);
+    assert.equal(server.state.phase, "GAME_RESULTS");
+    assert.ok(server.state.phaseRevision > rev0);
+  });
+
+  it("DRAFT / DICE: partyMode toggle does not break phase flow", async () => {
+    for (const phase of ["DRAFT", "DICE"] as const) {
+      const { server, conn } = phaseRoom(phase);
+      server.state.phaseDeadlineAt = 9_999_999;
+      const deadline = server.state.phaseDeadlineAt;
+      const rev0 = server.state.phaseRevision;
+      await toggleParty(server, conn, [true, false]);
+      assert.equal(server.state.settings.partyMode, false);
+      assert.equal(server.state.phase, phase);
+      assert.equal(server.state.phaseDeadlineAt, deadline);
+      assert.ok(server.state.phaseRevision > rev0);
+    }
+  });
+
+  it("rejects non-party settings during locked play phases", async () => {
+    const { server, conn, sent } = phaseRoom("DRAFT");
+    sent.length = 0;
+    await server.onMessage(
+      conn,
+      JSON.stringify({
+        type: "update_settings",
+        settings: { scopeMix: [] },
+        actionId: "scope-locked",
+      }),
+    );
+    const err = sent.find(
+      (m) =>
+        m &&
+        typeof m === "object" &&
+        (m as { type?: string }).type === "error",
+    ) as { message?: string } | undefined;
+    assert.equal(err?.message, "Settings locked during play");
+    assert.equal(server.state.phase, "DRAFT");
+    assert.equal(server.state.settings.partyMode, false);
   });
 
   it("LOBBY vibe sports→basic→sports lands", async () => {

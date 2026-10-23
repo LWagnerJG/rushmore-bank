@@ -52,3 +52,15 @@ describe("round results Party Mode home", () => {
     expect(results).toMatch(/lowest_drink/);
   });
 });
+
+describe("Party Mode any-phase host toggle", () => {
+  it("client gates on canHostUpdatePartyMode (always allow)", () => {
+    const room = readFileSync(
+      resolve(__dirname, "../../components/RoomClient.tsx"),
+      "utf8",
+    );
+    expect(room).toMatch(/canHostUpdatePartyMode/);
+    expect(room).toMatch(/update_settings/);
+    expect(room).toMatch(/partyMode:\s*next/);
+  });
+});

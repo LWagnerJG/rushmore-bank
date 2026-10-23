@@ -38,6 +38,7 @@ import { ResultsPanel } from "@/components/ResultsPanel";
 import { PlayerRail } from "@/components/PlayerRail";
 import { TimerPill } from "@/components/TimerPill";
 import { shouldFireFinalRoundCue } from "@/shared/final-round-cue";
+import { canHostUpdatePartyMode } from "@/shared/rules";
 import { isSoundEnabled } from "@/lib/sound-prefs";
 import { armGestureUnlock } from "@/lib/sfx";
 import { RoomActionsProvider } from "@/lib/room-actions";
@@ -177,9 +178,13 @@ export function RoomClient({
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
   const onPartyChange = useCallback(
     (next: boolean) => {
+      // Shared rule: Party Mode is host-writable in every phase (server
+      // mirrors canHostUpdatePartyMode). Mid-phase toggles must not be
+      // client-blocked — only the toast came from a server reject before.
+      if (!canHostUpdatePartyMode(phase ?? "LOBBY")) return;
       send({ type: "update_settings", settings: { partyMode: next } });
     },
-    [send],
+    [send, phase],
   );
 
   const roomActions = useMemo(

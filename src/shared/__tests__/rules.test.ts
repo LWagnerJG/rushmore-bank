@@ -6,6 +6,8 @@ import { aiAwardFromScores, computeEarnedStones } from "../engine/scoring";
 import {
   RULES,
   canHostSetTopicRounds,
+  canHostUpdatePartyMode,
+  canHostUpdateTopicVibe,
   isHostSelectableTopicRounds,
   topicRoundsForPlayerCount,
 } from "../rules";
@@ -40,6 +42,32 @@ describe("topics", () => {
     ).toBe(false);
     expect(topicRoundsForPlayerCount(3)).toBe(3);
     expect(topicRoundsForPlayerCount(9)).toBe(2);
+  });
+
+  it("allows Party Mode in every phase; vibes only pick/between-topic", () => {
+    const phases = [
+      "LOBBY",
+      "TOPIC_SELECTION",
+      "DRAFT",
+      "CORRECTION",
+      "REVIEW",
+      "VOTING_AND_JUDGING",
+      "SCORE_REVEAL",
+      "WAGER_SELECTION",
+      "DICE",
+      "ROUND_RESULTS",
+      "GAME_RESULTS",
+    ] as const;
+    for (const phase of phases) {
+      expect(canHostUpdatePartyMode(phase)).toBe(true);
+    }
+    expect(canHostUpdateTopicVibe("LOBBY")).toBe(true);
+    expect(canHostUpdateTopicVibe("TOPIC_SELECTION")).toBe(true);
+    expect(canHostUpdateTopicVibe("ROUND_RESULTS")).toBe(true);
+    expect(canHostUpdateTopicVibe("SCORE_REVEAL")).toBe(true);
+    expect(canHostUpdateTopicVibe("DRAFT")).toBe(false);
+    expect(canHostUpdateTopicVibe("DICE")).toBe(false);
+    expect(canHostUpdateTopicVibe("GAME_RESULTS")).toBe(false);
   });
 });
 
