@@ -1460,18 +1460,37 @@ export class QuarryServer extends Server<Env> {
         this.state.phase === "ROUND_RESULTS" ||
         this.state.phase === "SCORE_REVEAL"
       ) {
-        if (typeof partial.partyMode === "boolean") {
+        let changed = false;
+        if (
+          typeof partial.partyMode === "boolean" &&
+          this.state.settings.partyMode !== partial.partyMode
+        ) {
           this.state.settings.partyMode = partial.partyMode;
+          changed = true;
         }
-        if (vibeOk) {
+        if (vibeOk && this.state.settings.topicVibe !== partial.topicVibe) {
           this.state.settings.topicVibe = partial.topicVibe!;
+          changed = true;
         }
+        // Bump so Off→On→Off→On (or vibe A→B→A) clears burned actionIds.
+        // Client keys are update_settings:${rev}:${vibe}:${party}.
+        if (changed) bump(this.state);
         return;
       }
       throw new Error("Settings locked during play");
     }
+    const prevParty = this.state.settings.partyMode;
+    const prevVibe = this.state.settings.topicVibe;
     this.state.settings = { ...this.state.settings, ...partial };
     this.state.settings.topicVibe = migrateTopicVibe(this.state.settings.topicVibe);
+    // Same gesture-key trap as between-topic path — bump when discriminating
+    // fields change so a later reselect of a prior value is not eaten.
+    if (
+      prevParty !== this.state.settings.partyMode ||
+      prevVibe !== this.state.settings.topicVibe
+    ) {
+      bump(this.state);
+    }
   }
 
   /** Host sets 3–6 rounds on the first topic screen only. */
