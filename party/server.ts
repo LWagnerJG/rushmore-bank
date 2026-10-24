@@ -142,6 +142,11 @@ function migrateState(raw: RoomState): RoomState {
     )
       ? (raw as RoomState).bustedPlayerIdsThisRound
       : [],
+    roundRecaps: Array.isArray(
+      (raw as RoomState & { roundRecaps?: RoomState["roundRecaps"] }).roundRecaps,
+    )
+      ? (raw as RoomState).roundRecaps
+      : [],
     diceIdlePauseRemainingMs:
       (raw as RoomState & { diceIdlePauseRemainingMs?: number | null })
         .diceIdlePauseRemainingMs ?? null,
@@ -2888,6 +2893,7 @@ export class QuarryServer extends Server<Env> {
     this.state.phase = "ROUND_RESULTS";
     this.state.diceSubphase = "SETTLED";
     this.state.topicRound += 1;
+    this.archiveRoundRecap();
     // Rotate starter for next topic
     this.state.starterOffset =
       (this.state.starterOffset + 1) % Math.max(1, this.state.seatOrder.length);
@@ -2913,6 +2919,35 @@ export class QuarryServer extends Server<Env> {
     // Stay in ROUND_RESULTS so players see per-round standings before
     // final results. handleNextTopic / handleAdvance will transition to
     // GAME_RESULTS when the host taps "See final standings".
+  }
+
+  /** Snapshot topic + each player's 4 picks for the shareable end card. */
+  archiveRoundRecap() {
+    const topic = this.state.selectedTopic;
+    if (!topic) return;
+    if (!Array.isArray(this.state.roundRecaps)) this.state.roundRecaps = [];
+    // Idempotent if beginRoundResults is retried for the same round.
+    if (this.state.roundRecaps.some((r) => r.round === this.state.topicRound)) {
+      return;
+    }
+    const rosters = this.state.seatOrder.map((pid) => {
+      const p = this.state.players.find((x) => x.id === pid);
+      const picks = this.state.picks
+        .filter((pk) => pk.playerId === pid)
+        .sort((a, b) => a.pickIndex - b.pickIndex)
+        .map((pk) => pk.text);
+      return {
+        playerId: pid,
+        playerName: p?.name ?? "Player",
+        picks,
+      };
+    });
+    this.state.roundRecaps.push({
+      round: this.state.topicRound,
+      topicId: topic.id,
+      topicText: topic.text,
+      rosters,
+    });
   }
 
   async handleBankConfirmOpen(id: string) {
