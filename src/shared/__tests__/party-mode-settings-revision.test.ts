@@ -198,17 +198,88 @@ describe("party mode / vibe settings revision bump", () => {
   });
 
   it("DRAFT / DICE: partyMode toggle does not break phase flow", async () => {
-    for (const phase of ["DRAFT", "DICE"] as const) {
-      const { server, conn } = phaseRoom(phase);
-      server.state.phaseDeadlineAt = 9_999_999;
-      const deadline = server.state.phaseDeadlineAt;
+    {
+      const { server, conn } = phaseRoom("DRAFT");
+      server.state.pickDeadlineAt = 9_999_999;
+      server.state.pickPaused = false;
+      const pickDeadline = server.state.pickDeadlineAt;
       const rev0 = server.state.phaseRevision;
       await toggleParty(server, conn, [true, false]);
       assert.equal(server.state.settings.partyMode, false);
-      assert.equal(server.state.phase, phase);
-      assert.equal(server.state.phaseDeadlineAt, deadline);
+      assert.equal(server.state.phase, "DRAFT");
+      assert.equal(server.state.pickDeadlineAt, pickDeadline);
+      assert.equal(server.state.pickPaused, false);
       assert.ok(server.state.phaseRevision > rev0);
     }
+    {
+      const { server, conn } = phaseRoom("DICE");
+      server.state.diceSubphase = "READY";
+      server.state.diceIdleDeadlineAt = 9_888_888;
+      server.state.diceTurnSeat = 0;
+      const idleAt = server.state.diceIdleDeadlineAt;
+      const rev0 = server.state.phaseRevision;
+      await toggleParty(server, conn, [true, false]);
+      assert.equal(server.state.settings.partyMode, false);
+      assert.equal(server.state.phase, "DICE");
+      assert.equal(server.state.diceSubphase, "READY");
+      assert.equal(server.state.diceIdleDeadlineAt, idleAt);
+      assert.equal(server.state.diceTurnSeat, 0);
+      assert.ok(server.state.phaseRevision > rev0);
+    }
+  });
+
+  it("DICE: partyMode toggle does not reset the bot READY timer", async () => {
+    const { server, conn } = phaseRoom("DICE");
+    server.state.players = [
+      {
+        id: "A",
+        name: "A",
+        seat: 0,
+        connected: true,
+        isHost: true,
+        role: "player",
+        stones: 20,
+        joinedAt: 1,
+      },
+      {
+        id: "bot-1",
+        name: "Bot",
+        seat: 1,
+        connected: true,
+        isHost: false,
+        role: "player",
+        stones: 20,
+        joinedAt: 1,
+      },
+    ];
+    server.state.seatOrder = ["A", "bot-1"];
+    server.state.diceActiveIds = ["A", "bot-1"];
+    server.state.diceTurnSeat = 1;
+    server.state.diceSubphase = "READY";
+    server.state.pots = { A: 10, "bot-1": 10 };
+    server.state.personalRollCounts = { A: 0, "bot-1": 0 };
+    server.nudgeBots();
+    const timers = server as unknown as {
+      botTimers: Map<string, ReturnType<typeof setTimeout>>;
+    };
+    assert.ok(
+      timers.botTimers.has("dice:bot-1:0"),
+      "bot READY timer armed",
+    );
+    const beforeKeys = [...timers.botTimers.keys()].filter((k) =>
+      k.startsWith("dice:"),
+    );
+    await toggleParty(server, conn, [true]);
+    assert.equal(server.state.settings.partyMode, true);
+    const afterKeys = [...timers.botTimers.keys()].filter((k) =>
+      k.startsWith("dice:"),
+    );
+    assert.deepEqual(
+      afterKeys,
+      beforeKeys,
+      "partyMode nudge must keep the same dice bot timer key",
+    );
+    assert.ok(timers.botTimers.has("dice:bot-1:0"));
   });
 
   it("rejects non-party settings during locked play phases", async () => {

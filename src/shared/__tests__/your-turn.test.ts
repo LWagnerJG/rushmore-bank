@@ -69,6 +69,14 @@ describe("your-turn moments", () => {
     expect(dice).toMatch(/cueYourTurn/);
     expect(dice).not.toMatch(/classList\.add\("dice-your-turn"\)/);
 
+    // Settings bumps (Party Mode) must not re-fire your-turn haptics.
+    expect(draft).not.toMatch(/cueYourTurn\(`draft:[^`]*phaseRevision/);
+    expect(vote).not.toMatch(/cueYourTurn\(`vote:[^`]*phaseRevision/);
+    expect(dice).not.toMatch(
+      /cueYourTurn\([^)]*phaseRevision|dice:\$\{state\.code\}:\$\{state\.diceTurnSeat\}:\$\{state\.phaseRevision\}/,
+    );
+    expect(draft).toMatch(/resetYourTurnCue/);
+
     const armedBlocks = [
       ...(css.match(/\.bean-dice-tray-armed\s*\{[\s\S]*?\n\}/g) ?? []),
     ];

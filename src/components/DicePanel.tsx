@@ -278,17 +278,12 @@ export function DicePanel({
 
   useEffect(() => {
     if (!glowOn || state.diceSubphase !== "READY") return;
-    const key = `dice:${state.code}:${state.diceTurnSeat}:${state.phaseRevision}`;
+    // Seat only — not phaseRevision (Party Mode toggle would re-buzz).
+    const key = `dice:${state.code}:${state.diceTurnSeat}`;
     if (turnHaptic.current === key) return;
     turnHaptic.current = key;
     cueYourTurn(key);
-  }, [
-    glowOn,
-    state.diceSubphase,
-    state.diceTurnSeat,
-    state.phaseRevision,
-    state.code,
-  ]);
+  }, [glowOn, state.diceSubphase, state.diceTurnSeat, state.code]);
 
   const reducedMotion = useMemo(
     () =>
