@@ -2503,23 +2503,29 @@ export class QuarryServer extends Server<Env> {
     return this.state.seatOrder[this.state.diceTurnSeat] ?? null;
   }
 
+  /** Active dice seat still on the table (live socket or soft-disconnect grace). */
+  private diceSeatOnTable(playerId: string): boolean {
+    const pl = this.state.players.find((x) => x.id === playerId);
+    if (!pl) return false;
+    return pl.connected || this.leaveTimers.has(playerId);
+  }
+
   async startDiceTurn() {
-    // Skip inactive or disconnected seats (banked / busted / away)
+    // Skip inactive or permanently away seats (banked / busted / grace ended).
+    // Soft-disconnect grace must keep the seat — same quorum idea as vote/wager.
     let guard = 0;
     while (guard++ < 40) {
       const pid = this.currentDicePlayerId();
-      if (pid && this.state.diceActiveIds.includes(pid)) {
-        const pl = this.state.players.find((x) => x.id === pid);
-        if (pl?.connected) break;
+      if (pid && this.state.diceActiveIds.includes(pid) && this.diceSeatOnTable(pid)) {
+        break;
       }
       this.advanceDiceSeat();
     }
     const pid = this.currentDicePlayerId();
-    const connectedActive = this.state.diceActiveIds.filter((id) => {
-      const pl = this.state.players.find((x) => x.id === id);
-      return pl?.connected;
-    });
-    if (!pid || connectedActive.length === 0) {
+    const onTableActive = this.state.diceActiveIds.filter((id) =>
+      this.diceSeatOnTable(id),
+    );
+    if (!pid || onTableActive.length === 0) {
       // Bank every remaining active pot (incl. disconnected) before results.
       this.bankRemainingDicePots("Auto-bank (no connected rollers)");
       await this.beginRoundResults();
