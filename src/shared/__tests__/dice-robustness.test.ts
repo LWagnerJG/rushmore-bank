@@ -3,6 +3,7 @@
  * cancel vs roll anim, seat reclaim id remaps, bust-redo leave recovery.
  */
 import assert from "node:assert/strict";
+import type { Connection } from "partyserver";
 import { afterEach, beforeEach, describe, it, vi } from "vitest";
 import { QuarryServer } from "../../../party/server";
 import { createTestServer } from "../../../test/party-server-harness";
@@ -64,6 +65,41 @@ describe("dice table robustness", () => {
     assert.equal(g.server.state.pots.C, 0);
     assert.equal(g.server.state.players.find((p) => p.id === "C")!.stones, 70);
     assert.equal(g.server.state.protectedStones.C, 70);
+  });
+
+  it("keeps soft-disconnect grace seats on the dice table", async () => {
+    const g = game();
+    await beginDice(g.server, { A: 10, B: 10, C: 10 });
+    // Brief app-switch: both remaining rollers in grace (leaveTimers armed).
+    g.server.onClose({ id: "A", send() {} } as unknown as Connection, 1000, "", true);
+    g.server.onClose({ id: "B", send() {} } as unknown as Connection, 1000, "", true);
+    g.server.onClose({ id: "C", send() {} } as unknown as Connection, 1000, "", true);
+    assert.equal(g.server.state.phase, "DICE");
+    await g.server.startDiceTurn();
+    assert.equal(
+      g.server.state.phase,
+      "DICE",
+      "must not end the table while rollers are still in disconnect grace",
+    );
+    assert.equal(g.server.state.diceSubphase, "READY");
+    assert.ok(
+      ["A", "B", "C"].includes(g.server.currentDicePlayerId()!),
+      "a grace seat stays on the clock",
+    );
+  });
+
+  it("does not skip the current roller during soft-disconnect grace", async () => {
+    const g = game();
+    await beginDice(g.server, { A: 10, B: 10, C: 10 });
+    assert.equal(g.server.currentDicePlayerId(), "A");
+    g.server.onClose({ id: "A", send() {} } as unknown as Connection, 1000, "", true);
+    await g.server.startDiceTurn();
+    assert.equal(g.server.state.phase, "DICE");
+    assert.equal(
+      g.server.currentDicePlayerId(),
+      "A",
+      "grace must hold A's seat — idle/auto-bank handles AFK, not a skip",
+    );
   });
 
   it("syncs protectedStones when banking", async () => {
