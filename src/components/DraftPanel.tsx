@@ -8,7 +8,7 @@ import {
   type PublicRoomState,
 } from "@/shared/types";
 import { loadStash, saveStash } from "@/lib/party";
-import { cueYourTurn } from "@/lib/your-turn";
+import { cueYourTurn, resetYourTurnCue } from "@/lib/your-turn";
 import { draftStatusLine } from "@/lib/draft-status";
 import { DraftBoard } from "@/components/DraftBoard";
 
@@ -87,15 +87,15 @@ export function DraftPanel({
   }, [busy]);
 
   useEffect(() => {
-    if (!myTurn || state.pickPaused) return;
-    cueYourTurn(`draft:${state.code}:${state.draftCursor}:${state.phaseRevision}`);
-  }, [
-    myTurn,
-    state.pickPaused,
-    state.code,
-    state.draftCursor,
-    state.phaseRevision,
-  ]);
+    if (!myTurn) return;
+    // Forget on pause so Resume can re-cue the same cursor. Do not key on
+    // phaseRevision — Party Mode / other settings bumps would re-buzz.
+    if (state.pickPaused) {
+      resetYourTurnCue();
+      return;
+    }
+    cueYourTurn(`draft:${state.code}:${state.draftCursor}`);
+  }, [myTurn, state.pickPaused, state.code, state.draftCursor]);
 
   function persist(next: string[]) {
     setQueue(next);

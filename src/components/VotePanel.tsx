@@ -69,8 +69,9 @@ export function VotePanel({
 
   useEffect(() => {
     if (!canVote) return;
-    cueYourTurn(`vote:${state.code}:${state.topicRound}:${state.phaseRevision}`);
-  }, [canVote, state.code, state.topicRound, state.phaseRevision]);
+    // Key on topic round only — not phaseRevision (settings bumps re-buzz).
+    cueYourTurn(`vote:${state.code}:${state.topicRound}`);
+  }, [canVote, state.code, state.topicRound]);
 
   return (
     <div className={`roster-board space-y-3 roster-board-${density}`}>

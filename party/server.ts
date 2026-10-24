@@ -3499,7 +3499,10 @@ export class QuarryServer extends Server<Env> {
         if (!this.state.diceActiveIds.includes(turnId)) return;
         const rolls = this.state.personalRollCounts[turnId] ?? 0;
         const pot = this.state.pots[turnId] ?? 0;
-        const key = `dice:${turnId}:${rolls}:${this.state.phaseRevision}`;
+        // Key on turn + rolls only — not phaseRevision. Settings bumps
+        // (Party Mode any-phase toggle) call nudgeBots; including revision
+        // cleared the pending READY timer and restarted the full delay.
+        const key = `dice:${turnId}:${rolls}`;
         if (this.botTimers.has(key)) return;
         for (const k of [...this.botTimers.keys()]) {
           if (k.startsWith("dice:") && k !== key) this.clearBotTimer(k);
