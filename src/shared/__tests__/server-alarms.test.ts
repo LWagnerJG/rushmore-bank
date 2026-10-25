@@ -184,7 +184,7 @@ describe("authoritative deadlines across reconnects", () => {
   it("preserves a paused draft and only expires the resumed clock", async () => {
     const g = game();
     await g.server.beginDraft();
-    g.server.handlePause("A");
+    await g.server.handlePause("A");
     await g.server.persist();
     await reconnect(g.server);
     await g.server.onAlarm();
@@ -193,6 +193,69 @@ describe("authoritative deadlines across reconnects", () => {
     await g.server.handleResume("A");
     await g.fire();
     assert.equal(g.server.state.draftCursor, 1);
+  });
+
+  it("awaited pause clear then resume keeps the draft clock", async () => {
+    const g = game();
+    await g.server.beginDraft();
+    let releaseDelete!: () => void;
+    const holdDelete = new Promise<void>((r) => {
+      releaseDelete = r;
+    });
+    const originalDelete = g.ctx.storage.deleteAlarm.bind(g.ctx.storage);
+    g.ctx.storage.deleteAlarm = async () => {
+      await holdDelete;
+      await originalDelete();
+    };
+    const pauseDone = g.server.handlePause("A");
+    // Pause must not resolve until clearAlarm finishes — otherwise a fast
+    // resume can arm a clock that the late deleteAlarm then wipes.
+    let pauseResolved = false;
+    void pauseDone.then(() => {
+      pauseResolved = true;
+    });
+    await Promise.resolve();
+    assert.equal(pauseResolved, false);
+    assert.equal(g.server.state.pickPaused, true);
+    releaseDelete();
+    await pauseDone;
+    assert.equal(pauseResolved, true);
+    assert.equal(g.deadline(), null);
+    await g.server.handleResume("A");
+    assert.notEqual(g.deadline(), null);
+    assert.equal(g.server.state.pickPaused, false);
+    await g.fire();
+    assert.equal(g.server.state.draftCursor, 1);
+  });
+
+  it("documents why pause must await clearAlarm (late delete wipes resume)", async () => {
+    const g = game();
+    await g.server.beginDraft();
+    let releaseDelete!: () => void;
+    const holdDelete = new Promise<void>((r) => {
+      releaseDelete = r;
+    });
+    const originalDelete = g.ctx.storage.deleteAlarm.bind(g.ctx.storage);
+    g.ctx.storage.deleteAlarm = async () => {
+      await holdDelete;
+      await originalDelete();
+    };
+    // Old fire-and-forget ordering: start clear, resume before it finishes.
+    const lingeringClear = g.server.clearAlarm();
+    g.server.state.pickPaused = false;
+    g.server.state.pickDeadlineAt = Date.now() + 5_000;
+    await g.server.setAlarmAt(g.server.state.pickDeadlineAt, {
+      kind: "pick",
+      revision: g.server.state.phaseRevision,
+    });
+    assert.notEqual(g.deadline(), null, "resume armed a clock");
+    releaseDelete();
+    await lingeringClear;
+    assert.equal(
+      g.deadline(),
+      null,
+      "late deleteAlarm from an un-awaited pause clear wipes the resumed clock",
+    );
   });
 
   it("ignores an old delivery after extending the pick deadline", async () => {

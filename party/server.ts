@@ -1201,7 +1201,7 @@ export class QuarryServer extends Server<Env> {
         await this.handleLockIn(id, msg.text);
         return;
       case "host_pause":
-        this.handlePause(id);
+        await this.handlePause(id);
         return;
       case "host_resume":
         await this.handleResume(id);
@@ -1906,7 +1906,7 @@ export class QuarryServer extends Server<Env> {
     }
   }
 
-  handlePause(id: string) {
+  async handlePause(id: string) {
     if (!this.requireHost(id)) throw new Error("Host only");
     if (this.state.phase !== "DRAFT" && this.state.phase !== "CORRECTION") {
       throw new Error("Wrong phase");
@@ -1923,7 +1923,9 @@ export class QuarryServer extends Server<Env> {
     // These handlers do not otherwise advance phaseRevision, so a bare
     // `host_pause:${rev}` key would burn and eat the next host clock tap.
     bump(this.state);
-    void this.clearAlarm();
+    // Must await: a fire-and-forget clearAlarm can finish after a fast
+    // host_resume setAlarmAt and wipe the resumed draft clock.
+    await this.clearAlarm();
   }
 
   async handleResume(id: string) {
