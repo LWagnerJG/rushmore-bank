@@ -843,11 +843,13 @@ export class QuarryServer extends Server<Env> {
       // Auto-bank disconnected rollers so dice cannot soft-lock on an empty seat.
       this.bankPlayer(leftId, "Auto-bank (disconnected)");
     }
-    const connectedActive = this.state.diceActiveIds.filter((id) => {
-      const pl = this.state.players.find((x) => x.id === id);
-      return pl?.connected;
-    });
-    if (connectedActive.length === 0) {
+    // Soft-disconnect grace seats still count — same as startDiceTurn (#222).
+    // Otherwise a permanent leave while every other roller is mid app-switch
+    // ends the table and auto-banks their pots early.
+    const onTableActive = this.state.diceActiveIds.filter((id) =>
+      this.diceSeatOnTable(id),
+    );
+    if (onTableActive.length === 0) {
       await this.clearAlarm();
       await this.beginRoundResults();
       return;
