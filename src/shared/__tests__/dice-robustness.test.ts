@@ -88,6 +88,32 @@ describe("dice table robustness", () => {
     );
   });
 
+  it("recoverDiceAfterLeave keeps grace rollers on the table", async () => {
+    const g = game();
+    await beginDice(g.server, { A: 10, B: 10, C: 10 });
+    // A permanently leaves; B+C are only soft-disconnected (still in grace).
+    g.server.onClose({ id: "B", send() {} } as unknown as Connection, 1000, "", true);
+    g.server.onClose({ id: "C", send() {} } as unknown as Connection, 1000, "", true);
+    g.server.state.players.find((p) => p.id === "A")!.connected = false;
+    g.server.state.diceActiveIds = ["A", "B", "C"];
+    await g.server.recoverDiceAfterLeave("A");
+    assert.equal(
+      g.server.state.phase,
+      "DICE",
+      "must not end the table while B/C are still in disconnect grace",
+    );
+    assert.ok(!g.server.state.diceActiveIds.includes("A"));
+    assert.deepEqual(g.server.state.diceActiveIds.slice().sort(), ["B", "C"]);
+    assert.equal(g.server.state.diceSubphase, "READY");
+    assert.ok(
+      ["B", "C"].includes(g.server.currentDicePlayerId()!),
+      "a remaining grace seat stays on the clock",
+    );
+    // Grace seats keep their pots — not force-banked by the early results path.
+    assert.equal(g.server.state.pots.B, 10);
+    assert.equal(g.server.state.pots.C, 10);
+  });
+
   it("does not skip the current roller during soft-disconnect grace", async () => {
     const g = game();
     await beginDice(g.server, { A: 10, B: 10, C: 10 });
