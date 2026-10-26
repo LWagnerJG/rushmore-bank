@@ -792,11 +792,10 @@ export class QuarryServer extends Server<Env> {
       return;
     }
     if (this.currentDraftPlayerId() !== leftId) return;
-    if (this.state.phase === "CORRECTION") {
-      await this.onPickTimeout();
-      return;
-    }
-    // Miss the pick immediately so the table is not stuck on an empty seat.
+    // Force-miss even if the host had paused the clock — onPickTimeout no-ops
+    // while pickPaused, which soft-locked the table on a disconnected seat.
+    this.state.pickPaused = false;
+    this.state.pickPauseRemainingMs = null;
     await this.clearAlarm();
     await this.onPickTimeout();
   }
