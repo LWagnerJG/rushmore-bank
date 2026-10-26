@@ -137,7 +137,8 @@ describe("judge × host_correct invalidate", () => {
         rosterQuality: 7,
         explanation: "x",
         votes: 0,
-        earned: 20,
+        aiAward: 31,
+        earned: 51,
         aiFallback: false,
       },
     ];
