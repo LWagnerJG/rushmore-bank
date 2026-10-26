@@ -1990,6 +1990,14 @@ export class QuarryServer extends Server<Env> {
       this.state.humanVotes = {};
       this.state.scores = [];
       this.state.scoresLocked = false;
+      // Invalidate any in-flight /api/judge so a late success cannot apply
+      // scores (or finalize) after we've left voting for a redo.
+      if (this.state.judgeJobId) {
+        this.state.judgeJobId = `${this.state.judgeJobId}:corrected`;
+      }
+      this.state.judgeStatus = "idle";
+      this.state.judgeNotice = null;
+      this.state.phaseDeadlineAt = null;
     }
 
     const draftStillOpen =
@@ -2168,7 +2176,15 @@ export class QuarryServer extends Server<Env> {
           latencyMs?: number | null;
         };
 
-        if (this.state.judgeJobId !== jobId || this.state.scoresLocked) return;
+        // Re-check after await res.json() — host_correct can leave voting
+        // while the body was buffering; jobId rotate covers that too.
+        if (
+          this.state.judgeJobId !== jobId ||
+          this.state.scoresLocked ||
+          this.state.phase !== "VOTING_AND_JUDGING"
+        ) {
+          return;
+        }
 
         if (data.fallback || !data.judgments) {
           lastMeta = {
@@ -2283,6 +2299,7 @@ export class QuarryServer extends Server<Env> {
   }
 
   async maybeFinalizeAfterJudge() {
+    if (this.state.phase !== "VOTING_AND_JUDGING") return;
     if (this.state.scoresLocked) return;
     if (this.state.scores.length === 0) return;
     const needed = this.humanVoteNeededCount();
@@ -2327,6 +2344,7 @@ export class QuarryServer extends Server<Env> {
   }
 
   async finalizeScores() {
+    if (this.state.phase !== "VOTING_AND_JUDGING") return;
     if (this.state.scoresLocked) return;
 
     if (this.state.scores.length === 0) {
