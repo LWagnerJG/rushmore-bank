@@ -998,6 +998,18 @@ export class QuarryServer extends Server<Env> {
     // for handlePlayerLeave / checkHostFailover after the grace window.
     void this.persist().then(() => this.broadcastState());
 
+    // Bank-confirm open clears the idle alarm. Soft-disconnect keeps the seat
+    // on the table for grace (#222), so without cancelling confirm the table
+    // freezes until grace expires. Re-arm idle so AFK auto-bank can run.
+    if (
+      this.state.phase === "DICE" &&
+      this.state.diceSubphase === "READY" &&
+      this.currentDicePlayerId() === conn.id &&
+      this.state.diceIdlePauseRemainingMs != null
+    ) {
+      void this.handleBankConfirmCancel(conn.id);
+    }
+
     // Host always gets the full grace (lobby + mid-game). Other lobby seats
     // still leave immediately so the headcount shrinks.
     const delay = disconnectGraceMs({
