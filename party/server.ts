@@ -1242,7 +1242,7 @@ export class QuarryServer extends Server<Env> {
         await this.handleNextTopic(id);
         return;
       case "end_game":
-        this.handleEndGame(id);
+        await this.handleEndGame(id);
         return;
       case "play_again":
         await this.handlePlayAgain(id);
@@ -3074,13 +3074,15 @@ export class QuarryServer extends Server<Env> {
     await this.beginTopicSelection();
   }
 
-  handleEndGame(id: string) {
+  async handleEndGame(id: string) {
     if (!this.requireHost(id)) throw new Error("Host only");
     this.state.phase = "GAME_RESULTS";
     this.state.gameOver = true;
     this.state.rematchReady = {};
     bump(this.state);
-    void this.clearAlarm();
+    // Must await: same race as host pause (#224) — a late deleteAlarm can
+    // wipe a rematch / next-topic clock armed after end_game returns.
+    await this.clearAlarm();
   }
 
   /**
