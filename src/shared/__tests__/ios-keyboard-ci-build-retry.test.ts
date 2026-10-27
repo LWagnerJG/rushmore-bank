@@ -25,7 +25,8 @@ describe("iOS keyboard CI build retry", () => {
 
   it("bounds and retries playtest Playwright WebKit install (hang flake)", () => {
     expect(playtest).toMatch(/playwright install attempt/);
-    expect(playtest).toMatch(/timeout 180 npx playwright install/);
+    expect(playtest).toMatch(/timeout 480 npx playwright install/);
+    expect(playtest).toMatch(/waiting for dpkg lock/);
     expect(playtest).toMatch(/playwright install failed after 3 attempts/);
     // Must not keep the bare one-shot install that can hang the job.
     expect(playtest).not.toMatch(

@@ -47,11 +47,20 @@ jobs:
       - run: npm ci
       - name: Install Playwright WebKit
         run: |
-          # Browser download can hang on GitHub runners; bound each attempt.
+          # Browser download can hang on GitHub runners. Bound each attempt,
+          # and wait out a leftover apt lock if a prior timeout killed apt-get.
           ok=0
           for attempt in 1 2 3; do
             echo "playwright install attempt ${attempt}…"
-            if timeout 180 npx playwright install --with-deps webkit; then
+            for i in $(seq 1 90); do
+              if ! fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 && \
+                 ! fuser /var/lib/dpkg/lock >/dev/null 2>&1; then
+                break
+              fi
+              echo "waiting for dpkg lock…"
+              sleep 2
+            done
+            if timeout 480 npx playwright install --with-deps webkit; then
               ok=1
               break
             fi
