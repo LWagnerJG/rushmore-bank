@@ -35,7 +35,7 @@ permissions:
 jobs:
   webkit:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     env:
       NEXT_PUBLIC_PARTYKIT_HOST: 127.0.0.1:8787
     steps:
@@ -46,7 +46,31 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Install Playwright WebKit
-        run: npx playwright install --with-deps webkit
+        run: |
+          # Browser download can hang on GitHub runners. Bound each attempt,
+          # and wait out a leftover apt lock if a prior timeout killed apt-get.
+          ok=0
+          for attempt in 1 2 3; do
+            echo "playwright install attempt ${attempt}…"
+            for i in $(seq 1 90); do
+              if ! fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 && \
+                 ! fuser /var/lib/dpkg/lock >/dev/null 2>&1; then
+                break
+              fi
+              echo "waiting for dpkg lock…"
+              sleep 2
+            done
+            if timeout 480 npx playwright install --with-deps webkit; then
+              ok=1
+              break
+            fi
+            echo "playwright install attempt ${attempt} failed/timed out."
+            sleep 5
+          done
+          if [ "$ok" != "1" ]; then
+            echo "playwright install failed after 3 attempts."
+            exit 1
+          fi
       - name: Start local PartyServer
         run: npx wrangler dev --ip 127.0.0.1 --port 8787 > "$RUNNER_TEMP/wrangler.log" 2>&1 &
       - name: Build app against the local PartyServer

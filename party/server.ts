@@ -357,6 +357,7 @@ export class QuarryServer extends Server<Env> {
     }
         this.startHostCheckLoop();
     await this.ensureDiceDeadline();
+    await this.ensureDiceSettleHold();
     await this.persist();
   }
 
@@ -975,8 +976,11 @@ export class QuarryServer extends Server<Env> {
       this.ensureHost();
     }
     // Lost dice_anim (hibernate, stale context, past-deadline setAlarm)
-    // used to leave COMMITTED unrevealed forever. Resolve on every wake.
-    const recovered = await this.ensureDiceDeadline();
+    // used to leave COMMITTED unrevealed forever. Lost settle-hold leaves
+    // SETTLED forever (table never returns to READY). Resolve on every wake.
+    const recovered =
+      (await this.ensureDiceDeadline()) ||
+      (await this.ensureDiceSettleHold());
     if (existing) {
       await this.persist();
       this.broadcastState();
@@ -1049,7 +1053,17 @@ export class QuarryServer extends Server<Env> {
 
     const payload = this.alarmPayload;
     if (!payload) {
-      await this.ensureDiceDeadline();
+      if (await this.ensureDiceDeadline()) {
+        await this.persist();
+        this.broadcastState();
+        this.nudgeBots();
+        return;
+      }
+      if (await this.ensureDiceSettleHold()) {
+        await this.persist();
+        this.broadcastState();
+        this.nudgeBots();
+      }
       return;
     }
 
@@ -1062,6 +1076,17 @@ export class QuarryServer extends Server<Env> {
       ) {
         await this.ensureDiceDeadline();
         await this.persist();
+        return;
+      }
+      if (
+        this.state.phase === "DICE" &&
+        this.state.diceSubphase === "SETTLED" &&
+        this.state.lastDice?.revealed
+      ) {
+        await this.ensureDiceSettleHold();
+        await this.persist();
+        this.broadcastState();
+        this.nudgeBots();
         return;
       }
       await this.clearAlarm();
@@ -1132,7 +1157,10 @@ export class QuarryServer extends Server<Env> {
         return;
       }
       if (msg.type === "resync") {
-        if (await this.ensureDiceDeadline()) {
+        if (
+          (await this.ensureDiceDeadline()) ||
+          (await this.ensureDiceSettleHold())
+        ) {
           await this.persist();
           this.broadcastState();
         } else {
@@ -2749,6 +2777,44 @@ export class QuarryServer extends Server<Env> {
       });
     }
     return false;
+  }
+
+  /**
+   * Advance a SETTLED table whose settle-hold alarm was lost.
+   * Hold due-time lives only on the alarm (not RoomState). Without recovery,
+   * a wiped/stale hold leaves the table SETTLED forever (not READY, never
+   * advances) — same failure class as stuck COMMITTED rolls.
+   * Returns true when this call advanced past the hold.
+   */
+  async ensureDiceSettleHold(now = Date.now()): Promise<boolean> {
+    if (
+      this.state.phase !== "DICE" ||
+      this.state.diceSubphase !== "SETTLED" ||
+      !this.state.lastDice?.revealed
+    ) {
+      return false;
+    }
+    const prompt = this.state.partyPrompt;
+    if (prompt && !prompt.resolved && prompt.kind === "bust_redo") {
+      // Drink-redo waits on human/host resolve — do not auto-advance.
+      return false;
+    }
+    const owner = this.alarmOwner("dice_settle_hold");
+    const payload = this.alarmPayload;
+    const armed =
+      payload?.kind === "dice_settle_hold" &&
+      payload.context === owner?.context;
+    if (armed && payload) {
+      const due = payload.deadlineAt;
+      if (due != null && now >= due) {
+        await this.afterDiceSettleHold();
+        return true;
+      }
+      return false;
+    }
+    // Lost hold clock — advance rather than soft-lock.
+    await this.afterDiceSettleHold();
+    return true;
   }
 
   /** Apply committed roll outcome + mark revealed (idempotent). */
