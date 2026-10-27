@@ -1001,19 +1001,25 @@ export class QuarryServer extends Server<Env> {
     // Presence-only: do not bump phaseRevision (that remounted host UI) and
     // do not call ensureHost — a host in grace must stay host. Transfer waits
     // for handlePlayerLeave / checkHostFailover after the grace window.
-    void this.persist().then(() => this.broadcastState());
 
     // Bank-confirm open clears the idle alarm. Soft-disconnect keeps the seat
     // on the table for grace (#222), so without cancelling confirm the table
     // freezes until grace expires. Re-arm idle so AFK auto-bank can run.
-    if (
+    // Cancel BEFORE persist: a concurrent persist that still sees
+    // diceIdlePauseRemainingMs can write pause+idle-alarm, and on wake
+    // alarmOwner("dice_idle") is null → mismatch clears the clock (soft-lock).
+    const cancelBankConfirm =
       this.state.phase === "DICE" &&
       this.state.diceSubphase === "READY" &&
       this.currentDicePlayerId() === conn.id &&
-      this.state.diceIdlePauseRemainingMs != null
-    ) {
-      void this.handleBankConfirmCancel(conn.id);
-    }
+      this.state.diceIdlePauseRemainingMs != null;
+    void (async () => {
+      if (cancelBankConfirm) {
+        await this.handleBankConfirmCancel(conn.id);
+      }
+      await this.persist();
+      this.broadcastState();
+    })();
 
     // Host always gets the full grace (lobby + mid-game). Other lobby seats
     // still leave immediately so the headcount shrinks.
