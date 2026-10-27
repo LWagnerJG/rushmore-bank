@@ -22,4 +22,14 @@ describe("iOS keyboard CI build retry", () => {
       /^\s+- name: Build app against the local PartyServer\n\s+run: npx next build\s*$/m,
     );
   });
+
+  it("bounds and retries playtest Playwright WebKit install (hang flake)", () => {
+    expect(playtest).toMatch(/playwright install attempt/);
+    expect(playtest).toMatch(/timeout 180 npx playwright install/);
+    expect(playtest).toMatch(/playwright install failed after 3 attempts/);
+    // Must not keep the bare one-shot install that can hang the job.
+    expect(playtest).not.toMatch(
+      /^\s+- name: Install Playwright WebKit\n\s+run: npx playwright install --with-deps webkit\s*$/m,
+    );
+  });
 });
