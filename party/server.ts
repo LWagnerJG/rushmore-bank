@@ -2800,11 +2800,12 @@ export class QuarryServer extends Server<Env> {
       return false;
     }
     const owner = this.alarmOwner("dice_settle_hold");
+    const payload = this.alarmPayload;
     const armed =
-      this.alarmPayload?.kind === "dice_settle_hold" &&
-      this.alarmPayload.context === owner?.context;
-    if (armed) {
-      const due = this.alarmPayload.deadlineAt;
+      payload?.kind === "dice_settle_hold" &&
+      payload.context === owner?.context;
+    if (armed && payload) {
+      const due = payload.deadlineAt;
       if (due != null && now >= due) {
         await this.afterDiceSettleHold();
         return true;
