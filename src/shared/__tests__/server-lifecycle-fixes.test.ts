@@ -99,15 +99,15 @@ describe("server lifecycle fixes", () => {
     assert.equal(server.state.phase, "LOBBY");
   });
 
-  it("rejects duplicate lobby nicknames", () => {
+  it("rejects duplicate lobby nicknames", async () => {
     const { server } = lobbyThree();
-    assert.throws(
+    await assert.rejects(
       () => server.handleJoin("D", "a", "player"),
       /Name taken/,
     );
   });
 
-  it("name reclaim requires a unique orphan while the room is still active", () => {
+  it("name reclaim requires a unique orphan while the room is still active", async () => {
     const { server } = createTestServer("NM1");
     server.state.rosterLocked = true;
     server.state.phase = "DRAFT";
@@ -146,7 +146,7 @@ describe("server lifecycle fixes", () => {
     ];
     // A live seat keeps the room active, so ambiguous reclaim still applies.
     assert.equal(server.roomAppearsActive(), true);
-    assert.throws(
+    await assert.rejects(
       () => server.handleJoin("new-device", "Luke", "player"),
       /ambiguous/i,
     );
@@ -274,7 +274,7 @@ describe("server lifecycle fixes", () => {
       },
     ];
     assert.equal(server.roomAppearsActive(), false);
-    server.handleJoin("fresh", "Nova", "player");
+    await server.handleJoin("fresh", "Nova", "player");
     assert.equal(server.state.phase, "LOBBY");
     assert.equal(server.state.rosterLocked, false);
     assert.deepEqual(
