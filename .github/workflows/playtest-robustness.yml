@@ -35,7 +35,7 @@ permissions:
 jobs:
   webkit:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     env:
       NEXT_PUBLIC_PARTYKIT_HOST: 127.0.0.1:8787
     steps:
