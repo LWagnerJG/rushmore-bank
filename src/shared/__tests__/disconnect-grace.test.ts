@@ -143,10 +143,10 @@ describe("disconnect grace robustness", () => {
     assert.equal(g.server.state.players.find((p) => p.id === "C")!.isHost, false);
   });
 
-  it("join-as-reconnect during host grace does not steal the gavel", () => {
+  it("join-as-reconnect during host grace does not steal the gavel", async () => {
     const g = game();
     g.server.onClose({ id: "A", send() {} } as unknown as Connection, 1000, "", true);
-    g.server.handleJoin("B", "B", "player");
+    await g.server.handleJoin("B", "B", "player");
     assert.equal(g.server.state.players.find((p) => p.id === "A")!.isHost, true);
     assert.equal(g.server.state.players.find((p) => p.id === "B")!.isHost, false);
   });

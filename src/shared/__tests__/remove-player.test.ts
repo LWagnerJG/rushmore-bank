@@ -30,14 +30,14 @@ function lobbyServer(connections: Connection[] = []) {
 }
 
 describe("host remove_player (duplicates only)", () => {
-  it("drops the seat from the lobby list without banning rejoin", () => {
+  it("drops the seat from the lobby list without banning rejoin", async () => {
     const server = lobbyServer();
     server.handleRemovePlayer("host", "dup");
     expect(server.state.players.map((p) => p.id)).toEqual(["host"]);
     expect(server.state.notice).toMatch(/removed from the lobby/);
 
     // Same display name may join again — no membership blacklist.
-    server.handleJoin("fresh", "Luke", "player");
+    await server.handleJoin("fresh", "Luke", "player");
     expect(server.state.players.some((p) => p.name === "Luke")).toBe(true);
     expect(server.state.players.find((p) => p.name === "Luke")?.id).toBe("fresh");
   });
@@ -51,7 +51,7 @@ describe("host remove_player (duplicates only)", () => {
     expect(server.state.players).toHaveLength(2);
   });
 
-  it("tells only the removed client to clear its membership", () => {
+  it("tells only the removed client to clear its membership", async () => {
     const sent: Record<string, unknown[]> = { host: [], dup: [] };
     const connections = ["host", "dup"].map((id) => ({
       id, send: (message: string) => sent[id].push(JSON.parse(message)),
@@ -63,7 +63,7 @@ describe("host remove_player (duplicates only)", () => {
       type: "error", code: "REMOVED_FROM_LOBBY",
       message: "You were removed from the lobby. Tap Join game to return.",
     }]);
-    server.handleJoin("dup", "Luke", "player");
+    await server.handleJoin("dup", "Luke", "player");
     expect(server.state.players.map((p) => p.id)).toEqual(["host", "dup"]);
   });
 });

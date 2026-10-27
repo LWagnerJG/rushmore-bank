@@ -421,8 +421,12 @@ export class QuarryServer extends Server<Env> {
    * Create reuses codes when exists is false; keeping mid-game zombie state
    * (bots + disconnected seats) would let a "new" room open into DRAFT.
    * Returns true when state was wiped.
+   *
+   * Must await clearAlarm: a fire-and-forget deleteAlarm can finish after a
+   * later setAlarmAt (join → start → draft clock) and wipe the new clock —
+   * same race as host pause/end_game (#224/#227).
    */
-  recycleInactiveRoom(): boolean {
+  async recycleInactiveRoom(): Promise<boolean> {
     if (this.roomAppearsActive()) return false;
     const code = this.state.code;
     this.state = emptyRoomState(code);
@@ -433,13 +437,13 @@ export class QuarryServer extends Server<Env> {
       clearTimeout(this.abandonTimer);
       this.abandonTimer = null;
     }
-    void this.clearAlarm();
+    await this.clearAlarm();
     return true;
   }
 
   async wipeAbandonedRoom() {
     if ([...this.getConnections()].length > 0) return;
-    if (!this.recycleInactiveRoom()) return;
+    if (!(await this.recycleInactiveRoom())) return;
     await this.persist();
   }
 
@@ -959,8 +963,9 @@ export class QuarryServer extends Server<Env> {
     // After disconnect grace, /exists is false. Do not revive disconnected
     // seats (or bot-only tables) under a code Create already treats as free.
     if (!this.roomAppearsActive()) {
-      this.recycleInactiveRoom();
-      void this.persist().then(() => this.sendSnapshot(conn));
+      await this.recycleInactiveRoom();
+      await this.persist();
+      this.sendSnapshot(conn);
       return;
     }
     this.clearLeaveTimer(playerId);
@@ -1172,7 +1177,7 @@ export class QuarryServer extends Server<Env> {
 
     switch (msg.type) {
       case "join":
-        this.handleJoin(id, msg.name, msg.role ?? "player", msg.avatarId);
+        await this.handleJoin(id, msg.name, msg.role ?? "player", msg.avatarId);
         if (sender) this.sendSnapshot(sender, "joined");
         return;
       case "ping":
@@ -1328,7 +1333,7 @@ export class QuarryServer extends Server<Env> {
     bump(this.state);
   }
 
-  handleJoin(
+  async handleJoin(
     id: string,
     name: string,
     role: "player" | "spectator",
@@ -1336,8 +1341,8 @@ export class QuarryServer extends Server<Env> {
   ) {
     // Belt-and-suspenders with onConnect: a join into an /exists:false room
     // must start a fresh lobby (Create reuses these codes).
-    if (this.recycleInactiveRoom()) {
-      void this.persist();
+    if (await this.recycleInactiveRoom()) {
+      await this.persist();
     }
 
     const clean = this.cleanNickname(name);
