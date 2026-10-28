@@ -52,7 +52,7 @@ describe("P2 robustness", () => {
     assert.equal(server.seenAction("act-start-1"), true);
   });
 
-  it("late judge success cannot overwrite fallback after job id rotate", () => {
+  it("late judge success cannot overwrite fallback after job id rotate", async () => {
     const { server } = createTestServer("P2J");
     server.state.phase = "VOTING_AND_JUDGING";
     server.state.rosterLocked = true;
@@ -73,7 +73,7 @@ describe("P2 robustness", () => {
     ];
     const jobId = "judge-1-1";
     server.state.judgeJobId = jobId;
-    server.applyJudgeFallback(jobId, "timeout", { fallbackReason: "timeout" });
+    await server.applyJudgeFallback(jobId, "timeout", { fallbackReason: "timeout" });
     assert.equal(server.state.lastJudgeOutcome, "fallback");
     assert.equal(server.state.judgeJobId, `${jobId}:fallback`);
     // Simulate late success guard
