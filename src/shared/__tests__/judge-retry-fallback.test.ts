@@ -350,7 +350,7 @@ describe("judge timeout → retry → fallback → neutral", () => {
 
     const pending = server.runJudgingJob("judge-1-1");
     // Force fallback while first fetch is in flight.
-    server.applyJudgeFallback("judge-1-1", RULES.aiFallbackLabel, {
+    await server.applyJudgeFallback("judge-1-1", RULES.aiFallbackLabel, {
       fallbackReason: "timeout",
     });
     expect(server.state.judgeJobId).toBe("judge-1-1:fallback");
@@ -366,5 +366,31 @@ describe("judge timeout → retry → fallback → neutral", () => {
 
     expect(server.state.judgeStatus).toBe("failed");
     expect(server.state.scores.map((s) => s.aiAward)).toEqual(neutralScores);
+  });
+
+  it("awaits persist before returning from fallback (durable scores)", async () => {
+    const { server, saved } = createTestServer("JR5");
+    seedVotingRoom(server);
+    // Quorum already met (2p skips human vote) so finalize may run after fallback.
+    const order: string[] = [];
+    const realPersist = server.persist.bind(server);
+    server.persist = (async () => {
+      order.push("persist-start");
+      await realPersist();
+      order.push("persist-done");
+    }) as typeof server.persist;
+
+    await server.applyJudgeFallback("judge-1-1", RULES.aiFallbackLabel, {
+      fallbackReason: "provider_error",
+    });
+
+    expect(order[0]).toBe("persist-start");
+    expect(order).toContain("persist-done");
+    expect(order.indexOf("persist-done")).toBeGreaterThan(
+      order.indexOf("persist-start"),
+    );
+    const stored = saved.get("state") as { judgeStatus: string; scores: unknown[] };
+    expect(stored.judgeStatus).toBe("failed");
+    expect(stored.scores).toHaveLength(2);
   });
 });

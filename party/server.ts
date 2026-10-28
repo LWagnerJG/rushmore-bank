@@ -2160,7 +2160,7 @@ export class QuarryServer extends Server<Env> {
   async runJudgingJob(jobId: string) {
     const topic = this.state.selectedTopic;
     if (!topic) {
-      this.applyJudgeFallback(jobId, "No topic — neutral award.", {
+      await this.applyJudgeFallback(jobId, "No topic — neutral award.", {
         fallbackReason: "invalid_output",
       });
       return;
@@ -2254,7 +2254,7 @@ export class QuarryServer extends Server<Env> {
         if (!res.ok) {
           lastMeta = { fallbackReason: "provider_error" };
           if (attempt < maxAttempts - 1) continue;
-          this.applyJudgeFallback(jobId, RULES.aiFallbackLabel, lastMeta);
+          await this.applyJudgeFallback(jobId, RULES.aiFallbackLabel, lastMeta);
           return;
         }
 
@@ -2311,7 +2311,7 @@ export class QuarryServer extends Server<Env> {
           ) {
             continue;
           }
-          this.applyJudgeFallback(jobId, RULES.aiFallbackLabel, lastMeta);
+          await this.applyJudgeFallback(jobId, RULES.aiFallbackLabel, lastMeta);
           return;
         }
 
@@ -2324,7 +2324,7 @@ export class QuarryServer extends Server<Env> {
             latencyMs: data.latencyMs ?? null,
           };
           if (attempt < maxAttempts - 1) continue;
-          this.applyJudgeFallback(jobId, RULES.aiFallbackLabel, lastMeta);
+          await this.applyJudgeFallback(jobId, RULES.aiFallbackLabel, lastMeta);
           return;
         }
 
@@ -2353,16 +2353,16 @@ export class QuarryServer extends Server<Env> {
           fallbackReason: timedOut ? "timeout" : "provider_error",
         };
         if (attempt < maxAttempts - 1) continue;
-        this.applyJudgeFallback(jobId, RULES.aiFallbackLabel, lastMeta);
+        await this.applyJudgeFallback(jobId, RULES.aiFallbackLabel, lastMeta);
         return;
       }
     }
 
     if (this.state.judgeJobId !== jobId || this.state.scoresLocked) return;
-    this.applyJudgeFallback(jobId, RULES.aiFallbackLabel, lastMeta);
+    await this.applyJudgeFallback(jobId, RULES.aiFallbackLabel, lastMeta);
   }
 
-  applyJudgeFallback(
+  async applyJudgeFallback(
     jobId: string,
     notice: string,
     meta?: {
@@ -2393,8 +2393,11 @@ export class QuarryServer extends Server<Env> {
     this.state.judgeNotice = sanitizeJudgeNotice(notice);
     // Rotate job id so a late provider success cannot overwrite fallback mid-vote.
     this.state.judgeJobId = `${jobId}:fallback`;
-    void this.persist().then(() => this.broadcastState());
-    void this.maybeFinalizeAfterJudge();
+    // Await like the success path — fire-and-forget after fetch can drop
+    // fallback scores from durable storage if the DO hibernates mid-void.
+    await this.persist();
+    this.broadcastState();
+    await this.maybeFinalizeAfterJudge();
   }
 
   async maybeFinalizeAfterJudge() {
