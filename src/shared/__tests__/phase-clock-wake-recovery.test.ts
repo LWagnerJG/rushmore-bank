@@ -57,10 +57,11 @@ describe("pick / phase / wager wake recovery", () => {
     ).alarmPayload?.context;
     assert.ok(beforeCtx);
     // Simulate seat growth remap without re-arm (old bug).
-    g.server.state.draftOrder = ["A", "B", "C", "bot-x", "C", "B", "A", "bot-x"];
-    g.server.state.draftCursor = 0;
+    // draftOrder is seat indices; move cursor onto the new seat so context changes.
     g.server.state.seatOrder = ["A", "B", "C", "bot-x"];
-    // Old alarm context no longer matches owner.
+    g.server.state.draftOrder = [0, 1, 2, 3, 3, 2, 1, 0];
+    g.server.state.draftCursor = 3;
+    // Old alarm context no longer matches owner → re-arm with new context.
     const advanced = await g.server.ensurePickDeadline();
     assert.equal(advanced, false);
     assert.equal(g.deadline(), g.server.state.pickDeadlineAt);
@@ -68,7 +69,8 @@ describe("pick / phase / wager wake recovery", () => {
       g.server as unknown as { alarmPayload: { context: string } | null }
     ).alarmPayload?.context;
     assert.notEqual(afterCtx, beforeCtx);
-    assert.ok(afterCtx?.includes("bot-x") || afterCtx !== beforeCtx);
+    // Cursor 3 + seat index 3 appear in the new pick context.
+    assert.match(afterCtx ?? "", /,3,3,/);
   });
 
   it("admin_spawn_bots mid-draft re-arms pick clock with new context", async () => {
