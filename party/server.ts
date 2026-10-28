@@ -783,8 +783,33 @@ export class QuarryServer extends Server<Env> {
       await this.recoverDiceAfterLeave(playerId);
     }
 
+    // Party drink on ROUND_RESULTS: auto-ack departed targets so the host
+    // is not stuck on "Finish the party drink first" until party_resolve.
+    if (this.state.phase === "ROUND_RESULTS") {
+      await this.ackLowestDrinkAfterLeave(playerId);
+    }
+
     if (this.state.phase === "GAME_RESULTS") {
       await this.maybeRematchFromReady();
+    }
+  }
+
+  /** Mirror bust-redo leave: departed drink targets count as acknowledged. */
+  async ackLowestDrinkAfterLeave(leftId: string) {
+    const prompt = this.state.partyPrompt;
+    if (
+      !prompt ||
+      prompt.resolved ||
+      prompt.kind !== "lowest_drink" ||
+      !prompt.targetPlayerIds.includes(leftId)
+    ) {
+      return;
+    }
+    const acked = new Set(prompt.acknowledgedPlayerIds ?? []);
+    acked.add(leftId);
+    prompt.acknowledgedPlayerIds = [...acked];
+    if (prompt.targetPlayerIds.every((t) => acked.has(t))) {
+      this.state.partyPrompt = null;
     }
   }
 
