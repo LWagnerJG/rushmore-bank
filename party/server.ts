@@ -359,6 +359,9 @@ export class QuarryServer extends Server<Env> {
     await this.ensureDiceDeadline();
     await this.ensureDiceSettleHold();
     await this.ensureDiceIdle();
+    await this.ensurePickDeadline();
+    await this.ensurePhaseDeadline();
+    await this.ensureWagerDeadline();
     await this.persist();
   }
 
@@ -1008,7 +1011,10 @@ export class QuarryServer extends Server<Env> {
     const recovered =
       (await this.ensureDiceDeadline()) ||
       (await this.ensureDiceSettleHold()) ||
-      (await this.ensureDiceIdle());
+      (await this.ensureDiceIdle()) ||
+      (await this.ensurePickDeadline()) ||
+      (await this.ensurePhaseDeadline()) ||
+      (await this.ensureWagerDeadline());
     if (existing) {
       await this.persist();
       this.broadcastState();
@@ -1097,6 +1103,24 @@ export class QuarryServer extends Server<Env> {
         await this.persist();
         this.broadcastState();
         this.nudgeBots();
+        return;
+      }
+      if (await this.ensurePickDeadline()) {
+        await this.persist();
+        this.broadcastState();
+        this.nudgeBots();
+        return;
+      }
+      if (await this.ensurePhaseDeadline()) {
+        await this.persist();
+        this.broadcastState();
+        this.nudgeBots();
+        return;
+      }
+      if (await this.ensureWagerDeadline()) {
+        await this.persist();
+        this.broadcastState();
+        this.nudgeBots();
       }
       return;
     }
@@ -1135,6 +1159,24 @@ export class QuarryServer extends Server<Env> {
           this.broadcastState();
           this.nudgeBots();
         }
+        return;
+      }
+      if (await this.ensurePickDeadline()) {
+        await this.persist();
+        this.broadcastState();
+        this.nudgeBots();
+        return;
+      }
+      if (await this.ensurePhaseDeadline()) {
+        await this.persist();
+        this.broadcastState();
+        this.nudgeBots();
+        return;
+      }
+      if (await this.ensureWagerDeadline()) {
+        await this.persist();
+        this.broadcastState();
+        this.nudgeBots();
         return;
       }
       await this.clearAlarm();
@@ -1208,7 +1250,10 @@ export class QuarryServer extends Server<Env> {
         if (
           (await this.ensureDiceDeadline()) ||
           (await this.ensureDiceSettleHold()) ||
-          (await this.ensureDiceIdle())
+          (await this.ensureDiceIdle()) ||
+          (await this.ensurePickDeadline()) ||
+          (await this.ensurePhaseDeadline()) ||
+          (await this.ensureWagerDeadline())
         ) {
           await this.persist();
           this.broadcastState();
@@ -1362,7 +1407,7 @@ export class QuarryServer extends Server<Env> {
         this.handleRemovePlayer(id, msg.playerId);
         return;
       case "admin_spawn_bots":
-        this.handleAdminSpawnBots(id, msg.pin, msg.count, msg.fast);
+        await this.handleAdminSpawnBots(id, msg.pin, msg.count, msg.fast);
         return;
       case "admin_jump_phase":
         await this.handleAdminJumpPhase(id, msg.pin, msg.phase);
@@ -2903,6 +2948,91 @@ export class QuarryServer extends Server<Env> {
     return false;
   }
 
+  /**
+   * Fire an overdue draft pick, or re-arm a lost pick clock.
+   * Mid-draft seat growth remaps draftCursor/order (alarm context) without
+   * re-arming — a stale pick delivery then clearAlarm()s into a soft-lock.
+   */
+  async ensurePickDeadline(now = Date.now()): Promise<boolean> {
+    if (
+      (this.state.phase !== "DRAFT" && this.state.phase !== "CORRECTION") ||
+      this.state.pickPaused
+    ) {
+      return false;
+    }
+    const deadline = this.state.pickDeadlineAt;
+    if (deadline == null) return false;
+    if (now >= deadline) {
+      await this.onPickTimeout();
+      return true;
+    }
+    const owner = this.alarmOwner("pick");
+    const armed =
+      this.alarmPayload?.kind === "pick" &&
+      this.alarmPayload.context === owner?.context &&
+      this.alarmPayload.deadlineAt === deadline;
+    if (!armed) {
+      await this.setAlarmAt(deadline, {
+        kind: "pick",
+        revision: this.state.phaseRevision,
+      });
+    }
+    return false;
+  }
+
+  /**
+   * Fire an overdue review/vote phase clock, or re-arm a lost phase alarm.
+   * Without recovery the UI hits 0 while the server never advances.
+   */
+  async ensurePhaseDeadline(now = Date.now()): Promise<boolean> {
+    if (this.state.phase !== "REVIEW" && this.state.phase !== "VOTING_AND_JUDGING") {
+      return false;
+    }
+    const deadline = this.state.phaseDeadlineAt;
+    if (deadline == null) return false;
+    if (now >= deadline) {
+      await this.onPhaseTimeout();
+      return true;
+    }
+    const owner = this.alarmOwner("phase");
+    const armed =
+      this.alarmPayload?.kind === "phase" &&
+      this.alarmPayload.context === owner?.context &&
+      this.alarmPayload.deadlineAt === deadline;
+    if (!armed) {
+      await this.setAlarmAt(deadline, {
+        kind: "phase",
+        revision: this.state.phaseRevision,
+      });
+    }
+    return false;
+  }
+
+  /**
+   * Lock missing wagers when the wager clock is overdue, or re-arm a lost one.
+   */
+  async ensureWagerDeadline(now = Date.now()): Promise<boolean> {
+    if (this.state.phase !== "WAGER_SELECTION") return false;
+    const deadline = this.state.wagerDeadlineAt;
+    if (deadline == null) return false;
+    if (now >= deadline) {
+      await this.finalizeWagers();
+      return true;
+    }
+    const owner = this.alarmOwner("wager");
+    const armed =
+      this.alarmPayload?.kind === "wager" &&
+      this.alarmPayload.context === owner?.context &&
+      this.alarmPayload.deadlineAt === deadline;
+    if (!armed) {
+      await this.setAlarmAt(deadline, {
+        kind: "wager",
+        revision: this.state.phaseRevision,
+      });
+    }
+    return false;
+  }
+
   /** Apply committed roll outcome + mark revealed (idempotent). */
   revealCommittedDice() {
     const dice = this.state.lastDice;
@@ -3328,7 +3458,7 @@ export class QuarryServer extends Server<Env> {
     await this.clearAlarm();
   }
 
-  handleAdminSpawnBots(
+  async handleAdminSpawnBots(
     actorId: string,
     pin: string | undefined,
     count: number,
@@ -3391,6 +3521,11 @@ export class QuarryServer extends Server<Env> {
       // seatOrder grew but draftOrder was still the old snake — rebuild so
       // board columns / turn indices stay 1:1 with unique seats.
       this.resyncDraftAfterSeatGrowth();
+      // Remap changes pick alarm context (cursor + seat). Re-arm or the next
+      // stale delivery clearAlarm()s and soft-locks the draft clock.
+      if (!this.state.pickPaused) {
+        await this.startPickClock();
+      }
     }
     this.state.notice = added
       ? `Admin · added ${added} fake player${added === 1 ? "" : "s"}`
@@ -3879,7 +4014,9 @@ export class QuarryServer extends Server<Env> {
       this.state.players.filter((p) => p.role === "player").length <
       RULES.minPlayers
     ) {
-      this.handleAdminSpawnBots("", undefined, 1, undefined, { skipAuth: true });
+      await this.handleAdminSpawnBots("", undefined, 1, undefined, {
+        skipAuth: true,
+      });
     }
     if (!this.state.rosterLocked || this.state.seatOrder.length === 0) {
       const hopeful = this.state.players.filter((p) => p.role === "player");
