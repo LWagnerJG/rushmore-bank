@@ -358,6 +358,7 @@ export class QuarryServer extends Server<Env> {
         this.startHostCheckLoop();
     await this.ensureDiceDeadline();
     await this.ensureDiceSettleHold();
+    await this.ensureDiceIdle();
     await this.persist();
   }
 
@@ -977,10 +978,12 @@ export class QuarryServer extends Server<Env> {
     }
     // Lost dice_anim (hibernate, stale context, past-deadline setAlarm)
     // used to leave COMMITTED unrevealed forever. Lost settle-hold leaves
-    // SETTLED forever (table never returns to READY). Resolve on every wake.
+    // SETTLED forever (table never returns to READY). Lost dice_idle leaves
+    // READY forever (AFK auto-bank never fires). Resolve on every wake.
     const recovered =
       (await this.ensureDiceDeadline()) ||
-      (await this.ensureDiceSettleHold());
+      (await this.ensureDiceSettleHold()) ||
+      (await this.ensureDiceIdle());
     if (existing) {
       await this.persist();
       this.broadcastState();
@@ -1063,6 +1066,12 @@ export class QuarryServer extends Server<Env> {
         await this.persist();
         this.broadcastState();
         this.nudgeBots();
+        return;
+      }
+      if (await this.ensureDiceIdle()) {
+        await this.persist();
+        this.broadcastState();
+        this.nudgeBots();
       }
       return;
     }
@@ -1087,6 +1096,20 @@ export class QuarryServer extends Server<Env> {
         await this.persist();
         this.broadcastState();
         this.nudgeBots();
+        return;
+      }
+      if (
+        this.state.phase === "DICE" &&
+        this.state.diceSubphase === "READY" &&
+        this.state.diceIdleDeadlineAt != null &&
+        this.state.diceIdlePauseRemainingMs === null
+      ) {
+        const advanced = await this.ensureDiceIdle();
+        await this.persist();
+        if (advanced) {
+          this.broadcastState();
+          this.nudgeBots();
+        }
         return;
       }
       await this.clearAlarm();
@@ -1159,7 +1182,8 @@ export class QuarryServer extends Server<Env> {
       if (msg.type === "resync") {
         if (
           (await this.ensureDiceDeadline()) ||
-          (await this.ensureDiceSettleHold())
+          (await this.ensureDiceSettleHold()) ||
+          (await this.ensureDiceIdle())
         ) {
           await this.persist();
           this.broadcastState();
@@ -2815,6 +2839,40 @@ export class QuarryServer extends Server<Env> {
     // Lost hold clock — advance rather than soft-lock.
     await this.afterDiceSettleHold();
     return true;
+  }
+
+  /**
+   * Auto-bank an overdue READY idle window, or re-arm a lost dice_idle clock.
+   * Without recovery, a wiped/stale idle leaves the table READY forever
+   * (AFK auto-bank never fires) — same failure class as stuck COMMITTED rolls.
+   * Returns true when this call auto-banked (state advanced).
+   */
+  async ensureDiceIdle(now = Date.now()): Promise<boolean> {
+    if (
+      this.state.phase !== "DICE" ||
+      this.state.diceSubphase !== "READY" ||
+      this.state.diceIdlePauseRemainingMs !== null
+    ) {
+      return false;
+    }
+    const deadline = this.state.diceIdleDeadlineAt;
+    if (deadline == null) return false;
+    if (now >= deadline) {
+      await this.autoBankCurrent();
+      return true;
+    }
+    const owner = this.alarmOwner("dice_idle");
+    const armed =
+      this.alarmPayload?.kind === "dice_idle" &&
+      this.alarmPayload.context === owner?.context &&
+      this.alarmPayload.deadlineAt === deadline;
+    if (!armed) {
+      await this.setAlarmAt(deadline, {
+        kind: "dice_idle",
+        revision: this.state.phaseRevision,
+      });
+    }
+    return false;
   }
 
   /** Apply committed roll outcome + mark revealed (idempotent). */
