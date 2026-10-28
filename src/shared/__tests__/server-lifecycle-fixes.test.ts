@@ -152,15 +152,15 @@ describe("server lifecycle fixes", () => {
     );
   });
 
-  it("host admin tools work without a pin when ADMIN_PIN unset", () => {
+  it("host admin tools work without a pin when ADMIN_PIN unset", async () => {
     const { server } = lobbyThree();
-    server.handleAdminSpawnBots("A", undefined, 1);
+    await server.handleAdminSpawnBots("A", undefined, 1);
     assert.ok(server.state.players.some((p) => p.id.startsWith("bot-")));
   });
 
-  it("non-host admin rejected without ADMIN_PIN", () => {
+  it("non-host admin rejected without ADMIN_PIN", async () => {
     const { server } = lobbyThree();
-    assert.throws(
+    await assert.rejects(
       () => server.handleAdminSpawnBots("B", "8989", 1),
       /Host only/,
     );
