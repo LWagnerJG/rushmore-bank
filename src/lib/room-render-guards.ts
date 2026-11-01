@@ -12,6 +12,8 @@ type SettingsSheetComparable = {
   pickPaused?: boolean;
   hostAiJudge?: unknown;
   initialPanel?: string;
+  canRename?: boolean;
+  rosterLocked?: boolean;
 };
 
 /**
@@ -34,7 +36,9 @@ export function settingsSheetPropsAreEqual(
     prev.drafting === next.drafting &&
     prev.pickPaused === next.pickPaused &&
     prev.initialPanel === next.initialPanel &&
-    prev.hostAiJudge === next.hostAiJudge
+    prev.hostAiJudge === next.hostAiJudge &&
+    prev.canRename === next.canRename &&
+    prev.rosterLocked === next.rosterLocked
   );
 }
 

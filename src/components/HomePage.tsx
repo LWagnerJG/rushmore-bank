@@ -193,11 +193,6 @@ export function HomePage({ createIntent = false }: { createIntent?: boolean }) {
     setNameReady(true);
   }
 
-  function editName() {
-    setNameReady(false);
-    setJoinError(null);
-  }
-
   const createRoom = useCallback(async () => {
     const hostName =
       name.trim() || (adminUnlocked ? ADMIN_DISPLAY_NAME : "");
@@ -471,22 +466,59 @@ export function HomePage({ createIntent = false }: { createIntent?: boolean }) {
                 <BeanAvatar
                   id={avatarId}
                   seed={displayName || "bean"}
-                  size={52}
+                  size={48}
                   priority
                 />
-              </button>
-              <p className="type-meta text-[var(--muted)] home-playing-label">
-                <span className="home-playing-as-prefix">Playing as </span>
-                <span className="font-[family-name:var(--font-display)] font-extrabold text-[var(--text)]">
-                  {displayName}
+                <span className="avatar-edit-badge" aria-hidden="true">
+                  <svg
+                    className="avatar-edit-badge-icon"
+                    viewBox="0 0 16 16"
+                    width="11"
+                    height="11"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M11.7 1.6a1.4 1.4 0 0 1 2 2L5.4 11.9 2 12.8l.9-3.4L11.7 1.6Z"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinejoin="round"
+                      strokeLinecap="round"
+                    />
+                  </svg>
                 </span>
-              </p>
+              </button>
               <button
                 type="button"
-                className="home-edit-name"
-                onClick={editName}
+                className="home-playing-name-btn"
+                aria-label={`Edit your nickname (currently ${displayName})`}
+                onClick={() => {
+                  setProfilePanel("main");
+                  setProfileOpen(true);
+                }}
               >
-                Edit
+                <span className="type-meta text-[var(--muted)] home-playing-label">
+                  <span className="home-playing-as-prefix">Playing as </span>
+                  <span className="font-[family-name:var(--font-display)] font-extrabold text-[var(--text)]">
+                    {displayName}
+                  </span>
+                </span>
+                <svg
+                  className="home-playing-name-pencil"
+                  viewBox="0 0 16 16"
+                  width="13"
+                  height="13"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M11.7 1.6a1.4 1.4 0 0 1 2 2L5.4 11.9 2 12.8l.9-3.4L11.7 1.6Z"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinejoin="round"
+                    strokeLinecap="round"
+                  />
+                </svg>
               </button>
             </div>
           </MotionSettle>
@@ -509,6 +541,12 @@ export function HomePage({ createIntent = false }: { createIntent?: boolean }) {
           setProfilePanel("main");
         }}
         nickname={displayName || name || "Player"}
+        rename={(next) => {
+          rememberDisplayName(next);
+          setName(next);
+          setNameReady(true);
+        }}
+        canRename
         initialPanel={profilePanel}
       />
       {showDiag && <DiagPanel onClose={() => setDiagClosed(true)} />}
