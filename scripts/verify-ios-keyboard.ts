@@ -4,12 +4,13 @@
  *
  * At 390×844 and 375×667 with an iOS-sized keyboard, each text field (draft
  * pick, home nickname, home room code, room-link nickname, custom topic) must
- * stay put and fully above the keyboard while typing: input top constant per
- * frame (±1px), input and submit bottom ≤ visualViewport.height, no pan,
- * window.scrollY 0, nothing above it changing height, no enter animation
- * re-applied. One tap on the submit control must submit (focus kept where the
+ * stay fully above the keyboard while typing: input/submit bottom ≤
+ * visualViewport.height, no pan, window.scrollY 0, --app-h stable, no enter
+ * animation re-applied. Most fields also keep input top (±1px) and ignore
+ * layout above the field; home room code allows the Create→Join CTA swap
+ * reflow. One tap on the submit control must submit (focus kept where the
  * field stays), Enter/Go must submit, and closing the keyboard must restore
- * the exact layout.
+ * the exact layout (except home room code, where Join stays promoted).
  *
  *   npx wrangler dev --ip 127.0.0.1 --port 8787
  *   NEXT_PUBLIC_PARTYKIT_HOST=127.0.0.1:8787 npx next build && npx next start -p 3100
