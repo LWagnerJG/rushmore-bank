@@ -4,12 +4,13 @@
  *
  * At 390×844 and 375×667 with an iOS-sized keyboard, each text field (draft
  * pick, home nickname, home room code, room-link nickname, custom topic) must
- * stay put and fully above the keyboard while typing: input top constant per
- * frame (±1px), input and submit bottom ≤ visualViewport.height, no pan,
- * window.scrollY 0, nothing above it changing height, no enter animation
- * re-applied. One tap on the submit control must submit (focus kept where the
+ * stay fully above the keyboard while typing: input/submit bottom ≤
+ * visualViewport.height, no pan, window.scrollY 0, --app-h stable, no enter
+ * animation re-applied. Most fields also keep input top (±1px) and ignore
+ * layout above the field; home room code allows the Create→Join CTA swap
+ * reflow. One tap on the submit control must submit (focus kept where the
  * field stays), Enter/Go must submit, and closing the keyboard must restore
- * the exact layout.
+ * the exact layout (except home room code, where Join stays promoted).
  *
  *   npx wrangler dev --ip 127.0.0.1 --port 8787
  *   NEXT_PUBLIC_PARTYKIT_HOST=127.0.0.1:8787 npx next build && npx next start -p 3100
@@ -313,7 +314,18 @@ async function typeWhileTracing(
   };
 }
 
-function checkTyping(closed: Sample, typed: Typed) {
+function checkTyping(
+  closed: Sample,
+  typed: Typed,
+  opts: {
+    /**
+     * Home room-code CTA swap (#237): typing collapses Create and promotes Join.
+     * That intentional reflow moves the field/submit — still require keyboard
+     * stability (no pan/scroll/--app-h thrash) and clearance above the keyboard.
+     */
+    allowJoinCtaSwap?: boolean;
+  } = {},
+) {
   const frames = typed.frames.filter((fr) => fr.inputTop != null && fr.inputBottom != null);
   if (frames.length === 0) {
     check("field traced while typing", false, "no frames");
@@ -341,17 +353,28 @@ function checkTyping(closed: Sample, typed: Typed) {
   const entryClasses = typed.classes.filter((c) => c.added.some((a) => ENTRY_CLASS.test(a)));
   const entryNodes = typed.nodes.filter((n) => n.entry.length > 0);
   const outside = typed.classes.filter((c) => !c.inScope);
+  const aboveUnexpected = opts.allowJoinCtaSwap
+    ? typed.aboveChanged.filter((c) => !/home-create-slot|home-cta-stack|home-create-btn/.test(c))
+    : typed.aboveChanged;
 
-  check(
-    "field top constant every frame (±1px)",
-    spread(tops) <= TOLERANCE_PX && spread(screenTops) <= TOLERANCE_PX,
-    `${frames.length} frames, top ${r1(Math.min(...screenTops))}–${r1(Math.max(...screenTops))} on screen`,
-  );
-  check(
-    "submit control never moves",
-    withSubmit.length > 0 && spread(submitTops) <= TOLERANCE_PX,
-    withSubmit.length ? `top ${r1(Math.min(...submitTops))}–${r1(Math.max(...submitTops))}` : "not found",
-  );
+  if (!opts.allowJoinCtaSwap) {
+    check(
+      "field top constant every frame (±1px)",
+      spread(tops) <= TOLERANCE_PX && spread(screenTops) <= TOLERANCE_PX,
+      `${frames.length} frames, top ${r1(Math.min(...screenTops))}–${r1(Math.max(...screenTops))} on screen`,
+    );
+    check(
+      "submit control never moves",
+      withSubmit.length > 0 && spread(submitTops) <= TOLERANCE_PX,
+      withSubmit.length ? `top ${r1(Math.min(...submitTops))}–${r1(Math.max(...submitTops))}` : "not found",
+    );
+  } else {
+    check(
+      "join CTA swap keeps field + Join above the keyboard",
+      inputClear >= 0 && submitClear >= 0 && withSubmit.length > 0,
+      `field ${r1(inputClear)}px / join ${Number.isNaN(submitClear) ? "n/a" : r1(submitClear)}px clear`,
+    );
+  }
   check("field bottom ≤ visualViewport.height", inputClear >= 0, `${r1(inputClear)}px above the keyboard`);
   check(
     "submit bottom ≤ visualViewport.height",
@@ -364,10 +387,12 @@ function checkTyping(closed: Sample, typed: Typed) {
   check("--app-h never changes", appHs.length === 1 && appHs[0] === closed.appH, q(appHs));
   check(
     "nothing above the field changes height or position",
-    typed.aboveChanged.length === 0,
-    typed.aboveChanged.length
-      ? typed.aboveChanged.slice(0, 4).join("; ")
-      : `${typed.tracked} layout boxes tracked`,
+    aboveUnexpected.length === 0,
+    aboveUnexpected.length
+      ? aboveUnexpected.slice(0, 4).join("; ")
+      : opts.allowJoinCtaSwap
+        ? `${typed.tracked} boxes; create-slot collapse allowed`
+        : `${typed.tracked} layout boxes tracked`,
   );
   check(
     "no animation on the field or its wrappers",
@@ -450,17 +475,31 @@ async function tapSubmit(
   return { ok, before, after };
 }
 
-async function closeAndCheckRestore(page: Page, f: Field, closed: Sample) {
+async function closeAndCheckRestore(
+  page: Page,
+  f: Field,
+  closed: Sample,
+  opts: { allowJoinCtaSwap?: boolean } = {},
+) {
   await blurField(page);
   await waitKeyboard(page, false);
   await sleep(400);
   const after = await sample(page, f);
   check("keyboard closed", !after.kbOpen && after.vvH === closed.vvH, `visual viewport ${after.vvH}px`);
-  check(
-    "layout restored exactly",
-    near(after.input?.top, closed.input?.top) && after.appH === closed.appH,
-    `top ${closed.input?.top} → ${after.input?.top}, --app-h ${closed.appH} → ${after.appH}`,
-  );
+  if (opts.allowJoinCtaSwap) {
+    // Code still typed → Create stays collapsed; field top is intentionally higher.
+    check(
+      "layout stable after keyboard close (join CTA swap)",
+      after.appH === closed.appH && after.scrollY === 0 && after.pan === 0,
+      `top ${closed.input?.top} → ${after.input?.top}, --app-h ${closed.appH} → ${after.appH}`,
+    );
+  } else {
+    check(
+      "layout restored exactly",
+      near(after.input?.top, closed.input?.top) && after.appH === closed.appH,
+      `top ${closed.input?.top} → ${after.input?.top}, --app-h ${closed.appH} → ${after.appH}`,
+    );
+  }
   check("no leftover offset", after.scrollY === 0 && after.pan === 0, `scrollY ${after.scrollY}, pan ${after.pan}`);
   record("restored", { input: after.input, appH: after.appH, scrollY: after.scrollY, pan: after.pan });
   return after;
@@ -718,8 +757,30 @@ async function homeScenario(browser: Browser, p: Profile, dir: string) {
     const codeTyped = await typeWhileTracing(page, HOME_CODE, room);
     const codeEnd = await sample(page, HOME_CODE);
     check("typed code landed in the field", codeEnd.value === room, q(codeEnd.value));
-    checkTyping(codeClosed, codeTyped);
-    await closeAndCheckRestore(page, HOME_CODE, codeClosed);
+    checkTyping(codeClosed, codeTyped, { allowJoinCtaSwap: true });
+    const joinMode = await ev<{
+      mode: boolean;
+      joinPrimary: boolean;
+      createCollapsed: boolean;
+    }>(
+      page,
+      `(() => {
+        const stack = document.querySelector(".home-cta-stack");
+        const slot = document.querySelector(".home-create-slot");
+        const join = document.querySelector(".home-join-go");
+        return {
+          mode: !!stack?.classList.contains("home-cta-join-mode"),
+          joinPrimary: !!join?.classList.contains("btn-primary"),
+          createCollapsed: slot ? getComputedStyle(slot).maxHeight === "0px" : false,
+        };
+      })()`,
+    );
+    check(
+      "typed code promotes Join to full-width primary (Create collapsed)",
+      joinMode.mode && joinMode.joinPrimary && joinMode.createCollapsed,
+      JSON.stringify(joinMode),
+    );
+    await closeAndCheckRestore(page, HOME_CODE, codeClosed, { allowJoinCtaSwap: true });
     await page.tap(HOME_CODE.input);
     await waitKeyboard(page, true);
     await tapSubmit(

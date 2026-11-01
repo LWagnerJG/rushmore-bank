@@ -1229,6 +1229,69 @@ html.party-on .brand-shimmer {
   flex-direction: column;
 }
 
+/* Create ↔ Join swap: collapse Create, promote Join to full-width primary */
+.home-cta-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.home-create-slot {
+  max-height: 4.5rem; /* tap row + a little breathing room */
+  overflow: hidden;
+  opacity: 1;
+  transition:
+    max-height var(--motion-enter) ease,
+    opacity var(--motion-fast) ease,
+    margin-bottom var(--motion-enter) ease;
+}
+.home-create-slot-inner {
+  /* Keeps the button from forcing the collapsing slot open */
+  min-height: 0;
+}
+.home-cta-join-mode .home-create-slot {
+  max-height: 0;
+  opacity: 0;
+  margin-bottom: calc(-1 * var(--space-2));
+  pointer-events: none;
+}
+.home-join-block {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: var(--space-2);
+}
+.home-cta-join-mode .home-join-block {
+  flex-direction: column;
+}
+.home-join-block .home-join-code {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+}
+.home-join-block .home-join-go {
+  flex: 0 0 auto;
+  transition:
+    background-color var(--motion-fast) ease,
+    color var(--motion-fast) ease,
+    border-color var(--motion-fast) ease,
+    transform var(--motion-fast) ease,
+    opacity var(--motion-fast) ease;
+}
+.home-cta-join-mode .home-join-block .home-join-go {
+  flex: 0 0 auto;
+  width: 100%;
+  /* Strongest primary fill — override the quiet join-card tint */
+  background: var(--btn-bg);
+  color: #fff;
+  border: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-create-slot,
+  .home-join-block .home-join-go {
+    transition: none;
+  }
+}
+
 .home-playing-as {
   display: flex;
   align-items: center;
@@ -1361,7 +1424,7 @@ html.party-on .brand-shimmer {
   border-color: rgba(35, 72, 62, 0.1) !important;
 }
 
-.home-join-go {
+.home-join-go.btn-secondary {
   background: rgba(255, 255, 255, 0.55);
 }
 

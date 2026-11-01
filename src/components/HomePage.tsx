@@ -411,41 +411,60 @@ export function HomePage({ createIntent = false }: { createIntent?: boolean }) {
             as="section"
             className="home-play-stack stack-sm"
           >
-            <button
-              type="button"
-              className="btn-primary w-full"
-              onClick={create}
+            {/*
+              Typing a room code hides Create and promotes Join to the full-width
+              primary CTA. Create collapses via grid rows so the swap doesn't jump;
+              Join keeps onMouseDown preventDefault so the iPhone keyboard stays up.
+            */}
+            <div
+              className={`home-cta-stack${code.trim() ? " home-cta-join-mode" : ""}`}
             >
-              Create game
-            </button>
-
-            <div className="home-field-row" aria-label="Join a room">
-              <input
-                className="field home-field home-join-code uppercase tracking-[0.28em]"
-                placeholder="CODE"
-                value={code}
-                maxLength={4}
-                aria-label="Room code"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="characters"
-                spellCheck={false}
-                enterKeyHint="go"
-                onChange={(e) => {
-                  setCode(e.target.value.toUpperCase());
-                  setJoinError(null);
-                }}
-                onKeyDown={(e) => e.key === "Enter" && join()}
-              />
-              <button
-                type="button"
-                className="btn-secondary home-field-go home-join-go"
-                disabled={joining}
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={join}
+              <div
+                className="home-create-slot"
+                aria-hidden={code.trim().length > 0}
               >
-                {joining ? "…" : "Join"}
-              </button>
+                <div className="home-create-slot-inner">
+                  <button
+                    type="button"
+                    className="btn-primary w-full home-create-btn"
+                    tabIndex={code.trim() ? -1 : undefined}
+                    onClick={create}
+                  >
+                    Create game
+                  </button>
+                </div>
+              </div>
+
+              <div className="home-join-block" aria-label="Join a room">
+                <input
+                  className="field home-field home-join-code uppercase tracking-[0.28em]"
+                  placeholder="CODE"
+                  value={code}
+                  maxLength={4}
+                  aria-label="Room code"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="characters"
+                  spellCheck={false}
+                  enterKeyHint="go"
+                  onChange={(e) => {
+                    setCode(e.target.value.toUpperCase());
+                    setJoinError(null);
+                  }}
+                  onKeyDown={(e) => e.key === "Enter" && join()}
+                />
+                <button
+                  type="button"
+                  className={`home-field-go home-join-go ${
+                    code.trim() ? "btn-primary" : "btn-secondary"
+                  }`}
+                  disabled={joining}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={join}
+                >
+                  {joining ? "…" : "Join"}
+                </button>
+              </div>
             </div>
             {joinError && (
               <p className="type-meta text-center font-semibold text-[var(--coral-ink)]">
