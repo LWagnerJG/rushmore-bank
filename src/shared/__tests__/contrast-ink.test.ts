@@ -114,7 +114,7 @@ describe("coral is decoration; coral ink is the text color", () => {
       ".player-chip-earned",
       ".player-chip-pot-hot",
       ".wager-stake-value",
-      ".home-edit-name",
+      ".home-playing-name-pencil",
       ".a2hs-nudge-dismiss",
       ".error-toast",
       ".draft-turn-line-warn",

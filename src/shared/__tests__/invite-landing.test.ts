@@ -52,7 +52,7 @@ describe("rejoin only for a real seat", () => {
   it("Home remembers a typed name, never the admin fallback", () => {
     const confirm = home.slice(
       home.indexOf("function confirmName"),
-      home.indexOf("function editName"),
+      home.indexOf("const createRoom"),
     );
     expect(confirm).toMatch(
       /if \(!name\.trim\(\) && adminUnlocked\) \{\s*setName\(ADMIN_DISPLAY_NAME\);\s*\} else \{[\s\S]*?rememberDisplayName\(clean\);/,

@@ -1233,22 +1233,27 @@ html.party-on .brand-shimmer {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.45rem;
+  gap: 0.55rem;
   text-align: left;
 }
 
 .home-playing-avatar {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: 3.25rem;
-  height: 3.25rem;
+  /* ≥44px tap target */
+  width: var(--tap-min);
+  height: var(--tap-min);
+  min-width: var(--tap-min);
+  min-height: var(--tap-min);
   margin: 0;
   padding: 0;
-  border: 0;
+  border: 2px solid color-mix(in srgb, var(--coral) 55%, transparent);
   border-radius: 999px;
-  background: transparent;
+  background: color-mix(in srgb, var(--cream, #f5f0e7) 88%, #fff);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--coral) 16%, transparent);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
@@ -1256,6 +1261,36 @@ html.party-on .brand-shimmer {
 .home-playing-avatar:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--mint) 70%, #23483e);
   outline-offset: 2px;
+}
+
+.home-playing-avatar:active {
+  transform: scale(0.97);
+}
+
+.home-playing-name-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: min(14rem, 58vw);
+  margin: 0;
+  padding: 0.35rem 0.2rem;
+  min-height: var(--tap-min);
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.home-playing-name-btn:active {
+  opacity: 0.8;
+}
+
+.home-playing-name-pencil {
+  flex-shrink: 0;
+  color: var(--coral-ink);
+  opacity: 1;
 }
 
 .home-playing-label {
@@ -1268,20 +1303,26 @@ html.party-on .brand-shimmer {
   font-weight: 600;
 }
 
-.home-edit-name {
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--coral-ink);
-  background: transparent;
-  border: 0;
-  padding: 0.5rem 0.55rem;
-  min-height: 2.75rem;
+/* Soft edit chip on tappable avatars (home + profile sheet) */
+.avatar-edit-badge {
+  position: absolute;
+  right: -0.1rem;
+  bottom: -0.1rem;
+  display: inline-grid;
+  place-items: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 999px;
+  background: var(--coral);
+  color: #fff;
+  box-shadow: 0 0 0 2px #fffcf5;
+  pointer-events: none;
 }
 
-.home-edit-name:active {
-  opacity: 0.75;
+.avatar-edit-badge-icon {
+  display: block;
+  width: 0.7rem;
+  height: 0.7rem;
 }
 
 /* Calm join card — soft cream, less chrome than a second primary CTA */
@@ -4965,7 +5006,9 @@ html.settings-sheet-open body {
   max-width: 28rem;
   max-height: 85vh;
   max-height: 85dvh;
-  margin: 0;
+  margin: 0 auto;
+  left: 0;
+  right: 0;
   border-radius: 1.35rem 1.35rem 0 0;
   background: #fffcf5;
   box-shadow: 0 -8px 32px rgba(20, 30, 25, 0.18);
@@ -4975,20 +5018,36 @@ html.settings-sheet-open body {
   gap: 0;
   /* Safe-area only — no extra cream dead band under the sheet content. */
   padding-bottom: env(safe-area-inset-bottom, 0px);
+  /* Drag offset lives in a CSS var so swipe never fights the enter animation
+     or drifts the sheet off-center on iPhone widths. */
+  --sheet-drag-y: 0px;
+  transform: translate3d(0, var(--sheet-drag-y), 0);
   animation: profile-sheet-in 220ms ease-out both;
   will-change: transform;
+  transition: transform 180ms ease-out;
+}
+.settings-sheet-settled {
+  animation: none;
+  transform: translate3d(0, var(--sheet-drag-y), 0);
+}
+.settings-sheet-dragging {
+  transition: none;
 }
 .settings-sheet-grabber {
   display: flex;
   justify-content: center;
   flex-shrink: 0;
-  padding: 0.45rem 0 0.1rem;
+  padding: 0.55rem 0 0.15rem;
+  /* Larger grab zone so the handle is an obvious swipe affordance */
+  min-height: 1.35rem;
+  cursor: grab;
+  touch-action: none;
 }
 .settings-sheet-grabber-pill {
-  width: 2.25rem;
-  height: 0.28rem;
+  width: 2.65rem;
+  height: 0.32rem;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--muted) 45%, transparent);
+  background: color-mix(in srgb, var(--muted) 55%, transparent);
 }
 .settings-sheet-body {
   flex: 1 1 auto;
@@ -5027,17 +5086,21 @@ html.settings-sheet-open body {
 }
 @keyframes profile-sheet-in {
   from {
-    transform: translate3d(0, 100%, 0);
+    transform: translate3d(0, calc(100% + var(--sheet-drag-y, 0px)), 0);
   }
   to {
-    transform: translate3d(0, 0, 0);
+    transform: translate3d(0, var(--sheet-drag-y, 0px), 0);
   }
 }
 @media (prefers-reduced-motion: reduce) {
   .settings-sheet {
     animation: none;
+    transition: none;
   }
   .profile-btn:active {
+    transform: none;
+  }
+  .home-playing-avatar:active {
     transform: none;
   }
 }
@@ -5105,36 +5168,102 @@ html.settings-sheet-open body {
   letter-spacing: 0.02em;
 }
 .profile-sheet-avatar-btn {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 4.5rem;
-  height: 4.5rem;
+  width: 4.25rem;
+  height: 4.25rem;
+  min-width: var(--tap-min);
+  min-height: var(--tap-min);
   flex-shrink: 0;
   padding: 0;
-  border: none;
+  border: 2px solid color-mix(in srgb, var(--coral) 45%, transparent);
   border-radius: 999px;
   background: color-mix(in srgb, var(--cream, #f5f0e7) 90%, #fff);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--coral) 14%, transparent);
   cursor: pointer;
 }
 .profile-sheet-avatar-btn:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--mint) 70%, #23483e);
   outline-offset: 2px;
 }
-.profile-sheet-change {
+.profile-sheet-identity-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+.profile-sheet-name-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  max-width: 100%;
+  min-height: var(--tap-min);
   margin: 0;
-  padding: 0;
+  padding: 0.15rem 0;
   border: 0;
   background: transparent;
-  color: var(--coral-ink);
-  font-size: 0.82rem;
-  font-weight: 700;
-  line-height: 1.2;
+  color: inherit;
   text-align: left;
   cursor: pointer;
 }
-.profile-sheet-change:active {
+.profile-sheet-name-btn:active {
+  opacity: 0.85;
+}
+.profile-sheet-pencil {
+  flex-shrink: 0;
+  color: var(--muted);
   opacity: 0.75;
+}
+.profile-sheet-name-btn:hover .profile-sheet-pencil,
+.profile-sheet-name-btn:focus-visible .profile-sheet-pencil {
+  opacity: 1;
+  color: var(--coral-ink);
+}
+.profile-sheet-name-input {
+  width: 100%;
+  min-height: var(--tap-min);
+  margin: 0;
+  padding: 0.25rem 0.45rem;
+  border: 1.5px solid color-mix(in srgb, var(--mint) 55%, #23483e);
+  border-radius: 0.55rem;
+  background: #fff;
+  color: var(--text);
+  font-size: 1.2rem;
+  font-weight: 800;
+  line-height: 1.15;
+  outline: none;
+}
+.profile-sheet-locked-hint,
+.profile-sheet-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--muted);
+}
+.avatar-picker-expand {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows 220ms ease-out,
+    opacity 180ms ease-out;
+}
+.avatar-picker-expand > .avatar-picker-grid {
+  min-height: 0;
+  overflow: hidden;
+}
+.avatar-picker-expand-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  margin-bottom: 0.15rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  .avatar-picker-expand {
+    transition: none;
+  }
 }
 .profile-avatar-hint {
   margin: 0;
