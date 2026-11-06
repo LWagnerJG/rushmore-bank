@@ -103,6 +103,30 @@ function baseState(players: Player[], createdAt: number): PublicRoomState {
     partyBustRedoUsedIds: [],
     diceIdlePauseRemainingMs: null,
     bustedPlayerIdsThisRound: [],
+    roundRecaps: [
+      {
+        round: 1,
+        topicId: "greatest-nba-players",
+        topicText: "Greatest NBA players of all time",
+        rosters: players.map((p, i) => ({
+          playerId: p.id,
+          playerName: p.name,
+          picks: ["Jordan", "LeBron", "Kareem", "Magic"].map(
+            (name, j) => `${name}${i}${j}`.slice(0, 12),
+          ),
+        })),
+      },
+      {
+        round: 2,
+        topicId: "best-comfort-foods",
+        topicText: "Best comfort foods",
+        rosters: players.map((p) => ({
+          playerId: p.id,
+          playerName: p.name,
+          picks: ["Mac & cheese", "Ramen", "Pizza", "Chili"],
+        })),
+      },
+    ],
     phaseDeadlineAt: null,
     hostLastSeenAt: Date.now(),
     stateVersion: 1,
