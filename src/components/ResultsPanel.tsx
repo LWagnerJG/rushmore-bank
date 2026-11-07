@@ -74,7 +74,7 @@ export function ResultsPanel({
         onRevealDone={() => setRevealDone(true)}
       />
 
-      {final && state.allTimeHigh ? (
+      {revealDone && final && state.allTimeHigh ? (
         <p
           className={`endgame-ath type-meta text-center${state.newAllTimeHigh ? " endgame-ath-new" : ""}`}
           role="status"

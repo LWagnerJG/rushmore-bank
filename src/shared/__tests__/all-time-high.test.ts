@@ -101,11 +101,11 @@ describe("room all-time high", () => {
     ).toBe(true);
   });
 
-  it("renders ATH + new-record cue on final standings", () => {
+  it("renders ATH + new-record cue on final standings after reveal", () => {
+    expect(panel).toMatch(/revealDone && final && state\.allTimeHigh/);
     expect(panel).toMatch(/endgame-ath/);
     expect(panel).toMatch(/New all-time high!/);
     expect(panel).toMatch(/All-time high:/);
-    expect(panel).toMatch(/state\.allTimeHigh/);
     expect(panel).toMatch(/state\.newAllTimeHigh/);
     expect(css).toMatch(/\.endgame-ath-badge/);
     expect(css).toMatch(/var\(--coral\)/);

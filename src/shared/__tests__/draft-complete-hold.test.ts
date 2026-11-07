@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import assert from "node:assert/strict";
+import type { Connection } from "partyserver";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RULES } from "../rules";
 import { createTestServer } from "../../../test/party-server-harness";
@@ -35,7 +36,17 @@ function draftGame() {
     scope: "everyday",
     scopeBoundary: "food",
   };
-  return { server, harness };
+  return {
+    server,
+    harness,
+    async fire() {
+      assert.notEqual(harness.deadline(), null, "expected a scheduled deadline");
+      vi.setSystemTime(harness.deadline()!);
+      // Storage consumes the physical alarm before invoking onAlarm.
+      harness.setDeadline(null);
+      await server.onAlarm();
+    },
+  };
 }
 
 describe("draft-complete hold before voting", () => {
@@ -122,7 +133,8 @@ describe("draft-complete hold before voting", () => {
   });
 
   it("still advances if the last picker disconnects during the hold", async () => {
-    const { server } = draftGame();
+    const g = draftGame();
+    const { server } = g;
     await server.beginDraft();
     const texts = ["a", "b", "c", "d", "e", "f", "g", "h"];
     for (let i = 0; i < texts.length; i++) {
@@ -131,11 +143,13 @@ describe("draft-complete hold before voting", () => {
       await server.handleLockIn(turnId, texts[i]!);
     }
     expect(server.state.phase).toBe("REVIEW");
-    // Last seat drops mid-hold — phase alarm is room-owned, not client-owned.
-    const last = server.state.players.find((p) => p.id === "B")!;
-    last.connected = false;
-    vi.setSystemTime(START + RULES.draftCompleteHoldMs + 5);
-    await server.onPhaseTimeout();
+    expect(g.harness.deadline()).toBe(START + RULES.draftCompleteHoldMs);
+    // Soft-disconnect last seat mid-hold — REVIEW alarm stays room-owned.
+    const conn = { id: "B", send() {} } as unknown as Connection;
+    server.onClose(conn, 1000, "", true);
+    expect(server.state.players.find((p) => p.id === "B")?.connected).toBe(false);
+    expect(server.state.phase).toBe("REVIEW");
+    await g.fire();
     expect(server.state.phase).toBe("VOTING_AND_JUDGING");
   });
 
