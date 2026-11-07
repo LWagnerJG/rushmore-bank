@@ -240,6 +240,10 @@ export function projectPublicStateShared(
     stateVersion: state.stateVersion ?? 0,
     gameOver: state.gameOver,
     notice: state.notice,
+    allTimeHigh: state.allTimeHigh
+      ? { ...state.allTimeHigh }
+      : null,
+    newAllTimeHigh: Boolean(state.newAllTimeHigh),
   };
 }
 

@@ -150,6 +150,16 @@ function migrateState(raw: RoomState): RoomState {
       "number"
         ? (raw as RoomState).stateVersion
         : 0,
+    allTimeHigh:
+      (raw as RoomState & { allTimeHigh?: RoomState["allTimeHigh"] })
+        .allTimeHigh &&
+      typeof (raw as RoomState).allTimeHigh?.score === "number" &&
+      typeof (raw as RoomState).allTimeHigh?.name === "string"
+        ? (raw as RoomState).allTimeHigh
+        : null,
+    newAllTimeHigh: Boolean(
+      (raw as RoomState & { newAllTimeHigh?: boolean }).newAllTimeHigh,
+    ),
     // Migrate legacy party prompt kinds / stale spicy|niche vibes
     partyPrompt: migratePartyPrompt(raw.partyPrompt),
     settings: {
@@ -819,9 +829,7 @@ export class QuarryServer extends Server<Env> {
   /** Soft-disconnect: if the disconnected seat is on the clock, miss and advance. */
   async skipDraftIfCurrentLeft(leftId: string) {
     if (this.state.seatOrder.length === 0) {
-      this.state.phase = "GAME_RESULTS";
-      this.state.gameOver = true;
-      this.state.rematchReady = {};
+      this.enterGameResults();
       this.state.notice = "Everyone left — game over";
       return;
     }
@@ -2162,14 +2170,27 @@ export class QuarryServer extends Server<Env> {
   }
 
   async beginReview() {
-    // No skim countdown — vote + AI judge start immediately (rosters stay
-    // visible on the vote board with a discreet calculating state).
-    if (RULES.reviewSeconds <= 0) {
-      await this.beginVoting();
+    // Idempotent — last-slot disconnect miss + lock_in must not double-arm.
+    if (
+      this.state.phase === "REVIEW" ||
+      this.state.phase === "VOTING_AND_JUDGING" ||
+      this.state.phase === "SCORE_REVEAL" ||
+      this.state.phase === "WAGER_SELECTION" ||
+      this.state.phase === "DICE" ||
+      this.state.phase === "ROUND_RESULTS" ||
+      this.state.phase === "GAME_RESULTS"
+    ) {
       return;
     }
+    // Short “Everyone’s in!” beat (or legacy skim when reviewSeconds > 0),
+    // then phase alarm → beginVoting. Server-authoritative so all clients
+    // advance together; does not depend on the last picker staying connected.
+    const holdMs =
+      RULES.reviewSeconds > 0
+        ? RULES.reviewSeconds * 1000
+        : RULES.draftCompleteHoldMs;
     this.state.phase = "REVIEW";
-    this.state.phaseDeadlineAt = Date.now() + RULES.reviewSeconds * 1000;
+    this.state.phaseDeadlineAt = Date.now() + holdMs;
     bump(this.state);
     await this.setAlarmAt(this.state.phaseDeadlineAt, {
       kind: "phase",
@@ -2184,6 +2205,17 @@ export class QuarryServer extends Server<Env> {
   }
 
   async beginVoting() {
+    // Idempotent — host skip_review + phase alarm must not double-start judge.
+    if (
+      this.state.phase === "VOTING_AND_JUDGING" ||
+      this.state.phase === "SCORE_REVEAL" ||
+      this.state.phase === "WAGER_SELECTION" ||
+      this.state.phase === "DICE" ||
+      this.state.phase === "ROUND_RESULTS" ||
+      this.state.phase === "GAME_RESULTS"
+    ) {
+      return;
+    }
     this.state.phase = "VOTING_AND_JUDGING";
     this.state.humanVotes = {};
     this.state.scores = [];
@@ -3351,6 +3383,46 @@ export class QuarryServer extends Server<Env> {
     }
   }
 
+  /**
+   * Room-scoped all-time high: best final beans this room code has ever
+   * seen. Survives rematch; cleared when the abandoned room is recycled.
+   */
+  applyAllTimeHighFromStandings() {
+    const players = this.state.players.filter((p) => p.role === "player");
+    if (players.length === 0) {
+      this.state.newAllTimeHigh = false;
+      return;
+    }
+    let best = players[0]!;
+    for (const p of players) {
+      if (
+        p.stones > best.stones ||
+        (p.stones === best.stones &&
+          (p.seat ?? 99) < (best.seat ?? 99))
+      ) {
+        best = p;
+      }
+    }
+    const prev = this.state.allTimeHigh;
+    if (!prev || best.stones > prev.score) {
+      this.state.allTimeHigh = {
+        score: best.stones,
+        name: best.name,
+        at: Date.now(),
+      };
+      this.state.newAllTimeHigh = true;
+    } else {
+      this.state.newAllTimeHigh = false;
+    }
+  }
+
+  enterGameResults() {
+    this.state.phase = "GAME_RESULTS";
+    this.state.gameOver = true;
+    this.state.rematchReady = {};
+    this.applyAllTimeHighFromStandings();
+  }
+
   async handleNextTopic(id: string) {
     if (!this.requireHost(id)) throw new Error("Host only");
     if (this.state.phase === "GAME_RESULTS") {
@@ -3370,9 +3442,7 @@ export class QuarryServer extends Server<Env> {
     this.state.partyPrompt = null;
 
     if (this.state.topicRound >= this.state.configuredTopicRounds) {
-      this.state.phase = "GAME_RESULTS";
-      this.state.gameOver = true;
-      this.state.rematchReady = {};
+      this.enterGameResults();
       bump(this.state);
       return;
     }
@@ -3381,9 +3451,7 @@ export class QuarryServer extends Server<Env> {
 
   async handleEndGame(id: string) {
     if (!this.requireHost(id)) throw new Error("Host only");
-    this.state.phase = "GAME_RESULTS";
-    this.state.gameOver = true;
-    this.state.rematchReady = {};
+    this.enterGameResults();
     bump(this.state);
     // Must await: same race as host pause (#224) — a late deleteAlarm can
     // wipe a rematch / next-topic clock armed after end_game returns.
@@ -3421,6 +3489,8 @@ export class QuarryServer extends Server<Env> {
   async resetRoomForRematch() {
     const code = this.state.code;
     const settings = this.state.settings;
+    // Room all-time high survives rematch (same party night / room code).
+    const allTimeHigh = this.state.allTimeHigh;
     // Keep the WS sequence monotonic. emptyRoomState() zeros stateVersion;
     // clients treat a lower seq as stale and would stay stuck on GAME_RESULTS.
     const prevVersion = this.state.stateVersion ?? 0;
@@ -3442,6 +3512,8 @@ export class QuarryServer extends Server<Env> {
     this.state = emptyRoomState(code);
     this.state.stateVersion = prevVersion;
     this.state.settings = settings;
+    this.state.allTimeHigh = allTimeHigh;
+    this.state.newAllTimeHigh = false;
     this.state.players = names.map((n, i) => ({
       id: n.id,
       name: n.name,
@@ -3922,21 +3994,12 @@ export class QuarryServer extends Server<Env> {
         await this.startPickClock();
         break;
       case "REVIEW":
-        // Admin jump: with reviewSeconds 0, land in vote+judge (no skim wait).
+        // Admin jump: land on the draft-complete hold (Everyone’s in!).
         await this.adminEnsureTopic();
         await this.adminFillPicks();
-        if (RULES.reviewSeconds <= 0) {
-          await this.beginVoting();
-          break;
-        }
-        this.state.phase = "REVIEW";
-        this.state.phaseDeadlineAt =
-          Date.now() + RULES.reviewSeconds * 1000;
-        bump(this.state);
-        await this.setAlarmAt(this.state.phaseDeadlineAt, {
-          kind: "phase",
-          revision: this.state.phaseRevision,
-        });
+        this.state.phase = "DRAFT";
+        this.state.draftCursor = this.state.draftOrder.length;
+        await this.beginReview();
         break;
       case "VOTING_AND_JUDGING":
         await this.adminEnsureTopic();
@@ -3996,9 +4059,7 @@ export class QuarryServer extends Server<Env> {
         await this.adminEnsureTopic();
         await this.adminFillPicks();
         this.adminFillScores();
-        this.state.phase = "GAME_RESULTS";
-        this.state.gameOver = true;
-        this.state.rematchReady = {};
+        this.enterGameResults();
         this.state.phaseDeadlineAt = null;
         bump(this.state);
         break;

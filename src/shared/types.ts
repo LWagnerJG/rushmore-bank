@@ -26,6 +26,13 @@ export type DiceSubphase =
   | "SETTLED"
   | "WAITING"; // waiting for another player's turn / animation
 
+/** Room-scoped all-time high — survives rematches; wiped with the abandoned room. */
+export type AllTimeHigh = {
+  score: number;
+  name: string;
+  at: number;
+};
+
 export type PlayerRole = "player" | "spectator";
 
 export type JudgeStatus = "idle" | "pending" | "ready" | "failed";
@@ -292,6 +299,10 @@ export interface RoomState {
   processedActionIds: string[];
   gameOver: boolean;
   notice: string | null;
+  /** Best final score recorded in this room code (survives rematch). */
+  allTimeHigh: AllTimeHigh | null;
+  /** True when this GAME_RESULTS broke the room all-time high. */
+  newAllTimeHigh: boolean;
 }
 
 /**
@@ -384,6 +395,8 @@ export interface PublicRoomState {
   stateVersion: number;
   gameOver: boolean;
   notice: string | null;
+  allTimeHigh: AllTimeHigh | null;
+  newAllTimeHigh: boolean;
 }
 
 export type ClientMessage =
@@ -602,6 +615,8 @@ export function emptyRoomState(code: string): RoomState {
     processedActionIds: [],
     gameOver: false,
     notice: null,
+    allTimeHigh: null,
+    newAllTimeHigh: false,
   };
 }
 

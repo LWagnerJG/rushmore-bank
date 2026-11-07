@@ -124,6 +124,8 @@ function baseState(): PublicRoomState {
     stateVersion: 1,
     gameOver: false,
     notice: null,
+    allTimeHigh: null,
+    newAllTimeHigh: false,
   };
 }
 

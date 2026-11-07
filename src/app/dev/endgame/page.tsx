@@ -11,6 +11,7 @@ import { clearRevealCompleted, resultsRevealKey } from "@/lib/results-reveal";
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
 
 type Scenario = "two" | "four" | "six" | "tie";
+type AthMode = "normal" | "new";
 
 const YOU_ID = "you";
 
@@ -33,7 +34,12 @@ function player(
   };
 }
 
-function baseState(players: Player[], createdAt: number): PublicRoomState {
+function baseState(
+  players: Player[],
+  createdAt: number,
+  athMode: AthMode,
+): PublicRoomState {
+  const top = [...players].sort((a, b) => b.stones - a.stones)[0]!;
   return {
     code: "END1",
     phase: "GAME_RESULTS",
@@ -108,6 +114,11 @@ function baseState(players: Player[], createdAt: number): PublicRoomState {
     stateVersion: 1,
     gameOver: true,
     notice: null,
+    allTimeHigh:
+      athMode === "new"
+        ? { score: top.stones, name: top.name, at: createdAt }
+        : { score: Math.max(top.stones + 20, 160), name: "Sam", at: 1 },
+    newAllTimeHigh: athMode === "new",
   };
 }
 
@@ -146,15 +157,16 @@ function roster(scenario: Scenario): Player[] {
 
 export default function EndgameLabPage() {
   const [scenario, setScenario] = useState<Scenario>("four");
+  const [athMode, setAthMode] = useState<AthMode>("normal");
   const [createdAt, setCreatedAt] = useState(() => Date.now());
   const [revision, setRevision] = useState(1);
 
   const players = useMemo(() => roster(scenario), [scenario]);
   const state = useMemo(() => {
-    const s = baseState(players, createdAt);
+    const s = baseState(players, createdAt, athMode);
     s.phaseRevision = revision;
     return s;
-  }, [players, createdAt, revision]);
+  }, [players, createdAt, revision, athMode]);
   const you = players[0]!;
 
   const send = (_m: ClientMessage) => {
@@ -177,7 +189,7 @@ export default function EndgameLabPage() {
 
   return (
     <main className="app-shell mx-auto flex max-w-md flex-col gap-4 px-4 py-6">
-      <div className="stack-sm">
+      <div className="lab-chrome stack-sm">
         <p className="type-meta text-[var(--muted)]">Dev · endgame lab</p>
         <h1 className="type-display">Endgame lab</h1>
         <div className="stack-row flex-wrap">
@@ -192,6 +204,21 @@ export default function EndgameLabPage() {
               }}
             >
               {s}
+            </button>
+          ))}
+        </div>
+        <div className="stack-row flex-wrap">
+          {(["normal", "new"] as AthMode[]).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              className={athMode === mode ? "btn-primary" : "btn-secondary"}
+              onClick={() => {
+                setAthMode(mode);
+                replay();
+              }}
+            >
+              ath:{mode}
             </button>
           ))}
         </div>
@@ -214,7 +241,7 @@ export default function EndgameLabPage() {
 
       <ResultsPanel state={state} you={you} send={send} />
 
-      <Link href="/" className="type-meta text-[var(--muted)]">
+      <Link href="/" className="lab-chrome type-meta text-[var(--muted)]">
         ← Home
       </Link>
     </main>

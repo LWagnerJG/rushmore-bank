@@ -74,6 +74,31 @@ export function ResultsPanel({
         onRevealDone={() => setRevealDone(true)}
       />
 
+      {revealDone && final && state.allTimeHigh ? (
+        <p
+          className={`endgame-ath type-meta text-center${state.newAllTimeHigh ? " endgame-ath-new" : ""}`}
+          role="status"
+          aria-live="polite"
+        >
+          {state.newAllTimeHigh ? (
+            <>
+              <span className="endgame-ath-badge">New all-time high!</span>
+              <span className="endgame-ath-line">
+                {state.allTimeHigh.score} by {state.allTimeHigh.name}
+              </span>
+            </>
+          ) : (
+            <>
+              All-time high:{" "}
+              <span className="endgame-ath-score tabular-nums">
+                {state.allTimeHigh.score}
+              </span>{" "}
+              by {state.allTimeHigh.name}
+            </>
+          )}
+        </p>
+      ) : null}
+
       {revealDone && promptOpen && prompt?.kind === "lowest_drink" && (
         <div className="party-sip party-sip-quiet stack-sm">
           <p className="party-sip-kicker type-meta">Party Mode</p>
