@@ -49,10 +49,16 @@ export const RULES = {
   pickGraceSeconds: 5,
   hostExtendSeconds: 15,
   /**
-   * Legacy review skim — kept at 0 so draft ends go straight into
-   * VOTING_AND_JUDGING (AI judge starts immediately; no countdown stall).
+   * Legacy review skim length — kept at 0. Draft completion still enters
+   * REVIEW briefly via `draftCompleteHoldMs` so everyone sees “Everyone’s in!”
+   * before VOTING_AND_JUDGING (server-authoritative).
    */
   reviewSeconds: 0,
+  /**
+   * Pause after the last draft lock-in / miss before voting + AI judge.
+   * Long enough to register the final pick; short enough not to stall the party.
+   */
+  draftCompleteHoldMs: 1300,
 
   /** Voting / AI */
   /** Vote window — ends at deadline or when everyone has voted. */

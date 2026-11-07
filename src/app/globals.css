@@ -1581,6 +1581,73 @@ html.party-on .brand-shimmer {
   gap: var(--space-3);
 }
 
+/* Room-scoped all-time high — quiet line; coral badge when broken this game */
+.endgame-ath {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.35rem 0.55rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+.endgame-ath-score {
+  color: var(--text);
+  font-weight: 800;
+}
+.endgame-ath-new {
+  color: var(--text);
+}
+.endgame-ath-badge {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--coral) 22%, #fff);
+  color: var(--coral-ink);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.endgame-ath-line {
+  font-weight: 800;
+  color: var(--text);
+}
+
+/* Draft-complete “Everyone’s in!” beat before voting */
+.draft-all-in-banner {
+  text-align: center;
+  padding: 0.35rem 0 0.15rem;
+}
+.draft-all-in-kicker {
+  margin: 0;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.draft-all-in-title {
+  margin: 0.15rem 0 0.25rem;
+  color: var(--text);
+  animation: draft-all-in-pop 420ms ease-out both;
+}
+@keyframes draft-all-in-pop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .draft-all-in-title {
+    animation: none;
+  }
+}
+
 /* End game / Home follow the dock; its bottom padding is the gap */
 .endgame-panel > .phase-sticky-cta + .dock-trailing {
   margin-top: calc(-1 * var(--space-3));

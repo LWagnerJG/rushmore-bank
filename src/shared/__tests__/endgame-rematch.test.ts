@@ -138,6 +138,8 @@ describe("endgame winner + rematch", () => {
     expect(panel).toMatch(/rematchReadyCast/);
     expect(panel).toMatch(/play_again/);
     expect(panel).toMatch(/endgame-home/);
+    expect(panel).toMatch(/endgame-ath/);
+    expect(panel).toMatch(/All-time high|New all-time high/);
     expect(panel).not.toMatch(/confetti|canvas-confetti|particle/i);
     expect(panel).not.toMatch(/endgame-winner-kicker|endgame-winner-name/);
     expect(css).toMatch(/@keyframes\s+endgame-green-sweep/);
