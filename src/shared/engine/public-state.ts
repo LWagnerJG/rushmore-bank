@@ -235,6 +235,18 @@ export function projectPublicStateShared(
     partyBustRedoUsedIds: [...state.partyBustRedoUsedIds],
     diceIdlePauseRemainingMs: state.diceIdlePauseRemainingMs,
     bustedPlayerIdsThisRound: [...(state.bustedPlayerIdsThisRound ?? [])],
+    roundRecaps: diceSlim
+      ? []
+      : (state.roundRecaps ?? []).map((r) => ({
+          round: r.round,
+          topicId: r.topicId,
+          topicText: r.topicText,
+          rosters: r.rosters.map((roster) => ({
+            playerId: roster.playerId,
+            playerName: roster.playerName,
+            picks: [...roster.picks],
+          })),
+        })),
     phaseDeadlineAt: state.phaseDeadlineAt,
     hostLastSeenAt: state.hostLastSeenAt,
     stateVersion: state.stateVersion ?? 0,
