@@ -174,7 +174,7 @@ describe("disconnect action grace + host skip + rejoin", () => {
     await Promise.resolve();
     await Promise.resolve();
     assert.equal(server.state.players.find((p) => p.id === "B")?.connected, false);
-    assert.equal(server.leaveTimers.has("B"), false);
+    assert.equal(server.seatPastDisconnectGrace("B"), true);
     await server.handleLockIn("A", "chips");
     // startPickClock must auto-fill B without waiting the pick clock.
     assert.equal(server.state.picks.some((p) => p.playerId === "B"), true);
