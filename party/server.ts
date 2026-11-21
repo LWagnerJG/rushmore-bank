@@ -876,6 +876,42 @@ export class QuarryServer extends Server<Env> {
     await this.forceMissCurrentPick("host_skip");
   }
 
+  /**
+   * Host-only: expire soft-disconnect grace early for one seat.
+   * Same recovery as the leave timer — unsticks vote / wager / dice / party waits.
+   */
+  async handleHostSkipAway(hostId: string, playerId: string) {
+    if (!this.requireHost(hostId)) throw new Error("Host only");
+    if (!this.state.rosterLocked) return;
+    if (!playerId || hostId === playerId) return;
+    const target = this.state.players.find((p) => p.id === playerId);
+    if (!target || target.connected || target.role !== "player") return;
+    this.clearLeaveTimer(playerId);
+    await this.handlePlayerLeave(playerId);
+  }
+
+  /**
+   * Host-only: force-bank / advance the current dice roller so a stalled
+   * turn cannot freeze the table (works for connected AFK or soft-disconnect).
+   */
+  async handleHostSkipDice(hostId: string, playerId: string) {
+    if (!this.requireHost(hostId)) throw new Error("Host only");
+    if (this.state.phase !== "DICE") return;
+    if (!playerId || this.currentDicePlayerId() !== playerId) return;
+    this.state.diceIdlePauseRemainingMs = null;
+    await this.clearAlarm();
+    // Re-validate after await — roller may have banked / advanced.
+    if (this.state.phase !== "DICE") return;
+    if (this.currentDicePlayerId() !== playerId) return;
+    await this.recoverDiceAfterLeave(playerId);
+    if (this.state.phase === "DICE") {
+      const name =
+        this.state.players.find((p) => p.id === playerId)?.name ?? "Player";
+      this.state.notice = `Host skipped ${name}`;
+      bump(this.state);
+    }
+  }
+
   async recoverDiceAfterLeave(leftId: string) {
     if (this.state.diceActiveIds.length === 0 || this.state.seatOrder.length === 0) {
       await this.clearAlarm();
@@ -1400,6 +1436,12 @@ export class QuarryServer extends Server<Env> {
         return;
       case "host_skip_draft":
         await this.handleHostSkipDraft(id, msg.turnIndex);
+        return;
+      case "host_skip_away":
+        await this.handleHostSkipAway(id, msg.playerId);
+        return;
+      case "host_skip_dice":
+        await this.handleHostSkipDice(id, msg.playerId);
         return;
       case "submit_vote":
         await this.handleVote(id, msg.targetPlayerId);

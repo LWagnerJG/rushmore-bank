@@ -10,7 +10,12 @@ import {
   subscribeSoundEnabled,
 } from "@/lib/sound-prefs";
 import { enableSoundFromUserGesture } from "@/lib/sfx";
-import type { ClientMessage, HostAiJudgeHealth, Phase } from "@/shared/types";
+import type {
+  ClientMessage,
+  HostAiJudgeHealth,
+  Phase,
+  PlayerPresence,
+} from "@/shared/types";
 import { RULES } from "@/shared/rules";
 import { inviteUrl } from "@/shared/install-join";
 import { shareInvite } from "@/lib/share-invite";
@@ -181,6 +186,8 @@ function SettingsSheetImpl({
   rename,
   canRename = true,
   rosterLocked = false,
+  /** Soft-disconnected seats the host can unstick mid-game. */
+  awayPlayers = [],
   /** When opening, jump to this panel (or expand avatar picker). */
   initialPanel = "main",
 }: {
@@ -202,6 +209,7 @@ function SettingsSheetImpl({
   rename?: (name: string) => void;
   canRename?: boolean;
   rosterLocked?: boolean;
+  awayPlayers?: { id: string; name: string; presence?: PlayerPresence }[];
   initialPanel?: InitialPanel;
 }) {
   const roomCode = (_roomCode ?? "").trim().toUpperCase();
@@ -209,6 +217,7 @@ function SettingsSheetImpl({
     typeof window !== "undefined" ? isSoundEnabled() : false,
   );
   const [inviteCopied, setInviteCopied] = useState(false);
+  const [awaySkipArmedId, setAwaySkipArmedId] = useState<string | null>(null);
   const [adminUnlocked, setAdminUnlocked] = useState(false);
   const [stats, setStats] = useState<ProfileStats>(emptyProfileStats);
   const [displayName, setDisplayName] = useState("");
@@ -270,6 +279,7 @@ function SettingsSheetImpl({
       setDragging(false);
       dragStartY.current = null;
       setInviteCopied(false);
+      setAwaySkipArmedId(null);
       return;
     }
     if (initialPanel === "avatar") {
@@ -556,18 +566,26 @@ function SettingsSheetImpl({
                     {isHost ? "Invite / rejoin" : "Room invite"}
                   </p>
                   <div className="settings-invite-row">
-                    <button
-                      type="button"
-                      className="settings-room-code type-display"
-                      onClick={() => void copyRoomInvite()}
-                      aria-label={`Room code ${roomCode.split("").join(" ")}. Tap to copy invite link.`}
-                    >
-                      {roomCode}
-                    </button>
+                    <div className="settings-room-code-wrap">
+                      <button
+                        type="button"
+                        className="settings-room-code type-display"
+                        onClick={() => void copyRoomInvite()}
+                        aria-label={`Room code ${roomCode.split("").join(" ")}. Tap to copy invite link.`}
+                      >
+                        {roomCode.split("").join(" ")}
+                      </button>
+                      <span
+                        className={`settings-room-code-copied${inviteCopied ? " is-on" : ""}`}
+                        aria-live="polite"
+                      >
+                        {inviteCopied ? "Copied" : "Tap to copy"}
+                      </span>
+                    </div>
                     <div className="settings-invite-qr" aria-label="Invite QR code">
                       <QRCodeSVG
                         value={inviteHref || roomCode}
-                        size={88}
+                        size={80}
                         bgColor="#f5f0e7"
                         fgColor="#23483e"
                         level="M"
@@ -581,7 +599,7 @@ function SettingsSheetImpl({
                     className="btn-secondary settings-invite-share w-full"
                     onClick={() => void shareRoomInvite()}
                   >
-                    {inviteCopied ? "Copied" : "Share invite"}
+                    Share invite
                   </button>
                 </section>
               ) : null}
@@ -705,6 +723,50 @@ function SettingsSheetImpl({
                         +{RULES.hostExtendSeconds}s
                       </button>
                     </div>
+                  </div>
+                ) : null}
+
+                {rosterLocked && send && awayPlayers.length > 0 ? (
+                  <div className="settings-away-block">
+                    <p className="settings-away-kicker type-meta">
+                      Stalled seats
+                    </p>
+                    {awayPlayers.map((p) => (
+                      <div key={p.id} className="settings-away-row">
+                        <span className="settings-away-name">
+                          {p.name}
+                          <span className="settings-away-status">
+                            {p.presence === "reconnecting"
+                              ? "reconnecting…"
+                              : "skipped"}
+                          </span>
+                        </span>
+                        <button
+                          type="button"
+                          className={`draft-host-skip-btn${awaySkipArmedId === p.id ? " draft-host-skip-armed" : ""}`}
+                          aria-label={
+                            awaySkipArmedId === p.id
+                              ? `Tap again to skip ${p.name}`
+                              : `Skip ${p.name} now`
+                          }
+                          onClick={() => {
+                            if (awaySkipArmedId !== p.id) {
+                              setAwaySkipArmedId(p.id);
+                              window.setTimeout(() => {
+                                setAwaySkipArmedId((cur) =>
+                                  cur === p.id ? null : cur,
+                                );
+                              }, 2800);
+                              return;
+                            }
+                            setAwaySkipArmedId(null);
+                            send({ type: "host_skip_away", playerId: p.id });
+                          }}
+                        >
+                          {awaySkipArmedId === p.id ? "Skip?" : "Skip"}
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 ) : null}
               </div>
