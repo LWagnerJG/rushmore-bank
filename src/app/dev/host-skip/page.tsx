@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Local lab: settings invite + draft host Skip + disconnected cue.
+ * Local lab: settings invite + draft column Skip + presence chips.
  * Not linked from prod nav.
  */
 import { useMemo, useState } from "react";
@@ -16,7 +16,11 @@ function player(
   id: string,
   name: string,
   seat: number,
-  opts?: { host?: boolean; connected?: boolean },
+  opts?: {
+    host?: boolean;
+    connected?: boolean;
+    presence?: Player["presence"];
+  },
 ): Player {
   return {
     id,
@@ -24,6 +28,7 @@ function player(
     role: "player",
     isHost: Boolean(opts?.host),
     connected: opts?.connected ?? true,
+    presence: opts?.presence ?? (opts?.connected === false ? "away" : "live"),
     stones: 40,
     seat,
     joinedAt: 1,
@@ -32,8 +37,14 @@ function player(
 
 const players: Player[] = [
   player(YOU_ID, "Luke", 0, { host: true }),
-  player("p2", "Sam", 1, { connected: false }),
-  player("p3", "Alex", 2),
+  player("p2", "Sam", 1, {
+    connected: false,
+    presence: "away",
+  }),
+  player("p3", "Alex", 2, {
+    connected: false,
+    presence: "reconnecting",
+  }),
 ];
 
 function baseState(): PublicRoomState {
@@ -162,6 +173,13 @@ export default function HostSkipLabPage() {
         playerCount={3}
         rosterLocked
         canRename={false}
+        awayPlayers={players
+          .filter((p) => !p.connected)
+          .map((p) => ({
+            id: p.id,
+            name: p.name,
+            presence: p.presence,
+          }))}
       />
 
       <Link href="/" className="lab-chrome type-meta text-[var(--muted)]">

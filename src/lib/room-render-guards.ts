@@ -15,6 +15,7 @@ type SettingsSheetComparable = {
   initialPanel?: string;
   canRename?: boolean;
   rosterLocked?: boolean;
+  awayPlayers?: { id: string; name: string; presence?: string }[];
 };
 
 /**
@@ -40,7 +41,9 @@ export function settingsSheetPropsAreEqual(
     prev.initialPanel === next.initialPanel &&
     prev.hostAiJudge === next.hostAiJudge &&
     prev.canRename === next.canRename &&
-    prev.rosterLocked === next.rosterLocked
+    prev.rosterLocked === next.rosterLocked &&
+    JSON.stringify(prev.awayPlayers ?? []) ===
+      JSON.stringify(next.awayPlayers ?? [])
   );
 }
 
@@ -53,7 +56,7 @@ export function playerRailRenderKey(
     .filter((p) => p.role === "player")
     .map(
       (p) =>
-        `${p.id}:${p.name}:${p.stones}:${p.avatarId ?? ""}:${p.connected ? 1 : 0}:${p.seat ?? ""}`,
+        `${p.id}:${p.name}:${p.stones}:${p.avatarId ?? ""}:${p.connected ? 1 : 0}:${p.presence ?? ""}:${p.seat ?? ""}`,
     )
     .join("|");
   return [

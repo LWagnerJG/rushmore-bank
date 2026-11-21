@@ -522,6 +522,20 @@ export function RoomClient({
         }
         drafting={drafting}
         pickPaused={state?.pickPaused ?? false}
+        awayPlayers={
+          state?.players
+            .filter(
+              (p) =>
+                p.role === "player" &&
+                !p.connected &&
+                p.presence === "reconnecting",
+            )
+            .map((p) => ({
+              id: p.id,
+              name: p.name,
+              presence: p.presence,
+            })) ?? []
+        }
       />
       {diagOpen && <DiagPanel onClose={() => setDiagOpen(false)} />}
       <ErrorToast

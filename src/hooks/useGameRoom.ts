@@ -187,6 +187,10 @@ export function gestureKeyFor(
       return `host_correct:${rev}:${msg.turnIndex}:${msg.reason}`;
     case "host_skip_draft":
       return `host_skip_draft:${rev}:${msg.turnIndex}`;
+    case "host_skip_away":
+      return `host_skip_away:${rev}:${msg.playerId}`;
+    case "host_skip_dice":
+      return `host_skip_dice:${rev}:${msg.playerId}`;
     case "custom_topic":
       return `custom_topic:${rev}:${msg.text}:${msg.scope}:${msg.scopeBoundary}`;
     case "rename":

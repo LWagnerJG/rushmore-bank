@@ -250,6 +250,8 @@ export function DicePanel({
   /** Prior revealed non-secret roll — fills the total gap while the next tumble runs. */
   const [stickyRoll, setStickyRoll] = useState<DiceReadoutRoll | null>(null);
   const [bankConfirm, setBankConfirm] = useState(false);
+  /** Host Skip: first tap arms, second force-banks the current roller. */
+  const [skipArmed, setSkipArmed] = useState(false);
   const canBank =
     you.role === "player" &&
     classifyPullOut({
@@ -275,6 +277,16 @@ export function DicePanel({
     const timer = setTimeout(() => setBusy(false), 1000);
     return () => clearTimeout(timer);
   }, [busy]);
+
+  useEffect(() => {
+    setSkipArmed(false);
+  }, [state.diceTurnSeat, state.phaseRevision, rollerId]);
+
+  useEffect(() => {
+    if (!skipArmed) return;
+    const t = window.setTimeout(() => setSkipArmed(false), 2800);
+    return () => window.clearTimeout(t);
+  }, [skipArmed]);
 
   useEffect(() => {
     if (!glowOn || state.diceSubphase !== "READY") return;
@@ -494,6 +506,27 @@ export function DicePanel({
                   {"\u00a0"}
                 </p>
               )}
+              {you.isHost && rollerId && roller && !myTurn ? (
+                <button
+                  type="button"
+                  className={`draft-host-skip-btn dice-host-skip-btn${skipArmed ? " draft-host-skip-armed" : ""}`}
+                  aria-label={
+                    skipArmed
+                      ? `Tap again to skip ${roller.name}`
+                      : `Skip ${roller.name}'s dice turn`
+                  }
+                  onClick={() => {
+                    if (!skipArmed) {
+                      setSkipArmed(true);
+                      return;
+                    }
+                    setSkipArmed(false);
+                    send({ type: "host_skip_dice", playerId: rollerId });
+                  }}
+                >
+                  {skipArmed ? "Skip?" : "Skip"}
+                </button>
+              ) : null}
             </div>
             <div
               className={`dice-stage-timer ${timerLive ? "dice-stage-timer-live" : "dice-stage-timer-idle"}`}

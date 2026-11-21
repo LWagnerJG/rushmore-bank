@@ -1,5 +1,5 @@
 /**
- * 375px shots: settings invite (host), draft Skip control, disconnected cue.
+ * 375px shots: settings rejoin card, draft column Skip + presence chips.
  */
 import { mkdirSync } from "node:fs";
 import path from "node:path";
@@ -33,28 +33,24 @@ async function main() {
   await page.getByRole("button", { name: /Open settings/i }).click();
   await page.waitForSelector(".settings-invite", { timeout: 5000 });
   await page.waitForTimeout(300);
-  const settingsPath = path.join(OUT, "settings-invite-host-375.png");
+  const settingsPath = path.join(OUT, "settings-rejoin-card-375.png");
   await page.screenshot({ path: settingsPath, fullPage: false });
   console.log("wrote", settingsPath);
 
   await page.getByRole("button", { name: "Close" }).first().click();
   await page.waitForTimeout(250);
 
-  // 2–3) Draft Skip + disconnected cue (hide lab chrome)
+  // 2) Draft column Skip + reconnecting/skipped chips
   await page.addStyleTag({
     content: `.lab-chrome { display: none !important; }`,
   });
   await page.waitForSelector(".draft-host-skip-btn", { timeout: 5000 });
-  await page.waitForSelector(".player-away-cue", { timeout: 5000 });
+  await page.waitForSelector(".player-presence-chip", { timeout: 5000 });
   await page.waitForTimeout(200);
 
-  const draftPath = path.join(OUT, "draft-host-skip-375.png");
+  const draftPath = path.join(OUT, "draft-column-skip-presence-375.png");
   await page.screenshot({ path: draftPath, fullPage: false });
   console.log("wrote", draftPath);
-
-  const awayPath = path.join(OUT, "draft-disconnected-cue-375.png");
-  await page.screenshot({ path: awayPath, fullPage: false });
-  console.log("wrote", awayPath);
 
   await browser.close();
 }

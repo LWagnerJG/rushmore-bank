@@ -27,8 +27,6 @@ export function DraftPanel({
   const [queue, setQueue] = useState<string[]>([]);
   const [saveFailed, setSaveFailed] = useState(false);
   const [busy, setBusy] = useState(false);
-  /** Host Skip: first tap arms, second tap sends (no modal). */
-  const [skipArmed, setSkipArmed] = useState(false);
   const pending = useRef<{ text: string; turn: number } | null>(null);
   const topicId = state.selectedTopic?.id ?? "none";
   const seat = state.draftOrder[state.draftCursor];
@@ -98,16 +96,6 @@ export function DraftPanel({
     }
     cueYourTurn(`draft:${state.code}:${state.draftCursor}`);
   }, [myTurn, state.pickPaused, state.code, state.draftCursor]);
-
-  useEffect(() => {
-    setSkipArmed(false);
-  }, [state.draftCursor, state.phaseRevision, turnId]);
-
-  useEffect(() => {
-    if (!skipArmed) return;
-    const t = window.setTimeout(() => setSkipArmed(false), 2800);
-    return () => window.clearTimeout(t);
-  }, [skipArmed]);
 
   function persist(next: string[]) {
     setQueue(next);
@@ -329,38 +317,6 @@ export function DraftPanel({
         >
           {turnLine}
         </p>
-      ) : null}
-
-      {you.isHost &&
-      turnId &&
-      turnPlayer &&
-      (state.phase === "DRAFT" || state.phase === "CORRECTION") ? (
-        <div className="draft-host-skip-row">
-          <button
-            type="button"
-            className={`draft-host-skip-btn${skipArmed ? " draft-host-skip-armed" : ""}`}
-            aria-label={
-              skipArmed
-                ? `Tap again to skip ${turnPlayer.name}`
-                : `Skip ${turnPlayer.name}'s draft turn`
-            }
-            onClick={() => {
-              if (!skipArmed) {
-                setSkipArmed(true);
-                return;
-              }
-              setSkipArmed(false);
-              send({
-                type: "host_skip_draft",
-                turnIndex: state.draftCursor,
-              });
-            }}
-          >
-            {skipArmed
-              ? `Skip ${turnPlayer.name}? Tap again`
-              : `Skip ${turnPlayer.name}`}
-          </button>
-        </div>
       ) : null}
 
       <DraftBoard

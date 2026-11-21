@@ -7,6 +7,7 @@ import { draftBoardSeats } from "@/shared/engine/snake";
 import { FitName } from "@/components/FitName";
 import { railChipTip, railYouLabel } from "@/shared/you-label";
 import { playerRailPropsAreEqual } from "@/lib/room-render-guards";
+import { presenceCue } from "@/shared/presence";
 
 /** You first, then beans descending (seat as stable tiebreak). */
 export function sortLeaderboard(
@@ -185,6 +186,7 @@ function PlayerChip({
 }) {
   const label = you ? railYouLabel() : player.name;
   const tip = railChipTip(player.name, { you, up });
+  const cue = presenceCue(player);
   const [land, setLand] = useState(false);
   const prevTotal = useRef(totalBeans);
   const prevEarned = useRef(earned);
@@ -211,7 +213,8 @@ function PlayerChip({
         compact ? "player-chip-compact" : "",
         you ? "player-chip-you" : "player-chip-other",
         up ? "player-chip-up" : "",
-        !player.connected ? "player-chip-away" : "",
+        cue ? "player-chip-away" : "",
+        cue?.kind === "reconnecting" ? "player-chip-reconnecting" : "",
         showPotSplit ? "player-chip-pot-split" : "",
       ]
         .filter(Boolean)
@@ -234,12 +237,16 @@ function PlayerChip({
           <FitName className="player-chip-name-text" text={label} title={tip} />
         </span>
       </div>
-      {!player.connected ? (
+      {cue ? (
         <span
-          className="player-away-cue"
-          title="Disconnected — skipped until they rejoin"
+          className={`player-presence-chip player-presence-${cue.kind}`}
+          title={
+            cue.kind === "reconnecting"
+              ? "Reconnecting — seat held"
+              : "Skipped until they rejoin"
+          }
         >
-          disconnected, skipped
+          {cue.label}
         </span>
       ) : null}
       {showPotSplit ? (

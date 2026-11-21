@@ -69,12 +69,20 @@ export type HostAiJudgeHealth = {
   latencyMs?: number | null;
 };
 
+/** Soft-disconnect seat status projected to clients (clears on rejoin). */
+export type PlayerPresence = "live" | "reconnecting" | "away";
+
 export interface Player {
   id: string;
   name: string;
   /** Banked stones (lifetime this game) */
   stones: number;
   connected: boolean;
+  /**
+   * Soft-disconnect cue: live / reconnecting (in grace) / away (past grace).
+   * Cleared to `live` as soon as they rejoin. Optional on fixtures.
+   */
+  presence?: PlayerPresence;
   isHost: boolean;
   role: PlayerRole;
   /** Seat index among locked roster; null for spectators / pre-lock */
@@ -431,6 +439,24 @@ export type ClientMessage =
   | {
       type: "host_skip_draft";
       turnIndex: number;
+      actionId?: string;
+    }
+  /**
+   * Host-only: expire soft-disconnect grace for a seat (any mid-game phase).
+   * Same recovery as the grace timer firing — unsticks vote/wager/dice waits.
+   */
+  | {
+      type: "host_skip_away";
+      playerId: string;
+      actionId?: string;
+    }
+  /**
+   * Host-only: force-bank / advance the current dice roller (unstick a stalled turn).
+   * `playerId` must still be the live dice seat.
+   */
+  | {
+      type: "host_skip_dice";
+      playerId: string;
       actionId?: string;
     }
   | { type: "submit_vote"; targetPlayerId: string; actionId?: string }

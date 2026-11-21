@@ -11,6 +11,7 @@ import {
 import { readAdminUnlocked } from "@/lib/admin-session";
 import { FitName } from "@/components/FitName";
 import { nameWithYouSuffix, railYouLabel } from "@/shared/you-label";
+import { presenceCue } from "@/shared/presence";
 
 function densityFor(count: number): "fit" | "snug" | "dense" {
   // 2–5: share the phone width with no sideways scroll.
@@ -48,10 +49,26 @@ export function DraftBoard({
     : null;
   const [hostFocusTurn, setHostFocusTurn] = useState<number | null>(null);
   const [adminMode, setAdminMode] = useState(false);
+  /** Host Skip on the on-clock column: first tap arms, second sends (no modal). */
+  const [skipArmed, setSkipArmed] = useState(false);
   const focusTurn = correcting ? null : hostFocusTurn;
   const upId = currentUpPlayerId(state);
   /** Host may correct; admin unlock only changes how loud the affordance is. */
   const canShowRedo = isHost && state.phase === "DRAFT" && !correcting;
+  const canHostSkip =
+    isHost &&
+    (state.phase === "DRAFT" || state.phase === "CORRECTION") &&
+    upId != null;
+
+  useEffect(() => {
+    setSkipArmed(false);
+  }, [state.draftCursor, state.phaseRevision, upId]);
+
+  useEffect(() => {
+    if (!skipArmed) return;
+    const t = window.setTimeout(() => setSkipArmed(false), 2800);
+    return () => window.clearTimeout(t);
+  }, [skipArmed]);
 
   useEffect(() => {
     const sync = () => setAdminMode(readAdminUnlocked());
@@ -151,6 +168,7 @@ export function DraftBoard({
                 const player = state.players.find((p) => p.id === pid);
                 const onClock = upId === pid;
                 const mine = pid === youId;
+                const cue = player ? presenceCue(player) : null;
                 return (
                   <th
                     scope="col"
@@ -159,6 +177,7 @@ export function DraftBoard({
                       mine ? "is-you" : "",
                       onClock ? "draft-board-on-clock" : "",
                       onClock ? "draft-board-col-active" : "",
+                      cue ? "draft-board-col-away" : "",
                     ]
                       .filter(Boolean)
                       .join(" ")}
@@ -173,13 +192,41 @@ export function DraftBoard({
                             : (player?.name ?? undefined)
                         }
                       />
-                      {player && !player.connected ? (
+                      {cue ? (
                         <span
-                          className="player-away-cue"
-                          title="Disconnected — skipped until they rejoin"
+                          className={`player-presence-chip player-presence-${cue.kind}`}
+                          title={
+                            cue.kind === "reconnecting"
+                              ? "Reconnecting — seat held"
+                              : "Skipped until they rejoin"
+                          }
                         >
-                          disconnected, skipped
+                          {cue.label}
                         </span>
+                      ) : null}
+                      {canHostSkip && onClock && player ? (
+                        <button
+                          type="button"
+                          className={`draft-host-skip-btn${skipArmed ? " draft-host-skip-armed" : ""}`}
+                          aria-label={
+                            skipArmed
+                              ? `Tap again to skip ${player.name}`
+                              : `Skip ${player.name}'s draft turn`
+                          }
+                          onClick={() => {
+                            if (!skipArmed) {
+                              setSkipArmed(true);
+                              return;
+                            }
+                            setSkipArmed(false);
+                            send({
+                              type: "host_skip_draft",
+                              turnIndex: state.draftCursor,
+                            });
+                          }}
+                        >
+                          {skipArmed ? "Skip?" : "Skip"}
+                        </button>
                       ) : null}
                     </div>
                   </th>

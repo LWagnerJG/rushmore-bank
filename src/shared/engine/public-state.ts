@@ -10,6 +10,7 @@ import type {
   RoomState,
 } from "../types";
 import { RULES } from "../rules";
+import { presenceFor } from "../presence";
 
 /**
  * Phases whose UI never reads draft picks / judge scores / topic cards.
@@ -110,6 +111,10 @@ export function projectPublicStateShared(
     if (!p || p.role !== "player" || !state.seatOrder.includes(pid)) return false;
     return p.connected || grace.has(pid);
   };
+  const withPresence = state.players.map((p) => ({
+    ...p,
+    presence: presenceFor(p.connected, grace.has(p.id)),
+  }));
 
   const topicVoteCounts: Record<string, number> = {};
   for (const tid of Object.values(state.topicVotes)) {
@@ -168,7 +173,7 @@ export function projectPublicStateShared(
     code: state.code,
     phase: state.phase,
     phaseRevision: state.phaseRevision,
-    players: state.players.map((p) => ({ ...p })),
+    players: withPresence,
     rosterLocked: state.rosterLocked,
     settings: { ...state.settings },
     createdAt: state.createdAt,

@@ -1,6 +1,7 @@
 /**
  * Disconnect action grace → draft skip, mid-game rejoin reclaim,
- * host-only skip permission, and lock_in × host_skip race safety.
+ * host-only skip permission, lock_in × host_skip race safety,
+ * and host unstick across phases.
  */
 import assert from "node:assert/strict";
 import type { Connection } from "partyserver";
@@ -9,8 +10,8 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { createTestServer } from "../../../test/party-server-harness";
 import { RULES } from "../rules";
-
-const START = 1_900_000_000_000;
+import { presenceCue, presenceFor } from "../presence";
+import { projectPublicStateShared } from "../engine/public-state";
 
 const draftPanel = readFileSync(
   resolve(__dirname, "../../components/DraftPanel.tsx"),
@@ -24,6 +25,16 @@ const board = readFileSync(
   resolve(__dirname, "../../components/DraftBoard.tsx"),
   "utf8",
 );
+const rail = readFileSync(
+  resolve(__dirname, "../../components/PlayerRail.tsx"),
+  "utf8",
+);
+const dice = readFileSync(
+  resolve(__dirname, "../../components/DicePanel.tsx"),
+  "utf8",
+);
+
+const START = 1_900_000_000_000;
 
 function draftGame() {
   const harness = createTestServer("SKIP");
@@ -78,8 +89,45 @@ describe("disconnect action grace + host skip + rejoin", () => {
     assert.equal(server.state.picks.length, 1);
     assert.match(server.state.picks[0]!.text, /Skipped \(away\)/i);
     assert.equal(server.state.players.find((p) => p.id === "A")?.connected, false);
-    // Seat held for rejoin
     assert.ok(server.state.players.some((p) => p.id === "A"));
+  });
+
+  it("projects reconnecting during grace and away after", async () => {
+    const { server } = draftGame();
+    await server.beginDraft();
+    server.onClose({ id: "B", send() {} } as unknown as Connection, 1000, "", true);
+    const during = projectPublicStateShared(server.state, {
+      gracePlayerIds: server.gracePlayerIds(),
+    });
+    assert.equal(during.players.find((p) => p.id === "B")?.presence, "reconnecting");
+    assert.equal(presenceCue(during.players.find((p) => p.id === "B")!)?.label, "reconnecting…");
+
+    await vi.advanceTimersByTimeAsync(RULES.disconnectActionGraceMs + 50);
+    await Promise.resolve();
+    await Promise.resolve();
+    const after = projectPublicStateShared(server.state, {
+      gracePlayerIds: server.gracePlayerIds(),
+    });
+    assert.equal(after.players.find((p) => p.id === "B")?.presence, "away");
+    assert.equal(presenceCue(after.players.find((p) => p.id === "B")!)?.label, "skipped");
+  });
+
+  it("clears presence to live as soon as they rejoin", async () => {
+    const { server } = draftGame();
+    await server.beginDraft();
+    server.onClose({ id: "B", send() {} } as unknown as Connection, 1000, "", true);
+    await vi.advanceTimersByTimeAsync(RULES.disconnectActionGraceMs + 50);
+    await Promise.resolve();
+    await Promise.resolve();
+    server.onConnect({ id: "B", send() {} } as unknown as Connection);
+    await server.handleJoin("B", "Sam", "player");
+    const pub = projectPublicStateShared(server.state, {
+      gracePlayerIds: server.gracePlayerIds(),
+    });
+    const b = pub.players.find((p) => p.id === "B")!;
+    assert.equal(b.connected, true);
+    assert.equal(b.presence, "live");
+    assert.equal(presenceCue(b), null);
   });
 
   it("reconnects the same id mid-game and restores the seat", async () => {
@@ -146,7 +194,6 @@ describe("disconnect action grace + host skip + rejoin", () => {
     await server.handleLockIn("A", "salsa");
     assert.equal(server.state.draftCursor, 1);
     assert.equal(server.state.picks.length, 1);
-    // Late skip still targeting turn 0 must no-op — do not skip B.
     await server.handleHostSkipDraft("A", 0);
     assert.equal(server.state.draftCursor, 1);
     assert.equal(server.state.picks.length, 1);
@@ -168,7 +215,6 @@ describe("disconnect action grace + host skip + rejoin", () => {
   it("immediately skips an already-away seat when their turn starts", async () => {
     const { server } = draftGame();
     await server.beginDraft();
-    // B drops while A is picking — grace expires before B's turn.
     server.onClose({ id: "B", send() {} } as unknown as Connection, 1000, "", true);
     await vi.advanceTimersByTimeAsync(RULES.disconnectActionGraceMs + 50);
     await Promise.resolve();
@@ -176,7 +222,6 @@ describe("disconnect action grace + host skip + rejoin", () => {
     assert.equal(server.state.players.find((p) => p.id === "B")?.connected, false);
     assert.equal(server.seatPastDisconnectGrace("B"), true);
     await server.handleLockIn("A", "chips");
-    // startPickClock must auto-fill B without waiting the pick clock.
     assert.equal(server.state.picks.some((p) => p.playerId === "B"), true);
     assert.match(
       server.state.picks.find((p) => p.playerId === "B")!.text,
@@ -185,15 +230,62 @@ describe("disconnect action grace + host skip + rejoin", () => {
     assert.equal(server.currentDraftPlayerId(), "C");
   });
 
-  it("renders settings invite + host Skip + disconnected cue", () => {
+  it("host_skip_away expires grace early and advances draft", async () => {
+    const { server } = draftGame();
+    await server.beginDraft();
+    assert.equal(server.currentDraftPlayerId(), "A");
+    // Soft-disconnect the on-clock seat; host (still A during grace) cannot
+    // skip-away self — drop B instead and have host A expire B early.
+    server.onClose({ id: "B", send() {} } as unknown as Connection, 1000, "", true);
+    assert.equal(server.gracePlayerIds().includes("B"), true);
+    await assert.rejects(
+      () => server.handleHostSkipAway("B", "A"),
+      /Host only/,
+    );
+    await server.handleHostSkipAway("A", "B");
+    assert.equal(server.gracePlayerIds().includes("B"), false);
+    assert.equal(server.state.players.find((p) => p.id === "B")?.connected, false);
+    // B is past grace — when their turn starts they are auto-missed.
+    await server.handleLockIn("A", "chips");
+    assert.match(
+      server.state.picks.find((p) => p.playerId === "B")!.text,
+      /Skipped \(away\)/i,
+    );
+  });
+
+  it("host_skip_away is a no-op once grace already expired", async () => {
+    const { server } = draftGame();
+    await server.beginDraft();
+    server.onClose({ id: "B", send() {} } as unknown as Connection, 1000, "", true);
+    await vi.advanceTimersByTimeAsync(RULES.disconnectActionGraceMs + 50);
+    await Promise.resolve();
+    await Promise.resolve();
+    assert.equal(server.gracePlayerIds().includes("B"), false);
+    const before = server.state.stateVersion;
+    await server.handleHostSkipAway("A", "B");
+    assert.equal(server.state.stateVersion, before);
+  });
+
+  it("presence helpers map live / reconnecting / away", () => {
+    assert.equal(presenceFor(true, false), "live");
+    assert.equal(presenceFor(false, true), "reconnecting");
+    assert.equal(presenceFor(false, false), "away");
+  });
+
+  it("renders settings invite + column Skip + presence chips", () => {
     expect(settings).toMatch(/settings-invite/);
     expect(settings).toMatch(/settings-room-code/);
+    expect(settings).toMatch(/Tap to copy|Copied/);
     expect(settings).toMatch(/Share invite|QRCodeSVG/);
+    expect(settings).toMatch(/host_skip_away/);
     expect(settings).not.toMatch(/void _roomCode/);
-    expect(draftPanel).toMatch(/host_skip_draft/);
-    expect(draftPanel).toMatch(/turnIndex:\s*state\.draftCursor/);
-    expect(draftPanel).toMatch(/Skip \$\{turnPlayer\.name\}|Skip \{turnPlayer/);
-    expect(draftPanel).not.toMatch(/confirm/i);
-    expect(board).toMatch(/disconnected, skipped/);
+    expect(draftPanel).not.toMatch(/host_skip_draft/);
+    expect(board).toMatch(/host_skip_draft/);
+    expect(board).toMatch(/draft-host-skip-btn/);
+    expect(board).toMatch(/presenceCue|player-presence-chip/);
+    expect(board).toMatch(/skipArmed/);
+    expect(rail).toMatch(/player-presence-chip/);
+    expect(rail).toMatch(/presenceCue|cue\.label/);
+    expect(dice).toMatch(/host_skip_dice/);
   });
 });
