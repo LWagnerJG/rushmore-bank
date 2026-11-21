@@ -211,7 +211,7 @@ function PlayerChip({
         compact ? "player-chip-compact" : "",
         you ? "player-chip-you" : "player-chip-other",
         up ? "player-chip-up" : "",
-        player.connected ? "" : "opacity-50",
+        !player.connected ? "player-chip-away" : "",
         showPotSplit ? "player-chip-pot-split" : "",
       ]
         .filter(Boolean)
@@ -232,16 +232,16 @@ function PlayerChip({
             </span>
           ) : null}
           <FitName className="player-chip-name-text" text={label} title={tip} />
-          {!player.connected ? (
-            <span
-              className="player-away-cue"
-              title="Disconnected — skipped until they rejoin"
-            >
-              disconnected, skipped
-            </span>
-          ) : null}
         </span>
       </div>
+      {!player.connected ? (
+        <span
+          className="player-away-cue"
+          title="Disconnected — skipped until they rejoin"
+        >
+          disconnected, skipped
+        </span>
+      ) : null}
       {showPotSplit ? (
         <div
           className="player-chip-split"

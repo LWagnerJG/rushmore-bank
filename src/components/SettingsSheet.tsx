@@ -553,7 +553,7 @@ function SettingsSheetImpl({
                   aria-label="Room invite"
                 >
                   <p className="settings-invite-kicker type-meta">
-                    {isHost ? "Invite / rejoin" : "Room code"}
+                    {isHost ? "Invite / rejoin" : "Room invite"}
                   </p>
                   <div className="settings-invite-row">
                     <button

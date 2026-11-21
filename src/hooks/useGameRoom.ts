@@ -144,7 +144,6 @@ export function gestureKeyFor(
     case "host_pause":
     case "host_resume":
     case "host_extend":
-    case "host_skip_draft":
     case "roll":
     case "pull_out":
     case "bank_confirm_open":
@@ -186,6 +185,8 @@ export function gestureKeyFor(
       return `remove_player:${rev}:${msg.playerId}`;
     case "host_correct":
       return `host_correct:${rev}:${msg.turnIndex}:${msg.reason}`;
+    case "host_skip_draft":
+      return `host_skip_draft:${rev}:${msg.turnIndex}`;
     case "custom_topic":
       return `custom_topic:${rev}:${msg.text}:${msg.scope}:${msg.scopeBoundary}`;
     case "rename":

@@ -5609,6 +5609,11 @@ html.settings-sheet-open body {
   color: var(--coral-ink);
   background: color-mix(in srgb, var(--coral) 12%, transparent);
 }
+.draft-host-skip-armed {
+  color: var(--coral-ink);
+  background: color-mix(in srgb, var(--coral) 16%, transparent);
+  text-decoration: none;
+}
 
 .draft-board-name-wrap {
   display: flex;
@@ -5626,11 +5631,19 @@ html.settings-sheet-open body {
   letter-spacing: 0.01em;
   line-height: 1.2;
   color: var(--coral-ink);
-  opacity: 0.95;
   white-space: normal;
 }
-.player-chip-name-inner .player-away-cue {
-  margin-top: 0.05rem;
+.player-chip-away .player-chip-name,
+.player-chip-away .player-chip-score {
+  opacity: 0.55;
+}
+.player-chip-away .player-away-cue {
+  opacity: 1;
+  margin: 0.05rem 0 0.1rem;
+  color: var(--coral-ink);
+}
+.player-chip-you.player-chip-away .player-away-cue {
+  color: color-mix(in srgb, #fff 82%, var(--coral));
 }
 .draft-board-name-wrap .player-away-cue {
   font-size: 0.55rem;

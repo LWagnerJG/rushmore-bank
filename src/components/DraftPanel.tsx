@@ -27,6 +27,8 @@ export function DraftPanel({
   const [queue, setQueue] = useState<string[]>([]);
   const [saveFailed, setSaveFailed] = useState(false);
   const [busy, setBusy] = useState(false);
+  /** Host Skip: first tap arms, second tap sends (no modal). */
+  const [skipArmed, setSkipArmed] = useState(false);
   const pending = useRef<{ text: string; turn: number } | null>(null);
   const topicId = state.selectedTopic?.id ?? "none";
   const seat = state.draftOrder[state.draftCursor];
@@ -96,6 +98,16 @@ export function DraftPanel({
     }
     cueYourTurn(`draft:${state.code}:${state.draftCursor}`);
   }, [myTurn, state.pickPaused, state.code, state.draftCursor]);
+
+  useEffect(() => {
+    setSkipArmed(false);
+  }, [state.draftCursor, state.phaseRevision, turnId]);
+
+  useEffect(() => {
+    if (!skipArmed) return;
+    const t = window.setTimeout(() => setSkipArmed(false), 2800);
+    return () => window.clearTimeout(t);
+  }, [skipArmed]);
 
   function persist(next: string[]) {
     setQueue(next);
@@ -326,19 +338,27 @@ export function DraftPanel({
         <div className="draft-host-skip-row">
           <button
             type="button"
-            className="draft-host-skip-btn"
-            aria-label={`Skip ${turnPlayer.name}'s draft turn`}
+            className={`draft-host-skip-btn${skipArmed ? " draft-host-skip-armed" : ""}`}
+            aria-label={
+              skipArmed
+                ? `Tap again to skip ${turnPlayer.name}`
+                : `Skip ${turnPlayer.name}'s draft turn`
+            }
             onClick={() => {
-              if (
-                window.confirm(
-                  `Skip ${turnPlayer.name}'s pick? They get a skipped slot and the draft moves on.`,
-                )
-              ) {
-                send({ type: "host_skip_draft" });
+              if (!skipArmed) {
+                setSkipArmed(true);
+                return;
               }
+              setSkipArmed(false);
+              send({
+                type: "host_skip_draft",
+                turnIndex: state.draftCursor,
+              });
             }}
           >
-            Skip {turnPlayer.name}
+            {skipArmed
+              ? `Skip ${turnPlayer.name}? Tap again`
+              : `Skip ${turnPlayer.name}`}
           </button>
         </div>
       ) : null}

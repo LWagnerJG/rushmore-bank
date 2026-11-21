@@ -130,57 +130,59 @@ describe("disconnect action grace + host skip + rejoin", () => {
     const { server } = draftGame();
     await server.beginDraft();
     await assert.rejects(
-      () => server.handleHostSkipDraft("B"),
+      () => server.handleHostSkipDraft("B", 0),
       /Host only/,
     );
     assert.equal(server.state.draftCursor, 0);
-    await server.handleHostSkipDraft("A");
+    await server.handleHostSkipDraft("A", 0);
     assert.equal(server.state.draftCursor, 1);
     assert.equal(server.state.picks[0]!.text, "Skipped");
     assert.match(server.state.notice ?? "", /Host skipped/i);
   });
 
-  it("does not double-advance when host skip races a real lock_in", async () => {
+  it("rejects a stale host skip after lock_in advances the cursor", async () => {
     const { server } = draftGame();
     await server.beginDraft();
     await server.handleLockIn("A", "salsa");
     assert.equal(server.state.draftCursor, 1);
     assert.equal(server.state.picks.length, 1);
-    // Slot already filled for cursor 0 — a late skip must no-op on that seat.
-    // Current seat is B; skipping B then trying lock_in for A (wrong turn) is separate.
-    const cursor = server.state.draftCursor;
-    await server.handleLockIn("B", "guac");
-    assert.equal(server.state.draftCursor, cursor + 1);
-    // Simultaneous skip after fill: forceMiss sees filled slot for old cursor…
-    // Host skip on the new turn is fine; skip after lock_in on same turn:
-    server.state.draftCursor = 1;
-    // Manually simulate race: pick already at turnIndex 1, cursor still 1
-    // (would only happen if lock_in wrote pick but cursor bump lagged — covered
-    // by forceMissCurrentPick's filled-slot branch).
-    server.state.picks = [
-      ...server.state.picks.filter((p) => p.turnIndex !== 1),
-      {
-        playerId: "B",
-        text: "guac",
-        pickIndex: 0,
-        turnIndex: 1,
-      },
-    ];
-    const before = server.state.draftCursor;
-    const pickLen = server.state.picks.length;
-    await server.handleHostSkipDraft("A");
-    // Filled-slot branch advances cursor once; must not add another pick.
-    assert.equal(server.state.picks.length, pickLen);
-    assert.equal(server.state.draftCursor, before + 1);
+    // Late skip still targeting turn 0 must no-op — do not skip B.
+    await server.handleHostSkipDraft("A", 0);
+    assert.equal(server.state.draftCursor, 1);
+    assert.equal(server.state.picks.length, 1);
+    assert.equal(server.state.picks[0]!.text, "salsa");
   });
 
   it("lock_in wins the race when the slot is already filled by skip", async () => {
     const { server } = draftGame();
     await server.beginDraft();
-    await server.handleHostSkipDraft("A");
+    await server.handleHostSkipDraft("A", 0);
     assert.equal(server.state.picks[0]!.text, "Skipped");
-    await assert.rejects(() => server.handleLockIn("A", "too-late"), /Not your turn|Slot already filled/);
+    await assert.rejects(
+      () => server.handleLockIn("A", "too-late"),
+      /Not your turn|Slot already filled/,
+    );
     assert.equal(server.state.picks.filter((p) => p.turnIndex === 0).length, 1);
+  });
+
+  it("immediately skips an already-away seat when their turn starts", async () => {
+    const { server } = draftGame();
+    await server.beginDraft();
+    // B drops while A is picking — grace expires before B's turn.
+    server.onClose({ id: "B", send() {} } as unknown as Connection, 1000, "", true);
+    await vi.advanceTimersByTimeAsync(RULES.disconnectActionGraceMs + 50);
+    await Promise.resolve();
+    await Promise.resolve();
+    assert.equal(server.state.players.find((p) => p.id === "B")?.connected, false);
+    assert.equal(server.leaveTimers.has("B"), false);
+    await server.handleLockIn("A", "chips");
+    // startPickClock must auto-fill B without waiting the pick clock.
+    assert.equal(server.state.picks.some((p) => p.playerId === "B"), true);
+    assert.match(
+      server.state.picks.find((p) => p.playerId === "B")!.text,
+      /Skipped \(away\)/i,
+    );
+    assert.equal(server.currentDraftPlayerId(), "C");
   });
 
   it("renders settings invite + host Skip + disconnected cue", () => {
@@ -189,7 +191,9 @@ describe("disconnect action grace + host skip + rejoin", () => {
     expect(settings).toMatch(/Share invite|QRCodeSVG/);
     expect(settings).not.toMatch(/void _roomCode/);
     expect(draftPanel).toMatch(/host_skip_draft/);
+    expect(draftPanel).toMatch(/turnIndex:\s*state\.draftCursor/);
     expect(draftPanel).toMatch(/Skip \$\{turnPlayer\.name\}|Skip \{turnPlayer/);
+    expect(draftPanel).not.toMatch(/confirm/i);
     expect(board).toMatch(/disconnected, skipped/);
   });
 });
