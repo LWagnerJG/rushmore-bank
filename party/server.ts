@@ -879,6 +879,7 @@ export class QuarryServer extends Server<Env> {
   /**
    * Host-only: expire soft-disconnect grace early for one seat.
    * Same recovery as the leave timer — unsticks vote / wager / dice / party waits.
+   * Already-expired grace is a no-op (leave recovery already ran).
    */
   async handleHostSkipAway(hostId: string, playerId: string) {
     if (!this.requireHost(hostId)) throw new Error("Host only");
@@ -886,6 +887,8 @@ export class QuarryServer extends Server<Env> {
     if (!playerId || hostId === playerId) return;
     const target = this.state.players.find((p) => p.id === playerId);
     if (!target || target.connected || target.role !== "player") return;
+    // Past grace → leave already processed; re-running would clobber live dice.
+    if (!this.leaveTimers.has(playerId)) return;
     this.clearLeaveTimer(playerId);
     await this.handlePlayerLeave(playerId);
   }
@@ -903,6 +906,23 @@ export class QuarryServer extends Server<Env> {
     // Re-validate after await — roller may have banked / advanced.
     if (this.state.phase !== "DICE") return;
     if (this.currentDicePlayerId() !== playerId) return;
+    // Reveal first so Party Mode bust_redo created by reveal is cleared below.
+    if (
+      this.state.lastDice?.rollerId === playerId &&
+      this.state.diceSubphase === "COMMITTED" &&
+      !this.state.lastDice.revealed
+    ) {
+      this.revealCommittedDice();
+    }
+    const prompt = this.state.partyPrompt;
+    if (
+      prompt &&
+      !prompt.resolved &&
+      prompt.kind === "bust_redo" &&
+      prompt.targetPlayerIds.includes(playerId)
+    ) {
+      this.state.partyPrompt = null;
+    }
     await this.recoverDiceAfterLeave(playerId);
     if (this.state.phase === "DICE") {
       const name =
@@ -918,16 +938,14 @@ export class QuarryServer extends Server<Env> {
       await this.beginRoundResults();
       return;
     }
-    // Bust-redo targeting the leaver — accept the bust so the table is not stuck.
-    const prompt = this.state.partyPrompt;
-    if (
-      prompt &&
-      !prompt.resolved &&
-      prompt.kind === "bust_redo" &&
-      prompt.targetPlayerIds.includes(leftId)
-    ) {
-      this.state.partyPrompt = null;
-    }
+    const currentRoller = this.currentDicePlayerId();
+    const otherOwnsLiveRoll =
+      currentRoller != null &&
+      currentRoller !== leftId &&
+      this.state.lastDice?.rollerId === currentRoller &&
+      (this.state.diceSubphase === "COMMITTED" ||
+        this.state.diceSubphase === "SETTLED");
+
     // Mid-roll for the leaver — reveal first so a bust cannot become a bank.
     if (
       this.state.lastDice?.rollerId === leftId &&
@@ -936,6 +954,16 @@ export class QuarryServer extends Server<Env> {
     ) {
       if (!this.state.lastDice.revealed) {
         this.revealCommittedDice();
+      }
+      // Accept bust-redo after reveal (reveal may have created a fresh prompt).
+      const prompt = this.state.partyPrompt;
+      if (
+        prompt &&
+        !prompt.resolved &&
+        prompt.kind === "bust_redo" &&
+        prompt.targetPlayerIds.includes(leftId)
+      ) {
+        this.state.partyPrompt = null;
       }
       const busted = this.state.lastDice?.busted === true;
       if (busted) {
@@ -953,7 +981,19 @@ export class QuarryServer extends Server<Env> {
     } else if (this.state.diceActiveIds.includes(leftId)) {
       // Auto-bank disconnected rollers so dice cannot soft-lock on an empty seat.
       this.bankPlayer(leftId, "Auto-bank (disconnected)");
+    } else {
+      // Bust-redo targeting the leaver (no live roll) — accept the bust.
+      const prompt = this.state.partyPrompt;
+      if (
+        prompt &&
+        !prompt.resolved &&
+        prompt.kind === "bust_redo" &&
+        prompt.targetPlayerIds.includes(leftId)
+      ) {
+        this.state.partyPrompt = null;
+      }
     }
+
     // Soft-disconnect grace seats still count — same as startDiceTurn (#222).
     // Otherwise a permanent leave while every other roller is mid app-switch
     // ends the table and auto-banks their pots early.
@@ -963,6 +1003,12 @@ export class QuarryServer extends Server<Env> {
     if (onTableActive.length === 0) {
       await this.clearAlarm();
       await this.beginRoundResults();
+      return;
+    }
+    // Another seat owns a live committed/settled roll — bank the leaver only;
+    // do not clearAlarm / restart turn (that would erase the outcome).
+    if (otherOwnsLiveRoll) {
+      bump(this.state);
       return;
     }
     // Still holding a bust-redo for someone else — don't advance seats underneath it.

@@ -212,6 +212,58 @@ describe("dice table robustness", () => {
     assert.ok(["B", "C"].includes(g.server.currentDicePlayerId()!));
   });
 
+  it("recovering an off-clock seat preserves another player's committed roll", async () => {
+    const g = game();
+    await beginDice(g.server, { A: 10, B: 10, C: 10 });
+    await g.server.handleRoll("A");
+    assert.equal(g.server.state.diceSubphase, "COMMITTED");
+    assert.equal(g.server.state.lastDice?.rollerId, "A");
+    assert.equal(g.server.state.lastDice?.revealed, false);
+    const settleAt = g.server.state.lastDice!.animSettleAt;
+    const d1 = g.server.state.lastDice!.d1;
+    const d2 = g.server.state.lastDice!.d2;
+    g.server.state.players.find((p) => p.id === "C")!.connected = false;
+    await g.server.recoverDiceAfterLeave("C");
+    assert.equal(g.server.state.diceSubphase, "COMMITTED");
+    assert.equal(g.server.state.lastDice?.rollerId, "A");
+    assert.equal(g.server.state.lastDice?.revealed, false);
+    assert.equal(g.server.state.lastDice?.d1, d1);
+    assert.equal(g.server.state.lastDice?.d2, d2);
+    assert.equal(g.server.state.lastDice?.animSettleAt, settleAt);
+    assert.ok(!g.server.state.diceActiveIds.includes("C"));
+  });
+
+  it("host_skip_dice accepts a committed Party Mode bust and advances", async () => {
+    const g = game();
+    await beginDice(g.server, { A: 10, B: 10, C: 10 });
+    g.server.state.settings.partyMode = true;
+    // Force a bust commit for A.
+    g.server.state.diceSubphase = "COMMITTED";
+    g.server.state.lastDice = {
+      rollId: "bust-1",
+      rollerId: "A",
+      d1: 1,
+      d2: 1,
+      personalRollNumber: 1,
+      potBefore: 10,
+      potAfter: 0,
+      busted: true,
+      note: "bust",
+      animStartedAt: START,
+      animSettleAt: START + 800,
+      animSeed: 1,
+      outcomeKind: "bust",
+      revealed: false,
+    };
+    g.server.state.diceTurnSeat = 0;
+    await g.server.handleHostSkipDice("A", "A");
+    assert.equal(g.server.state.partyPrompt, null);
+    assert.ok(!g.server.state.diceActiveIds.includes("A"));
+    assert.equal(g.server.state.phase, "DICE");
+    assert.ok(["B", "C"].includes(g.server.currentDicePlayerId()!));
+    assert.equal(g.server.state.diceSubphase, "READY");
+  });
+
   it("host_correct refuses locked scores before mutating picks", async () => {
     const g = game();
     g.server.state.phase = "SCORE_REVEAL";

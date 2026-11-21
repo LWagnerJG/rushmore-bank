@@ -5660,8 +5660,14 @@ html.settings-sheet-open body {
   outline: none;
 }
 .draft-host-skip-armed {
-  background: var(--coral);
+  background: var(--btn-bg);
   color: var(--on-coral, #fff);
+}
+.draft-host-skip-armed:hover,
+.draft-host-skip-armed:focus-visible {
+  background: var(--btn-bg);
+  color: var(--on-coral, #fff);
+  filter: brightness(0.94);
 }
 .dice-host-skip-btn {
   margin-top: 0.35rem;
@@ -5674,8 +5680,11 @@ html.settings-sheet-open body {
   gap: 0.12rem;
   min-width: 0;
 }
-.draft-board-col-away .draft-board-name {
-  opacity: 0.62;
+/* Dim the away column with a wash — keep the name fully opaque for contrast */
+.draft-board-col-away .draft-board-name-wrap {
+  border-radius: 0.45rem;
+  background: color-mix(in srgb, var(--muted) 10%, transparent);
+  padding: 0.1rem 0.15rem 0.15rem;
 }
 
 .player-presence-chip {
@@ -5698,15 +5707,16 @@ html.settings-sheet-open body {
   background: color-mix(in srgb, var(--coral) 16%, #fff);
   color: var(--coral-ink);
 }
-.player-chip-away .player-chip-name,
 .player-chip-away .player-chip-score,
 .player-chip-away .player-chip-split {
   opacity: 0.55;
 }
-.player-chip-reconnecting .player-chip-name,
 .player-chip-reconnecting .player-chip-score,
 .player-chip-reconnecting .player-chip-split {
   opacity: 0.72;
+}
+.player-chip-away .player-chip-name {
+  opacity: 1;
 }
 .player-chip-away .player-presence-chip {
   opacity: 1;

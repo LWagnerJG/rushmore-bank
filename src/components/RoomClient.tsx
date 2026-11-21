@@ -524,7 +524,12 @@ export function RoomClient({
         pickPaused={state?.pickPaused ?? false}
         awayPlayers={
           state?.players
-            .filter((p) => p.role === "player" && !p.connected)
+            .filter(
+              (p) =>
+                p.role === "player" &&
+                !p.connected &&
+                p.presence === "reconnecting",
+            )
             .map((p) => ({
               id: p.id,
               name: p.name,

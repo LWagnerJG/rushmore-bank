@@ -253,6 +253,19 @@ describe("disconnect action grace + host skip + rejoin", () => {
     );
   });
 
+  it("host_skip_away is a no-op once grace already expired", async () => {
+    const { server } = draftGame();
+    await server.beginDraft();
+    server.onClose({ id: "B", send() {} } as unknown as Connection, 1000, "", true);
+    await vi.advanceTimersByTimeAsync(RULES.disconnectActionGraceMs + 50);
+    await Promise.resolve();
+    await Promise.resolve();
+    assert.equal(server.gracePlayerIds().includes("B"), false);
+    const before = server.state.stateVersion;
+    await server.handleHostSkipAway("A", "B");
+    assert.equal(server.state.stateVersion, before);
+  });
+
   it("presence helpers map live / reconnecting / away", () => {
     assert.equal(presenceFor(true, false), "live");
     assert.equal(presenceFor(false, true), "reconnecting");
