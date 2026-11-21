@@ -1,7 +1,8 @@
 "use client";
 
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { QRCodeSVG } from "qrcode.react";
 import { settingsSheetPropsAreEqual } from "@/lib/room-render-guards";
 import {
   isSoundEnabled,
@@ -11,6 +12,8 @@ import {
 import { enableSoundFromUserGesture } from "@/lib/sfx";
 import type { ClientMessage, HostAiJudgeHealth, Phase } from "@/shared/types";
 import { RULES } from "@/shared/rules";
+import { inviteUrl } from "@/shared/install-join";
+import { shareInvite } from "@/lib/share-invite";
 import { HostAiJudgeCue } from "./HostAiJudgeCue";
 import { AdminTools, isAdminUnlocked } from "./AdminPanel";
 import { BeanAvatar } from "./BeanAvatar";
@@ -201,10 +204,11 @@ function SettingsSheetImpl({
   rosterLocked?: boolean;
   initialPanel?: InitialPanel;
 }) {
-  void _roomCode; // Lobby already shows the code — keep out of the sheet.
+  const roomCode = (_roomCode ?? "").trim().toUpperCase();
   const [soundOn, setSoundOn] = useState(() =>
     typeof window !== "undefined" ? isSoundEnabled() : false,
   );
+  const [inviteCopied, setInviteCopied] = useState(false);
   const [adminUnlocked, setAdminUnlocked] = useState(false);
   const [stats, setStats] = useState<ProfileStats>(emptyProfileStats);
   const [displayName, setDisplayName] = useState("");
@@ -225,6 +229,37 @@ function SettingsSheetImpl({
     setMounted(true);
   }, []);
 
+  const inviteHref = useMemo(() => {
+    if (!roomCode) return "";
+    if (typeof window === "undefined") return inviteUrl("", roomCode);
+    return inviteUrl(window.location.origin, roomCode);
+  }, [roomCode]);
+
+  const markInviteCopied = () => {
+    setInviteCopied(true);
+    window.setTimeout(() => setInviteCopied(false), 1600);
+  };
+
+  const shareRoomInvite = async () => {
+    if (!roomCode || !inviteHref) return;
+    const result = await shareInvite({ url: inviteHref, code: roomCode });
+    if (result === "copied") markInviteCopied();
+  };
+
+  const copyRoomInvite = async () => {
+    if (!roomCode || !inviteHref) return;
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(inviteHref);
+        markInviteCopied();
+      } else {
+        await shareRoomInvite();
+      }
+    } catch {
+      await shareRoomInvite();
+    }
+  };
+
   useEffect(() => {
     if (!open) {
       setPanel("main");
@@ -234,6 +269,7 @@ function SettingsSheetImpl({
       dragYRef.current = 0;
       setDragging(false);
       dragStartY.current = null;
+      setInviteCopied(false);
       return;
     }
     if (initialPanel === "avatar") {
@@ -510,6 +546,45 @@ function SettingsSheetImpl({
                   No games yet
                 </p>
               )}
+
+              {roomCode ? (
+                <section
+                  className="settings-invite"
+                  aria-label="Room invite"
+                >
+                  <p className="settings-invite-kicker type-meta">
+                    {isHost ? "Invite / rejoin" : "Room invite"}
+                  </p>
+                  <div className="settings-invite-row">
+                    <button
+                      type="button"
+                      className="settings-room-code type-display"
+                      onClick={() => void copyRoomInvite()}
+                      aria-label={`Room code ${roomCode.split("").join(" ")}. Tap to copy invite link.`}
+                    >
+                      {roomCode}
+                    </button>
+                    <div className="settings-invite-qr" aria-label="Invite QR code">
+                      <QRCodeSVG
+                        value={inviteHref || roomCode}
+                        size={88}
+                        bgColor="#f5f0e7"
+                        fgColor="#23483e"
+                        level="M"
+                        marginSize={1}
+                        title={`Join room ${roomCode}`}
+                      />
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-secondary settings-invite-share w-full"
+                    onClick={() => void shareRoomInvite()}
+                  >
+                    {inviteCopied ? "Copied" : "Share invite"}
+                  </button>
+                </section>
+              ) : null}
 
               <div className="settings-group">
                 <div className="settings-row">

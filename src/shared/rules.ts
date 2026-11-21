@@ -106,10 +106,17 @@ export const RULES = {
 
   /** Host / lobby */
   /**
-   * Soft-disconnect grace before a seat is treated as left / host may move.
-   * Brief iPhone app-switch drops must stay under this window.
+   * Soft-disconnect grace for host hold / lobby host drops.
+   * Mid-game action skip uses the shorter `disconnectActionGraceMs`.
    */
   disconnectGraceMs: 45_000,
+  /**
+   * Mid-game: after this many ms offline, the seat is auto-skipped so the
+   * table does not stall (draft miss, vote quorum drop, dice auto-bank,
+   * party drink ack). Seat is still held for rejoin. Brief refresh/app-switch
+   * must finish under this window.
+   */
+  disconnectActionGraceMs: 9_000,
   /** Host transfer floor — never faster than disconnectGraceMs. */
   hostFailoverSeconds: 45,
   partyModeDefault: false,

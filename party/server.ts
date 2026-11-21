@@ -839,7 +839,41 @@ export class QuarryServer extends Server<Env> {
     this.state.pickPaused = false;
     this.state.pickPauseRemainingMs = null;
     await this.clearAlarm();
-    await this.onPickTimeout();
+    await this.forceMissCurrentPick("disconnect");
+  }
+
+  /**
+   * Host-only draft skip — same advance as disconnect/timeout miss.
+   * `turnIndex` must still be the live cursor (before and after clearAlarm)
+   * so a late skip cannot steal the next seat after a racing lock_in.
+   */
+  async handleHostSkipDraft(id: string, turnIndex: number) {
+    if (!this.requireHost(id)) throw new Error("Host only");
+    if (this.state.phase !== "DRAFT" && this.state.phase !== "CORRECTION") {
+      return;
+    }
+    if (
+      !Number.isInteger(turnIndex) ||
+      turnIndex < 0 ||
+      turnIndex !== this.state.draftCursor
+    ) {
+      return;
+    }
+    const pid = this.currentDraftPlayerId();
+    if (!pid) return;
+    this.state.pickPaused = false;
+    this.state.pickPauseRemainingMs = null;
+    await this.clearAlarm();
+    // Re-validate after await — lock_in may have advanced the cursor.
+    if (
+      this.state.phase !== "DRAFT" &&
+      this.state.phase !== "CORRECTION"
+    ) {
+      return;
+    }
+    if (this.state.draftCursor !== turnIndex) return;
+    if (this.currentDraftPlayerId() !== pid) return;
+    await this.forceMissCurrentPick("host_skip");
   }
 
   async recoverDiceAfterLeave(leftId: string) {
@@ -1363,6 +1397,9 @@ export class QuarryServer extends Server<Env> {
         return;
       case "host_correct":
         await this.handleCorrect(id, msg.turnIndex, msg.reason);
+        return;
+      case "host_skip_draft":
+        await this.handleHostSkipDraft(id, msg.turnIndex);
         return;
       case "submit_vote":
         await this.handleVote(id, msg.targetPlayerId);
@@ -1891,7 +1928,32 @@ export class QuarryServer extends Server<Env> {
     return this.state.seatOrder[seatIdx] ?? null;
   }
 
+  /** True when a mid-game seat is offline and past soft-disconnect grace. */
+  seatPastDisconnectGrace(playerId: string): boolean {
+    const p = this.state.players.find((x) => x.id === playerId);
+    if (!p || p.connected) return false;
+    return !this.leaveTimers.has(playerId);
+  }
+
+  /**
+   * If the seat on the clock is already past disconnect grace, fill a
+   * skipped placeholder immediately instead of waiting out the pick clock.
+   */
+  async skipAwaySeatIfCurrent(): Promise<boolean> {
+    if (this.state.phase !== "DRAFT" && this.state.phase !== "CORRECTION") {
+      return false;
+    }
+    const pid = this.currentDraftPlayerId();
+    if (!pid || !this.seatPastDisconnectGrace(pid)) return false;
+    this.state.pickPaused = false;
+    this.state.pickPauseRemainingMs = null;
+    await this.clearAlarm();
+    await this.forceMissCurrentPick("disconnect");
+    return true;
+  }
+
   async startPickClock() {
+    if (await this.skipAwaySeatIfCurrent()) return;
     this.state.pickDeadlineAt =
       Date.now() + (RULES.pickClockSeconds + RULES.pickGraceSeconds) * 1000;
     await this.setAlarmAt(this.state.pickDeadlineAt, {
@@ -2002,22 +2064,43 @@ export class QuarryServer extends Server<Env> {
   }
 
   async onPickTimeout() {
-    if (this.state.phase !== "DRAFT" && this.state.phase !== "CORRECTION") return;
     if (this.state.pickPaused) return;
+    await this.forceMissCurrentPick("timeout");
+  }
+
+  /**
+   * Place a placeholder pick for the current draft/correction seat and advance.
+   * Fair scoring: a real pick slot is required; we use a clear skipped/missed
+   * label rather than inventing content. Idempotent vs lock_in races.
+   */
+  async forceMissCurrentPick(
+    reason: "timeout" | "disconnect" | "host_skip",
+  ) {
+    if (this.state.phase !== "DRAFT" && this.state.phase !== "CORRECTION") return;
     const pid = this.currentDraftPlayerId();
     if (!pid) return;
+    const name =
+      this.state.players.find((p) => p.id === pid)?.name ?? "player";
 
     if (this.state.phase === "CORRECTION") {
-      const miss = `Missed pick (${(this.state.correctionPickIndex ?? 0) + 1})`;
+      const miss =
+        reason === "timeout"
+          ? `Missed pick (${(this.state.correctionPickIndex ?? 0) + 1})`
+          : reason === "host_skip"
+            ? "Skipped"
+            : "Skipped (away)";
       await this.applyCorrectionLockIn(pid, miss);
-      this.state.notice = `Clock expired — missed redo for ${
-        this.state.players.find((p) => p.id === pid)?.name ?? "player"
-      }`;
+      this.state.notice =
+        reason === "timeout"
+          ? `Clock expired — missed redo for ${name}`
+          : reason === "host_skip"
+            ? `Host skipped ${name}'s redo`
+            : `${name} disconnected — redo skipped`;
       await this.persist();
       return;
     }
 
-    // Never append past 4 or overwrite a filled turn.
+    // Never append past 4 or overwrite a filled turn (lock_in race).
     if (
       this.state.picks.some((p) => p.turnIndex === this.state.draftCursor) ||
       rosterFull(this.state.picks, pid)
@@ -2033,7 +2116,12 @@ export class QuarryServer extends Server<Env> {
       return;
     }
 
-    const miss = `Missed pick (${this.state.draftCursor + 1})`;
+    const miss =
+      reason === "timeout"
+        ? `Missed pick (${this.state.draftCursor + 1})`
+        : reason === "host_skip"
+          ? "Skipped"
+          : "Skipped (away)";
     const pickIndex = this.state.picks.filter((p) => p.playerId === pid).length;
     this.state.picks = upsertDraftPick(this.state.picks, {
       playerId: pid,
@@ -2045,9 +2133,12 @@ export class QuarryServer extends Server<Env> {
       this.state.picks,
       normalizePick,
     );
-    this.state.notice = `Clock expired — missed pick for ${
-      this.state.players.find((p) => p.id === pid)?.name ?? "player"
-    }`;
+    this.state.notice =
+      reason === "timeout"
+        ? `Clock expired — missed pick for ${name}`
+        : reason === "host_skip"
+          ? `Host skipped ${name}`
+          : `${name} disconnected — pick skipped`;
     this.state.draftCursor += 1;
     bump(this.state);
     if (this.state.draftCursor >= this.state.draftOrder.length) {

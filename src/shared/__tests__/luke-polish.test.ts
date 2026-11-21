@@ -179,7 +179,8 @@ describe("settings: spacing instead of hard dividers", () => {
     expect(settingsSrc).toMatch(/settings-sheet-open/);
     expect(settingsSrc).toMatch(/settings-sheet-grabber/);
     expect(settingsSrc).not.toMatch(/>Close</);
-    expect(settingsSrc).not.toMatch(/Room code/);
+    // Mid-game rejoin: settings always surfaces the room invite.
+    expect(settingsSrc).toMatch(/settings-invite|settings-room-code/);
     const sheet = rulesFor(css, ".settings-sheet").join("\n");
     expect(sheet).toMatch(/border-radius:\s*1\.35rem\s+1\.35rem\s+0\s+0/);
     expect(sheet).toMatch(/85vh|85dvh/);

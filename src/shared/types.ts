@@ -424,6 +424,15 @@ export type ClientMessage =
   | { type: "host_resume"; actionId?: string }
   | { type: "host_extend"; actionId?: string }
   | { type: "host_correct"; turnIndex: number; reason: "duplicate" | "invalid"; actionId?: string }
+  /**
+   * Host-only: force-miss a specific draft/correction turn (same as auto-skip).
+   * `turnIndex` pins the intended cursor so a late skip cannot hit the next seat.
+   */
+  | {
+      type: "host_skip_draft";
+      turnIndex: number;
+      actionId?: string;
+    }
   | { type: "submit_vote"; targetPlayerId: string; actionId?: string }
   /** @deprecated Rejected by server — judging is server-authoritative. */
   | { type: "submit_ai_judgments"; judgments?: unknown; fallback?: boolean; actionId?: string }

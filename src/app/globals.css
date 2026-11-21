@@ -5524,6 +5524,132 @@ html.settings-sheet-open body {
   color: var(--muted);
   text-align: center;
 }
+/* Mid-game settings invite — room code + QR so a booted seat can rejoin */
+.settings-invite {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin: 0.15rem 0 0.35rem;
+  padding: 0.55rem 0.65rem 0.65rem;
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--cream, #f5f0e7) 55%, #fff);
+}
+.settings-invite-kicker {
+  margin: 0;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.settings-invite-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+.settings-room-code {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding: 0.15rem 0;
+  min-height: var(--tap-min);
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: clamp(1.55rem, 7.5vw, 2.1rem);
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+  user-select: all;
+  cursor: pointer;
+}
+.settings-room-code:focus-visible {
+  outline: 2px solid var(--coral);
+  outline-offset: 3px;
+  border-radius: 0.5rem;
+}
+.settings-invite-qr {
+  display: grid;
+  place-items: center;
+  width: 88px;
+  height: 88px;
+  flex: 0 0 88px;
+  border-radius: 0.75rem;
+  background: #f5f0e7;
+  box-shadow: 0 2px 8px rgba(35, 72, 62, 0.08);
+}
+.settings-invite-share {
+  min-height: var(--tap-min);
+}
+
+/* Host draft Skip — quiet text control under the turn line */
+.draft-host-skip-row {
+  display: flex;
+  justify-content: flex-end;
+  margin: -0.15rem 0 0.15rem;
+}
+.draft-host-skip-btn {
+  min-height: var(--tap-min);
+  padding: 0.2rem 0.55rem;
+  border: none;
+  border-radius: 0.55rem;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.draft-host-skip-btn:hover,
+.draft-host-skip-btn:focus-visible {
+  color: var(--coral-ink);
+  background: color-mix(in srgb, var(--coral) 12%, transparent);
+}
+.draft-host-skip-armed {
+  color: var(--coral-ink);
+  background: color-mix(in srgb, var(--coral) 16%, transparent);
+  text-decoration: none;
+}
+
+.draft-board-name-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.player-away-cue {
+  display: block;
+  max-width: 100%;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  color: var(--coral-ink);
+  white-space: normal;
+}
+.player-chip-away .player-chip-name,
+.player-chip-away .player-chip-score {
+  opacity: 0.55;
+}
+.player-chip-away .player-away-cue {
+  opacity: 1;
+  margin: 0.05rem 0 0.1rem;
+  color: var(--coral-ink);
+}
+.player-chip-you.player-chip-away .player-away-cue {
+  color: color-mix(in srgb, #fff 82%, var(--coral));
+}
+.draft-board-name-wrap .player-away-cue {
+  font-size: 0.55rem;
+  max-width: 4.6rem;
+}
+
 .settings-group {
   display: flex;
   flex-direction: column;
