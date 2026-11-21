@@ -424,6 +424,8 @@ export type ClientMessage =
   | { type: "host_resume"; actionId?: string }
   | { type: "host_extend"; actionId?: string }
   | { type: "host_correct"; turnIndex: number; reason: "duplicate" | "invalid"; actionId?: string }
+  /** Host-only: force-miss the current draft/correction seat (same as auto-skip). */
+  | { type: "host_skip_draft"; actionId?: string }
   | { type: "submit_vote"; targetPlayerId: string; actionId?: string }
   /** @deprecated Rejected by server — judging is server-authoritative. */
   | { type: "submit_ai_judgments"; judgments?: unknown; fallback?: boolean; actionId?: string }

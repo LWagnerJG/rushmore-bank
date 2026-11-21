@@ -319,6 +319,30 @@ export function DraftPanel({
         </p>
       ) : null}
 
+      {you.isHost &&
+      turnId &&
+      turnPlayer &&
+      (state.phase === "DRAFT" || state.phase === "CORRECTION") ? (
+        <div className="draft-host-skip-row">
+          <button
+            type="button"
+            className="draft-host-skip-btn"
+            aria-label={`Skip ${turnPlayer.name}'s draft turn`}
+            onClick={() => {
+              if (
+                window.confirm(
+                  `Skip ${turnPlayer.name}'s pick? They get a skipped slot and the draft moves on.`,
+                )
+              ) {
+                send({ type: "host_skip_draft" });
+              }
+            }}
+          >
+            Skip {turnPlayer.name}
+          </button>
+        </div>
+      ) : null}
+
       <DraftBoard
         state={state}
         youId={youId}

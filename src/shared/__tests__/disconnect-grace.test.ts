@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, it, vi } from "vitest";
 import { createTestServer } from "../../../test/party-server-harness";
 import { emptyRoomState } from "../types";
 import { projectPublicState } from "../engine/public-state";
+import { RULES } from "../rules";
 import { HOST_DISCONNECT_GRACE_MS } from "../engine/host-sticky";
 
 const START = 1_800_000_000_000;
@@ -68,8 +69,8 @@ describe("disconnect grace robustness", () => {
     await g.server.handleVote("A", "B");
     await g.server.handleVote("B", "A");
     assert.equal(g.server.state.scoresLocked, false, "must wait for C or grace end");
-    // Grace expires → leave → quorum drops to 2 → finalize
-    await vi.advanceTimersByTimeAsync(HOST_DISCONNECT_GRACE_MS);
+    // Mid-game action grace expires → leave → quorum drops to 2 → finalize
+    await vi.advanceTimersByTimeAsync(RULES.disconnectActionGraceMs);
     // handlePlayerLeave is async from setTimeout — flush
     await Promise.resolve();
     await Promise.resolve();
@@ -114,16 +115,16 @@ describe("disconnect grace robustness", () => {
     assert.equal(server.state.players.find((p) => p.id === "A")!.isHost, true);
   });
 
-  it("transfers host only after the 45s grace", async () => {
+  it("transfers host only after the 45s host failover floor", async () => {
     const g = game();
     g.server.onClose({ id: "A", send() {} } as unknown as Connection, 1000, "", true);
-    await vi.advanceTimersByTimeAsync(20_000);
+    // Mid-game action grace fires first (~9s) — host seat stays until failover.
+    await vi.advanceTimersByTimeAsync(RULES.disconnectActionGraceMs);
     await Promise.resolve();
     await Promise.resolve();
     assert.equal(g.server.state.players.find((p) => p.id === "A")!.isHost, true);
     await vi.advanceTimersByTimeAsync(HOST_DISCONNECT_GRACE_MS);
-    await Promise.resolve();
-    await Promise.resolve();
+    await g.server.checkHostFailover();
     assert.equal(g.server.state.players.find((p) => p.id === "A")!.isHost, false);
     assert.equal(g.server.state.players.find((p) => p.id === "B")!.isHost, true);
   });

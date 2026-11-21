@@ -5,6 +5,7 @@ type SettingsSheetComparable = {
   nickname?: string;
   isHost?: boolean;
   partyOn?: boolean;
+  roomCode?: string | null;
   currentPhase?: string | null;
   playerCount?: number;
   botCountInRoom?: number;
@@ -30,6 +31,7 @@ export function settingsSheetPropsAreEqual(
     prev.nickname === next.nickname &&
     prev.isHost === next.isHost &&
     prev.partyOn === next.partyOn &&
+    prev.roomCode === next.roomCode &&
     prev.currentPhase === next.currentPhase &&
     prev.playerCount === next.playerCount &&
     prev.botCountInRoom === next.botCountInRoom &&

@@ -79,11 +79,19 @@ export function shouldBumpRevisionOnDisconnect(): boolean {
   return false;
 }
 
-/** Lobby non-hosts may leave immediately; hosts always get full grace. */
+/**
+ * Soft-disconnect leave timer length.
+ * - Lobby non-host: immediate leave (0)
+ * - Lobby host: full host grace (45s)
+ * - Mid-game (any seat): short action grace (~9s) so the table advances;
+ *   host transfer still waits on hostLastSeenAt / hostFailoverSeconds.
+ */
 export function disconnectGraceMs(opts: {
   rosterLocked: boolean;
   isHost: boolean;
 }): number {
-  if (opts.isHost || opts.rosterLocked) return HOST_DISCONNECT_GRACE_MS;
-  return 0;
+  if (!opts.rosterLocked) {
+    return opts.isHost ? HOST_DISCONNECT_GRACE_MS : 0;
+  }
+  return RULES.disconnectActionGraceMs;
 }

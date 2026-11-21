@@ -163,15 +163,25 @@ export function DraftBoard({
                       .filter(Boolean)
                       .join(" ")}
                   >
-                    <FitName
-                      className="draft-board-name"
-                      text={mine ? railYouLabel() : (player?.name ?? "")}
-                      title={
-                        mine
-                          ? nameWithYouSuffix(player?.name ?? "You")
-                          : (player?.name ?? undefined)
-                      }
-                    />
+                    <div className="draft-board-name-wrap">
+                      <FitName
+                        className="draft-board-name"
+                        text={mine ? railYouLabel() : (player?.name ?? "")}
+                        title={
+                          mine
+                            ? nameWithYouSuffix(player?.name ?? "You")
+                            : (player?.name ?? undefined)
+                        }
+                      />
+                      {player && !player.connected ? (
+                        <span
+                          className="player-away-cue"
+                          title="Disconnected — skipped until they rejoin"
+                        >
+                          disconnected, skipped
+                        </span>
+                      ) : null}
+                    </div>
                   </th>
                 );
               })}

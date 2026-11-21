@@ -232,6 +232,14 @@ function PlayerChip({
             </span>
           ) : null}
           <FitName className="player-chip-name-text" text={label} title={tip} />
+          {!player.connected ? (
+            <span
+              className="player-away-cue"
+              title="Disconnected — skipped until they rejoin"
+            >
+              disconnected, skipped
+            </span>
+          ) : null}
         </span>
       </div>
       {showPotSplit ? (

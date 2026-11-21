@@ -48,7 +48,7 @@ describe("draft pause × leave force-miss", () => {
     assert.equal(server.state.draftCursor, 1);
     assert.equal(server.state.picks.length, 1);
     assert.equal(server.state.picks[0]!.playerId, "A");
-    assert.match(server.state.picks[0]!.text, /Missed/i);
+    assert.match(server.state.picks[0]!.text, /Skipped|Missed/i);
   });
 
   it("force-misses during CORRECTION pause when the redo seat leaves", async () => {

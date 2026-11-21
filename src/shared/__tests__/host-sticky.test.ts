@@ -102,13 +102,18 @@ describe("sticky host policy", () => {
     expect(shouldBumpRevisionOnDisconnect()).toBe(false);
   });
 
-  it("gives lobby hosts the same grace as mid-game hosts", () => {
+  it("gives lobby hosts full grace; mid-game uses short action grace", () => {
     expect(disconnectGraceMs({ rosterLocked: false, isHost: true })).toBe(
       45_000,
     );
     expect(disconnectGraceMs({ rosterLocked: true, isHost: false })).toBe(
-      45_000,
+      RULES.disconnectActionGraceMs,
+    );
+    expect(disconnectGraceMs({ rosterLocked: true, isHost: true })).toBe(
+      RULES.disconnectActionGraceMs,
     );
     expect(disconnectGraceMs({ rosterLocked: false, isHost: false })).toBe(0);
+    expect(RULES.disconnectActionGraceMs).toBeGreaterThanOrEqual(8_000);
+    expect(RULES.disconnectActionGraceMs).toBeLessThanOrEqual(10_000);
   });
 });

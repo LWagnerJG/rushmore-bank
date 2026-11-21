@@ -144,6 +144,7 @@ export function gestureKeyFor(
     case "host_pause":
     case "host_resume":
     case "host_extend":
+    case "host_skip_draft":
     case "roll":
     case "pull_out":
     case "bank_confirm_open":
