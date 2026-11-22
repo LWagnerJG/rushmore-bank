@@ -63,6 +63,11 @@ export type JudgeProvider = "gemini" | "groq";
 
 export type HostAiJudgeHealth = {
   status: LastJudgeOutcome | "pending" | "ready";
+  /**
+   * Whether PartyServer is configured to attempt AI judging (JUDGE_SECRET / JUDGE_URL).
+   * Distinct from last-round ok/fallback — hosts must not read a client probe as “on”.
+   */
+  available?: boolean;
   fallbackReason?: JudgeFallbackReason | null;
   model?: string | null;
   provider?: JudgeProvider | null;

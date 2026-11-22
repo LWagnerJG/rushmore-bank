@@ -313,7 +313,7 @@ export function LobbyPanel({
                 : "Start game"
               : `Need ${RULES.minPlayers}+ players`}
           </button>
-          <HostAiPreGameStatus />
+          <HostAiPreGameStatus health={state.hostAiJudge} />
         </div>
       ) : null}
     </div>

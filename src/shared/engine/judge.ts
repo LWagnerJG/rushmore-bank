@@ -11,6 +11,16 @@ import {
 } from "./scoring";
 import type { RosterScore } from "../types";
 
+/**
+ * Output budget scales with roster size. A fixed 320-token cap truncates
+ * 6–10 player JSON (scores + short explanations) → invalid_output → neutral.
+ * ~140 tokens/roster covers one judgment object; clamp for tiny/huge tables.
+ */
+export function judgeMaxOutputTokens(rosterCount: number): number {
+  const n = Math.max(2, Math.min(RULES.maxPlayers, Math.floor(rosterCount) || 2));
+  return Math.min(2048, Math.max(320, 140 * n));
+}
+
 export interface RawJudgment {
   anonId?: string;
   playerId?: string;

@@ -596,9 +596,15 @@ export class QuarryServer extends Server<Env> {
     );
   }
 
+  /** PartyServer can attempt AI when JUDGE_SECRET or JUDGE_URL is set. */
+  judgeConfigured(): boolean {
+    return Boolean(this.env.JUDGE_SECRET || this.env.JUDGE_URL);
+  }
+
   publicStateFor(recipientId: string): PublicRoomState {
     return projectPublicState(this.state, recipientId, {
       gracePlayerIds: this.gracePlayerIds(),
+      judgeConfigured: this.judgeConfigured(),
     });
   }
 
@@ -626,7 +632,11 @@ export class QuarryServer extends Server<Env> {
         myBankBeansReady: !!this.state.bankBeansReady?.[conn.id],
         myRematchReady: !!this.state.rematchReady?.[conn.id],
         ...(recipient?.isHost
-          ? { hostAiJudge: hostAiJudgeHealth(this.state) }
+          ? {
+              hostAiJudge: hostAiJudgeHealth(this.state, {
+                judgeConfigured: this.judgeConfigured(),
+              }),
+            }
           : {}),
       };
       this.send(conn, {

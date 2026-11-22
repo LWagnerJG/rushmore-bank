@@ -142,7 +142,9 @@ export function TopicPanel({
             </button>
           ) : null}
         </div>
-        {you.isHost && firstTopicScreen ? <HostAiPreGameStatus /> : null}
+        {you.isHost && firstTopicScreen ? (
+          <HostAiPreGameStatus health={state.hostAiJudge} />
+        ) : null}
       </header>
 
       {you.isHost ? (

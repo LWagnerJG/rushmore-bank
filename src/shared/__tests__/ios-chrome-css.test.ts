@@ -41,8 +41,11 @@ describe("iOS chrome + keyboard CSS contracts", () => {
 
   it("extends cream safe-top band with a plain eased gradient fade", () => {
     expect(css).toMatch(/--safe-top-cream:\s*#f7f3eb/i);
-    // Tight clearance: safe-area + ~12px (not a giant cream dead band)
-    expect(css).toMatch(/--safe-top-solid-extra:\s*[4-8]px/);
+    // Safari default ~4px; standalone bumps to 12px via display-mode media
+    expect(css).toMatch(/--safe-top-solid-extra:\s*4px/);
+    expect(css).toMatch(
+      /@media\s*\(display-mode:\s*standalone\)[\s\S]*?--safe-top-solid-extra:\s*12px/,
+    );
     expect(css).toMatch(/--safe-top-fade:\s*(8|10|12)px/);
     expect(css).toMatch(
       /\.room-chrome-safe,\s*\n?\s*\.app-safe-top|\.room-chrome-safe,\s*\.app-safe-top/,
@@ -148,31 +151,49 @@ describe("iOS chrome + keyboard CSS contracts", () => {
 });
 
 describe("iPhone viewport fixtures (safe-area top)", () => {
-  const SOLID_EXTRA = 4;
   const FADE = 8;
-  const phones = [
-    { name: "desktop (no inset)", w: 1280, h: 800, safeTop: 0 },
-    { name: "iPhone 14/15", w: 390, h: 844, safeTop: 47 },
-    { name: "iPhone 14/15 Pro Max", w: 430, h: 932, safeTop: 59 },
+  const fixtures = [
+    {
+      name: "390x844 Safari (0 inset)",
+      w: 390,
+      h: 844,
+      safeTop: 0,
+      solidExtra: 4,
+      standalone: false,
+    },
+    {
+      name: "390x844 PWA standalone (59px inset)",
+      w: 390,
+      h: 844,
+      safeTop: 59,
+      solidExtra: 12,
+      standalone: true,
+    },
+    {
+      name: "390x844 Safari with inset",
+      w: 390,
+      h: 844,
+      safeTop: 47,
+      solidExtra: 4,
+      standalone: false,
+    },
   ] as const;
 
-  for (const phone of phones) {
-    it(`${phone.name}: header clears iOS soft zone (${phone.safeTop}px inset)`, () => {
-      const bandH = phone.safeTop + SOLID_EXTRA + FADE;
-      const solidEnd = phone.safeTop + SOLID_EXTRA;
-      // Header content starts after the full band (solid + fade)
+  for (const phone of fixtures) {
+    it(`${phone.name}: header clears soft zone`, () => {
+      const bandH = phone.safeTop + phone.solidExtra + FADE;
+      const solidEnd = phone.safeTop + phone.solidExtra;
       const contentTop = bandH;
-      expect(bandH).toBe(phone.safeTop + SOLID_EXTRA + FADE);
+      expect(bandH).toBe(phone.safeTop + phone.solidExtra + FADE);
       expect(solidEnd).toBeGreaterThanOrEqual(phone.safeTop);
       expect(contentTop).toBeGreaterThan(solidEnd);
-      // Beyond safe-area: ~8–12px total (solid + fade)
-      expect(SOLID_EXTRA + FADE).toBeGreaterThanOrEqual(8);
-      expect(SOLID_EXTRA + FADE).toBeLessThanOrEqual(16);
-      expect(FADE).toBeGreaterThanOrEqual(8);
-      expect(FADE).toBeLessThanOrEqual(12);
-      expect(SOLID_EXTRA).toBeGreaterThanOrEqual(4);
-      expect(SOLID_EXTRA).toBeLessThanOrEqual(8);
-      // Shell height stays the layout height (keyboard must not shrink it)
+      if (phone.standalone) {
+        expect(phone.solidExtra).toBe(12);
+        expect(phone.solidExtra + FADE).toBe(20);
+      } else {
+        expect(phone.solidExtra).toBe(4);
+        expect(phone.solidExtra + FADE).toBe(12);
+      }
       const shellH = phone.h;
       const keyboardH = 336;
       const viewport = (vv: number) => ({
@@ -192,7 +213,8 @@ describe("iPhone viewport fixtures (safe-area top)", () => {
         step = stepKeyboardSession(step.session, event);
         expect(step.appHeightPx).toBeNull();
       }
-      expect(phone.w).toBeGreaterThan(0);
+      expect(phone.w).toBe(390);
+      expect(phone.h).toBe(844);
     });
   }
 });

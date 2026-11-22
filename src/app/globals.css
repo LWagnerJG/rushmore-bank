@@ -31,8 +31,10 @@
    * Slightly lighter than --bg so it matches body::before's #f7f3eb top stop. */
   --safe-top-cream: #f7f3eb;
   /*
-   * Status-bar clearance only: safe-area + ~12px (solid + short fade).
-   * Content must clear the soft zone — not a giant cream dead band.
+   * Status-bar clearance: safe-area + solid extra + short fade.
+   * Safari/browser: ~4px extra. Installed PWA (standalone): ~12px so the
+   * Beans logo clears the iOS soft status zone. CSS-only — never a one-shot
+   * JS measurement (iOS can apply the inset late).
    */
   --safe-top-solid-extra: 4px;
   --safe-top-fade: 8px;
@@ -83,6 +85,15 @@ html.party-on {
   /* Party mode btn-primary stays the same accessible dark coral */
   --btn-bg: #c05530;
   --safe-top-cream: #fff8ec;
+}
+
+/* Installed iPhone PWA — more clearance under the translucent status bar */
+@media (display-mode: standalone),
+  (display-mode: fullscreen),
+  (display-mode: minimal-ui) {
+  :root {
+    --safe-top-solid-extra: 12px;
+  }
 }
 
 @theme inline {

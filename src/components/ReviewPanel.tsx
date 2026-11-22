@@ -32,7 +32,7 @@ export function ReviewPanel({
           <p className="draft-all-in-kicker type-meta">Draft complete</p>
           <h2 className="draft-all-in-title type-display">Everyone&apos;s in!</h2>
           <p className="type-meta text-[var(--muted)]">
-            Vote + AI judge next…
+            {you.isHost ? "Vote + AI judge next…" : "Voting next…"}
           </p>
         </div>
       ) : (
@@ -41,7 +41,7 @@ export function ReviewPanel({
             <h2 className="type-display">Rosters</h2>
           </div>
           <p className="type-meta text-[var(--muted)]">
-            Starting vote + AI judge…
+            {you.isHost ? "Starting vote + AI judge…" : "Starting vote…"}
           </p>
         </>
       )}
