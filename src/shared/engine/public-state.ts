@@ -61,18 +61,23 @@ function stripDiceForPublic(dice: DiceBroadcast | null): PublicDiceBroadcast | n
 }
 
 /** Host-only cue — always a concrete value (never null/blank). */
-export function hostAiJudgeHealth(state: RoomState): HostAiJudgeHealth {
+export function hostAiJudgeHealth(
+  state: RoomState,
+  opts?: { judgeConfigured?: boolean },
+): HostAiJudgeHealth {
+  const available = opts?.judgeConfigured ?? true;
   if (
     state.phase === "VOTING_AND_JUDGING" &&
     !state.scoresLocked &&
     state.judgeStatus === "pending"
   ) {
-    return { status: "pending" };
+    return { status: "pending", available };
   }
   const status = state.lastJudgeOutcome ?? "ready";
   if (status === "fallback") {
     return {
       status,
+      available,
       fallbackReason: state.lastJudgeFallbackReason ?? null,
       model: state.lastJudgeModel ?? null,
       provider: state.lastJudgeProvider ?? null,
@@ -82,12 +87,13 @@ export function hostAiJudgeHealth(state: RoomState): HostAiJudgeHealth {
   if (status === "ok") {
     return {
       status,
+      available,
       model: state.lastJudgeModel ?? null,
       provider: state.lastJudgeProvider ?? null,
       latencyMs: state.lastJudgeLatencyMs ?? null,
     };
   }
-  return { status: "ready" };
+  return { status: "ready", available };
 }
 
 /**
@@ -264,8 +270,10 @@ export function projectPublicState(
   state: RoomState,
   recipientId: string,
   /** @deprecated Faces are gated by server `revealed` only; kept for call-site compat. */
-  nowOrOpts?: number | { gracePlayerIds?: Iterable<string> },
-  opts?: { gracePlayerIds?: Iterable<string> },
+  nowOrOpts?:
+    | number
+    | { gracePlayerIds?: Iterable<string>; judgeConfigured?: boolean },
+  opts?: { gracePlayerIds?: Iterable<string>; judgeConfigured?: boolean },
 ): PublicRoomState {
   const graceOpts =
     typeof nowOrOpts === "object" && nowOrOpts
@@ -275,7 +283,9 @@ export function projectPublicState(
   const recipient = state.players.find((p) => p.id === recipientId);
   const hostOnly: { hostAiJudge?: HostAiJudgeHealth } = {};
   if (recipient?.isHost) {
-    hostOnly.hostAiJudge = hostAiJudgeHealth(state);
+    hostOnly.hostAiJudge = hostAiJudgeHealth(state, {
+      judgeConfigured: graceOpts?.judgeConfigured,
+    });
   }
 
   return {

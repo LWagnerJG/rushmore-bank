@@ -63,6 +63,11 @@ export type JudgeProvider = "gemini" | "groq";
 
 export type HostAiJudgeHealth = {
   status: LastJudgeOutcome | "pending" | "ready";
+  /**
+   * Whether PartyServer is configured to attempt AI judging (JUDGE_SECRET / JUDGE_URL).
+   * Distinct from last-round ok/fallback — hosts must not read a client probe as “on”.
+   */
+  available?: boolean;
   fallbackReason?: JudgeFallbackReason | null;
   model?: string | null;
   provider?: JudgeProvider | null;
@@ -83,6 +88,12 @@ export interface Player {
    * Cleared to `live` as soon as they rejoin. Optional on fixtures.
    */
   presence?: PlayerPresence;
+  /**
+   * Wall-clock ms when soft-disconnect started. Cleared on rejoin.
+   * Clients + hibernate recovery use this with `RULES.disconnectActionGraceMs`
+   * so host Skip only appears after the server grace (survives host reload).
+   */
+  disconnectedAt?: number | null;
   isHost: boolean;
   role: PlayerRole;
   /** Seat index among locked roster; null for spectators / pre-lock */

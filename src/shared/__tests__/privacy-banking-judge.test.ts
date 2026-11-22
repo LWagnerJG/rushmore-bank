@@ -612,7 +612,7 @@ describe("session length: choices vs rounds", () => {
     expect(topicShortlistCount(8)).not.toBe(topicRoundsForPlayerCount(8));
   });
 
-  it("host may pick 3–6 rounds on the first topic screen only", () => {
+  it("host may pick 3–6 rounds mid-game when at or above the current round", () => {
     expect([...RULES.topicRoundsHostOptions]).toEqual([3, 4, 5, 6]);
     expect(isHostSelectableTopicRounds(3)).toBe(true);
     expect(isHostSelectableTopicRounds(6)).toBe(true);
@@ -631,19 +631,26 @@ describe("session length: choices vs rounds", () => {
         topicRound: 1,
         rounds: 5,
       }),
-    ).toBe(false);
+    ).toBe(true);
     expect(
       canHostSetTopicRounds({
         phase: "DRAFT",
         topicRound: 0,
         rounds: 4,
       }),
-    ).toBe(false);
+    ).toBe(true);
     expect(
       canHostSetTopicRounds({
         phase: "TOPIC_SELECTION",
         topicRound: 0,
         rounds: 2,
+      }),
+    ).toBe(false);
+    expect(
+      canHostSetTopicRounds({
+        phase: "GAME_RESULTS",
+        topicRound: 4,
+        rounds: 5,
       }),
     ).toBe(false);
   });

@@ -360,8 +360,24 @@ export class QuarryServer extends Server<Env> {
       this.state.players = [];
       this.state.notice = null;
     } else {
+      const now = Date.now();
       for (const p of seatedPlayers(this.state)) {
-        if (!p.connected) this.armLeaveTimer(p.id, DISCONNECT_GRACE_MS);
+        if (p.connected) continue;
+        // Resume remaining soft-disconnect grace from persisted disconnectedAt
+        // so host Skip / auto-miss stay honest across DO hibernate.
+        const started = p.disconnectedAt ?? now;
+        if (p.disconnectedAt == null) p.disconnectedAt = started;
+        const remaining = Math.max(
+          0,
+          RULES.disconnectActionGraceMs - (now - started),
+        );
+        if (remaining === 0) {
+          void this.handlePlayerLeave(p.id).then(() => {
+            void this.persist().then(() => this.broadcastState());
+          });
+        } else {
+          this.armLeaveTimer(p.id, remaining);
+        }
       }
       this.ensureHost();
     }
@@ -596,9 +612,15 @@ export class QuarryServer extends Server<Env> {
     );
   }
 
+  /** PartyServer can attempt AI when JUDGE_SECRET or JUDGE_URL is set. */
+  judgeConfigured(): boolean {
+    return Boolean(this.env.JUDGE_SECRET || this.env.JUDGE_URL);
+  }
+
   publicStateFor(recipientId: string): PublicRoomState {
     return projectPublicState(this.state, recipientId, {
       gracePlayerIds: this.gracePlayerIds(),
+      judgeConfigured: this.judgeConfigured(),
     });
   }
 
@@ -626,7 +648,11 @@ export class QuarryServer extends Server<Env> {
         myBankBeansReady: !!this.state.bankBeansReady?.[conn.id],
         myRematchReady: !!this.state.rematchReady?.[conn.id],
         ...(recipient?.isHost
-          ? { hostAiJudge: hostAiJudgeHealth(this.state) }
+          ? {
+              hostAiJudge: hostAiJudgeHealth(this.state, {
+                judgeConfigured: this.judgeConfigured(),
+              }),
+            }
           : {}),
       };
       this.send(conn, {
@@ -1038,6 +1064,7 @@ export class QuarryServer extends Server<Env> {
     old.id = newId;
     old.name = name;
     old.connected = true;
+    old.disconnectedAt = null;
 
     const remapKey = <T extends Record<string, unknown>>(m: T) => {
       if (Object.prototype.hasOwnProperty.call(m, oldId)) {
@@ -1126,6 +1153,7 @@ export class QuarryServer extends Server<Env> {
     const existing = this.state.players.find((p) => p.id === playerId);
     if (existing) {
       existing.connected = true;
+      existing.disconnectedAt = null;
       this.ensureHost();
     }
     // Lost dice_anim (hibernate, stale context, past-deadline setAlarm)
@@ -1160,6 +1188,7 @@ export class QuarryServer extends Server<Env> {
       return;
     }
     p.connected = false;
+    p.disconnectedAt = Date.now();
     // Presence-only: do not bump phaseRevision (that remounted host UI) and
     // do not call ensureHost — a host in grace must stay host. Transfer waits
     // for handlePlayerLeave / checkHostFailover after the grace window.
@@ -1623,6 +1652,7 @@ export class QuarryServer extends Server<Env> {
       }
       existing.name = clean;
       existing.connected = true;
+      existing.disconnectedAt = null;
       existing.avatarId = avatar;
       this.ensureHost();
       return;
@@ -1675,6 +1705,7 @@ export class QuarryServer extends Server<Env> {
       name: clean,
       stones: RULES.startBalance,
       connected: true,
+      disconnectedAt: null,
       isHost: isFirst,
       role,
       seat: null,
@@ -1775,7 +1806,10 @@ export class QuarryServer extends Server<Env> {
     if (changed) bump(this.state);
   }
 
-  /** Host sets 3–6 rounds on the first topic screen only. */
+  /**
+   * Host sets 3–6 rounds (lobby first-topic or mid-game).
+   * Cannot go below the current round; end-of-game uses the new total.
+   */
   handleSetTopicRounds(id: string, rounds: number) {
     if (!this.requireHost(id)) throw new Error("Host only");
     const n = Math.floor(Number(rounds));
@@ -1790,6 +1824,7 @@ export class QuarryServer extends Server<Env> {
     }
     if (this.state.configuredTopicRounds === n) return;
     this.state.configuredTopicRounds = n;
+    this.state.notice = `Host changed game to ${n} rounds`;
     // Bump so re-tapping a prior round chip after another gets a fresh actionId.
     bump(this.state);
   }

@@ -16,6 +16,8 @@ type SettingsSheetComparable = {
   canRename?: boolean;
   rosterLocked?: boolean;
   awayPlayers?: { id: string; name: string; presence?: string }[];
+  topicRound?: number;
+  configuredTopicRounds?: number;
 };
 
 /**
@@ -42,6 +44,8 @@ export function settingsSheetPropsAreEqual(
     prev.hostAiJudge === next.hostAiJudge &&
     prev.canRename === next.canRename &&
     prev.rosterLocked === next.rosterLocked &&
+    prev.topicRound === next.topicRound &&
+    prev.configuredTopicRounds === next.configuredTopicRounds &&
     JSON.stringify(prev.awayPlayers ?? []) ===
       JSON.stringify(next.awayPlayers ?? [])
   );

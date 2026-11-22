@@ -107,16 +107,18 @@ export const RULES = {
   /** Host / lobby */
   /**
    * Soft-disconnect grace for host hold / lobby host drops.
-   * Mid-game action skip uses the shorter `disconnectActionGraceMs`.
+   * Mid-game action skip / host Skip reveal uses `disconnectActionGraceMs`.
    */
   disconnectGraceMs: 45_000,
   /**
-   * Mid-game: after this many ms offline, the seat is auto-skipped so the
-   * table does not stall (draft miss, vote quorum drop, dice auto-bank,
-   * party drink ack). Seat is still held for rejoin. Brief refresh/app-switch
-   * must finish under this window.
+   * Mid-game soft-disconnect window (single constant ≈20s):
+   * - Clients show `reconnecting…` (no host Skip) while this timer runs.
+   * - When it ends the seat goes `away`, the table auto-misses their turn,
+   *   and the host may tap them for a discreet “Skip this turn” sheet.
+   * - Reconnect before expiry clears the flag and never reveals Skip.
+   * Server-timed (`disconnectedAt` + leave timer) so host reloads stay honest.
    */
-  disconnectActionGraceMs: 9_000,
+  disconnectActionGraceMs: 20_000,
   /** Host transfer floor — never faster than disconnectGraceMs. */
   hostFailoverSeconds: 45,
   partyModeDefault: false,
@@ -155,19 +157,41 @@ export function isHostSelectableTopicRounds(n: number): n is HostTopicRounds {
 }
 
 /**
- * Host may change configured rounds only on the first topic screen,
- * before any round has completed.
+ * 1-based round index shown to players (“Round 3 of 8”).
+ * `topicRound` advances when a round finishes (ROUND_RESULTS), so in-progress
+ * phases use topicRound+1; results screens use the completed count.
+ */
+export function displayTopicRound(input: {
+  phase: string;
+  topicRound: number;
+}): number {
+  if (input.phase === "LOBBY") return 0;
+  if (input.phase === "ROUND_RESULTS" || input.phase === "GAME_RESULTS") {
+    return Math.max(1, input.topicRound);
+  }
+  return input.topicRound + 1;
+}
+
+/** Lowest total the host may set without cutting off the current round. */
+export function minHostTopicRounds(input: {
+  phase: string;
+  topicRound: number;
+}): number {
+  return Math.max(1, displayTopicRound(input));
+}
+
+/**
+ * Host may change configured rounds mid-game (not lobby / game-over).
+ * New total must be a host option (3–6) and not below the current round.
  */
 export function canHostSetTopicRounds(input: {
   phase: string;
   topicRound: number;
   rounds: number;
 }): boolean {
-  return (
-    input.phase === "TOPIC_SELECTION" &&
-    input.topicRound === 0 &&
-    isHostSelectableTopicRounds(input.rounds)
-  );
+  if (input.phase === "LOBBY" || input.phase === "GAME_RESULTS") return false;
+  if (!isHostSelectableTopicRounds(input.rounds)) return false;
+  return input.rounds >= minHostTopicRounds(input);
 }
 
 /**

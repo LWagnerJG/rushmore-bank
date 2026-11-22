@@ -1,19 +1,34 @@
 /** Copy for the host-only pre-game AI judge line (lobby / first topic). */
 
-export type JudgeHealthProbe = {
-  available: boolean;
-  model: string | null;
-};
+import type { HostAiJudgeHealth } from "./types";
 
 /**
- * Super-discreet host-only status. Never includes fallbackReason.
- * Returns null while probing so the lobby stays quiet during the check.
+ * Effective AI status from the PartyServer projection — never a client
+ * /api/judge probe (that can say “on” while the room falls back to neutral).
+ * Returns null while the room has not projected host health yet.
  */
 export function hostAiPreGameLine(
-  probe: JudgeHealthProbe | null | undefined,
+  health: HostAiJudgeHealth | null | undefined,
 ): string | null {
-  if (!probe) return null;
-  if (!probe.available) return "AI judge off, scores will be neutral";
-  if (probe.model?.trim()) return `AI judge on · ${probe.model.trim()}`;
-  return "AI judge on";
+  if (!health) return null;
+
+  if (health.available === false) {
+    return "AI judge off, scores will be neutral";
+  }
+
+  switch (health.status) {
+    case "fallback":
+      return "AI judge off, scores will be neutral";
+    case "ok": {
+      if (health.model?.trim()) return `AI judge on · ${health.model.trim()}`;
+      return "AI judge on";
+    }
+    case "pending":
+      return "AI judging…";
+    case "ready":
+    default: {
+      if (health.model?.trim()) return `AI judge on · ${health.model.trim()}`;
+      return "AI judge on";
+    }
+  }
 }

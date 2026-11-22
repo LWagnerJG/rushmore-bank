@@ -239,12 +239,15 @@ function PlayerChip({
       </div>
       {cue ? (
         <span
-          className={`player-presence-chip player-presence-${cue.kind}`}
+          className={`player-presence-chip player-presence-${cue.kind}${
+            cue.kind === "away" ? " player-presence-dot" : ""
+          }`}
           title={
             cue.kind === "reconnecting"
               ? "Reconnecting — seat held"
-              : "Skipped until they rejoin"
+              : "Away — seat held for rejoin"
           }
+          aria-label={cue.kind === "reconnecting" ? "reconnecting" : "away"}
         >
           {cue.label}
         </span>

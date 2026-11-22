@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { RULES } from "@/shared/rules";
-import { heuristicJudgeUniform } from "@/shared/engine/judge";
+import {
+  heuristicJudgeUniform,
+  judgeMaxOutputTokens,
+} from "@/shared/engine/judge";
 import type { JudgeFallbackReason } from "@/shared/types";
 
 export const runtime = "nodejs";
@@ -41,9 +44,6 @@ const GROQ_PROVIDER = "groq" as const;
 const GEMINI_PROVIDER = "gemini" as const;
 
 export type JudgeApiProvider = typeof GEMINI_PROVIDER | typeof GROQ_PROVIDER;
-
-/** Tight JSON output — typical 2–4 roster reply should finish in ~2–4s. */
-const MAX_OUTPUT_TOKENS = 320;
 
 const MODEL_LIST_CACHE_TTL_MS = 5 * 60 * 1000;
 
@@ -394,6 +394,7 @@ async function callGeminiOnce(
   user: string,
   parentSignal: AbortSignal | undefined,
   timeoutMs: number,
+  maxOutputTokens: number,
 ): Promise<ModelResult> {
   if (timeoutMs < 200) return { ok: false, kind: "timeout" };
   const { signal, cancel } = linkSignals(parentSignal, timeoutMs);
@@ -409,7 +410,7 @@ async function callGeminiOnce(
         generationConfig: {
           // No temperature — Gemini 3.x rejects deprecated sampling params.
           responseMimeType: "application/json",
-          maxOutputTokens: MAX_OUTPUT_TOKENS,
+          maxOutputTokens,
         },
       }),
     });
@@ -448,6 +449,7 @@ async function callGroqOnce(
   user: string,
   parentSignal: AbortSignal | undefined,
   timeoutMs: number,
+  maxOutputTokens: number,
 ): Promise<ModelResult> {
   if (timeoutMs < 200) return { ok: false, kind: "timeout" };
   const { signal, cancel } = linkSignals(parentSignal, timeoutMs);
@@ -462,7 +464,7 @@ async function callGroqOnce(
       body: JSON.stringify({
         model: GROQ_MODEL,
         temperature: 0.2,
-        max_tokens: MAX_OUTPUT_TOKENS,
+        max_tokens: maxOutputTokens,
         response_format: { type: "json_object" },
         messages: [
           { role: "system", content: system },
@@ -529,6 +531,7 @@ async function judgeWithProviders(
   let sawInvalid = false;
   let sawRateLimit = false;
   let sawTimeout = false;
+  const maxOutputTokens = judgeMaxOutputTokens(cleanRosters.length);
 
   try {
     if (gKey) {
@@ -553,6 +556,7 @@ async function judgeWithProviders(
           user,
           budgetController.signal,
           timeoutMs,
+          maxOutputTokens,
         );
 
         if (!result.ok && result.kind === "not_found") {
@@ -581,6 +585,7 @@ async function judgeWithProviders(
               user,
               budgetController.signal,
               Math.min(PROVIDER_TIMEOUT_MS, remainingBudget(startedAt)),
+              maxOutputTokens,
             );
           }
         }
@@ -614,6 +619,7 @@ async function judgeWithProviders(
         user,
         budgetController.signal,
         Math.min(PROVIDER_TIMEOUT_MS, remainingBudget(startedAt)),
+        maxOutputTokens,
       );
 
       if (
@@ -628,6 +634,7 @@ async function judgeWithProviders(
           user,
           budgetController.signal,
           Math.min(PROVIDER_TIMEOUT_MS, remainingBudget(startedAt)),
+          maxOutputTokens,
         );
       }
 

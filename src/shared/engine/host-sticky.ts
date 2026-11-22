@@ -83,8 +83,8 @@ export function shouldBumpRevisionOnDisconnect(): boolean {
  * Soft-disconnect leave timer length.
  * - Lobby non-host: immediate leave (0)
  * - Lobby host: full host grace (45s)
- * - Mid-game (any seat): short action grace (~9s) so the table advances;
- *   host transfer still waits on hostLastSeenAt / hostFailoverSeconds.
+ * - Mid-game (any seat): action grace (~20s) so reconnecting finishes before
+ *   auto-miss / host Skip; host transfer still waits on hostLastSeenAt.
  */
 export function disconnectGraceMs(opts: {
   rosterLocked: boolean;
