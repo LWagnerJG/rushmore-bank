@@ -15,9 +15,11 @@ import {
   type DiceReadoutRoll,
 } from "@/shared/engine/dice-present";
 import { BeanBusterStamp } from "@/components/BeanBusterStamp";
+import { HostSkipSheet } from "@/components/HostSkipSheet";
 import { feedback } from "@/lib/feedback";
 import { cueYourTurn } from "@/lib/your-turn";
 import { RULES } from "@/shared/rules";
+import { hostSkipReady, presenceCue } from "@/shared/presence";
 import { railYouLabel } from "@/shared/you-label";
 
 type SeatKind = "up" | "next" | "in" | "banked" | "busted";
@@ -250,8 +252,8 @@ export function DicePanel({
   /** Prior revealed non-secret roll — fills the total gap while the next tumble runs. */
   const [stickyRoll, setStickyRoll] = useState<DiceReadoutRoll | null>(null);
   const [bankConfirm, setBankConfirm] = useState(false);
-  /** Host Skip: first tap arms, second force-banks the current roller. */
-  const [skipArmed, setSkipArmed] = useState(false);
+  /** Host Skip sheet — opened by tapping a post-grace away roller. */
+  const [skipSheetOpen, setSkipSheetOpen] = useState(false);
   const canBank =
     you.role === "player" &&
     classifyPullOut({
@@ -279,14 +281,8 @@ export function DicePanel({
   }, [busy]);
 
   useEffect(() => {
-    setSkipArmed(false);
+    setSkipSheetOpen(false);
   }, [state.diceTurnSeat, state.phaseRevision, rollerId]);
-
-  useEffect(() => {
-    if (!skipArmed) return;
-    const t = window.setTimeout(() => setSkipArmed(false), 2800);
-    return () => window.clearTimeout(t);
-  }, [skipArmed]);
 
   useEffect(() => {
     if (!glowOn || state.diceSubphase !== "READY") return;
@@ -506,27 +502,50 @@ export function DicePanel({
                   {"\u00a0"}
                 </p>
               )}
-              {you.isHost && rollerId && roller && !myTurn ? (
-                <button
-                  type="button"
-                  className={`draft-host-skip-btn dice-host-skip-btn${skipArmed ? " draft-host-skip-armed" : ""}`}
-                  aria-label={
-                    skipArmed
-                      ? `Tap again to skip ${roller.name}`
-                      : `Skip ${roller.name}'s dice turn`
-                  }
-                  onClick={() => {
-                    if (!skipArmed) {
-                      setSkipArmed(true);
-                      return;
+              {(() => {
+                if (!roller || !rollerId || myTurn) return null;
+                const cue = presenceCue(roller);
+                if (!cue) return null;
+                const ready = you.isHost && hostSkipReady(roller);
+                if (ready) {
+                  return (
+                    <button
+                      type="button"
+                      className="dice-host-away-target"
+                      aria-label={`Open skip options for ${roller.name}`}
+                      onClick={() => setSkipSheetOpen(true)}
+                    >
+                      <span
+                        className={`player-presence-chip player-presence-${cue.kind}${
+                          cue.kind === "away" ? " player-presence-dot" : ""
+                        }`}
+                      >
+                        {cue.label}
+                      </span>
+                      <span className="dice-host-away-hint type-meta">
+                        Tap for options
+                      </span>
+                    </button>
+                  );
+                }
+                return (
+                  <span
+                    className={`player-presence-chip player-presence-${cue.kind}${
+                      cue.kind === "away" ? " player-presence-dot" : ""
+                    }`}
+                    title={
+                      cue.kind === "reconnecting"
+                        ? "Reconnecting — seat held"
+                        : "Away — seat held for rejoin"
                     }
-                    setSkipArmed(false);
-                    send({ type: "host_skip_dice", playerId: rollerId });
-                  }}
-                >
-                  {skipArmed ? "Skip?" : "Skip"}
-                </button>
-              ) : null}
+                    aria-label={
+                      cue.kind === "reconnecting" ? "reconnecting" : "away"
+                    }
+                  >
+                    {cue.label}
+                  </span>
+                );
+              })()}
             </div>
             <div
               className={`dice-stage-timer ${timerLive ? "dice-stage-timer-live" : "dice-stage-timer-idle"}`}
@@ -721,6 +740,17 @@ export function DicePanel({
         rollerName={bustRollerName}
         isYou={bustIsYou}
         reducedMotion={reducedMotion}
+      />
+
+      <HostSkipSheet
+        open={skipSheetOpen && !!rollerId && !!roller}
+        playerName={roller?.name ?? ""}
+        onCancel={() => setSkipSheetOpen(false)}
+        onConfirm={() => {
+          if (!rollerId) return;
+          setSkipSheetOpen(false);
+          send({ type: "host_skip_dice", playerId: rollerId });
+        }}
       />
     </div>
   );

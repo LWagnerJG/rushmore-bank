@@ -9,8 +9,10 @@ import Link from "next/link";
 import { DraftPanel } from "@/components/DraftPanel";
 import { SettingsSheet } from "@/components/SettingsSheet";
 import type { ClientMessage, Player, PublicRoomState } from "@/shared/types";
+import { RULES } from "@/shared/rules";
 
 const YOU_ID = "host";
+const NOW = Date.now();
 
 function player(
   id: string,
@@ -20,6 +22,7 @@ function player(
     host?: boolean;
     connected?: boolean;
     presence?: Player["presence"];
+    disconnectedAt?: number | null;
   },
 ): Player {
   return {
@@ -29,6 +32,7 @@ function player(
     isHost: Boolean(opts?.host),
     connected: opts?.connected ?? true,
     presence: opts?.presence ?? (opts?.connected === false ? "away" : "live"),
+    disconnectedAt: opts?.disconnectedAt ?? null,
     stones: 40,
     seat,
     joinedAt: 1,
@@ -40,10 +44,13 @@ const players: Player[] = [
   player("p2", "Sam", 1, {
     connected: false,
     presence: "away",
+    // Past grace so host can tap for Skip sheet.
+    disconnectedAt: NOW - RULES.disconnectActionGraceMs - 1_000,
   }),
   player("p3", "Alex", 2, {
     connected: false,
     presence: "reconnecting",
+    disconnectedAt: NOW - 2_000,
   }),
 ];
 

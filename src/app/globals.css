@@ -5647,41 +5647,102 @@ html.settings-sheet-open body {
   color: var(--muted);
 }
 
-/* Host Skip — coral pill on the stalled seat's column / stage */
-.draft-host-skip-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: 0.15rem;
-  min-height: 1.55rem;
-  padding: 0.15rem 0.55rem;
+/* Host Skip — discreet tap target (no always-visible Skip pill) */
+.draft-board-host-target {
+  appearance: none;
   border: none;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--coral) 22%, #fff);
-  color: var(--coral-ink);
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  text-align: inherit;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  width: 100%;
+}
+.draft-board-host-target:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--coral) 55%, transparent);
+  outline-offset: 2px;
+  border-radius: 0.45rem;
+}
+.draft-board-col-host-skip .draft-board-name-wrap {
   cursor: pointer;
 }
-.draft-host-skip-btn:hover,
-.draft-host-skip-btn:focus-visible {
-  background: color-mix(in srgb, var(--coral) 34%, #fff);
-  outline: none;
+.dice-host-away-target {
+  appearance: none;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  margin-top: 0.25rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
 }
-.draft-host-skip-armed {
-  background: var(--btn-bg);
+.dice-host-away-target:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--coral) 55%, transparent);
+  outline-offset: 2px;
+  border-radius: 0.35rem;
+}
+.dice-host-away-hint {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+.host-skip-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 1rem;
+  background: color-mix(in srgb, #000 35%, transparent);
+}
+.host-skip-sheet {
+  width: min(100%, 22rem);
+  padding: 1rem 1.1rem 1.15rem;
+  border-radius: 1.1rem;
+  background: var(--cream, #f5f0e7);
+  box-shadow: 0 12px 40px rgba(35, 72, 62, 0.18);
+}
+.host-skip-sheet-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text);
+}
+.host-skip-sheet-hint {
+  margin: 0.35rem 0 0.9rem;
+  color: var(--muted);
+}
+.host-skip-sheet-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+.host-skip-sheet-confirm {
+  min-height: var(--tap-min);
+  border: none;
+  border-radius: 0.85rem;
+  background: var(--btn-bg, var(--coral));
   color: var(--on-coral, #fff);
+  font-weight: 800;
+  cursor: pointer;
 }
-.draft-host-skip-armed:hover,
-.draft-host-skip-armed:focus-visible {
-  background: var(--btn-bg);
-  color: var(--on-coral, #fff);
-  filter: brightness(0.94);
-}
-.dice-host-skip-btn {
-  margin-top: 0.35rem;
+.host-skip-sheet-cancel {
+  min-height: var(--tap-min);
+  border: none;
+  border-radius: 0.85rem;
+  background: color-mix(in srgb, var(--muted) 14%, #fff);
+  color: var(--text);
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .draft-board-name-wrap {
@@ -5717,6 +5778,17 @@ html.settings-sheet-open body {
 .player-presence-away {
   background: color-mix(in srgb, var(--coral) 16%, #fff);
   color: var(--coral-ink);
+}
+/* Post-grace away: dimmed seat + small coral dot (no “skipped” text) */
+.player-presence-dot {
+  width: 0.45rem;
+  min-width: 0.45rem;
+  height: 0.45rem;
+  padding: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--coral) 72%, #fff);
+  color: transparent;
+  overflow: hidden;
 }
 .player-chip-away .player-chip-score,
 .player-chip-away .player-chip-split {

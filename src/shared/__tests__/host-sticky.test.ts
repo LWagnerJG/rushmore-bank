@@ -113,7 +113,7 @@ describe("sticky host policy", () => {
       RULES.disconnectActionGraceMs,
     );
     expect(disconnectGraceMs({ rosterLocked: false, isHost: false })).toBe(0);
-    expect(RULES.disconnectActionGraceMs).toBeGreaterThanOrEqual(8_000);
-    expect(RULES.disconnectActionGraceMs).toBeLessThanOrEqual(10_000);
+    expect(RULES.disconnectActionGraceMs).toBeGreaterThanOrEqual(18_000);
+    expect(RULES.disconnectActionGraceMs).toBeLessThanOrEqual(22_000);
   });
 });

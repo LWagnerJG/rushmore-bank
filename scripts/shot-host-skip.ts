@@ -1,5 +1,5 @@
 /**
- * 375px shots: settings rejoin card, draft column Skip + presence chips.
+ * 375px shots: settings rejoin card, draft column presence + discreet host Skip.
  */
 import { mkdirSync } from "node:fs";
 import path from "node:path";
@@ -40,17 +40,25 @@ async function main() {
   await page.getByRole("button", { name: "Close" }).first().click();
   await page.waitForTimeout(250);
 
-  // 2) Draft column Skip + reconnecting/skipped chips
+  // 2) Draft column: reconnecting / away dot (no always-visible Skip pill)
   await page.addStyleTag({
     content: `.lab-chrome { display: none !important; }`,
   });
-  await page.waitForSelector(".draft-host-skip-btn", { timeout: 5000 });
   await page.waitForSelector(".player-presence-chip", { timeout: 5000 });
+  await page.waitForSelector(".draft-board-host-target", { timeout: 5000 });
   await page.waitForTimeout(200);
 
   const draftPath = path.join(OUT, "draft-column-skip-presence-375.png");
   await page.screenshot({ path: draftPath, fullPage: false });
   console.log("wrote", draftPath);
+
+  // 3) Host Skip sheet after tapping the away on-clock seat
+  await page.locator(".draft-board-host-target").first().click();
+  await page.waitForSelector(".host-skip-sheet", { timeout: 5000 });
+  await page.waitForTimeout(200);
+  const sheetPath = path.join(OUT, "host-skip-sheet-375.png");
+  await page.screenshot({ path: sheetPath, fullPage: false });
+  console.log("wrote", sheetPath);
 
   await browser.close();
 }

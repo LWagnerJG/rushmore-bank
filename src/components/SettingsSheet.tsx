@@ -217,7 +217,6 @@ function SettingsSheetImpl({
     typeof window !== "undefined" ? isSoundEnabled() : false,
   );
   const [inviteCopied, setInviteCopied] = useState(false);
-  const [awaySkipArmedId, setAwaySkipArmedId] = useState<string | null>(null);
   const [adminUnlocked, setAdminUnlocked] = useState(false);
   const [stats, setStats] = useState<ProfileStats>(emptyProfileStats);
   const [displayName, setDisplayName] = useState("");
@@ -279,7 +278,6 @@ function SettingsSheetImpl({
       setDragging(false);
       dragStartY.current = null;
       setInviteCopied(false);
-      setAwaySkipArmedId(null);
       return;
     }
     if (initialPanel === "avatar") {
@@ -726,7 +724,7 @@ function SettingsSheetImpl({
                   </div>
                 ) : null}
 
-                {rosterLocked && send && awayPlayers.length > 0 ? (
+                {rosterLocked && awayPlayers.length > 0 ? (
                   <div className="settings-away-block">
                     <p className="settings-away-kicker type-meta">
                       Stalled seats
@@ -738,33 +736,9 @@ function SettingsSheetImpl({
                           <span className="settings-away-status">
                             {p.presence === "reconnecting"
                               ? "reconnecting…"
-                              : "skipped"}
+                              : "away"}
                           </span>
                         </span>
-                        <button
-                          type="button"
-                          className={`draft-host-skip-btn${awaySkipArmedId === p.id ? " draft-host-skip-armed" : ""}`}
-                          aria-label={
-                            awaySkipArmedId === p.id
-                              ? `Tap again to skip ${p.name}`
-                              : `Skip ${p.name} now`
-                          }
-                          onClick={() => {
-                            if (awaySkipArmedId !== p.id) {
-                              setAwaySkipArmedId(p.id);
-                              window.setTimeout(() => {
-                                setAwaySkipArmedId((cur) =>
-                                  cur === p.id ? null : cur,
-                                );
-                              }, 2800);
-                              return;
-                            }
-                            setAwaySkipArmedId(null);
-                            send({ type: "host_skip_away", playerId: p.id });
-                          }}
-                        >
-                          {awaySkipArmedId === p.id ? "Skip?" : "Skip"}
-                        </button>
                       </div>
                     ))}
                   </div>

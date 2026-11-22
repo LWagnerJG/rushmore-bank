@@ -107,16 +107,18 @@ export const RULES = {
   /** Host / lobby */
   /**
    * Soft-disconnect grace for host hold / lobby host drops.
-   * Mid-game action skip uses the shorter `disconnectActionGraceMs`.
+   * Mid-game action skip / host Skip reveal uses `disconnectActionGraceMs`.
    */
   disconnectGraceMs: 45_000,
   /**
-   * Mid-game: after this many ms offline, the seat is auto-skipped so the
-   * table does not stall (draft miss, vote quorum drop, dice auto-bank,
-   * party drink ack). Seat is still held for rejoin. Brief refresh/app-switch
-   * must finish under this window.
+   * Mid-game soft-disconnect window (single constant ≈20s):
+   * - Clients show `reconnecting…` (no host Skip) while this timer runs.
+   * - When it ends the seat goes `away`, the table auto-misses their turn,
+   *   and the host may tap them for a discreet “Skip this turn” sheet.
+   * - Reconnect before expiry clears the flag and never reveals Skip.
+   * Server-timed (`disconnectedAt` + leave timer) so host reloads stay honest.
    */
-  disconnectActionGraceMs: 9_000,
+  disconnectActionGraceMs: 20_000,
   /** Host transfer floor — never faster than disconnectGraceMs. */
   hostFailoverSeconds: 45,
   partyModeDefault: false,

@@ -10,8 +10,9 @@ import {
 } from "@/shared/engine/snake";
 import { readAdminUnlocked } from "@/lib/admin-session";
 import { FitName } from "@/components/FitName";
+import { HostSkipSheet } from "@/components/HostSkipSheet";
 import { nameWithYouSuffix, railYouLabel } from "@/shared/you-label";
-import { presenceCue } from "@/shared/presence";
+import { hostSkipReady, presenceCue } from "@/shared/presence";
 
 function densityFor(count: number): "fit" | "snug" | "dense" {
   // 2–5: share the phone width with no sideways scroll.
@@ -49,26 +50,40 @@ export function DraftBoard({
     : null;
   const [hostFocusTurn, setHostFocusTurn] = useState<number | null>(null);
   const [adminMode, setAdminMode] = useState(false);
-  /** Host Skip on the on-clock column: first tap arms, second sends (no modal). */
-  const [skipArmed, setSkipArmed] = useState(false);
+  /** Host Skip sheet — opened by tapping a post-grace away seat on the clock. */
+  const [skipTarget, setSkipTarget] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const focusTurn = correcting ? null : hostFocusTurn;
   const upId = currentUpPlayerId(state);
   /** Host may correct; admin unlock only changes how loud the affordance is. */
   const canShowRedo = isHost && state.phase === "DRAFT" && !correcting;
-  const canHostSkip =
+  const canHostSkipSheet =
     isHost &&
     (state.phase === "DRAFT" || state.phase === "CORRECTION") &&
     upId != null;
 
   useEffect(() => {
-    setSkipArmed(false);
+    setSkipTarget(null);
   }, [state.draftCursor, state.phaseRevision, upId]);
 
+  // Re-render when server grace elapses so Skip appears without waiting for
+  // the next broadcast (host reload mid-grace stays honest via disconnectedAt).
+  const [, setGraceTick] = useState(0);
   useEffect(() => {
-    if (!skipArmed) return;
-    const t = window.setTimeout(() => setSkipArmed(false), 2800);
+    if (!canHostSkipSheet || !upId) return;
+    const up = state.players.find((p) => p.id === upId);
+    if (!up || up.connected || up.disconnectedAt == null) return;
+    if (hostSkipReady(up)) return;
+    const wait = up.disconnectedAt + RULES.disconnectActionGraceMs - Date.now();
+    if (wait > 60_000) return;
+    const t = window.setTimeout(
+      () => setGraceTick((n) => n + 1),
+      Math.max(0, wait) + 16,
+    );
     return () => window.clearTimeout(t);
-  }, [skipArmed]);
+  }, [canHostSkipSheet, upId, state.players, state.phaseRevision]);
 
   useEffect(() => {
     const sync = () => setAdminMode(readAdminUnlocked());
@@ -169,6 +184,43 @@ export function DraftBoard({
                 const onClock = upId === pid;
                 const mine = pid === youId;
                 const cue = player ? presenceCue(player) : null;
+                const skipReady =
+                  canHostSkipSheet &&
+                  onClock &&
+                  player != null &&
+                  hostSkipReady(player);
+                const wrap = (
+                  <>
+                    <FitName
+                      className="draft-board-name"
+                      text={mine ? railYouLabel() : (player?.name ?? "")}
+                      title={
+                        mine
+                          ? nameWithYouSuffix(player?.name ?? "You")
+                          : (player?.name ?? undefined)
+                      }
+                    />
+                    {cue ? (
+                      <span
+                        className={`player-presence-chip player-presence-${cue.kind}${
+                          cue.kind === "away" ? " player-presence-dot" : ""
+                        }`}
+                        title={
+                          cue.kind === "reconnecting"
+                            ? "Reconnecting — seat held"
+                            : "Away — seat held for rejoin"
+                        }
+                        aria-label={
+                          cue.kind === "reconnecting"
+                            ? "reconnecting"
+                            : "away"
+                        }
+                      >
+                        {cue.label}
+                      </span>
+                    ) : null}
+                  </>
+                );
                 return (
                   <th
                     scope="col"
@@ -178,57 +230,25 @@ export function DraftBoard({
                       onClock ? "draft-board-on-clock" : "",
                       onClock ? "draft-board-col-active" : "",
                       cue ? "draft-board-col-away" : "",
+                      skipReady ? "draft-board-col-host-skip" : "",
                     ]
                       .filter(Boolean)
                       .join(" ")}
                   >
-                    <div className="draft-board-name-wrap">
-                      <FitName
-                        className="draft-board-name"
-                        text={mine ? railYouLabel() : (player?.name ?? "")}
-                        title={
-                          mine
-                            ? nameWithYouSuffix(player?.name ?? "You")
-                            : (player?.name ?? undefined)
+                    {skipReady && player ? (
+                      <button
+                        type="button"
+                        className="draft-board-name-wrap draft-board-host-target"
+                        aria-label={`Open skip options for ${player.name}`}
+                        onClick={() =>
+                          setSkipTarget({ id: player.id, name: player.name })
                         }
-                      />
-                      {cue ? (
-                        <span
-                          className={`player-presence-chip player-presence-${cue.kind}`}
-                          title={
-                            cue.kind === "reconnecting"
-                              ? "Reconnecting — seat held"
-                              : "Skipped until they rejoin"
-                          }
-                        >
-                          {cue.label}
-                        </span>
-                      ) : null}
-                      {canHostSkip && onClock && player ? (
-                        <button
-                          type="button"
-                          className={`draft-host-skip-btn${skipArmed ? " draft-host-skip-armed" : ""}`}
-                          aria-label={
-                            skipArmed
-                              ? `Tap again to skip ${player.name}`
-                              : `Skip ${player.name}'s draft turn`
-                          }
-                          onClick={() => {
-                            if (!skipArmed) {
-                              setSkipArmed(true);
-                              return;
-                            }
-                            setSkipArmed(false);
-                            send({
-                              type: "host_skip_draft",
-                              turnIndex: state.draftCursor,
-                            });
-                          }}
-                        >
-                          {skipArmed ? "Skip?" : "Skip"}
-                        </button>
-                      ) : null}
-                    </div>
+                      >
+                        {wrap}
+                      </button>
+                    ) : (
+                      <div className="draft-board-name-wrap">{wrap}</div>
+                    )}
                   </th>
                 );
               })}
@@ -353,6 +373,18 @@ export function DraftBoard({
           </tbody>
         </table>
       </div>
+      <HostSkipSheet
+        open={skipTarget != null}
+        playerName={skipTarget?.name ?? ""}
+        onCancel={() => setSkipTarget(null)}
+        onConfirm={() => {
+          setSkipTarget(null);
+          send({
+            type: "host_skip_draft",
+            turnIndex: state.draftCursor,
+          });
+        }}
+      />
     </div>
   );
 }

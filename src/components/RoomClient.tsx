@@ -528,7 +528,7 @@ export function RoomClient({
               (p) =>
                 p.role === "player" &&
                 !p.connected &&
-                p.presence === "reconnecting",
+                (p.presence === "reconnecting" || p.presence === "away"),
             )
             .map((p) => ({
               id: p.id,

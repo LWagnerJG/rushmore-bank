@@ -88,6 +88,12 @@ export interface Player {
    * Cleared to `live` as soon as they rejoin. Optional on fixtures.
    */
   presence?: PlayerPresence;
+  /**
+   * Wall-clock ms when soft-disconnect started. Cleared on rejoin.
+   * Clients + hibernate recovery use this with `RULES.disconnectActionGraceMs`
+   * so host Skip only appears after the server grace (survives host reload).
+   */
+  disconnectedAt?: number | null;
   isHost: boolean;
   role: PlayerRole;
   /** Seat index among locked roster; null for spectators / pre-lock */
