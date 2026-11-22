@@ -1806,7 +1806,10 @@ export class QuarryServer extends Server<Env> {
     if (changed) bump(this.state);
   }
 
-  /** Host sets 3–6 rounds on the first topic screen only. */
+  /**
+   * Host sets 3–6 rounds (lobby first-topic or mid-game).
+   * Cannot go below the current round; end-of-game uses the new total.
+   */
   handleSetTopicRounds(id: string, rounds: number) {
     if (!this.requireHost(id)) throw new Error("Host only");
     const n = Math.floor(Number(rounds));
@@ -1821,6 +1824,7 @@ export class QuarryServer extends Server<Env> {
     }
     if (this.state.configuredTopicRounds === n) return;
     this.state.configuredTopicRounds = n;
+    this.state.notice = `Host changed game to ${n} rounds`;
     // Bump so re-tapping a prior round chip after another gets a fresh actionId.
     bump(this.state);
   }

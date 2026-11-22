@@ -157,19 +157,41 @@ export function isHostSelectableTopicRounds(n: number): n is HostTopicRounds {
 }
 
 /**
- * Host may change configured rounds only on the first topic screen,
- * before any round has completed.
+ * 1-based round index shown to players (“Round 3 of 8”).
+ * `topicRound` advances when a round finishes (ROUND_RESULTS), so in-progress
+ * phases use topicRound+1; results screens use the completed count.
+ */
+export function displayTopicRound(input: {
+  phase: string;
+  topicRound: number;
+}): number {
+  if (input.phase === "LOBBY") return 0;
+  if (input.phase === "ROUND_RESULTS" || input.phase === "GAME_RESULTS") {
+    return Math.max(1, input.topicRound);
+  }
+  return input.topicRound + 1;
+}
+
+/** Lowest total the host may set without cutting off the current round. */
+export function minHostTopicRounds(input: {
+  phase: string;
+  topicRound: number;
+}): number {
+  return Math.max(1, displayTopicRound(input));
+}
+
+/**
+ * Host may change configured rounds mid-game (not lobby / game-over).
+ * New total must be a host option (3–6) and not below the current round.
  */
 export function canHostSetTopicRounds(input: {
   phase: string;
   topicRound: number;
   rounds: number;
 }): boolean {
-  return (
-    input.phase === "TOPIC_SELECTION" &&
-    input.topicRound === 0 &&
-    isHostSelectableTopicRounds(input.rounds)
-  );
+  if (input.phase === "LOBBY" || input.phase === "GAME_RESULTS") return false;
+  if (!isHostSelectableTopicRounds(input.rounds)) return false;
+  return input.rounds >= minHostTopicRounds(input);
 }
 
 /**

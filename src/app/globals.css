@@ -5818,6 +5818,31 @@ html.settings-sheet-open body {
   max-width: 5.2rem;
 }
 
+.settings-rounds {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin: 0.15rem 0 0.35rem;
+  padding: 0.65rem 0.75rem 0.7rem;
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--cream, #f5f0e7) 55%, #fff);
+}
+.settings-rounds-status {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+.settings-rounds-row {
+  margin: 0;
+}
+.topic-rounds-chip-disabled,
+.topic-rounds-chip:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
 .settings-group {
   display: flex;
   flex-direction: column;

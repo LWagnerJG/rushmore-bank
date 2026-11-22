@@ -39,6 +39,20 @@ describe("topics", () => {
         topicRound: 1,
         rounds: 6,
       }),
+    ).toBe(true);
+    expect(
+      canHostSetTopicRounds({
+        phase: "DRAFT",
+        topicRound: 2,
+        rounds: 3,
+      }),
+    ).toBe(true);
+    expect(
+      canHostSetTopicRounds({
+        phase: "DRAFT",
+        topicRound: 2,
+        rounds: 2,
+      }),
     ).toBe(false);
     expect(topicRoundsForPlayerCount(3)).toBe(3);
     expect(topicRoundsForPlayerCount(9)).toBe(2);

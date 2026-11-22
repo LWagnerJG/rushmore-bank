@@ -392,7 +392,11 @@ export function RoomClient({
             </div>
             {/* Transient status rides in the row's empty middle — never in flow. */}
             <div className="room-chrome-status">
-              <RoomNotice notice={state?.notice} hostOnly isHost={you.isHost} />
+              <RoomNotice
+                notice={state?.notice}
+                hostOnly={Boolean(state?.notice?.startsWith("Admin"))}
+                isHost={you.isHost}
+              />
             </div>
             <div className="room-chrome-end">
               {drafting && state ? (
@@ -522,6 +526,8 @@ export function RoomClient({
         }
         drafting={drafting}
         pickPaused={state?.pickPaused ?? false}
+        topicRound={state?.topicRound ?? 0}
+        configuredTopicRounds={state?.configuredTopicRounds ?? 0}
         awayPlayers={
           state?.players
             .filter(

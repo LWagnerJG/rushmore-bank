@@ -16,7 +16,12 @@ import type {
   Phase,
   PlayerPresence,
 } from "@/shared/types";
-import { RULES } from "@/shared/rules";
+import {
+  RULES,
+  canHostSetTopicRounds,
+  displayTopicRound,
+  minHostTopicRounds,
+} from "@/shared/rules";
 import { inviteUrl } from "@/shared/install-join";
 import { shareInvite } from "@/lib/share-invite";
 import { HostAiJudgeCue } from "./HostAiJudgeCue";
@@ -188,6 +193,8 @@ function SettingsSheetImpl({
   rosterLocked = false,
   /** Soft-disconnected seats the host can unstick mid-game. */
   awayPlayers = [],
+  topicRound = 0,
+  configuredTopicRounds = 0,
   /** When opening, jump to this panel (or expand avatar picker). */
   initialPanel = "main",
 }: {
@@ -210,6 +217,9 @@ function SettingsSheetImpl({
   canRename?: boolean;
   rosterLocked?: boolean;
   awayPlayers?: { id: string; name: string; presence?: PlayerPresence }[];
+  /** Server topicRound (0-based until first result). */
+  topicRound?: number;
+  configuredTopicRounds?: number;
   initialPanel?: InitialPanel;
 }) {
   const roomCode = (_roomCode ?? "").trim().toUpperCase();
@@ -554,6 +564,71 @@ function SettingsSheetImpl({
                   No games yet
                 </p>
               )}
+
+              {rosterLocked &&
+              configuredTopicRounds > 0 &&
+              currentPhase &&
+              currentPhase !== "LOBBY" ? (
+                <section
+                  className="settings-rounds"
+                  aria-label="Game rounds"
+                >
+                  <p className="settings-rounds-status type-display">
+                    Round {displayTopicRound({
+                      phase: currentPhase,
+                      topicRound,
+                    })}{" "}
+                    of {configuredTopicRounds}
+                  </p>
+                  {isHost && send ? (
+                    <div
+                      className="topic-rounds-row settings-rounds-row"
+                      role="group"
+                      aria-label="Change number of rounds"
+                    >
+                      <span className="topic-rounds-label">Rounds</span>
+                      <div className="topic-rounds-chips">
+                        {RULES.topicRoundsHostOptions.map((n) => {
+                          const allowed = canHostSetTopicRounds({
+                            phase: currentPhase,
+                            topicRound,
+                            rounds: n,
+                          });
+                          const on = configuredTopicRounds === n;
+                          return (
+                            <button
+                              key={n}
+                              type="button"
+                              className={
+                                "topic-rounds-chip" +
+                                (on ? " topic-rounds-chip-on" : "") +
+                                (!allowed ? " topic-rounds-chip-disabled" : "")
+                              }
+                              aria-pressed={on}
+                              disabled={!allowed}
+                              data-rounds={n}
+                              title={
+                                allowed
+                                  ? `Play ${n} rounds`
+                                  : `Can't go below round ${minHostTopicRounds({
+                                      phase: currentPhase,
+                                      topicRound,
+                                    })}`
+                              }
+                              onClick={() => {
+                                if (!allowed) return;
+                                send({ type: "set_topic_rounds", rounds: n });
+                              }}
+                            >
+                              {n}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : null}
+                </section>
+              ) : null}
 
               {roomCode ? (
                 <section
