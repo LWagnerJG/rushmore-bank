@@ -119,6 +119,7 @@ function baseState(): PublicRoomState {
     partyBustRedoUsedIds: [],
     diceIdlePauseRemainingMs: null,
     bustedPlayerIdsThisRound: [],
+    roundRecaps: [],
     phaseDeadlineAt: null,
     hostLastSeenAt: Date.now(),
     stateVersion: 1,

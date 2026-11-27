@@ -227,7 +227,7 @@ describe("results docks", () => {
     expect(findAll(tree, has("phase-sticky-cta"))).toHaveLength(0);
   });
 
-  it("final standings: ready count + Rematch dock, Home follows", () => {
+  it("final standings: ready count + Rematch/Share dock, Home follows", () => {
     const s = revealed(roomAt("GAME_RESULTS", (r) => {
       r.gameOver = true;
       r.rematchReady = { a: true };
@@ -236,7 +236,12 @@ describe("results docks", () => {
     const panel = tree.children[0]!;
     const dock = panel.children.find(has("phase-sticky-cta"))!;
     expect(dock.parent).toBe(panel);
-    expect(dock.children.map((c) => c.text)).toEqual(["1/3 ready", "Rematch"]);
+    expect(dock.children[0]?.text).toBe("1/3 ready");
+    const cta = dock.children.find(has("endgame-cta-row"));
+    expect(cta).toBeTruthy();
+    expect(cta!.text).toMatch(/Rematch/);
+    expect(cta!.text).toMatch(/Share/);
+    expect(findAll(tree, has("endgame-share-btn")).length).toBeGreaterThan(0);
     const after = panel.children[panel.children.indexOf(dock) + 1]!;
     expect(after.tag).toBe("a");
     expect(after.cls).toEqual(expect.arrayContaining(["endgame-home", "dock-trailing"]));
