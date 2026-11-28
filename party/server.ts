@@ -59,6 +59,7 @@ import {
   takenFromPicks,
   upsertDraftPick,
   validateAndMapJudgments,
+  fisherYatesShuffle,
 } from "../src/shared/engine";
 import {
   botDelayMs,
@@ -1846,8 +1847,8 @@ export class QuarryServer extends Server<Env> {
       throw new Error("Too many players");
     }
 
-    // Lock roster + assign seats (shuffle)
-    const shuffled = [...hopeful].sort(() => Math.random() - 0.5);
+    // Lock roster + assign seats (crypto Fisher–Yates — no join/host bias).
+    const shuffled = fisherYatesShuffle(hopeful);
     this.state.players = this.state.players.map((p) => {
       if (p.role !== "player") return { ...p, seat: null };
       const idx = shuffled.findIndex((s) => s.id === p.id);
@@ -2895,6 +2896,22 @@ export class QuarryServer extends Server<Env> {
     await this.beginDice();
   }
 
+  /**
+   * Crypto Fisher–Yates reshuffle of seatOrder + player.seat indices.
+   * Used at game start and at the start of every dice round so first roller
+   * and full roll order are fair — never join order / host / index 0.
+   */
+  private reshuffleSeatOrder() {
+    if (this.state.seatOrder.length <= 1) return;
+    const shuffled = fisherYatesShuffle(this.state.seatOrder);
+    this.state.seatOrder = shuffled;
+    this.state.players = this.state.players.map((p) => {
+      if (p.role !== "player") return { ...p, seat: null };
+      const idx = shuffled.indexOf(p.id);
+      return { ...p, seat: idx >= 0 ? idx : null };
+    });
+  }
+
   async beginDice() {
     this.state.phase = "DICE";
     this.state.diceRoundStartedAt = Date.now();
@@ -2904,6 +2921,8 @@ export class QuarryServer extends Server<Env> {
     this.state.bustedPlayerIdsThisRound = [];
     this.state.diceIdlePauseRemainingMs = null;
     this.state.partyPrompt = null;
+    // Fresh random roll order every dice round (full permutation).
+    this.reshuffleSeatOrder();
     const first = this.state.seatOrder.find((id) =>
       this.state.diceActiveIds.includes(id),
     );
