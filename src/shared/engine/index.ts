@@ -26,7 +26,17 @@ export {
   fallbackAiAward,
   clampInt,
 } from "./scoring";
-export { rollD6, roll2d6, mulberry32, hashSeed } from "./rng";
+export {
+  rollD6,
+  roll2d6,
+  mulberry32,
+  mulberry32Uint32,
+  hashSeed,
+  cryptoRandom,
+  cryptoRandomUint32,
+  randomInt,
+  fisherYatesShuffle,
+} from "./rng";
 export {
   projectPublicState,
   projectPublicStateShared,

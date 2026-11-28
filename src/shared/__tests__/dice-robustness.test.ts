@@ -7,6 +7,7 @@ import type { Connection } from "partyserver";
 import { afterEach, beforeEach, describe, it, vi } from "vitest";
 import { QuarryServer } from "../../../party/server";
 import { createTestServer } from "../../../test/party-server-harness";
+import { pinSeatOrder } from "../../../test/pin-seat-order";
 
 const START = 1_800_000_000_000;
 
@@ -45,6 +46,7 @@ async function beginDice(server: QuarryServer, pots?: Record<string, number>) {
   }
   server.state.diceActiveIds = ["A", "B", "C"];
   await server.beginDice();
+  pinSeatOrder(server, ["A", "B", "C"]);
 }
 
 describe("dice table robustness", () => {

@@ -3,6 +3,7 @@ import type { Connection } from "partyserver";
 import { afterEach, beforeEach, describe, it, vi } from "vitest";
 import { QuarryServer } from "../../../party/server";
 import { createTestServer } from "../../../test/party-server-harness";
+import { pinSeatOrder } from "../../../test/pin-seat-order";
 import { RULES } from "../rules";
 
 const START = 1_800_000_000_000;
@@ -51,6 +52,7 @@ async function dice(server: QuarryServer) {
   server.state.protectedStones = { A: 20, B: 20, C: 20 };
   server.state.diceActiveIds = ["A", "B", "C"];
   await server.beginDice();
+  pinSeatOrder(server, ["A", "B", "C"]);
 }
 
 describe("authoritative deadlines across reconnects", () => {

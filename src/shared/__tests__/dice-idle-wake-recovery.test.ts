@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import type { Connection } from "partyserver";
 import { afterEach, beforeEach, describe, it, vi } from "vitest";
 import { createTestServer } from "../../../test/party-server-harness";
+import { pinSeatOrder } from "../../../test/pin-seat-order";
 import { RULES } from "../rules";
 
 const START = 1_800_000_000_000;
@@ -40,6 +41,7 @@ async function readyIdle(server: ReturnType<typeof game>["server"]) {
   server.state.protectedStones = { A: 20, B: 20 };
   server.state.diceActiveIds = ["A", "B"];
   await server.beginDice();
+  pinSeatOrder(server, ["A", "B"]);
   assert.equal(server.state.diceSubphase, "READY");
   assert.ok(server.state.diceIdleDeadlineAt);
   assert.equal(

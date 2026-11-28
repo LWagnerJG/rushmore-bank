@@ -9,6 +9,7 @@ import type { Connection } from "partyserver";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { QuarryServer } from "../../../party/server";
 import { createTestServer } from "../../../test/party-server-harness";
+import { pinSeatOrder } from "../../../test/pin-seat-order";
 import {
   DICE_HARD_LAND_MS,
   authoritativeFaces,
@@ -58,6 +59,7 @@ async function beginDice(server: QuarryServer) {
   server.state.protectedStones = { A: 20, B: 20 };
   server.state.diceActiveIds = ["A", "B"];
   await server.beginDice();
+  pinSeatOrder(server, ["A", "B"]);
 }
 
 function tumbling(

@@ -11,6 +11,7 @@ import assert from "node:assert/strict";
 import type { Connection } from "partyserver";
 import { afterEach, beforeEach, describe, it, vi } from "vitest";
 import { createTestServer } from "../../../test/party-server-harness";
+import { pinSeatOrder } from "../../../test/pin-seat-order";
 import type { RoomState } from "../types";
 
 const START = 1_800_000_000_000;
@@ -34,6 +35,7 @@ async function diceTable(code = "BANKDISC") {
   server.state.protectedStones = { A: 20, B: 20 };
   server.state.diceActiveIds = ["A", "B"];
   await server.beginDice();
+  pinSeatOrder(server, ["A", "B"]);
   return harness;
 }
 
